@@ -102,7 +102,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }
 }
 
-// Entry point
+// Entry point — touch AppConfig early so the lazy load fires (and any
+// config-load errors land before the window appears).
+let _bootCfg = AppConfig.current
+NSLog("[vestal] config loaded: \(_bootCfg.sources.count) sources, \(_bootCfg.widgets.count) widgets, \(_bootCfg.views.count) views (version \(_bootCfg.version))")
+
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 let delegate = AppDelegate()
