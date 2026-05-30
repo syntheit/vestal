@@ -227,12 +227,11 @@ struct DashboardView: View {
 
     // MARK: - Sections
 
-    // World clock cities — skip any matching local timezone
-    private static let worldClocks: [(label: String, tz: String)] = [
-        ("BA", "America/Argentina/Buenos_Aires"),
-        ("NYC", "America/New_York"),
-        ("CHI", "America/Chicago"),
-    ]
+    // World clock cities — read from config. Skip any matching local timezone
+    // happens in worldClockRow below. Defaults bundled in DefaultConfig.swift.
+    private static var worldClocks: [(label: String, tz: String)] {
+        AppConfig.current.widgets["clock"]?.worldClocks?.map { ($0.label, $0.tz) } ?? []
+    }
 
     private var clockSection: some View {
         VStack(spacing: 4) {
