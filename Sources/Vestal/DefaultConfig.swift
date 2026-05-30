@@ -67,13 +67,13 @@ enum DefaultConfig {
             ),
             "systems": WidgetConfig(
                 type: "systemHealth",
-                provider: "foyer",
                 hosts: [
                     HostConfig(name: "swift",   source: "local"),
                     HostConfig(name: "harbor",  url: "https://harbor.matv.io"),
                     HostConfig(name: "raven",   url: "https://raven.matv.io"),
                     HostConfig(name: "conduit", url: "https://conduit.matv.io"),
-                ]
+                ],
+                provider: "foyer"
             ),
             "exchange": WidgetConfig(
                 type: "keyValueList",
