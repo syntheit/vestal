@@ -32,21 +32,7 @@ extension Config: Codable {
         widgets = try c.decodeIfPresent([String: WidgetConfig].self, forKey: .widgets) ?? [:]
         views   = try c.decodeIfPresent([String: ViewConfig].self, forKey: .views) ?? [:]
     }
-    init(
-        version: Int = 1,
-        hotkey: String? = nil,
-        theme: ThemeConfig = ThemeConfig(),
-        sources: [String: SourceConfig] = [:],
-        widgets: [String: WidgetConfig] = [:],
-        views: [String: ViewConfig] = [:]
-    ) {
-        self.version = version
-        self.hotkey = hotkey
-        self.theme = theme
-        self.sources = sources
-        self.widgets = widgets
-        self.views = views
-    }
+    // Memberwise init is auto-synthesized — defining it explicitly conflicts.
 }
 
 // MARK: - Theme
