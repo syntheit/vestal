@@ -53,15 +53,16 @@ enum AsyncData {
     }
 
     static func getWeather() async -> WeatherInfo? {
-        if let cached = readCache("weather") {
-            return parseWeather(cached)
-        }
-        // Use JSON API for reliable location names (%l can return coordinates)
-        guard let url = URL(string: "https://wttr.in/?m&format=j1") else { return nil }
-        var request = URLRequest(url: url, timeoutInterval: 10)
-        request.setValue("curl", forHTTPHeaderField: "User-Agent")
-        guard let (data, _) = try? await URLSession.shared.data(for: request),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        // Routed through AppRuntime: the runtime owns the fetch schedule + cache.
+        // We just parse whatever raw JSON it has on hand.
+        guard let data = await AppRuntime.shared.waitForData("weather") else { return nil }
+        return parseWeatherJSON(data)
+    }
+
+    /// Pure parse from wttr.in's `format=j1` JSON response → WeatherInfo.
+    /// Lifted out of getWeather so the runtime can call it on any raw payload.
+    private static func parseWeatherJSON(_ data: Data) -> WeatherInfo? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return nil }
 
         let nearest = (json["nearest_area"] as? [[String: Any]])?.first
@@ -72,13 +73,23 @@ enum AsyncData {
         let region = (nearest?["region"] as? [[String: Any]])?.first?["value"] as? String ?? ""
         let location = region.isEmpty ? area : "\(area), \(region)"
         let condition = (current?["weatherDesc"] as? [[String: Any]])?.first?["value"] as? String ?? ""
-        let tempC = current?["temp_C"] as? String ?? ""
-        let sunrise = astro?["sunrise"] as? String ?? ""
-        let sunset = astro?["sunset"] as? String ?? ""
 
-        let cacheStr = "\(location)|\(condition)|\(tempC)°C|\(sunrise)|\(sunset)"
-        writeCache("weather", cacheStr)
-        return parseWeather(cacheStr)
+        var tempStr = current?["temp_C"] as? String ?? ""
+        if tempStr.hasPrefix("+") { tempStr = String(tempStr.dropFirst()) }
+        let temp = tempStr.isEmpty ? "" : "\(tempStr)°C"
+
+        let sr = cleanTime(astro?["sunrise"] as? String ?? "")
+        let ss = cleanTime(astro?["sunset"] as? String ?? "")
+        let sunrise: String? = sr.contains(":") ? sr : nil
+        let sunset:  String? = ss.contains(":") ? ss : nil
+
+        return WeatherInfo(
+            location: location,
+            condition: condition,
+            temp: temp,
+            sunrise: sunrise,
+            sunset: sunset
+        )
     }
 
     /// Convert "06:15 AM" / "07:30 PM" / "06:44:45" to 24h "6:15" / "19:30" (strips seconds)
@@ -130,45 +141,46 @@ enum AsyncData {
     }
 
     static func getExchange() async -> [ExchangeRate] {
-        if let cached = readCache("exchange"), let parsed = parseExchange(cached) {
-            return parsed
-        }
-        var rates: [ExchangeRate] = []
+        // Combine the two underlying sources. Each is independently fetched
+        // and cached by the runtime; we just parse whatever it has.
+        async let dolaresData = AppRuntime.shared.waitForData("dolares")
+        async let ratesData   = AppRuntime.shared.waitForData("rates")
+        var combined: [ExchangeRate] = []
+        if let d = await dolaresData { combined.append(contentsOf: parseDolaresJSON(d)) }
+        if let r = await ratesData   { combined.append(contentsOf: parseRatesJSON(r))   }
+        return combined
+    }
 
-        // ARS (dolar blue, oficial, mep)
-        if let url = URL(string: "https://dolarapi.com/v1/dolares"),
-           let (data, _) = try? await URLSession.shared.data(from: url),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-            let targets = ["blue", "oficial", "bolsa"]
-            let labels = ["blue": "Blue", "oficial": "Official", "bolsa": "MEP"]
-            for casa in targets {
-                if let item = json.first(where: { $0["casa"] as? String == casa }),
-                   let buy = item["compra"] as? Double,
-                   let sell = item["venta"] as? Double {
-                    let label = labels[casa] ?? casa
-                    rates.append(ExchangeRate(
-                        label: label,
-                        buy: String(Int(buy)),
-                        sell: String(Int(sell))
-                    ))
-                }
+    /// Pure parse of dolarapi.com/v1/dolares JSON → Argentine rates.
+    private static func parseDolaresJSON(_ data: Data) -> [ExchangeRate] {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+        else { return [] }
+        let targets = ["blue", "oficial", "bolsa"]
+        let labels  = ["blue": "Blue", "oficial": "Official", "bolsa": "MEP"]
+        var rates: [ExchangeRate] = []
+        for casa in targets {
+            if let item = json.first(where: { $0["casa"] as? String == casa }),
+               let buy = item["compra"] as? Double,
+               let sell = item["venta"] as? Double
+            {
+                let label = labels[casa] ?? casa
+                rates.append(ExchangeRate(
+                    label: label,
+                    buy: String(Int(buy)),
+                    sell: String(Int(sell))
+                ))
             }
         }
-
-        // BRL
-        if let url = URL(string: "https://raw.githubusercontent.com/syntheit/exchange-rates/refs/heads/main/rates.json"),
-           let (data, _) = try? await URLSession.shared.data(from: url),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let ratesObj = json["rates"] as? [String: Any],
-           let brl = ratesObj["BRL"] as? Double {
-            let rounded = String(format: "%.2f", brl)
-            rates.append(ExchangeRate(label: "BRL", buy: rounded, sell: ""))
-        }
-
-        // Cache the result
-        let cacheStr = rates.map { "\($0.label)|\($0.buy)|\($0.sell)" }.joined(separator: "\n")
-        writeCache("exchange", cacheStr)
         return rates
+    }
+
+    /// Pure parse of syntheit/exchange-rates rates.json → BRL row.
+    private static func parseRatesJSON(_ data: Data) -> [ExchangeRate] {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let ratesObj = json["rates"] as? [String: Any],
+              let brl = ratesObj["BRL"] as? Double
+        else { return [] }
+        return [ExchangeRate(label: "BRL", buy: String(format: "%.2f", brl), sell: "")]
     }
 
     private static func parseExchange(_ raw: String) -> [ExchangeRate]? {
