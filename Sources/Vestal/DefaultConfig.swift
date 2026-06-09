@@ -158,20 +158,4 @@ extension WidgetConfig {
     }
 }
 
-extension PickItem {
-    init(
-        label: String,
-        source: String? = nil,
-        match: [String: AnyJSON]? = nil,
-        pick: String? = nil,
-        picks: [String: String]? = nil,
-        format: String? = nil
-    ) {
-        self.label = label
-        self.source = source
-        self.match = match
-        self.pick = pick
-        self.picks = picks
-        self.format = format
-    }
-}
+// Memberwise init auto-synthesized — defining it explicitly would conflict.
