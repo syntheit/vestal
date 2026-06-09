@@ -31,7 +31,7 @@
             # Sed the placeholder in BuildInfo.swift with the actual flake
             # rev so the info popup reports the source it came from.
             substituteInPlace Sources/Vestal/BuildInfo.swift \
-              --replace VESTAL_COMMIT_PLACEHOLDER ${buildCommit}
+              --replace-fail VESTAL_COMMIT_PLACEHOLDER ${buildCommit}
             swiftc -O \
               -framework AppKit \
               -framework SwiftUI \
