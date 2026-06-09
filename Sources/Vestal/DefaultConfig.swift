@@ -63,7 +63,7 @@ enum DefaultConfig {
             "agenda": WidgetConfig(
                 type: "agendaList",
                 source: "calendar",
-                maxEvents: 6
+                maxEvents: 5
             ),
             "systems": WidgetConfig(
                 type: "systemHealth",
