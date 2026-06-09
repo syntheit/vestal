@@ -141,46 +141,115 @@ enum AsyncData {
     }
 
     static func getExchange() async -> [ExchangeRate] {
-        // Combine the two underlying sources. Each is independently fetched
-        // and cached by the runtime; we just parse whatever it has.
-        async let dolaresData = AppRuntime.shared.waitForData("dolares")
-        async let ratesData   = AppRuntime.shared.waitForData("rates")
-        var combined: [ExchangeRate] = []
-        if let d = await dolaresData { combined.append(contentsOf: parseDolaresJSON(d)) }
-        if let r = await ratesData   { combined.append(contentsOf: parseRatesJSON(r))   }
-        return combined
-    }
+        // Config-driven: items come from widgets.exchange.items in the config.
+        // Each item may use the widget's default source or specify its own.
+        guard let widget = AppConfig.current.widgets["exchange"],
+              let items = widget.items else { return [] }
 
-    /// Pure parse of dolarapi.com/v1/dolares JSON → Argentine rates.
-    private static func parseDolaresJSON(_ data: Data) -> [ExchangeRate] {
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
-        else { return [] }
-        let targets = ["blue", "oficial", "bolsa"]
-        let labels  = ["blue": "Blue", "oficial": "Official", "bolsa": "MEP"]
-        var rates: [ExchangeRate] = []
-        for casa in targets {
-            if let item = json.first(where: { $0["casa"] as? String == casa }),
-               let buy = item["compra"] as? Double,
-               let sell = item["venta"] as? Double
-            {
-                let label = labels[casa] ?? casa
-                rates.append(ExchangeRate(
-                    label: label,
-                    buy: String(Int(buy)),
-                    sell: String(Int(sell))
-                ))
+        let defaultSource = widget.source ?? ""
+
+        // Collect every source we'll need + wait on each in parallel.
+        let sourceNames: Set<String> = Set(items.map { $0.source ?? defaultSource }
+            .filter { !$0.isEmpty })
+
+        var parsedBySource: [String: Any] = [:]
+        await withTaskGroup(of: (String, Any?).self) { group in
+            for src in sourceNames {
+                group.addTask {
+                    guard let data = await AppRuntime.shared.waitForData(src) else { return (src, nil) }
+                    return (src, try? JSONSerialization.jsonObject(with: data))
+                }
+            }
+            for await (src, obj) in group {
+                if let o = obj { parsedBySource[src] = o }
             }
         }
-        return rates
+
+        // Preserve config order.
+        return items.compactMap { item in
+            let srcName = item.source ?? defaultSource
+            guard let root = parsedBySource[srcName] else { return nil }
+            return resolveExchangeItem(item, against: root)
+        }
     }
 
-    /// Pure parse of syntheit/exchange-rates rates.json → BRL row.
-    private static func parseRatesJSON(_ data: Data) -> [ExchangeRate] {
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let ratesObj = json["rates"] as? [String: Any],
-              let brl = ratesObj["BRL"] as? Double
-        else { return [] }
-        return [ExchangeRate(label: "BRL", buy: String(format: "%.2f", brl), sell: "")]
+    /// Apply a PickItem against parsed JSON. Handles array-of-objects with
+    /// match selector + dict-keyed extraction (single via `pick`, multi via
+    /// `picks`), then formats per `format`.
+    private static func resolveExchangeItem(_ item: PickItem, against root: Any) -> ExchangeRate? {
+        // Step 1: locate the element. If `match` is set + root is an array,
+        // find the first element whose fields match all entries.
+        let element: Any
+        if let match = item.match, let array = root as? [Any] {
+            guard let matched = array.lazy.compactMap({ $0 as? [String: Any] })
+                .first(where: { dict in
+                    match.allSatisfy { key, value in value.matches(dict[key]) }
+                })
+            else { return nil }
+            element = matched
+        } else {
+            element = root
+        }
+
+        // Step 2: extract value(s).
+        if let picks = item.picks {
+            let buyKey = picks["buy"] ?? ""
+            let sellKey = picks["sell"] ?? ""
+            return ExchangeRate(
+                label: item.label,
+                buy:  formatValue(lookupValue(buyKey,  in: element), format: item.format),
+                sell: formatValue(lookupValue(sellKey, in: element), format: item.format)
+            )
+        }
+        if let pick = item.pick {
+            return ExchangeRate(
+                label: item.label,
+                buy:  formatValue(lookupValue(pick, in: element), format: item.format),
+                sell: ""
+            )
+        }
+        return nil
+    }
+
+    /// Walk a dot-path ("rates.BRL", "items.0.name") against parsed JSON.
+    /// Empty path returns the input. Returns nil if any segment fails.
+    private static func lookupValue(_ path: String, in element: Any) -> Any? {
+        let parts = path.split(separator: ".").map(String.init).filter { !$0.isEmpty }
+        if parts.isEmpty { return element }
+        var current: Any? = element
+        for part in parts {
+            if let dict = current as? [String: Any] {
+                current = dict[part]
+            } else if let arr = current as? [Any], let idx = Int(part) {
+                current = (idx >= 0 && idx < arr.count) ? arr[idx] : nil
+            } else {
+                return nil
+            }
+        }
+        return current
+    }
+
+    /// Format a raw JSON value per format hint. Coerces Int/Double/String
+    /// numeric values; falls back to default string rep for non-numeric.
+    private static func formatValue(_ value: Any?, format: String?) -> String {
+        guard let value = value else { return "" }
+        var asDouble: Double?
+        if let d = value as? Double { asDouble = d }
+        else if let i = value as? Int { asDouble = Double(i) }
+        else if let s = value as? String, let d = Double(s) { asDouble = d }
+
+        switch format {
+        case "int", "integer":
+            if let d = asDouble { return String(Int(d)) }
+        case "decimal", "%.2f":
+            if let d = asDouble { return String(format: "%.2f", d) }
+        default:
+            if let s = value as? String { return s }
+            if let d = asDouble {
+                return d == d.rounded() ? String(Int(d)) : String(format: "%.2f", d)
+            }
+        }
+        return "\(value)"
     }
 
     private static func parseExchange(_ raw: String) -> [ExchangeRate]? {
