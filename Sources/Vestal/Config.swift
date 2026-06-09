@@ -145,8 +145,11 @@ struct HostConfig: Codable {
 
 struct PickItem: Codable {
     var label: String
-    var pick: String?                  // dot path within source data
+    var source: String?                // optional per-item source override (defaults to widget's source)
     var match: [String: AnyJSON]?      // exact-match selector for array sources
+    var pick: String?                  // single-value dot path within matched element
+    var picks: [String: String]?       // multi-value: e.g. { buy = "compra"; sell = "venta"; }
+    var format: String?                // "int" | "decimal" | nil (raw string)
 }
 
 struct FixedLocation: Codable {

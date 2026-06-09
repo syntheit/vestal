@@ -80,9 +80,22 @@ enum DefaultConfig {
                 title: "Exchange",
                 source: "dolares",
                 items: [
-                    PickItem(label: "Blue", match: ["casa": .string("blue")],   pick: "venta"),
-                    PickItem(label: "MEP",  match: ["casa": .string("bolsa")],  pick: "venta"),
-                    PickItem(label: "CCL",  match: ["casa": .string("contadoconliqui")], pick: "venta"),
+                    PickItem(label: "Blue",
+                             match: ["casa": .string("blue")],
+                             picks: ["buy": "compra", "sell": "venta"],
+                             format: "int"),
+                    PickItem(label: "Official",
+                             match: ["casa": .string("oficial")],
+                             picks: ["buy": "compra", "sell": "venta"],
+                             format: "int"),
+                    PickItem(label: "MEP",
+                             match: ["casa": .string("bolsa")],
+                             picks: ["buy": "compra", "sell": "venta"],
+                             format: "int"),
+                    PickItem(label: "BRL",
+                             source: "rates",
+                             pick: "rates.BRL",
+                             format: "decimal"),
                 ]
             ),
             "weather": WidgetConfig(
@@ -146,9 +159,19 @@ extension WidgetConfig {
 }
 
 extension PickItem {
-    init(label: String, match: [String: AnyJSON]? = nil, pick: String? = nil) {
+    init(
+        label: String,
+        source: String? = nil,
+        match: [String: AnyJSON]? = nil,
+        pick: String? = nil,
+        picks: [String: String]? = nil,
+        format: String? = nil
+    ) {
         self.label = label
+        self.source = source
         self.match = match
         self.pick = pick
+        self.picks = picks
+        self.format = format
     }
 }
