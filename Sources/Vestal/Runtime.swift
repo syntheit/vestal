@@ -1,13 +1,12 @@
 import Foundation
-import Observation
 
 // MARK: - AppRuntime
 //
 // Central source registry + fetch scheduler. Each source declared in the
-// config gets its own background fetch loop. Snapshots are stored in an
-// @Observable container so SwiftUI views can observe changes; widgets that
-// don't yet directly observe (the existing `AsyncData.get*` async APIs)
-// read the cached data from snapshots[name].data.
+// config gets its own background fetch loop. Widgets currently read the
+// cached data via polling (AsyncData.getWeather etc. → waitForData). When
+// we add reactive widget observation, re-attach @Observable here and
+// switch the Nix build to `swift build` (SPM) so macro plugins load.
 //
 // Disk cache lives at ~/Library/Caches/Vestal/<source>.json — populated
 // synchronously on `start()` so the first frame after launch is instant.
@@ -16,7 +15,6 @@ import Observation
 // stay on their existing AsyncData paths until C3b/C4.
 
 @MainActor
-@Observable
 final class AppRuntime {
     static let shared = AppRuntime()
 
