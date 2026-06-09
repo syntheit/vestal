@@ -31,6 +31,7 @@ struct DashboardView: View {
     @State private var claudeUsage = ClaudeUsage.Snapshot.zero
     @State private var expandedHost: String?
     @State private var expandedDetail: AsyncData.ServerDetail?
+    @State private var showingInfo: Bool = false
 
     // Volume via CoreAudio is instant (<1ms), Spotify needs AppleScript cache
     @State private var volume = SystemBridge.getVolume()
@@ -91,8 +92,17 @@ struct DashboardView: View {
                 SystemDetailView(detail: expandedDetail, host: host)
                     .transition(.opacity.combined(with: .scale(scale: 0.97)))
             }
+
+            if showingInfo {
+                Color.black.opacity(0.65)
+                    .ignoresSafeArea()
+                    .onTapGesture { showingInfo = false }
+                InfoView()
+                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
+            }
         }
         .animation(.easeInOut(duration: 0.18), value: expandedHost)
+        .animation(.easeInOut(duration: 0.18), value: showingInfo)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(appeared ? .easeInOut(duration: 0.3) : nil, value: servers.count)
         .animation(appeared ? .easeInOut(duration: 0.3) : nil, value: exchange.count)
@@ -161,8 +171,20 @@ struct DashboardView: View {
         .onReceive(NotificationCenter.default.publisher(for: .dashboardCloseExpanded)) { _ in
             expandedHost = nil
         }
+        .onReceive(NotificationCenter.default.publisher(for: .dashboardToggleInfo)) { _ in
+            // Close host expansion if open, then toggle info. Avoids two overlays at once.
+            if expandedHost != nil { expandedHost = nil; expandedDetail = nil }
+            showingInfo.toggle()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .dashboardCloseInfo)) { _ in
+            showingInfo = false
+        }
         .onChange(of: expandedHost) { _, new in
-            DashboardExpansionState.shared.isOpen = (new != nil)
+            DashboardExpansionState.shared.isOpen = (new != nil) || showingInfo
+        }
+        .onChange(of: showingInfo) { _, new in
+            DashboardExpansionState.shared.isOpen = (expandedHost != nil) || new
+            DashboardExpansionState.shared.infoOpen = new
         }
     }
 
@@ -663,6 +685,8 @@ struct MiniBar: View {
 extension Notification.Name {
     static let dashboardExpandHost = Notification.Name("dashboardExpandHost")
     static let dashboardCloseExpanded = Notification.Name("dashboardCloseExpanded")
+    static let dashboardToggleInfo = Notification.Name("dashboardToggleInfo")
+    static let dashboardCloseInfo = Notification.Name("dashboardCloseInfo")
 }
 
 // Read by AppDelegate so the Esc keystroke can choose between closing the
@@ -670,5 +694,6 @@ extension Notification.Name {
 // the synchronous "did anyone consume this" decision the keyDown monitor needs.
 final class DashboardExpansionState {
     static let shared = DashboardExpansionState()
-    var isOpen: Bool = false
+    var isOpen: Bool = false      // true if any overlay (host or info) is showing
+    var infoOpen: Bool = false    // routes Esc to close info specifically
 }

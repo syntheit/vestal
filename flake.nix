@@ -12,6 +12,10 @@
       ];
       forAllSystems =
         f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
+      # Short commit hash for BuildInfo. `self.shortRev` is null on a dirty
+      # tree (uncommitted changes); fall back to a marker so the info popup
+      # still reads something.
+      buildCommit = self.shortRev or "dirty";
     in
     {
       packages = forAllSystems (pkgs: rec {
@@ -24,6 +28,10 @@
 
           buildPhase = ''
             runHook preBuild
+            # Sed the placeholder in BuildInfo.swift with the actual flake
+            # rev so the info popup reports the source it came from.
+            substituteInPlace Sources/Vestal/BuildInfo.swift \
+              --replace VESTAL_COMMIT_PLACEHOLDER ${buildCommit}
             swiftc -O \
               -framework AppKit \
               -framework SwiftUI \

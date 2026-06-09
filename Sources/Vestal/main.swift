@@ -56,11 +56,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Key event monitor
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.keyCode == 53 { // Escape
+                if DashboardExpansionState.shared.infoOpen {
+                    NotificationCenter.default.post(name: .dashboardCloseInfo, object: nil)
+                    return nil
+                }
                 if DashboardExpansionState.shared.isOpen {
                     NotificationCenter.default.post(name: .dashboardCloseExpanded, object: nil)
                     return nil
                 }
                 self?.gracefulQuit()
+                return nil
+            }
+            // Option+I → toggle info popup. Modifier-augmented so it doesn't
+            // collide with a future host whose name starts with 'i' (ionian).
+            if event.modifierFlags.contains(.option),
+               event.charactersIgnoringModifiers == "i"
+            {
+                NotificationCenter.default.post(name: .dashboardToggleInfo, object: nil)
                 return nil
             }
             if let host = Self.hostKeyMap[event.charactersIgnoringModifiers ?? ""] {
