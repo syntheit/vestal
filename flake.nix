@@ -30,8 +30,10 @@
             runHook preBuild
             # Sed the placeholder in BuildInfo.swift with the actual flake
             # rev so the info popup reports the source it came from.
+            # Replace the full literal assignment so we don't accidentally
+            # touch the word "dev" anywhere else in the file (comments etc).
             substituteInPlace Sources/Vestal/BuildInfo.swift \
-              --replace-fail VESTAL_COMMIT_PLACEHOLDER ${buildCommit}
+              --replace-fail 'let commit  = "dev"' 'let commit  = "${buildCommit}"'
             swiftc -O \
               -framework AppKit \
               -framework SwiftUI \
