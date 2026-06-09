@@ -95,6 +95,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NSApp.terminate(nil)
             }
         }
+
+        // Spin up the runtime: kicks off background fetch loops for every
+        // HTTP source declared in config (weather, dolares, rates, ...).
+        // Hydrates from disk cache synchronously so the first frame is fed.
+        AppRuntime.shared.start()
     }
 
     func gracefulQuit() {
