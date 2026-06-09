@@ -37,12 +37,16 @@ struct DashboardView: View {
     @State private var volume = SystemBridge.getVolume()
     @State private var spotify = SystemBridge.getCachedSpotify()
 
-    // Slow data loaded from cache synchronously (instant if cached, empty if not)
-    private static let foyerServers: [AsyncData.FoyerConfig] = [
-        AsyncData.FoyerConfig(name: "harbor", url: "https://harbor.matv.io"),
-        AsyncData.FoyerConfig(name: "raven", url: "https://raven.matv.io"),
-        AsyncData.FoyerConfig(name: "conduit", url: "https://conduit.matv.io"),
-    ]
+    // Remote foyer hosts come from config. The local entry (source: "local")
+    // is rendered separately in `allSystems` below using SystemBridge data.
+    // Missing config → empty list, no remote hosts shown.
+    private static var foyerServers: [AsyncData.FoyerConfig] {
+        AppConfig.current.widgets["systems"]?.hosts?
+            .compactMap { host in
+                guard host.source != "local", let url = host.url else { return nil }
+                return AsyncData.FoyerConfig(name: host.name, url: url)
+            } ?? []
+    }
 
     @State private var weather = AsyncData.getCachedWeather()
     @State private var exchange = AsyncData.getCachedExchange()
@@ -188,11 +192,23 @@ struct DashboardView: View {
         }
     }
 
-    static let allHostNames = ["swift"] + foyerServers.map(\.name)
+    /// Ordered host names for the first-letter key mapping (h → harbor, etc.).
+    /// Reads from config; local entries are included so 's' → swift still works.
+    static var allHostNames: [String] {
+        AppConfig.current.widgets["systems"]?.hosts?.map(\.name) ?? []
+    }
+
+    /// Configured host names whose source is "local" — used to route detail
+    /// loading to the in-process SystemBridge rather than a foyer URL.
+    private static var localHostNames: Set<String> {
+        Set((AppConfig.current.widgets["systems"]?.hosts ?? [])
+            .filter { $0.source == "local" }
+            .map(\.name))
+    }
 
     private func loadDetail(for host: String) async -> AsyncData.ServerDetail {
-        if host == "swift" {
-            return localSwiftDetail()
+        if Self.localHostNames.contains(host) {
+            return localSwiftDetail(name: host)
         }
         guard let cfg = Self.foyerServers.first(where: { $0.name == host }) else {
             return AsyncData.ServerDetail(
@@ -206,7 +222,7 @@ struct DashboardView: View {
         return await AsyncData.getServerDetail(name: cfg.name, url: cfg.url)
     }
 
-    private func localSwiftDetail() -> AsyncData.ServerDetail {
+    private func localSwiftDetail(name: String = "swift") -> AsyncData.ServerDetail {
         var mounts: [AsyncData.MountDetail] = []
         if let attrs = try? FileManager.default.attributesOfFileSystem(forPath: "/"),
            let total = attrs[.systemSize] as? Int64,
@@ -219,7 +235,7 @@ struct DashboardView: View {
             ))
         }
         return AsyncData.ServerDetail(
-            name: "swift", ok: true,
+            name: name, ok: true,
             cpuPercent: cpu,
             ramPercent: memory.ramPercent,
             memCompressed: memory.pressurePercent,
@@ -293,25 +309,39 @@ struct DashboardView: View {
         }
     }
 
+    /// Which systemBar elements to render. Reads `widgets.systemBar.show`
+    /// from config; missing or empty → show everything (current default).
+    /// Order in `show` doesn't change render order — it's a presence filter.
+    private var systemBarShow: Set<String> {
+        let s = AppConfig.current.widgets["systemBar"]?.show ?? []
+        if s.isEmpty { return ["uptime", "disk", "battery", "claudeUsage", "network", "privacy"] }
+        return Set(s)
+    }
+
     private var systemInfoRow: some View {
-        HStack(alignment: .center, spacing: 16) {
-            HStack(spacing: 5) {
-                Image(systemName: "clock")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Color.dimmed)
-                Text(uptime)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.subtle)
+        let show = systemBarShow
+        return HStack(alignment: .center, spacing: 16) {
+            if show.contains("uptime") {
+                HStack(spacing: 5) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.dimmed)
+                    Text(uptime)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.subtle)
+                }
             }
-            HStack(spacing: 5) {
-                Image(systemName: "internaldrive")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Color.dimmed)
-                Text(diskFree)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.subtle)
+            if show.contains("disk") {
+                HStack(spacing: 5) {
+                    Image(systemName: "internaldrive")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.dimmed)
+                    Text(diskFree)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.subtle)
+                }
             }
-            if let b = battery {
+            if show.contains("battery"), let b = battery {
                 HStack(spacing: 5) {
                     Image(systemName: batteryIcon)
                         .font(.system(size: 10))
@@ -331,30 +361,36 @@ struct DashboardView: View {
                     }
                 }
             }
-            HStack(spacing: 5) {
-                Image(systemName: "hourglass")
-                    .font(.system(size: 10))
-                    .foregroundStyle(Color.dimmed)
-                Text("\(claudeUsage.blockPercent)% / \(claudeUsage.weeklyPercent)%")
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(Color.subtle)
+            if show.contains("claudeUsage") {
+                HStack(spacing: 5) {
+                    Image(systemName: "hourglass")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.dimmed)
+                    Text("\(claudeUsage.blockPercent)% / \(claudeUsage.weeklyPercent)%")
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(Color.subtle)
+                }
             }
-            HStack(spacing: 5) {
-                Image(systemName: "arrow.down")
-                    .font(.system(size: 9))
-                    .foregroundStyle(Color.dimmed)
-                Text(formatRate(network.bytesIn))
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(Color.subtle)
-                Image(systemName: "arrow.up")
-                    .font(.system(size: 9))
-                    .foregroundStyle(Color.dimmed)
-                Text(formatRate(network.bytesOut))
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(Color.subtle)
+            if show.contains("network") {
+                HStack(spacing: 5) {
+                    Image(systemName: "arrow.down")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Color.dimmed)
+                    Text(formatRate(network.bytesIn))
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(Color.subtle)
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Color.dimmed)
+                    Text(formatRate(network.bytesOut))
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(Color.subtle)
+                }
             }
             Spacer()
-            privacyIndicator
+            if show.contains("privacy") {
+                privacyIndicator
+            }
         }
         .frame(height: 24)
     }
@@ -484,12 +520,29 @@ struct DashboardView: View {
     }
 
     private var allSystems: [AsyncData.ServerHealth] {
-        let local = AsyncData.ServerHealth(
-            name: "swift", ok: true,
-            cpuPercent: cpu, ramPercent: memory.ramPercent, memPressure: memory.pressurePercent,
-            cpuTemp: temp, uptimeSecs: Int(ProcessInfo.processInfo.systemUptime)
-        )
-        return [local] + servers
+        // Walk the configured host order. Local entries (source: "local") are
+        // built from SystemBridge. Remote entries match against the foyer
+        // fetch results by name. Hosts not yet known in `servers` are skipped
+        // until their first health snapshot arrives.
+        guard let hosts = AppConfig.current.widgets["systems"]?.hosts, !hosts.isEmpty else {
+            return servers
+        }
+        var result: [AsyncData.ServerHealth] = []
+        for host in hosts {
+            if host.source == "local" {
+                result.append(AsyncData.ServerHealth(
+                    name: host.name, ok: true,
+                    cpuPercent: cpu,
+                    ramPercent: memory.ramPercent,
+                    memPressure: memory.pressurePercent,
+                    cpuTemp: temp,
+                    uptimeSecs: Int(ProcessInfo.processInfo.systemUptime)
+                ))
+            } else if let remote = servers.first(where: { $0.name == host.name }) {
+                result.append(remote)
+            }
+        }
+        return result
     }
 
     private func formatRate(_ bytesPerSec: Int64) -> String { Format.rate(bytesPerSec) }

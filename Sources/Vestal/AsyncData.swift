@@ -491,9 +491,10 @@ enum AsyncData {
         let now = Date()
         let endOfDay = cal.date(bySettingHour: 23, minute: 59, second: 59, of: now)!
         let predicate = store.predicateForEvents(withStart: now, end: endOfDay, calendars: nil)
+        let maxEvents = AppConfig.current.widgets["agenda"]?.maxEvents ?? 5
         let ekEvents = store.events(matching: predicate)
             .sorted { $0.startDate < $1.startDate }
-            .prefix(5)
+            .prefix(maxEvents)
 
         let events = ekEvents.map { e in
             CalendarEvent(
