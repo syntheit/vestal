@@ -22,7 +22,7 @@ struct InfoView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 infoRow(label: "version", value: BuildInfo.version)
-                infoRow(label: "build",   value: BuildInfo.commitDisplay)
+                infoRow(label: "build",   value: BuildInfo.commit)
                 infoRow(label: "config",  value: "v\(AppConfig.current.version)")
             }
         }

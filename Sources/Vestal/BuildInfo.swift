@@ -1,14 +1,10 @@
 import Foundation
 
-// Build-time identity. The commit placeholder is sed-replaced by the Nix
-// derivation at build time (`self.shortRev`) so a release binary reports
-// the exact source it came from. Dev builds (raw `swift build`) leave the
-// placeholder in place and `commitDisplay` reports "dev".
+// Build-time identity. The Nix derivation replaces the literal `"dev"`
+// assignment below with the actual short commit hash. Dev builds (raw
+// `swift build` without Nix) leave it as "dev" — no detection logic
+// needed, since whatever's here IS the display string.
 enum BuildInfo {
     static let version = "0.1.0"
-    static let commit  = "VESTAL_COMMIT_PLACEHOLDER"
-
-    static var commitDisplay: String {
-        commit == "VESTAL_COMMIT_PLACEHOLDER" ? "dev" : commit
-    }
+    static let commit  = "dev"
 }
