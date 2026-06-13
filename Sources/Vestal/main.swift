@@ -24,11 +24,18 @@ func runningVestalPid() -> pid_t? {
 }
 
 func detachedRelaunch() {
-    // Background fork via /bin/sh — same pattern as the old toggle script.
-    // Inherits env (so VESTAL_CONFIG carries through), redirects stdio so
-    // the new process doesn't keep the caller's terminal alive.
-    let path = CommandLine.arguments[0]
-    _ = system("\"\(path)\" > /dev/null 2>&1 &")
+    // Fork+exec self via Foundation.Process and return immediately. Parent
+    // exits without waitUntilExit; macOS re-parents the orphan child to
+    // launchd so it survives. Inherits env from parent (so VESTAL_CONFIG
+    // carries through to the GUI launch). stdio routed to /dev/null so
+    // the caller's terminal doesn't stay tethered.
+    let task = Process()
+    task.executableURL = URL(fileURLWithPath: CommandLine.arguments[0])
+    task.arguments = []
+    task.standardInput  = FileHandle.nullDevice
+    task.standardOutput = FileHandle.nullDevice
+    task.standardError  = FileHandle.nullDevice
+    try? task.run()
 }
 
 func printVestalUsage(to stream: FileHandle) {
