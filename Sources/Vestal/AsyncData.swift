@@ -59,27 +59,39 @@ enum AsyncData {
         return parseWeatherJSON(data)
     }
 
-    /// Pure parse from wttr.in's `format=j1` JSON response → WeatherInfo.
-    /// Lifted out of getWeather so the runtime can call it on any raw payload.
+    /// Parse a weather payload into WeatherInfo. Field extraction is driven
+    /// by `widgets.weather.fields` in the config — each value is a JSON path
+    /// resolved against the response. Lets users swap weather providers
+    /// (wttr.in, OpenWeather, custom API) without code changes.
     private static func parseWeatherJSON(_ data: Data) -> WeatherInfo? {
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return nil }
+        guard let json = try? JSONSerialization.jsonObject(with: data) else { return nil }
+        let fields = AppConfig.current.widgets["weather"]?.fields ?? [:]
 
-        let nearest = (json["nearest_area"] as? [[String: Any]])?.first
-        let current = (json["current_condition"] as? [[String: Any]])?.first
-        let astro = ((json["weather"] as? [[String: Any]])?.first?["astronomy"] as? [[String: Any]])?.first
+        func extract(_ key: String) -> String {
+            guard let path = fields[key], let value = JSONPath.resolve(path, in: json) else {
+                return ""
+            }
+            if let s = value as? String { return s }
+            if let d = value as? Double { return String(d) }
+            if let i = value as? Int    { return String(i) }
+            return ""
+        }
 
-        let area = (nearest?["areaName"] as? [[String: Any]])?.first?["value"] as? String ?? ""
-        let region = (nearest?["region"] as? [[String: Any]])?.first?["value"] as? String ?? ""
-        let location = region.isEmpty ? area : "\(area), \(region)"
-        let condition = (current?["weatherDesc"] as? [[String: Any]])?.first?["value"] as? String ?? ""
+        let area    = extract("location")
+        let region  = extract("region")
+        let location: String
+        if area.isEmpty   { location = region }
+        else if region.isEmpty { location = area }
+        else { location = "\(area), \(region)" }
 
-        var tempStr = current?["temp_C"] as? String ?? ""
+        let condition = extract("condition")
+
+        var tempStr = extract("temp")
         if tempStr.hasPrefix("+") { tempStr = String(tempStr.dropFirst()) }
         let temp = tempStr.isEmpty ? "" : "\(tempStr)°C"
 
-        let sr = cleanTime(astro?["sunrise"] as? String ?? "")
-        let ss = cleanTime(astro?["sunset"] as? String ?? "")
+        let sr = cleanTime(extract("sunrise"))
+        let ss = cleanTime(extract("sunset"))
         let sunrise: String? = sr.contains(":") ? sr : nil
         let sunset:  String? = ss.contains(":") ? ss : nil
 
@@ -191,42 +203,24 @@ enum AsyncData {
             element = root
         }
 
-        // Step 2: extract value(s).
+        // Step 2: extract value(s). Path syntax handled by JSONPath.
         if let picks = item.picks {
             let buyKey = picks["buy"] ?? ""
             let sellKey = picks["sell"] ?? ""
             return ExchangeRate(
                 label: item.label,
-                buy:  formatValue(lookupValue(buyKey,  in: element), format: item.format),
-                sell: formatValue(lookupValue(sellKey, in: element), format: item.format)
+                buy:  formatValue(JSONPath.resolve(buyKey,  in: element), format: item.format),
+                sell: formatValue(JSONPath.resolve(sellKey, in: element), format: item.format)
             )
         }
         if let pick = item.pick {
             return ExchangeRate(
                 label: item.label,
-                buy:  formatValue(lookupValue(pick, in: element), format: item.format),
+                buy:  formatValue(JSONPath.resolve(pick, in: element), format: item.format),
                 sell: ""
             )
         }
         return nil
-    }
-
-    /// Walk a dot-path ("rates.BRL", "items.0.name") against parsed JSON.
-    /// Empty path returns the input. Returns nil if any segment fails.
-    private static func lookupValue(_ path: String, in element: Any) -> Any? {
-        let parts = path.split(separator: ".").map(String.init).filter { !$0.isEmpty }
-        if parts.isEmpty { return element }
-        var current: Any? = element
-        for part in parts {
-            if let dict = current as? [String: Any] {
-                current = dict[part]
-            } else if let arr = current as? [Any], let idx = Int(part) {
-                current = (idx >= 0 && idx < arr.count) ? arr[idx] : nil
-            } else {
-                return nil
-            }
-        }
-        return current
     }
 
     /// Format a raw JSON value per format hint. Coerces Int/Double/String

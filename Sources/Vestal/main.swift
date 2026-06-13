@@ -1,5 +1,84 @@
 import AppKit
+import Darwin
 import SwiftUI
+
+// MARK: - CLI subcommands
+//
+// Vestal launches the dashboard when invoked with no arguments. With a
+// subcommand it acts as a control surface — used by toggle scripts, skhd
+// bindings, Hammerspoon, etc. The PID file lets us identify a running GUI
+// instance without relying on `pgrep` (so the binary works without /bin
+// in PATH or in sandbox environments).
+
+let vestalPidFile = "\(NSTemporaryDirectory())vestal.pid"
+
+func writeVestalPid() {
+    try? "\(getpid())".write(toFile: vestalPidFile, atomically: true, encoding: .utf8)
+}
+
+func runningVestalPid() -> pid_t? {
+    guard let raw = try? String(contentsOfFile: vestalPidFile, encoding: .utf8),
+          let pid = pid_t(raw.trimmingCharacters(in: .whitespacesAndNewlines))
+    else { return nil }
+    return kill(pid, 0) == 0 ? pid : nil   // signal 0 = liveness check
+}
+
+func detachedRelaunch() {
+    // Background fork via /bin/sh — same pattern as the old toggle script.
+    // Inherits env (so VESTAL_CONFIG carries through), redirects stdio so
+    // the new process doesn't keep the caller's terminal alive.
+    let path = CommandLine.arguments[0]
+    _ = system("\"\(path)\" > /dev/null 2>&1 &")
+}
+
+func printVestalUsage(to stream: FileHandle) {
+    let text = """
+    Usage: vestal [command]
+
+    Commands:
+      toggle    Show or hide the dashboard
+      show      Show the dashboard (no-op if already shown)
+      hide      Hide the dashboard (no-op if not shown)
+      version   Print version and build code
+      help      Show this message
+
+    With no command, vestal launches the dashboard directly.
+    """
+    stream.write(Data((text + "\n").utf8))
+}
+
+let cliArgs = CommandLine.arguments
+if cliArgs.count >= 2 {
+    switch cliArgs[1] {
+    case "version", "--version", "-v":
+        print("vestal \(BuildInfo.version) (\(BuildInfo.commit))")
+        exit(0)
+    case "help", "--help", "-h":
+        printVestalUsage(to: FileHandle.standardOutput)
+        exit(0)
+    case "toggle":
+        if let pid = runningVestalPid() {
+            _ = kill(pid, SIGTERM)
+        } else {
+            detachedRelaunch()
+        }
+        exit(0)
+    case "show":
+        if runningVestalPid() == nil { detachedRelaunch() }
+        exit(0)
+    case "hide":
+        if let pid = runningVestalPid() { _ = kill(pid, SIGTERM) }
+        exit(0)
+    default:
+        FileHandle.standardError.write(Data("vestal: unknown command '\(cliArgs[1])'\n".utf8))
+        printVestalUsage(to: FileHandle.standardError)
+        exit(2)
+    }
+}
+
+// MARK: - GUI launch (no subcommand)
+
+writeVestalPid()
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow!
