@@ -1,5 +1,6 @@
 import AppKit
 import Darwin
+import Foundation
 import SwiftUI
 
 // MARK: - CLI subcommands
@@ -17,9 +18,9 @@ func writeVestalPid() {
 }
 
 func runningVestalPid() -> pid_t? {
-    guard let raw = try? String(contentsOfFile: vestalPidFile, encoding: .utf8),
-          let pid = pid_t(raw.trimmingCharacters(in: .whitespacesAndNewlines))
-    else { return nil }
+    guard let raw = try? String(contentsOfFile: vestalPidFile, encoding: .utf8) else { return nil }
+    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let pid = pid_t(trimmed) else { return nil }
     return kill(pid, 0) == 0 ? pid : nil   // signal 0 = liveness check
 }
 
