@@ -271,12 +271,21 @@ enum SystemBridge {
         FileManager.default.fileExists(atPath: "/tmp/.privacy-mode")
     }
 
-    /// Runs the toggle script in the background and returns immediately. The
-    /// script is executed directly (argv, no shell), so it needs a shebang and
-    /// the executable bit.
+    /// Runs the toggle script in the background and returns immediately.
+    /// Through `bash` found on PATH, like the old `/bin/bash script` call, so
+    /// the script needs neither a shebang nor the executable bit. The path is
+    /// an argument, not argv[0], so its `~` is expanded here.
     static func togglePrivacy() {
         Task.detached(priority: .utility) {
-            _ = try? await CommandRunner.run(["~/.local/bin/toggle-privacy"], timeout: 10)
+            let script = CommandRunner.expandTilde("~/.local/bin/toggle-privacy")
+            do {
+                let result = try await CommandRunner.run(["bash", script], timeout: 10)
+                if result.status != 0 {
+                    NSLog("[vestal] toggle-privacy exited with status \(result.status): \(result.stderrString)")
+                }
+            } catch {
+                NSLog("[vestal] toggle-privacy failed: \(error)")
+            }
         }
     }
 

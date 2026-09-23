@@ -285,6 +285,13 @@ private final class CommandExecution {
     private func childExited(_ status: Int32) {
         exitStatus = status
         process.terminationHandler = nil
+        #if !canImport(Darwin)
+        // swift-corelibs-foundation 5.10 keeps the Process (and with it both
+        // pipes) alive until waitUntilExit() drops its run loop source, so
+        // skipping this leaks two fds per run. The child is gone already, so
+        // it returns at once.
+        process.waitUntilExit()
+        #endif
         completeIfDone()
     }
 
@@ -300,6 +307,10 @@ private final class CommandExecution {
         if let status = exitStatus {
             // The child exited but something it spawned still holds the pipes
             // open. Return what we have rather than wait for the grandchild.
+            // Darwin only in practice: corelibs Foundation (Linux) notices the
+            // exit through a socketpair the child's descendants inherit too,
+            // so there the exit status only arrives once they are all gone,
+            // and this case ends up as a timeout instead.
             finish(.success(CommandResult(status: status, stdout: stdoutData, stderr: stderrData)))
             return
         }
@@ -307,6 +318,9 @@ private final class CommandExecution {
         finish(.failure(CommandError.timedOut(name, timeout)))
     }
 
+    /// SIGTERM first, SIGKILL after `killGrace`. On Linux the SIGKILL often
+    /// does the work: a child spawned from a Dispatch worker thread inherits
+    /// that thread's signal mask, which blocks SIGTERM.
     private func killChild() {
         guard exitStatus == nil, process.isRunning else { return }
         process.terminate()

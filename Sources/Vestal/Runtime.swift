@@ -4,9 +4,10 @@ import Foundation
 //
 // Central source registry + fetch scheduler. Each source declared in the
 // config gets its own background fetch loop. Widgets currently read the
-// cached data via polling (AsyncData.getWeather etc. → waitForData). When
-// we add reactive widget observation, re-attach @Observable here and
-// switch the Nix build to `swift build` (SPM) so macro plugins load.
+// cached data via polling (AsyncData.getWeather etc. → waitForData), plus a
+// `runtimeSourceUpdated` notification after each successful fetch. Push
+// updates through an ObservableObject adapter come in phase 4 (no macros:
+// the Nix toolchain can't load macro plugins).
 //
 // Disk cache lives at ~/Library/Caches/Vestal/<source>.json — populated
 // synchronously on `start()` so the first frame after launch is instant.
@@ -65,7 +66,9 @@ final class AppRuntime {
         if let d = snapshots[name]?.data { return d }
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
-            try? await Task.sleep(for: .milliseconds(500))
+            // A cancelled sleep throws at once; ignoring that would spin this
+            // loop flat out until the deadline.
+            do { try await Task.sleep(for: .milliseconds(500)) } catch { return nil }
             if let d = snapshots[name]?.data { return d }
         }
         return nil
