@@ -34,6 +34,7 @@ Every change that could not be compiled or run here, with file:line and what to 
 
 Decisions made without the owner, and why.
 
+- **CI stays on `macos-14` for now, but it has an expiry date.** GitHub retires the `macos-14` image on 2026-11-02 (brownouts that fail jobs from 2026-10-05; see actions/runner-images#13518). TASKS asks for `macos-14`, and it is the only hosted image with Xcode 15.4, i.e. Swift 5.10, the Nix toolchain. The job pins it through `DEVELOPER_DIR` and asserts `Swift version 5.10`, so it fails loudly rather than drifting to a newer compiler. When the image goes away: set `runs-on: macos-15` and point `DEVELOPER_DIR` at its oldest Xcode (16.0, Swift 6.0 in Swift 5 mode), and drop the version assert. That compiler accepts a few Swift 6-only constructs that the 5.10 Nix build rejects, so a `nix build .#default` job would be the faithful long-term check.
 - **CI workflow kept in `.github/workflows/ci.yml`.** TASKS says to move it to `docs/ci.yml` only if the push fails for lack of the `workflow` scope. Here every push fails (no repo access at all), so that rule never triggered and the file stays where GitHub expects it. The Linux job uses the official `swift:5.10` container; the macOS job selects Xcode 15.4 (Swift 5.10) when the runner has it, and also runs `swift test` so Darwin Foundation differences in `VestalCore` show up.
 
 ## Phase log
@@ -44,4 +45,6 @@ Per phase: commits, what changed, review findings and how they were resolved.
 
 - `5c3ae65` Add CI workflow (linux build+test, macos release build). Separate commit, as TASKS asks.
 - Branch `macos-v0.3` created from `main` (`9c603b5`).
+- `Harden CI workflow`: review follow-ups (pin Xcode loudly, skip `swift test` until a test target exists, `checkout@v5`, 30-minute job timeouts). Until phase 2 the Linux job is expected to fail on `import AppKit`.
+- Review (1 subagent): 5 findings, all taken (see above and the `macos-14` judgment call).
 - Baseline: `swift build` on Linux at `9c603b5` fails immediately: `Sources/Vestal/main.swift:1:8: error: no such module 'AppKit'` (and the emit-module step fails). Nothing in the package is buildable on Linux, which is why phase 2 exists.
