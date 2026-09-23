@@ -31,15 +31,28 @@ enum AsyncData {
     }
 
     // MARK: - Synchronous cache readers (for instant first frame)
+    //
+    // Read AppRuntime's on-disk snapshots directly (SourceCache is plain file
+    // I/O, no actor hop), so the very first frame has data even before the
+    // runtime's first fetch lands.
 
-    static func getCachedWeather() -> WeatherInfo? {
-        guard let cached = readCache("weather") else { return nil }
-        return parseWeather(cached)
+    static func cachedWeather() -> WeatherInfo? {
+        guard let data = SourceCache.load(name: "weather")?.data else { return nil }
+        return parseWeatherJSON(data)
     }
 
-    static func getCachedExchange() -> [ExchangeRate] {
-        guard let cached = readCache("exchange"), let parsed = parseExchange(cached) else { return [] }
-        return parsed
+    static func cachedExchange() -> [ExchangeRate] {
+        guard let widget = AppConfig.current.widgets["exchange"],
+              let items = widget.items else { return [] }
+        let defaultSource = widget.source ?? ""
+        var parsedBySource: [String: Any] = [:]
+        for src in Set(items.map { $0.source ?? defaultSource }) where !src.isEmpty {
+            if let data = SourceCache.load(name: src)?.data,
+               let obj = try? JSONSerialization.jsonObject(with: data) {
+                parsedBySource[src] = obj
+            }
+        }
+        return exchangeRates(items, defaultSource: defaultSource, parsedBySource: parsedBySource)
     }
 
     // MARK: - Weather
@@ -120,30 +133,6 @@ enum AsyncData {
         return String(format: "%d:%02d", hour, min)
     }
 
-    private static func parseWeather(_ raw: String) -> WeatherInfo? {
-        let parts = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            .split(separator: "|", omittingEmptySubsequences: false)
-        guard parts.count >= 3 else { return nil }
-        var tempStr = String(parts[2]).trimmingCharacters(in: .whitespaces)
-        if tempStr.hasPrefix("+") { tempStr = String(tempStr.dropFirst()) }
-        let location = String(parts[0]).trimmingCharacters(in: .whitespaces)
-        var sunrise: String? = nil
-        var sunset: String? = nil
-        if parts.count >= 5 {
-            let sr = cleanTime(String(parts[3]))
-            let ss = cleanTime(String(parts[4]))
-            if sr.contains(":") { sunrise = sr }
-            if ss.contains(":") { sunset = ss }
-        }
-        return WeatherInfo(
-            location: location,
-            condition: String(parts[1]).trimmingCharacters(in: .whitespaces),
-            temp: tempStr,
-            sunrise: sunrise,
-            sunset: sunset
-        )
-    }
-
     // MARK: - Exchange Rates
 
     struct ExchangeRate {
@@ -177,8 +166,15 @@ enum AsyncData {
             }
         }
 
-        // Preserve config order.
-        return items.compactMap { item in
+        return exchangeRates(items, defaultSource: defaultSource, parsedBySource: parsedBySource)
+    }
+
+    /// Resolve every item against its parsed source, preserving config order.
+    /// Items whose source hasn't produced data yet are skipped.
+    private static func exchangeRates(
+        _ items: [PickItem], defaultSource: String, parsedBySource: [String: Any]
+    ) -> [ExchangeRate] {
+        items.compactMap { item in
             let srcName = item.source ?? defaultSource
             guard let root = parsedBySource[srcName] else { return nil }
             return resolveExchangeItem(item, against: root)
@@ -246,16 +242,6 @@ enum AsyncData {
         return "\(value)"
     }
 
-    private static func parseExchange(_ raw: String) -> [ExchangeRate]? {
-        let lines = raw.split(separator: "\n")
-        guard !lines.isEmpty else { return nil }
-        return lines.compactMap { line in
-            let parts = line.split(separator: "|", omittingEmptySubsequences: false)
-            guard parts.count >= 3 else { return nil }
-            return ExchangeRate(label: String(parts[0]), buy: String(parts[1]), sell: String(parts[2]))
-        }
-    }
-
     // MARK: - Server Health
 
     struct ServerHealth: Identifiable {
@@ -312,11 +298,15 @@ enum AsyncData {
 
     // MARK: Foyer API fetch (via foyer-api binary which handles SSH key signing)
 
+    /// argv for one foyer health request. The URL is a single argument, never
+    /// part of a shell string, so a config value can't inject commands.
+    static func foyerHealthArgv(url: String) -> [String] {
+        ["foyer-api", "--host", url, "/api/health"]
+    }
+
     private static func fetchFoyerServer(_ cfg: FoyerConfig) async -> ServerHealth {
-        let cmd = "foyer-api --host \(cfg.url) /api/health"
-        guard let output = shell(cmd, timeout: 10),
-              let data = output.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let result = try? await CommandRunner.run(foyerHealthArgv(url: cfg.url), timeout: 10),
+              let json = try? JSONSerialization.jsonObject(with: result.stdout) as? [String: Any]
         else {
             return ServerHealth(name: cfg.name, ok: false)
         }
@@ -420,12 +410,8 @@ enum AsyncData {
     }
 
     static func getServerDetail(name: String, url: String) async -> ServerDetail {
-        let task = Task.detached(priority: .utility) {
-            shell("foyer-api --host \(url) /api/health", timeout: 8)
-        }
-        guard let output = await task.value,
-              let data = output.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let result = try? await CommandRunner.run(foyerHealthArgv(url: url), timeout: 8),
+              let json = try? JSONSerialization.jsonObject(with: result.stdout) as? [String: Any]
         else {
             return ServerDetail(
                 name: name, ok: false,
@@ -518,7 +504,7 @@ enum AsyncData {
 
     // MARK: - Calendar (today's agenda via EventKit — handles recurring events)
 
-    struct CalendarEvent: Identifiable {
+    struct CalendarEvent: Identifiable, Codable {
         var id: String { "\(title)\(Int(startDate.timeIntervalSince1970))" }
         var title: String
         var time: String     // "14:30" or "" for all-day
@@ -568,42 +554,16 @@ enum AsyncData {
             )
         }
 
-        // Cache
-        let cacheStr = events.map { "\($0.title)|\($0.time)|\(Int($0.startDate.timeIntervalSince1970))|\($0.isAllDay ? "1" : "0")" }.joined(separator: "\n")
-        ensureCacheDir()
-        writeCache("calendar", cacheStr)
+        // Cache as JSON: titles may contain "|" or newlines, which broke the
+        // old pipe-separated format.
+        if let json = try? JSONEncoder().encode(events) {
+            writeCache("calendar", String(decoding: json, as: UTF8.self))
+        }
         return events
     }
 
     private static func parseCalendarCache(_ raw: String) -> [CalendarEvent] {
-        return raw.split(separator: "\n").compactMap { line in
-            let parts = line.split(separator: "|", omittingEmptySubsequences: false)
-            guard parts.count >= 3, let epoch = Double(parts[2]) else { return nil }
-            let date = Date(timeIntervalSince1970: epoch)
-            let allDay = parts.count >= 4 && parts[3] == "1"
-            return CalendarEvent(title: String(parts[0]), time: String(parts[1]), startDate: date, isAllDay: allDay)
-        }
+        (try? JSONDecoder().decode([CalendarEvent].self, from: Data(raw.utf8))) ?? []
     }
 
-    // MARK: - Shell helper
-
-    static func shell(_ command: String, timeout: TimeInterval = 10) -> String? {
-        let process = Process()
-        let pipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/bin/bash")
-        process.arguments = ["-c", command]
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        do { try process.run() } catch { return nil }
-
-        let sem = DispatchSemaphore(value: 0)
-        process.terminationHandler = { _ in sem.signal() }
-        if sem.wait(timeout: .now() + timeout) == .timedOut {
-            process.terminate()
-            return nil
-        }
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return String(data: data, encoding: .utf8)
-    }
 }

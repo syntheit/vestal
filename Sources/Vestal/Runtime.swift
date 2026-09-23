@@ -124,6 +124,10 @@ final class AppRuntime {
             snap.lastError = nil
             snapshots[name] = snap
             SourceCache.save(name: name, snapshot: snap)
+            // Tell the UI there's fresh data. Posted on the main actor, so
+            // observers run on the main thread.
+            NotificationCenter.default.post(
+                name: .runtimeSourceUpdated, object: nil, userInfo: ["source": name])
         } catch {
             var snap = snapshots[name] ?? SourceSnapshot()
             snap.lastError = error
@@ -149,6 +153,11 @@ final class AppRuntime {
         default:  return nil
         }
     }
+}
+
+extension Notification.Name {
+    /// Posted after a source fetch succeeds; userInfo["source"] is its name.
+    static let runtimeSourceUpdated = Notification.Name("vestalRuntimeSourceUpdated")
 }
 
 // MARK: - SourceSnapshot
