@@ -11,7 +11,7 @@ the original; widgets-with-config refactor follows. Not yet ready for general us
 
 ## Build
 
-Requires macOS 13+ and Swift 5.9+.
+Requires macOS 14+ and Swift 5.9+.
 
 ```sh
 swift build -c release
