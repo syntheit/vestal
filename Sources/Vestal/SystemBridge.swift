@@ -271,16 +271,13 @@ enum SystemBridge {
         FileManager.default.fileExists(atPath: "/tmp/.privacy-mode")
     }
 
+    /// Runs the toggle script in the background and returns immediately. The
+    /// script is executed directly (argv, no shell), so it needs a shebang and
+    /// the executable bit.
     static func togglePrivacy() {
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        let script = "\(home)/.local/bin/toggle-privacy"
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/bash")
-        process.arguments = [script]
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        try? process.run()
-        process.waitUntilExit()
+        Task.detached(priority: .utility) {
+            _ = try? await CommandRunner.run(["~/.local/bin/toggle-privacy"], timeout: 10)
+        }
     }
 
     // MARK: - Volume & Spotify (via AppleScript, in-process)
@@ -364,8 +361,24 @@ enum SystemBridge {
         var state: String // playing, paused, stopped, off
     }
 
+    /// AppleScript runs on this serial queue, never on the main thread: an
+    /// Apple Events round-trip to a busy or hung app can take seconds, and the
+    /// dashboard would freeze for all of it. Serial, so one NSAppleScript
+    /// executes at a time.
+    private static let appleScriptQueue = DispatchQueue(label: "vestal.applescript", qos: .utility)
+
     static func toggleSpotify() {
-        _ = runAppleScript("tell application \"Spotify\" to playpause")
+        appleScriptQueue.async {
+            _ = runAppleScript("tell application \"Spotify\" to playpause")
+        }
+    }
+
+    /// Now-playing state, fetched on `appleScriptQueue`. The caller resumes
+    /// on its own executor (the main actor for the dashboard's tasks).
+    static func spotify() async -> SpotifyInfo {
+        await withCheckedContinuation { continuation in
+            appleScriptQueue.async { continuation.resume(returning: getSpotify()) }
+        }
     }
 
     private static let spotifyCachePath = "/tmp/dashboard-cache/spotify"

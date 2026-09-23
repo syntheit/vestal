@@ -48,8 +48,9 @@ struct DashboardView: View {
             } ?? []
     }
 
-    @State private var weather = AsyncData.getCachedWeather()
-    @State private var exchange = AsyncData.getCachedExchange()
+    // First frame renders from AppRuntime's disk cache when it has one.
+    @State private var weather = AsyncData.cachedWeather()
+    @State private var exchange = AsyncData.cachedExchange()
     @State private var servers = AsyncData.getCachedServers(foyerServers.map(\.name))
     @State private var agenda = AsyncData.getCachedCalendar()
 
@@ -122,28 +123,34 @@ struct DashboardView: View {
         .task(id: "fast") {
             refreshFast()
             appeared = true
+            spotify = await SystemBridge.spotify()
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(3))
                 refreshFast()
+                spotify = await SystemBridge.spotify()
             }
         }
         .task(id: "servers") {
+            // Each round spawns one foyer-api per host; foyer's collector only
+            // refreshes every 5s, so polling faster just burns processes.
             while !Task.isCancelled {
                 let fresh = await AsyncData.getServers(foyerServers: Self.foyerServers, useCache: false)
                 if !fresh.isEmpty { servers = fresh }
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.sleep(for: .seconds(5))
             }
         }
         .task(id: "slow") {
-            async let w = AsyncData.getWeather()
-            async let e = AsyncData.getExchange()
-            async let c = AsyncData.getTodayEvents()
-            let newWeather = await w
-            let newExchange = await e
-            let newAgenda = await c
-            if let nw = newWeather { weather = nw }
-            if !newExchange.isEmpty { exchange = newExchange }
-            if !newAgenda.isEmpty { agenda = newAgenda }
+            // Weather and exchange also re-read on every runtime update (see
+            // .onReceive below). The calendar isn't a runtime source yet, so
+            // it re-queries on its own 5-minute cache TTL.
+            await refreshRuntimeSections()
+            while !Task.isCancelled {
+                agenda = await AsyncData.getTodayEvents()
+                try? await Task.sleep(for: .seconds(300))
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .runtimeSourceUpdated)) { _ in
+            Task { await refreshRuntimeSections() }
         }
         .task(id: "claude") {
             while !Task.isCancelled {
@@ -252,15 +259,30 @@ struct DashboardView: View {
         )
     }
 
+    /// Cheap in-process reads (Mach, IOKit, CoreAudio; each well under 1ms).
+    /// Spotify goes through AppleScript and is fetched separately, off the
+    /// main thread, by the "fast" task.
     private func refreshFast() {
         cpu = SystemBridge.getCPU()
         memory = SystemBridge.getMemory()
         temp = SystemBridge.getTemp()
         battery = SystemBridge.getBattery()
         volume = SystemBridge.getVolume()
-        spotify = SystemBridge.getSpotify()
         uptime = SystemBridge.getUptime()
         diskFree = SystemBridge.getDiskFree()
+    }
+
+    /// Re-read the sections backed by AppRuntime sources. Runs at launch and
+    /// again whenever the runtime lands a fetch, so they don't go stale while
+    /// the dashboard stays open.
+    @MainActor
+    private func refreshRuntimeSections() async {
+        async let w = AsyncData.getWeather()
+        async let e = AsyncData.getExchange()
+        let newWeather = await w
+        let newExchange = await e
+        if let nw = newWeather { weather = nw }
+        if !newExchange.isEmpty { exchange = newExchange }
     }
 
     // MARK: - Sections
@@ -398,7 +420,7 @@ struct DashboardView: View {
     private var privacyIndicator: some View {
         Button(action: {
             privacyMode.toggle()
-            DispatchQueue.global().async { SystemBridge.togglePrivacy() }
+            SystemBridge.togglePrivacy()
         }) {
             HStack(spacing: 6) {
                 Image(systemName: privacyMode ? "mic.slash.fill" : "mic.fill")
