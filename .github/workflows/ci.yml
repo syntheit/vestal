@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    container: swift:5.10
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift --version
+      - run: swift build
+      - run: swift test
+
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      # Xcode 15.4 ships Swift 5.10, the language level the Nix build uses.
+      - run: if [ -d /Applications/Xcode_15.4.app ]; then sudo xcode-select -s /Applications/Xcode_15.4.app; fi
+      - run: swift --version
+      - run: swift build -c release
+      - run: swift test
