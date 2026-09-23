@@ -8,18 +8,25 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     container: swift:5.10
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: swift --version
       - run: swift build
-      - run: swift test
+      - if: hashFiles('Tests/**/*.swift') != ''
+        run: swift test
 
   macos:
     runs-on: macos-14
+    timeout-minutes: 30
+    env:
+      # Xcode 15.4 ships Swift 5.10, the toolchain the Nix build uses. Set via
+      # DEVELOPER_DIR so a missing Xcode fails loudly instead of silently
+      # building with a newer compiler.
+      DEVELOPER_DIR: /Applications/Xcode_15.4.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v4
-      # Xcode 15.4 ships Swift 5.10, the language level the Nix build uses.
-      - run: if [ -d /Applications/Xcode_15.4.app ]; then sudo xcode-select -s /Applications/Xcode_15.4.app; fi
-      - run: swift --version
+      - uses: actions/checkout@v5
+      - run: swift --version | tee /dev/stderr | grep -q 'Swift version 5\.10'
       - run: swift build -c release
-      - run: swift test
+      - if: hashFiles('Tests/**/*.swift') != ''
+        run: swift test
