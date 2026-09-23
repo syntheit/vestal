@@ -163,11 +163,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NotificationCenter.default.post(name: .dashboardToggleInfo, object: nil)
                 return nil
             }
-            // Host and privacy shortcuts are plain letters. Anything held with
-            // Cmd, Ctrl or Option belongs to the system or another app; Shift
-            // is fine (charactersIgnoringModifiers keeps it, so lowercase).
-            let blocking: NSEvent.ModifierFlags = [.command, .control, .option]
-            guard event.modifierFlags.intersection(blocking).isEmpty,
+            // Host and privacy shortcuts are plain letters. Any modifier other
+            // than Shift or Caps Lock (Cmd, Ctrl, Option, Fn/Globe, ...) means
+            // the keystroke belongs to the system or another app. Shift is
+            // fine: charactersIgnoringModifiers keeps it, so lowercase.
+            let held = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            guard held.subtracting([.shift, .capsLock]).isEmpty,
                   let key = event.charactersIgnoringModifiers?.lowercased().first
             else { return event }
             if let host = Self.hostKeyMap[key] {

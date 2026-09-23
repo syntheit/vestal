@@ -256,7 +256,7 @@ enum AsyncData {
     }
 
     struct FoyerConfig {
-        var name: String   // Display name (e.g. "harbor")
+        var name: String   // Display name from the config
         var url: String    // Foyer API base URL
     }
 

@@ -37,6 +37,14 @@ struct DashboardView: View {
     @State private var volume = SystemBridge.getVolume()
     @State private var spotify = SystemBridge.getCachedSpotify()
 
+    // Bumped on every play/pause click. A Spotify poll that started before
+    // the latest click may have read the old state, so it must not overwrite
+    // the optimistic icon.
+    @State private var spotifyGeneration = 0
+    // Bumped on every runtime refresh. Refreshes overlap and can finish out
+    // of order; only the latest one may assign.
+    @State private var runtimeGeneration = 0
+
     // Remote foyer hosts come from config. The local entry (source: "local")
     // is rendered separately in `allSystems` below using SystemBridge data.
     // Missing config → empty list, no remote hosts shown.
@@ -123,11 +131,19 @@ struct DashboardView: View {
         .task(id: "fast") {
             refreshFast()
             appeared = true
-            spotify = await SystemBridge.spotify()
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(3))
                 refreshFast()
-                spotify = await SystemBridge.spotify()
+            }
+        }
+        .task(id: "spotify") {
+            // Its own loop: an AppleScript round-trip can take seconds, and
+            // the stats above must not wait for it.
+            while !Task.isCancelled {
+                let generation = spotifyGeneration
+                let fresh = await SystemBridge.spotify()
+                if generation == spotifyGeneration { spotify = fresh }
+                try? await Task.sleep(for: .seconds(3))
             }
         }
         .task(id: "servers") {
@@ -141,9 +157,13 @@ struct DashboardView: View {
         }
         .task(id: "slow") {
             // Weather and exchange also re-read on every runtime update (see
-            // .onReceive below). The calendar isn't a runtime source yet, so
-            // it re-queries on its own 5-minute cache TTL.
+            // .onReceive below).
             await refreshRuntimeSections()
+        }
+        .task(id: "agenda") {
+            // The calendar isn't a runtime source yet, so it re-queries on its
+            // own 5-minute cache TTL. Separate from "slow" so a runtime source
+            // that takes its full wait can't delay it.
             while !Task.isCancelled {
                 agenda = await AsyncData.getTodayEvents()
                 try? await Task.sleep(for: .seconds(300))
@@ -162,12 +182,16 @@ struct DashboardView: View {
             }
         }
         .task(id: expandedHost) {
-            guard let host = expandedHost else {
-                expandedDetail = nil
-                return
-            }
+            // A different host starts from "loading…", never from the
+            // previous host's numbers.
+            expandedDetail = nil
+            guard let host = expandedHost else { return }
             while !Task.isCancelled && expandedHost == host {
                 let snapshot = await loadDetail(for: host)
+                // Closing or switching the popup cancels this task, and a
+                // cancelled foyer fetch comes back ok:false; painting it would
+                // flash a false "offline".
+                guard !Task.isCancelled, expandedHost == host else { return }
                 if snapshot != expandedDetail { expandedDetail = snapshot }
                 // Foyer's collector refreshes every 5s; polling faster wastes
                 // subprocess invocations against unchanged data.
@@ -199,8 +223,8 @@ struct DashboardView: View {
         }
     }
 
-    /// Ordered host names for the first-letter key mapping (h → harbor, etc.).
-    /// Reads from config; local entries are included so 's' → swift still works.
+    /// Ordered host names for the single-letter key mapping (see HostKeys).
+    /// Reads from config; local entries are included so they get a key too.
     static var allHostNames: [String] {
         AppConfig.current.widgets["systems"]?.hosts?.map(\.name) ?? []
     }
@@ -261,7 +285,7 @@ struct DashboardView: View {
 
     /// Cheap in-process reads (Mach, IOKit, CoreAudio; each well under 1ms).
     /// Spotify goes through AppleScript and is fetched separately, off the
-    /// main thread, by the "fast" task.
+    /// main thread, by the "spotify" task.
     private func refreshFast() {
         cpu = SystemBridge.getCPU()
         memory = SystemBridge.getMemory()
@@ -275,12 +299,17 @@ struct DashboardView: View {
     /// Re-read the sections backed by AppRuntime sources. Runs at launch and
     /// again whenever the runtime lands a fetch, so they don't go stale while
     /// the dashboard stays open.
+    /// Superseded refreshes are dropped rather than cancelled: cancelling
+    /// one mid-`waitForData` would only make it return early with nothing.
     @MainActor
     private func refreshRuntimeSections() async {
+        runtimeGeneration += 1
+        let generation = runtimeGeneration
         async let w = AsyncData.getWeather()
         async let e = AsyncData.getExchange()
         let newWeather = await w
         let newExchange = await e
+        guard generation == runtimeGeneration else { return }
         if let nw = newWeather { weather = nw }
         if !newExchange.isEmpty { exchange = newExchange }
     }
@@ -439,6 +468,7 @@ struct DashboardView: View {
         HStack(spacing: 12) {
             Button(action: {
                 SystemBridge.toggleSpotify()
+                spotifyGeneration += 1
                 if spotify.state == "playing" { spotify.state = "paused" }
                 else if spotify.state == "paused" { spotify.state = "playing" }
             }) {
