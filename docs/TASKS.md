@@ -29,17 +29,17 @@ Also: `swift build && swift test` pass on Linux.
 
 ## Phase 0: Setup
 
-- [ ] Create branch `macos-v0.3` from `main`.
-- [ ] Swift toolchain: if `swift --version` fails, install Swift **5.10.x** for this Linux distro (swift.org tarball or `swiftly`). Record the version in HANDOFF. If installing is impossible, record that and rely on `swiftc -parse` plus review.
-- [ ] Check whether `nix` is available (`nix --version`). If it is, use `nix flake check` / `nix eval` in phase 7. If not, record that.
-- [ ] Baseline: note in HANDOFF what `swift build` does on Linux today (expected to fail on AppKit). This proves why phase 2 is needed.
-- [ ] Add `.github/workflows/ci.yml`:
+- [x] Create branch `macos-v0.3` from `main`.
+- [x] Swift toolchain: if `swift --version` fails, install Swift **5.10.x** for this Linux distro (swift.org tarball or `swiftly`). Record the version in HANDOFF. If installing is impossible, record that and rely on `swiftc -parse` plus review.
+- [x] Check whether `nix` is available (`nix --version`). If it is, use `nix flake check` / `nix eval` in phase 7. If not, record that.
+- [x] Baseline: note in HANDOFF what `swift build` does on Linux today (expected to fail on AppKit). This proves why phase 2 is needed.
+- [x] Add `.github/workflows/ci.yml`:
   - Job `linux`: ubuntu-latest, Swift 5.10, runs `swift build` and `swift test`.
   - Job `macos`: macos-14, runs `swift build -c release` (full app).
   - Trigger on push and pull_request.
 
   **Commit this workflow as its own separate commit.** If a push is rejected because the token lacks the `workflow` scope, drop that commit (`git rebase` it out, no force-push to shared branches is needed since the branch is new), move the file to `docs/ci.yml`, and note it in HANDOFF.
-- [ ] If you can read CI results (e.g. `gh run list`/`gh run view`, or the GitHub API), use the macOS job as a real compile check after every push. Record in HANDOFF whether this worked.
+- [~] If you can read CI results (e.g. `gh run list`/`gh run view`, or the GitHub API), use the macOS job as a real compile check after every push. Record in HANDOFF whether this worked. *(Every push is refused with 403, so CI never ran; see HANDOFF Environment.)*
 
 ## Phase 1: Bug fixes (on the current layout, before moving files)
 
