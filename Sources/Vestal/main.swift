@@ -92,11 +92,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow!
 
     /// Single-key shortcut → host name. Built from DashboardView's host list so
-    /// adding a new foyer host doesn't silently break the keymap.
-    private static let hostKeyMap: [String: String] = Dictionary(
-        uniqueKeysWithValues: DashboardView.allHostNames
-            .compactMap { name in name.first.map { (String($0), name) } }
-    )
+    /// adding a new foyer host doesn't silently break the keymap. Hosts that
+    /// share an initial fall back to their next free letter (see HostKeys).
+    private static let hostKeyMap: [Character: String] = HostKeys.assign(DashboardView.allHostNames)
+
+    /// Keeps the SIGTERM dispatch source alive for the life of the app.
+    private var sigtermSource: DispatchSourceSignal?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let screen = NSScreen.main else { NSApp.terminate(nil); return }
@@ -162,26 +163,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NotificationCenter.default.post(name: .dashboardToggleInfo, object: nil)
                 return nil
             }
-            if let host = Self.hostKeyMap[event.charactersIgnoringModifiers ?? ""] {
+            // Host and privacy shortcuts are plain letters. Anything held with
+            // Cmd, Ctrl or Option belongs to the system or another app; Shift
+            // is fine (charactersIgnoringModifiers keeps it, so lowercase).
+            let blocking: NSEvent.ModifierFlags = [.command, .control, .option]
+            guard event.modifierFlags.intersection(blocking).isEmpty,
+                  let key = event.charactersIgnoringModifiers?.lowercased().first
+            else { return event }
+            if let host = Self.hostKeyMap[key] {
                 NotificationCenter.default.post(
                     name: .dashboardExpandHost, object: nil,
                     userInfo: ["host": host]
                 )
                 return nil
             }
-            if event.characters == "p" {
-                DispatchQueue.global().async { SystemBridge.togglePrivacy() }
+            if key == "p" {
+                SystemBridge.togglePrivacy()
                 return nil
             }
             return event
         }
 
-        // Handle SIGTERM (from pkill) gracefully
-        signal(SIGTERM) { _ in
-            DispatchQueue.main.async {
-                NSApp.terminate(nil)
-            }
-        }
+        // Handle SIGTERM (from pkill) gracefully. A plain signal() handler may
+        // only call async-signal-safe functions, which rules out Dispatch and
+        // AppKit; a dispatch source runs the handler on the main queue instead.
+        // The default action has to be ignored first or it kills us outright.
+        signal(SIGTERM, SIG_IGN)
+        let sigterm = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        sigterm.setEventHandler { NSApp.terminate(nil) }
+        sigterm.resume()
+        sigtermSource = sigterm
 
         // Spin up the runtime: kicks off background fetch loops for every
         // HTTP source declared in config (weather, dolares, rates, ...).
