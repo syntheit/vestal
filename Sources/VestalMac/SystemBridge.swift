@@ -276,8 +276,11 @@ enum SystemBridge {
     /// executes at a time.
     private static let appleScriptQueue = DispatchQueue(label: "vestal.applescript", qos: .utility)
 
-    static func playPause(script: String) {
+    /// Only while the player runs: a `tell application` for a name that
+    /// isn't installed (a typo in `player`) would ask the user where it is.
+    static func playPause(player: String, script: String) {
         appleScriptQueue.async {
+            guard isRunning(player) else { return }
             _ = runAppleScript(script)
         }
     }
