@@ -133,6 +133,18 @@ final class PickingTests: XCTestCase {
         XCTAssertEqual(AsyncData.parseWeather(data, fields: ["temp": ".t"])?.temp, "5°C")
     }
 
+    func testUnitsPickTheSuffixOnly() throws {
+        let data = try Fixture.data("wttr-j1.json")
+        var fields = bundledWeatherFields
+        XCTAssertEqual(AsyncData.parseWeather(data, fields: fields, units: "metric")?.temp, "18°C")
+        fields["temp"] = ".current_condition[0].temp_F"
+        XCTAssertEqual(AsyncData.parseWeather(data, fields: fields, units: "imperial")?.temp, "64°F")
+        XCTAssertEqual(AsyncData.temperatureSuffix(units: "metric"), "°C")
+        XCTAssertEqual(AsyncData.temperatureSuffix(units: "imperial"), "°F")
+        XCTAssertEqual(AsyncData.temperatureSuffix(units: "kelvin"), "°C", "unknown units read as metric")
+        XCTAssertEqual(try fullConfig().widgets["weather"]?.units, "metric")
+    }
+
     func testSunTimes() {
         func sun(_ raw: String) -> String? {
             let data = try! JSONSerialization.data(withJSONObject: ["s": raw])

@@ -23,14 +23,40 @@ public enum ClaudeUsage {
             self.weeklyTokens = weeklyTokens
         }
 
-        public var blockPercent: Int {
-            min(999, blockTokens * 100 / max(1, blockLimitTokens))
-        }
-        public var weeklyPercent: Int {
-            min(999, weeklyTokens * 100 / max(1, weeklyLimitTokens))
+        public var blockPercent: Int { blockPercent(limit: blockLimitTokens) }
+        public var weeklyPercent: Int { weeklyPercent(limit: weeklyLimitTokens) }
+
+        /// The last 5 hours as a percentage of `limit` tokens, at most 999.
+        public func blockPercent(limit: Int) -> Int { Self.percent(blockTokens, of: limit) }
+        /// The last 7 days as a percentage of `limit` tokens, at most 999.
+        public func weeklyPercent(limit: Int) -> Int { Self.percent(weeklyTokens, of: limit) }
+
+        private static func percent(_ tokens: Int, of limit: Int) -> Int {
+            let (scaled, overflow) = tokens.multipliedReportingOverflow(by: 100)
+            return overflow ? 999 : min(999, scaled / max(1, limit))
         }
 
         public static let zero = Snapshot(blockTokens: 0, weeklyTokens: 0)
+    }
+
+    /// A claudeUsage widget's options, defaults filled in and `~/` expanded.
+    public struct Options: Hashable, Sendable {
+        public var projectsDir: String
+        public var fiveHourLimit: Int
+        public var weeklyLimit: Int
+
+        public init(projectsDir: String, fiveHourLimit: Int, weeklyLimit: Int) {
+            self.projectsDir = projectsDir
+            self.fiveHourLimit = fiveHourLimit
+            self.weeklyLimit = weeklyLimit
+        }
+
+        /// From a claudeUsage widget; nil means every default.
+        public init(widget: WidgetConfig?, home: String = NSHomeDirectory()) {
+            projectsDir = CommandRunner.expandTilde(widget?.path ?? WidgetConfig.Defaults.claudePath, home: home)
+            fiveHourLimit = widget?.fiveHourLimit ?? WidgetConfig.Defaults.fiveHourLimit
+            weeklyLimit = widget?.weeklyLimit ?? WidgetConfig.Defaults.weeklyLimit
+        }
     }
 
     public static let defaultProjectsDir = ("~/.claude/projects" as NSString).expandingTildeInPath
