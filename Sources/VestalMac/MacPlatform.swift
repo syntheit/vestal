@@ -14,17 +14,49 @@ enum MacPlatform {
     static let media: MediaProvider = SpotifyMedia()
     static let calendar: CalendarProvider = EventKitCalendar()
     static let audio: AudioProvider = CoreAudioOutput()
-    static let privacy: PrivacyProvider = PrivacyScript()
+    static let privacy: PrivacyProvider = PrivacyScript(AppConfig.current.widgets["systemBar"]?.privacy)
 }
 
 // MARK: - System stats (Mach, SMC/IOKit, getifaddrs)
 
+/// CPU and network are rates: each call reports the change since the
+/// previous call, kept in this instance (the process stays up; nothing goes
+/// to disk). Call it from one thread, the main actor.
 final class MacSystemStats: SystemStatsProvider {
-    func cpuPercent() -> Int { SystemBridge.getCPU() }
+    private var lastTicks: CPUTicks?
+    private var lastNetwork: (time: TimeInterval, bytesIn: Int64, bytesOut: Int64)?
+
+    func cpuPercent() -> Int {
+        guard let now = SystemBridge.getCPUTicks() else { return 0 }
+        defer { lastTicks = now }
+        guard let prev = lastTicks else {
+            // First call: the average since boot.
+            return now.total > 0 ? Int(now.busy * 100 / now.total) : 0
+        }
+        let dt = now.total - prev.total
+        let db = now.busy - prev.busy
+        guard dt > 0 else { return 0 }
+        return min(100, max(0, Int(db * 100 / dt)))
+    }
+
     func memory() -> MemoryInfo { SystemBridge.getMemory() }
     func temperature() -> Int { SystemBridge.getTemp() }
     func battery() -> BatteryInfo? { SystemBridge.getBattery() }
-    func networkRate() -> NetworkRate { SystemBridge.getNetwork() }
+
+    func networkRate() -> NetworkRate {
+        guard let totals = SystemBridge.getNetworkTotals() else { return NetworkRate(bytesIn: 0, bytesOut: 0) }
+        let now = Date().timeIntervalSince1970
+        defer { lastNetwork = (now, totals.bytesIn, totals.bytesOut) }
+        // First call: no rate yet.
+        guard let prev = lastNetwork else { return NetworkRate(bytesIn: 0, bytesOut: 0) }
+        let dt = now - prev.time
+        guard dt > 0.1 else { return NetworkRate(bytesIn: 0, bytesOut: 0) }
+        return NetworkRate(
+            bytesIn: max(0, Int64(Double(totals.bytesIn - prev.bytesIn) / dt)),
+            bytesOut: max(0, Int64(Double(totals.bytesOut - prev.bytesOut) / dt))
+        )
+    }
+
     func disk() -> DiskUsage? { SystemBridge.getDisk() }
     func uptime() -> TimeInterval { SystemBridge.getUptime() }
 }
@@ -44,11 +76,41 @@ final class CoreAudioOutput: AudioProvider {
     func setMuted(_ muted: Bool) { SystemBridge.setMuted(muted) }
 }
 
-// MARK: - Privacy (state file + toggle script)
+// MARK: - Privacy (state file + toggle command, from the config)
 
+/// `systemBar.privacy`: the state file exists while privacy mode is on, and
+/// the command toggles it. Unless both are set, privacy mode reads as off and
+/// toggling does nothing.
 final class PrivacyScript: PrivacyProvider {
-    func isEnabled() -> Bool { SystemBridge.isPrivacyMode() }
-    func toggle() { SystemBridge.togglePrivacy() }
+    private let command: [String]?
+    private let stateFile: String?
+
+    init(_ config: PrivacyConfig?) {
+        let configured = config?.isConfigured == true
+        command = configured ? config?.command : nil
+        stateFile = configured ? config?.stateFile.map { CommandRunner.expandTilde($0) } : nil
+    }
+
+    func isEnabled() -> Bool {
+        guard let stateFile else { return false }
+        return FileManager.default.fileExists(atPath: stateFile)
+    }
+
+    /// Runs the command in the background and returns at once. An argv, never
+    /// a shell; `~` expands in every element (CommandRunner).
+    func toggle() {
+        guard let command else { return }
+        Task.detached(priority: .utility) {
+            do {
+                let result = try await CommandRunner.run(command, timeout: 10)
+                if result.status != 0 {
+                    NSLog("%@", "[vestal] privacy command exited with status \(result.status): \(result.stderrString)")
+                }
+            } catch {
+                NSLog("%@", "[vestal] privacy command failed: \(error)")
+            }
+        }
+    }
 }
 
 // MARK: - Calendar (EventKit; handles recurring events)

@@ -6,18 +6,16 @@ import CoreAudio
 import VestalCore
 
 // The macOS system reads behind VestalCore's platform protocols (the adapters
-// are in MacPlatform.swift): Mach, SMC/IOKit, getifaddrs, CoreAudio,
-// AppleScript and the privacy script.
+// are in MacPlatform.swift): Mach, SMC/IOKit, getifaddrs, CoreAudio and
+// AppleScript.
 
-// MARK: - CPU Usage (delta-based, via host_processor_info)
+// MARK: - CPU ticks (via host_processor_info; MacSystemStats turns them into a rate)
 
 struct CPUTicks {
     var user: Int64; var system: Int64; var idle: Int64; var nice: Int64
     var total: Int64 { user + system + idle + nice }
     var busy: Int64 { user + system + nice }
 }
-
-private let ticksFile = "/tmp/.dashboard_cpu_ticks"
 
 enum SystemBridge {
 
@@ -44,27 +42,6 @@ enum SystemBridge {
             t.nice += Int64(info[off + Int(CPU_STATE_NICE)])
         }
         return t
-    }
-
-    static func getCPU() -> Int {
-        guard let now = getCPUTicks() else { return 0 }
-        let prev: CPUTicks? = {
-            guard let raw = try? String(contentsOfFile: ticksFile, encoding: .utf8) else { return nil }
-            let p = raw.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: " ")
-            guard p.count == 4,
-                  let u = Int64(p[0]), let s = Int64(p[1]),
-                  let i = Int64(p[2]), let n = Int64(p[3]) else { return nil }
-            return CPUTicks(user: u, system: s, idle: i, nice: n)
-        }()
-        try? "\(now.user) \(now.system) \(now.idle) \(now.nice)"
-            .write(toFile: ticksFile, atomically: true, encoding: .utf8)
-        guard let prev = prev else {
-            return now.total > 0 ? Int(now.busy * 100 / now.total) : 0
-        }
-        let dt = now.total - prev.total
-        let db = now.busy - prev.busy
-        guard dt > 0 else { return 0 }
-        return min(100, max(0, Int(db * 100 / dt)))
     }
 
     // MARK: - RAM Usage + Memory Pressure (single host_statistics64 call)
@@ -195,18 +172,16 @@ enum SystemBridge {
         return DiskUsage(totalBytes: total, freeBytes: free)
     }
 
-    // MARK: - Network Activity (delta-based, via getifaddrs)
+    // MARK: - Network bytes (via getifaddrs; MacSystemStats turns them into rates)
 
-    private static let netBytesFile = "/tmp/.dashboard_net_bytes"
-
-    static func getNetwork() -> NetworkRate {
+    /// Bytes in and out since boot over every interface but loopback; nil if
+    /// the interfaces can't be read.
+    static func getNetworkTotals() -> (bytesIn: Int64, bytesOut: Int64)? {
         var totalIn: Int64 = 0
         var totalOut: Int64 = 0
 
         var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0, let firstAddr = ifaddr else {
-            return NetworkRate(bytesIn: 0, bytesOut: 0)
-        }
+        guard getifaddrs(&ifaddr) == 0, let firstAddr = ifaddr else { return nil }
         defer { freeifaddrs(ifaddr) }
 
         var ptr: UnsafeMutablePointer<ifaddrs>? = firstAddr
@@ -221,57 +196,7 @@ enum SystemBridge {
             }
             ptr = p.pointee.ifa_next
         }
-
-        let now = Date().timeIntervalSince1970
-
-        let prev: (time: Double, bytesIn: Int64, bytesOut: Int64)? = {
-            guard let raw = try? String(contentsOfFile: netBytesFile, encoding: .utf8) else { return nil }
-            let p = raw.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: " ")
-            guard p.count == 3,
-                  let t = Double(p[0]),
-                  let bi = Int64(p[1]),
-                  let bo = Int64(p[2]) else { return nil }
-            return (t, bi, bo)
-        }()
-
-        try? "\(now) \(totalIn) \(totalOut)"
-            .write(toFile: netBytesFile, atomically: true, encoding: .utf8)
-
-        guard let prev = prev else {
-            return NetworkRate(bytesIn: 0, bytesOut: 0)
-        }
-
-        let dt = now - prev.time
-        guard dt > 0.1 else { return NetworkRate(bytesIn: 0, bytesOut: 0) }
-
-        return NetworkRate(
-            bytesIn: max(0, Int64(Double(totalIn - prev.bytesIn) / dt)),
-            bytesOut: max(0, Int64(Double(totalOut - prev.bytesOut) / dt))
-        )
-    }
-
-    // MARK: - Privacy Mode
-
-    static func isPrivacyMode() -> Bool {
-        FileManager.default.fileExists(atPath: "/tmp/.privacy-mode")
-    }
-
-    /// Runs the toggle script in the background and returns immediately.
-    /// Through `bash` found on PATH, as before (it used to be a hardcoded
-    /// bash path), so the script needs neither a shebang nor the executable
-    /// bit. The path is an argument, not argv[0], so its `~` is expanded here.
-    static func togglePrivacy() {
-        Task.detached(priority: .utility) {
-            let script = CommandRunner.expandTilde("~/.local/bin/toggle-privacy")
-            do {
-                let result = try await CommandRunner.run(["bash", script], timeout: 10)
-                if result.status != 0 {
-                    NSLog("[vestal] toggle-privacy exited with status \(result.status): \(result.stderrString)")
-                }
-            } catch {
-                NSLog("[vestal] toggle-privacy failed: \(error)")
-            }
-        }
+        return (totalIn, totalOut)
     }
 
     // MARK: - Volume & Spotify (via AppleScript, in-process)
