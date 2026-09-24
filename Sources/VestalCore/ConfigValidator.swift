@@ -94,7 +94,7 @@ private struct Walker {
                 if let version = integer(value, key), version != 1 {
                     add(.invalidValue, key, "unsupported version \(version) (this vestal reads version 1)")
                 }
-            case "hotkey": _ = string(value, key)
+            case "hotkey": hotkey(value)
             case "theme": theme(value)
             case "sources": sources(value)
             case "widgets": widgets(value)
@@ -105,6 +105,18 @@ private struct Walker {
         }
         if top["views"] == nil || top["views"]?.objectValue.map({ $0["main"]?.objectValue == nil }) == true {
             add(.missingKey, "views.main", "missing; the dashboard shows nothing")
+        }
+    }
+
+    /// A hotkey that doesn't parse registers nothing.
+    private mutating func hotkey(_ value: AnyJSON) {
+        guard let text = string(value, "hotkey") else { return }
+        do {
+            _ = try HotkeySpec(parsing: text)
+        } catch let error as HotkeyParseError {
+            add(.invalidValue, "hotkey", "'\(text)': \(error.detail); no hotkey is registered")
+        } catch {
+            add(.invalidValue, "hotkey", "'\(text)': \(error); no hotkey is registered")
         }
     }
 

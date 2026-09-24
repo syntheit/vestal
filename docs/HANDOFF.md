@@ -27,7 +27,7 @@ Ordered checklist for the owner. Each item is a command plus the expected result
 0. Get the branch: `git fetch origin macos-v0.3 && git checkout macos-v0.3`.
 1. `nix build .#default` or `swift build -c release`: builds. Run `rm -rf .build` first: phase 2 renamed the targets (`Vestal` became `VestalCore`, `VestalMac` and `vestal`), and on a case-insensitive disk a stale `Vestal.build` shadows `vestal.build`.
 2. `VESTAL_CONFIG=$PWD/examples/full.json .build/release/vestal`: looks identical to the old dashboard. `.build/release/vestal check-config examples/full.json` prints `examples/full.json: ok`. Without `VESTAL_CONFIG` and without `~/.config/vestal/config.json`, vestal now shows the generic built-in dashboard (no world clocks, no currencies, only this Mac under its hostname); that is intended since phase 3.
-3. `vestal toggle` twice: shows then hides; the process stays alive.
+3. `vestal toggle` twice: shows then hides; the process stays alive. From a `nix develop` shell (it sets its own `TMPDIR`), `vestal status` reaches the same instance.
 4. While hidden, `top -pid $(pgrep -x vestal)` shows ~0% CPU.
 5. Edit the config file while it is shown: the dashboard updates within ~1s.
 6. Phase 5 options, on a copy of `examples/full.json` (`VESTAL_CONFIG=/tmp/v.json .build/release/vestal`): `"theme": {"background": "blur"}` drops the aurora and keeps the blur; `"none"` gives a solid dark blue-black screen without blur; `"key": "x"` on harbor makes `x` open harbor; `"show": ["network", "uptime", "privacy"]` draws network, then uptime, and privacy at the right end; a second `keyValueList` shows its own title and values; `"units": "imperial"` with `"temp": ".current_condition[0].temp_F"` shows °F; `"player": "Music"` shows Apple Music; `"hideWhenOff": false` keeps the media row with the player's name while it is off.
@@ -116,6 +116,9 @@ Line numbers are at `deefaee`, before phase 2 moved the files: `CommandRunner.sw
 ## Judgment calls
 
 Decisions made without the owner, and why.
+
+- **IPC review: the socket's directory.** On macOS it comes from `confstr(_CS_DARWIN_USER_TEMP_DIR)`, not `NSTemporaryDirectory()`, which follows `$TMPDIR`: a `nix develop` shell sets its own, so `vestal status` there looked for another socket than the launch agent's, and a `vestal` started there became a second instance. On Linux without `XDG_RUNTIME_DIR` (cron, a bare ssh session) the socket goes in `/run/user/<uid>` when that is a real directory of the user's, where a session or service with systemd's usual value has it; the temporary directory stays the fallback that clients and a starting server also check. PLAN "Process model" says so now.
+- **IPC review: a hotkey that doesn't parse** is an `invalidValue` warning in check-config and `vestal status` and registers nothing. CONFIG.md says which keys need cmd, ctrl or alt.
 
 - **Phase 5: the layout is worked out in VestalCore** (`DashboardLayout`, tested): `views.main.order` without keys that name no widget, widgets of an unknown type (logged once) and repeats (the first stays). The views switch over `WidgetKind`, so the switch is exhaustive. Only `main` is drawn.
 - **Phase 5: spacing.** Each type keeps its top padding (system bar 28, media 20, agenda, systems, lists and weather 24, clock 0); the first entry of the layout gets none, even when it is hidden (the brief's rule; entries below keep theirs). A standalone `claudeUsage` widget is a status row like the system bar, with its padding (28).

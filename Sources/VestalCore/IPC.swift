@@ -21,12 +21,15 @@ import Glibc
 // keys and fills in missing ones, so a CLI and a resident app from different
 // builds still understand each other.
 //
-// The socket is vestal-<uid>.sock in NSTemporaryDirectory(). On Linux
-// $XDG_RUNTIME_DIR/vestal.sock comes first when that is set; clients fall
-// back to the temporary-directory path and a starting server checks it too,
-// so contexts with and without the variable still find each other. macOS
-// ignores XDG_RUNTIME_DIR: its per-user temporary directory is private and
-// the same for launchd agents and every shell, whatever they export.
+// The socket is vestal-<uid>.sock in the temporary directory. On Linux
+// $XDG_RUNTIME_DIR/vestal.sock comes first when that is set, and
+// /run/user/<uid>/vestal.sock (systemd's usual value) when it isn't but that
+// directory is ours; clients fall back to the temporary-directory path and a
+// starting server checks it too, so contexts with and without the variable
+// still find each other. macOS ignores XDG_RUNTIME_DIR and TMPDIR: the
+// directory is the per-user one from confstr(_CS_DARWIN_USER_TEMP_DIR),
+// private and the same for launchd agents and every shell, whatever they
+// export (`nix develop` sets its own TMPDIR).
 //
 // The socket keeps the app single-instance: a second server finds the first
 // one answering and fails with `.alreadyRunning`, and a socket file left
@@ -238,36 +241,64 @@ public enum IPC {
     public static let usesRuntimeDirectory = true
     #endif
 
-    /// `$XDG_RUNTIME_DIR/vestal.sock` where that is honoured and holds an
-    /// absolute path (the XDG spec says to ignore relative ones), else
-    /// `vestal-<uid>.sock` in `NSTemporaryDirectory()`. On macOS that is the
-    /// per-user temporary directory, whatever $TMPDIR says; on Linux it is
-    /// $TMPDIR or the system default.
+    /// Where the runtime directory is honoured: `$XDG_RUNTIME_DIR/vestal.sock`
+    /// when that holds an absolute path (the XDG spec says to ignore relative
+    /// ones), else `/run/user/<uid>/vestal.sock` when `isOwnDirectory` says
+    /// that directory is the user's. Otherwise, and always on macOS,
+    /// `vestal-<uid>.sock` in `temporaryDirectory()`.
     public static func defaultSocketPath(
         environment: [String: String] = ProcessInfo.processInfo.environment,
-        temporaryDirectory: String = NSTemporaryDirectory(),
+        temporaryDirectory: String = IPC.temporaryDirectory(),
         uid: uid_t = getuid(),
-        usesRuntimeDirectory: Bool = IPC.usesRuntimeDirectory
+        usesRuntimeDirectory: Bool = IPC.usesRuntimeDirectory,
+        isOwnDirectory: (String, uid_t) -> Bool = IPC.isOwnDirectory
     ) -> String {
-        if usesRuntimeDirectory, let runtime = environment["XDG_RUNTIME_DIR"], runtime.hasPrefix("/") {
-            return join(runtime, "vestal.sock")
+        if usesRuntimeDirectory {
+            if let runtime = environment["XDG_RUNTIME_DIR"], runtime.hasPrefix("/") {
+                return join(runtime, "vestal.sock")
+            }
+            // Contexts without the variable (cron, a bare ssh session) still
+            // meet a session or service that has systemd's usual value.
+            let standard = "/run/user/\(uid)"
+            if isOwnDirectory(standard, uid) { return join(standard, "vestal.sock") }
         }
         return join(temporaryDirectory, "vestal-\(uid).sock")
     }
 
     /// Where an instance may be listening: `defaultSocketPath`, then the
-    /// temporary-directory path if XDG_RUNTIME_DIR moved the default. Clients
-    /// try both, and a starting server refuses if either answers.
+    /// temporary-directory path if the runtime directory moved the default.
+    /// Clients try both, and a starting server refuses if either answers.
     public static func candidateSocketPaths(
         environment: [String: String] = ProcessInfo.processInfo.environment,
-        temporaryDirectory: String = NSTemporaryDirectory(),
+        temporaryDirectory: String = IPC.temporaryDirectory(),
         uid: uid_t = getuid(),
-        usesRuntimeDirectory: Bool = IPC.usesRuntimeDirectory
+        usesRuntimeDirectory: Bool = IPC.usesRuntimeDirectory,
+        isOwnDirectory: (String, uid_t) -> Bool = IPC.isOwnDirectory
     ) -> [String] {
         let primary = defaultSocketPath(environment: environment, temporaryDirectory: temporaryDirectory,
-                                        uid: uid, usesRuntimeDirectory: usesRuntimeDirectory)
+                                        uid: uid, usesRuntimeDirectory: usesRuntimeDirectory,
+                                        isOwnDirectory: isOwnDirectory)
         let fallback = join(temporaryDirectory, "vestal-\(uid).sock")
         return primary == fallback ? [primary] : [primary, fallback]
+    }
+
+    /// The per-user temporary directory. On macOS straight from
+    /// confstr(_CS_DARWIN_USER_TEMP_DIR), which ignores $TMPDIR, so every
+    /// shell and the launchd agent agree; NSTemporaryDirectory() elsewhere,
+    /// or if that fails.
+    public static func temporaryDirectory() -> String {
+        #if canImport(Darwin)
+        var buffer = [CChar](repeating: 0, count: Int(PATH_MAX))
+        let length = confstr(_CS_DARWIN_USER_TEMP_DIR, &buffer, buffer.count)
+        if length > 1, length <= buffer.count { return String(cString: buffer) }
+        #endif
+        return NSTemporaryDirectory()
+    }
+
+    /// A real directory (not a symlink) owned by `uid`.
+    public static func isOwnDirectory(_ path: String, uid: uid_t) -> Bool {
+        var info = stat()
+        return lstat(path, &info) == 0 && (info.st_mode & S_IFMT) == S_IFDIR && info.st_uid == uid
     }
 
     /// The longest usable socket path in bytes: `sun_path` minus its NUL

@@ -15,6 +15,22 @@ final class ConfigValidatorTests: XCTestCase {
         return result
     }
 
+    // MARK: Hotkey
+
+    func testHotkeys() {
+        XCTAssertEqual(warnings(#"{"hotkey": "f3"}"#), [])
+        XCTAssertEqual(warnings(#"{"hotkey": "cmd+shift+space"}"#), [])
+        XCTAssertEqual(warnings(#"{"hotkey": null}"#), [])
+        let bad = warnings(#"{"hotkey": "shift+a"}"#)
+        XCTAssertEqual(bad.map(\.description), [
+            "hotkey: 'shift+a': 'a' needs cmd, ctrl or alt, or it would be taken from every app"
+                + " (only f1-f20, home and end may stand alone); no hotkey is registered",
+        ])
+        XCTAssertEqual(bad.first?.kind, .invalidValue)
+        XCTAssertEqual(warnings(#"{"hotkey": "cmd+"}"#).first?.kind, .invalidValue)
+        XCTAssertEqual(warnings(#"{"hotkey": 3}"#).first?.kind, .wrongType)
+    }
+
     // MARK: Unknown keys
 
     func testUnknownKeysAtEveryLevel() {
