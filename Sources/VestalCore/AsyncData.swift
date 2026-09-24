@@ -24,10 +24,12 @@ public enum AsyncData {
     }
 
     /// Parse a weather payload into WeatherInfo. Field extraction is driven
-    /// by `widgets.weather.fields` in the config — each value is a JSON path
-    /// resolved against the response. Lets users swap weather providers
-    /// (wttr.in, OpenWeather, custom API) without code changes.
-    public static func parseWeather(_ data: Data, fields: [String: String]) -> WeatherInfo? {
+    /// by the weatherCard widget's `fields` in the config — each value is a
+    /// JSON path resolved against the response. Lets users swap weather
+    /// providers (wttr.in, OpenWeather, custom API) without code changes.
+    /// `units` only picks the temperature's suffix (see `temperatureSuffix`).
+    public static func parseWeather(_ data: Data, fields: [String: String],
+                                    units: String = WidgetConfig.Defaults.units) -> WeatherInfo? {
         guard let json = try? JSONSerialization.jsonObject(with: data) else { return nil }
 
         func extract(_ key: String) -> String {
@@ -51,7 +53,7 @@ public enum AsyncData {
 
         var tempStr = extract("temp")
         if tempStr.hasPrefix("+") { tempStr = String(tempStr.dropFirst()) }
-        let temp = tempStr.isEmpty ? "" : "\(tempStr)°C"
+        let temp = tempStr.isEmpty ? "" : tempStr + temperatureSuffix(units: units)
 
         let sr = cleanTime(extract("sunrise"))
         let ss = cleanTime(extract("sunset"))
@@ -65,6 +67,12 @@ public enum AsyncData {
             sunrise: sunrise,
             sunset: sunset
         )
+    }
+
+    /// "°F" for `"imperial"`, else "°C" (`"metric"`, the default; check-config
+    /// warns about anything else). The value itself is never converted.
+    public static func temperatureSuffix(units: String) -> String {
+        units == "imperial" ? "°F" : "°C"
     }
 
     /// Convert "06:15 AM" / "07:30 PM" / "06:44:45" to 24h "6:15" / "19:30" (strips seconds)

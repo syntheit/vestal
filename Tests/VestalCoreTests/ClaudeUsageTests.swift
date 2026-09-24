@@ -60,4 +60,35 @@ final class ClaudeUsageTests: XCTestCase {
         XCTAssertEqual(snapshot.weeklyPercent, 19_000_000 * 100 / ClaudeUsage.weeklyLimitTokens)
         XCTAssertEqual(ClaudeUsage.Snapshot(blockTokens: Int.max / 1000, weeklyTokens: 0).blockPercent, 999)
     }
+
+    func testPercentagesAgainstConfiguredLimits() {
+        let snapshot = ClaudeUsage.Snapshot(blockTokens: 1_500_000, weeklyTokens: 20_000_000)
+        XCTAssertEqual(snapshot.blockPercent(limit: 3_000_000), 50)
+        XCTAssertEqual(snapshot.weeklyPercent(limit: 40_000_000), 50)
+        XCTAssertEqual(snapshot.blockPercent(limit: ClaudeUsage.blockLimitTokens), snapshot.blockPercent)
+        XCTAssertEqual(snapshot.weeklyPercent(limit: 1), 999)
+        XCTAssertEqual(snapshot.weeklyPercent(limit: 0), 999, "a limit below 1 counts as 1")
+        XCTAssertEqual(ClaudeUsage.Snapshot(blockTokens: Int.max, weeklyTokens: 0).blockPercent(limit: Int.max), 999,
+                       "overflow reads as the cap")
+    }
+
+    func testOptionsFromTheWidget() {
+        let defaults = ClaudeUsage.Options(widget: nil, home: "/home/me")
+        XCTAssertEqual(defaults, ClaudeUsage.Options(
+            projectsDir: "/home/me/.claude/projects", fiveHourLimit: 8_000_000, weeklyLimit: 95_000_000))
+        let widget = WidgetConfig(type: "claudeUsage", path: "~/work/claude", fiveHourLimit: 5, weeklyLimit: 7)
+        XCTAssertEqual(ClaudeUsage.Options(widget: widget, home: "/home/me"), ClaudeUsage.Options(
+            projectsDir: "/home/me/work/claude", fiveHourLimit: 5, weeklyLimit: 7))
+        let absolute = WidgetConfig(type: "claudeUsage", path: "/srv/claude")
+        XCTAssertEqual(ClaudeUsage.Options(widget: absolute, home: "/home/me").projectsDir, "/srv/claude")
+    }
+
+    func testFullExampleOptionsAreTheOldConstants() throws {
+        let config = ConfigLoader.load(path: Fixture.example("full.json").path, platform: .macos).config
+        let options = ClaudeUsage.Options(widget: config.claudeUsageWidget)
+        XCTAssertEqual(options, ClaudeUsage.Options(widget: nil))
+        XCTAssertEqual(options.projectsDir, ClaudeUsage.defaultProjectsDir)
+        XCTAssertEqual(options.fiveHourLimit, ClaudeUsage.blockLimitTokens)
+        XCTAssertEqual(options.weeklyLimit, ClaudeUsage.weeklyLimitTokens)
+    }
 }
