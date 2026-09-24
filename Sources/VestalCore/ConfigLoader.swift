@@ -88,14 +88,6 @@ public struct LoadedConfig: Equatable, Sendable {
     public var hasErrors: Bool { warnings.contains { $0.isError } }
 }
 
-public enum AppConfig {
-    /// Loaded once at process startup. Immutable for the process lifetime;
-    /// reload (SIGHUP, file watch) comes in phase 6.
-    public static let loaded: LoadedConfig = ConfigLoader.load()
-
-    public static var current: Config { loaded.config }
-}
-
 public enum ConfigLoader {
 
     // MARK: Resolution
