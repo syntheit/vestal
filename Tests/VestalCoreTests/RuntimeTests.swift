@@ -90,6 +90,72 @@ final class RuntimeTests: XCTestCase {
         await waitUntil { ticks == 1 }
     }
 
+    /// Host health and tickers wait their interval after a run ends, so a
+    /// slow one never runs back to back; sources keep counting from the
+    /// start, so their cadence doesn't drift.
+    @MainActor
+    func testHostsAndTickersCountFromTheEndOfTheirLastRun() async {
+        let clock = FakeClock(), fetcher = FakeFetcher()
+        let host = "foyer-api --host https://box.example /api/health"
+        let source = "https://a.example"
+        fetcher.reply(host, .hold)
+        fetcher.reply(source, .hold)
+        let config = runtimeConfig(sources: ["a": http(source, refresh: "5s")],
+                                   hosts: [HostConfig(name: "box", url: "https://box.example", interval: "5s")])
+        let runtime = AppRuntime(config: config, fetcher: fetcher, cache: nil, now: { clock.now })
+        var ticks = 0
+        runtime.addTicker(name: "slow", interval: 5, visibleOnly: false) {
+            ticks += 1
+            clock.advance(4)   // a 4s AppleScript
+        }
+        runtime.setVisible(true)
+        runtime.startDueJobs()                       // t = 0: all three start
+        await waitUntil { ticks == 1 && fetcher.count(host) == 1 && fetcher.count(source) == 1 }
+        // The ticker ended at t = 4; the fetches end there too.
+        fetcher.reply(host, .data("{}"))
+        fetcher.reply(source, .data("{}"))
+        fetcher.release(host)
+        fetcher.release(source)
+        await waitUntil { runtime.snapshot(.host("box"))?.data != nil && runtime.snapshot(.source("a"))?.data != nil }
+
+        clock.advance(1)                             // t = 5
+        runtime.startDueJobs()
+        await waitUntil { fetcher.count(source) == 2 }
+        await settle()
+        XCTAssertEqual(ticks, 1, "5s after the start, 1s after the end")
+        XCTAssertEqual(fetcher.count(host), 1)
+
+        clock.advance(3.9)                           // t = 8.9
+        runtime.startDueJobs()
+        await settle()
+        XCTAssertEqual(ticks, 1)
+        XCTAssertEqual(fetcher.count(host), 1)
+
+        clock.advance(0.1)                           // t = 9: 5s after the end
+        runtime.startDueJobs()
+        await waitUntil { ticks == 2 && fetcher.count(host) == 2 }
+    }
+
+    @MainActor
+    func testASlowAlignedTickerWaitsForTheNextWholeSecondAfterItEnds() async {
+        let clock = FakeClock(Date(timeIntervalSinceReferenceDate: 1001))
+        let runtime = AppRuntime(config: Config(), fetcher: FakeFetcher(), cache: nil, now: { clock.now })
+        var ticks: [TimeInterval] = []
+        runtime.addTicker(name: "clock", interval: 1, visibleOnly: false, aligned: true) {
+            ticks.append(clock.now.timeIntervalSinceReferenceDate)
+            clock.advance(1.5)
+        }
+        runtime.startDueJobs()                       // 1001.0, ends 1002.5
+        await waitUntil { ticks.count == 1 }
+        runtime.startDueJobs()
+        await settle()
+        XCTAssertEqual(ticks, [1001], "1002 passed while it ran; the next one is 1003")
+        clock.advance(0.5)                           // 1003.0
+        runtime.startDueJobs()
+        await waitUntil { ticks.count == 2 }
+        XCTAssertEqual(ticks, [1001, 1003])
+    }
+
     @MainActor
     func testTheTimerRunsJobsOnItsOwn() async {
         // Real time: a started runtime needs nobody to call startDueJobs.
@@ -333,17 +399,43 @@ final class RuntimeTests: XCTestCase {
         XCTAssertEqual(fetcher.calls, [], "schedules from the legacy fetch time")
     }
 
+    /// Host health is cached like a source, but a start only shows it when
+    /// it is less than 30 minutes old, and it refreshes as soon as the
+    /// dashboard shows.
     @MainActor
-    func testHostHealthIsNotCachedOnDisk() async throws {
-        let directory = try makeTemporaryDirectory()
-        let runtime = AppRuntime(config: runtimeConfig(hosts: [HostConfig(name: "box", url: "https://box.example")]),
-                                 fetcher: FakeFetcher(), cache: SnapshotCache(directory: directory.path),
-                                 now: fixedNow)
+    func testHostHealthIsCachedForHalfAnHour() async throws {
+        let cache = SnapshotCache(directory: try makeTemporaryDirectory().path)
+        let clock = FakeClock(), fetcher = FakeFetcher()
+        let host = "foyer-api --host https://box.example /api/health"
+        let config = runtimeConfig(hosts: [HostConfig(name: "box", url: "https://box.example")])
+        let runtime = AppRuntime(config: config, fetcher: fetcher, cache: cache, now: { clock.now })
         runtime.setVisible(true)
         runtime.startDueJobs()
         await waitUntil { runtime.snapshot(.host("box"))?.data != nil }
-        await settle()
-        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.path), [])
+        let saved = try XCTUnwrap(cache.load("host:box"))
+        XCTAssertEqual(saved.snapshot, SourceSnapshot(data: Data("{\"n\": 1}".utf8), fetchedAt: clock.now))
+
+        clock.advance(29 * 60)
+        let next = AppRuntime(config: config, fetcher: fetcher, cache: cache, now: { clock.now })
+        XCTAssertEqual(next.snapshot(.host("box"))?.data, Data("{\"n\": 1}".utf8))
+        next.setVisible(true)
+        next.startDueJobs()
+        await waitUntil { fetcher.count(host) == 2 }
+
+        clock.advance(31 * 60)
+        let later = AppRuntime(config: config, fetcher: fetcher, cache: cache, now: { clock.now })
+        XCTAssertEqual(later.snapshot(.host("box")), SourceSnapshot(), "too old to show")
+    }
+
+    func testNowPlayingIsKeptPerPlayer() throws {
+        let cache = SnapshotCache(directory: try makeTemporaryDirectory().path)
+        XCTAssertNil(cache.loadNowPlaying(player: "Spotify"))
+        let playing = NowPlaying(title: "Song", artist: "Band", state: "playing")
+        cache.saveNowPlaying(playing, player: "Spotify")
+        cache.saveNowPlaying(.off, player: "Music")
+        XCTAssertEqual(cache.loadNowPlaying(player: "Spotify"), playing)
+        XCTAssertEqual(cache.loadNowPlaying(player: "Music"), .off)
+        XCTAssertNil(cache.load("media:Spotify"), "not a source entry")
     }
 
     func testCacheDirectoryPerPlatform() {
@@ -457,10 +549,59 @@ final class RuntimeTests: XCTestCase {
         newDone = true
         await settle()
         runtime.startDueJobs()
+        await settle()
+        XCTAssertEqual(runs, ["old", "new"], "a ticker waits its interval after a run ends")
+        clock.advance(60)
+        runtime.startDueJobs()
         await waitUntil { runs == ["old", "new", "new"] }
     }
 
+    /// A ticker replaced before its run began must not run the
+    /// replacement's action as well: the replacement runs once.
+    @MainActor
+    func testAReplacedTickerRunsOnlyItsReplacement() async {
+        let runtime = AppRuntime(config: Config(), fetcher: FakeFetcher(), cache: nil, now: fixedNow)
+        var runs: [String] = []
+        runtime.addTicker(name: "t", interval: 60, visibleOnly: false) { runs.append("old") }
+        runtime.startDueJobs()   // the old run is launched, not yet begun
+        runtime.addTicker(name: "t", interval: 60, visibleOnly: false) { runs.append("new") }
+        runtime.startDueJobs()
+        await waitUntil { runs == ["new"] }
+        await settle()
+        XCTAssertEqual(runs, ["new"])
+    }
+
     // MARK: Observers and lifetime
+
+    @MainActor
+    func testShutdownCancelsRunningJobsAndStartsNothingMore() async {
+        let clock = FakeClock(), fetcher = FakeFetcher()
+        fetcher.reply("https://a.example", .hold)
+        let runtime = AppRuntime(
+            config: runtimeConfig(sources: ["a": http("https://a.example"), "b": http("https://b.example")],
+                                  hosts: [HostConfig(name: "box", url: "https://box.example")]),
+            fetcher: fetcher, cache: nil, now: { clock.now })
+        var ticks = 0
+        runtime.addTicker(name: "t", interval: 1) { ticks += 1 }
+        runtime.start()
+        await waitUntil { fetcher.count("https://a.example") == 1 && fetcher.count("https://b.example") == 1 }
+
+        runtime.shutdown()
+        await waitUntil { fetcher.cancelledKeys == ["https://a.example"] }
+        await settle()
+        XCTAssertEqual(runtime.snapshot(.source("a")), SourceSnapshot(), "the cancelled fetch never lands")
+
+        // Nothing starts again, whatever is due or asked.
+        clock.advance(3600)
+        runtime.setVisible(true)
+        runtime.start()
+        runtime.startDueJobs()
+        runtime.apply(runtimeConfig(sources: ["c": http("https://c.example")]))
+        await settle()
+        XCTAssertEqual(Set(fetcher.calls), ["https://a.example", "https://b.example"])
+        XCTAssertEqual(fetcher.calls.count, 2)
+        XCTAssertEqual(ticks, 0)
+    }
 
     @MainActor
     func testObserversHearEveryChangeUntilRemoved() async {

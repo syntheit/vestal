@@ -178,7 +178,7 @@ A host:
 | `url` | string | none | The host's foyer base URL, such as `"https://box.example.com"`. |
 | `source` | string | none | `"local"`: this machine, read in-process. Any other value names a source whose JSON is a foyer `/api/health` payload, used instead of `url`. |
 | `key` | string | first free letter of the name | Shortcut letter, `a` to `z`. `p` and `i` are reserved. Hosts with a usable `key` get it first (the first host naming a letter keeps it); then every other host, in dashboard order, gets the first free letter of its name. One keyboard serves every systemHealth widget in `views.main.order`. |
-| `interval` | duration | `"5s"` | How often a `url` host's health is polled. Only while the dashboard is visible, and never cached on disk. A `source` host follows its source's `refresh`. |
+| `interval` | duration | `"5s"` | How often a `url` host's health is polled, counted from the end of the previous poll. Only while the dashboard is visible. The last good result is kept on disk (as `host:<name>.json` next to the sources') and shown at startup if it is less than 30 minutes old. A `source` host follows its source's `refresh`. |
 
 A host needs `url` or `source`. A host name listed twice, in one widget or two, shows the first entry's data and opens the first entry's popup.
 

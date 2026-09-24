@@ -5,7 +5,8 @@ import Foundation
 // The last good result of each source, one JSON file per source in the user
 // cache directory (see `platformDirectory`), so the first frame after a start
 // has data before any fetch lands. Writes are atomic, so a crash never leaves
-// a torn file. Host health is not cached: it is stale within seconds.
+// a torn file. Host health (`host:<name>`) and each media player's last state
+// (`media:<player>`) are kept here too.
 //
 // A file records the source definition its data came from. AppRuntime serves
 // the data either way, but refetches at once when the definition changed.
@@ -67,6 +68,22 @@ public struct SnapshotCache: Sendable {
         guard let raw = try? JSONEncoder().encode(file) else { return }
         try? raw.write(to: URL(fileURLWithPath: path(for: name)), options: .atomic)
     }
+
+    /// What `player` was last seen playing; nil if nothing was saved.
+    public func loadNowPlaying(player: String) -> NowPlaying? {
+        guard let raw = try? Data(contentsOf: URL(fileURLWithPath: path(for: Self.mediaName(player)))) else {
+            return nil
+        }
+        return try? JSONDecoder().decode(NowPlaying.self, from: raw)
+    }
+
+    public func saveNowPlaying(_ playing: NowPlaying, player: String) {
+        try? FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+        guard let raw = try? JSONEncoder().encode(playing) else { return }
+        try? raw.write(to: URL(fileURLWithPath: path(for: Self.mediaName(player))), options: .atomic)
+    }
+
+    private static func mediaName(_ player: String) -> String { "media:\(player)" }
 
     /// A source definition as a string that is the same in every run (JSON
     /// with sorted keys, defaults included).

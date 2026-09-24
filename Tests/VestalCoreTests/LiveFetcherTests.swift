@@ -15,14 +15,14 @@ final class LiveFetcherTests: XCTestCase {
 
     func testArgvRunsWithoutAShell() async throws {
         let data = try await LiveFetcher().fetch(
-            SourceConfig(type: "command", argv: ["/usr/bin/env", "echo", "{\"a\": \"$HOME; `id`\"}"]))
+            SourceConfig(type: "command", argv: ["echo", "{\"a\": \"$HOME; `id`\"}"]))
         XCTAssertEqual(String(decoding: data, as: UTF8.self), "{\"a\": \"$HOME; `id`\"}\n")
     }
 
     func testATildeExpandsInEveryArgument() async throws {
         let data = try await LiveFetcher().fetch(SourceConfig(
             type: "command", parse: "raw",
-            argv: ["/usr/bin/env", "printf", "%s|%s|%s|%s|%s", "~", "~/x", "a~/b", "~user", "x/~"],
+            argv: ["printf", "%s|%s|%s|%s|%s", "~", "~/x", "a~/b", "~user", "x/~"],
             env: ["HOME": "/h"]))
         XCTAssertEqual(String(decoding: data, as: UTF8.self), "/h|/h/x|a~/b|~user|x/~")
     }
@@ -82,7 +82,7 @@ final class LiveFetcherTests: XCTestCase {
     @MainActor
     func testACommandSourceThroughTheRuntime() async {
         let runtime = AppRuntime(
-            config: runtimeConfig(sources: ["echo": SourceConfig(type: "command", argv: ["/usr/bin/env", "echo", "[1, 2]"])]),
+            config: runtimeConfig(sources: ["echo": SourceConfig(type: "command", argv: ["echo", "[1, 2]"])]),
             cache: nil)
         runtime.startDueJobs()
         await waitUntil { runtime.snapshot(.source("echo"))?.data != nil }

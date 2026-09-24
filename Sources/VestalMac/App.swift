@@ -60,8 +60,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // values, and with them the first frame, already have data.
         let config = AppConfig.current
         Palette.current = Palette.named(config.theme.paletteName)
-        let runtime = AppRuntime(config: config, fetcher: LiveFetcher(calendar: MacPlatform.calendar))
-        let model = DashboardModel(runtime: runtime, config: config)
+        let cache = SnapshotCache()
+        let runtime = AppRuntime(config: config, fetcher: LiveFetcher(calendar: MacPlatform.calendar), cache: cache)
+        let model = DashboardModel(runtime: runtime, config: config, cache: cache)
         self.runtime = runtime
         self.model = model
 
@@ -198,8 +199,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Every quit path (Escape, SIGTERM from `vestal hide`) ends here.
+    /// Running fetches and commands are cancelled, and nothing new starts.
     func applicationWillTerminate(_ notification: Notification) {
-        runtime?.setVisible(false)
+        runtime?.shutdown()
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }
