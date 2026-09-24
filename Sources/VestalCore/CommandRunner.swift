@@ -14,7 +14,9 @@ import Glibc
 //
 // The executable is resolved on $PATH plus the Nix and Homebrew profile dirs:
 // a launchd agent starts with a minimal PATH that contains none of them. The
-// child gets the same augmented PATH so its own lookups work too.
+// child gets the same augmented PATH so its own lookups work too. A leading
+// `~` expands in every element (there is no shell to do it), so a script path
+// handed to an interpreter works as well as the program itself.
 //
 // stdout and stderr are drained while the child runs. Reading only after exit
 // deadlocks as soon as the output outgrows the pipe buffer (~64KB): the child
@@ -116,11 +118,12 @@ public enum CommandRunner {
         return FileManager.default.isExecutableFile(atPath: path)
     }
 
-    /// Run `argv` and collect its output. A non-zero exit status is not an
-    /// error here; callers decide what it means. Throws `CommandError` if the
-    /// program can't be found or started, or runs longer than `timeout`, and
-    /// `CancellationError` if the calling task is cancelled (the child is
-    /// killed in both cases).
+    /// Run `argv` and collect its output. A leading `~` or `~/` in any
+    /// element expands to `$HOME` (after `environment`). A non-zero exit
+    /// status is not an error here; callers decide what it means. Throws
+    /// `CommandError` if the program can't be found or started, or runs
+    /// longer than `timeout`, and `CancellationError` if the calling task is
+    /// cancelled (the child is killed in both cases).
     public static func run(
         _ argv: [String],
         timeout: TimeInterval = 10,
@@ -133,11 +136,12 @@ public enum CommandRunner {
         guard let executable = resolveExecutable(name, environment: env) else {
             throw CommandError.notFound(name)
         }
+        let home = env["HOME"] ?? NSHomeDirectory()
 
         let execution = CommandExecution(
             name: name,
             executable: executable,
-            arguments: Array(argv.dropFirst()),
+            arguments: argv.dropFirst().map { expandTilde($0, home: home) },
             environment: env,
             timeout: timeout
         )

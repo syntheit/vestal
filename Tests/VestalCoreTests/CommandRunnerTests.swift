@@ -180,6 +180,13 @@ final class CommandRunnerTests: XCTestCase {
         XCTAssertNil(CommandRunner.resolveExecutable("~/bin/vestal-tool", environment: env))
     }
 
+    func testATildeExpandsInEveryArgument() async throws {
+        // A script handed to an interpreter needs it as much as the program.
+        let result = try await CommandRunner.run(["printf", "%s|", "~", "~/a", "a~/b", "~x", "b/~"],
+                                                 environment: ["HOME": "/h"])
+        XCTAssertEqual(result.stdoutString, "/h|/h/a|a~/b|~x|b/~|")
+    }
+
     func testTildeAndPathNamesRun() async throws {
         let home = try makeHome(tool: "vestal-tool")
         let viaTilde = try await CommandRunner.run(["~/bin/vestal-tool"], environment: ["HOME": home.path])
