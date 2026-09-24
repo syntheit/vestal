@@ -35,5 +35,10 @@ let package = Package(
             name: "vestal",
             dependencies: ["VestalCore", "VestalMac"]
         ),
+        .testTarget(
+            name: "VestalCoreTests",
+            dependencies: ["VestalCore"],
+            exclude: ["Fixtures"]
+        ),
     ]
 )
