@@ -5,6 +5,6 @@ import Foundation
 // `swift build` without Nix) leave it as "dev" — no detection logic
 // needed, since whatever's here IS the display string.
 public enum BuildInfo {
-    public static let version = "0.1.0"
+    public static let version = "0.3.0"
     public static let commit  = "dev"
 }
