@@ -10,6 +10,9 @@ final class HotkeyTests: XCTestCase {
         XCTAssertEqual(try HotkeySpec(parsing: "f3"), HotkeySpec(key: .f3))
         XCTAssertEqual(try HotkeySpec(parsing: "F3"), HotkeySpec(key: .f3))
         XCTAssertEqual(try HotkeySpec(parsing: "f20"), HotkeySpec(key: .f20))
+        XCTAssertEqual(try HotkeySpec(parsing: "home"), HotkeySpec(key: .home))
+        XCTAssertEqual(try HotkeySpec(parsing: "end"), HotkeySpec(key: .end))
+        XCTAssertEqual(try HotkeySpec(parsing: "shift+f3"), HotkeySpec(key: .f3, modifiers: [.shift]))
     }
 
     func testModifierCombinations() throws {
@@ -23,6 +26,7 @@ final class HotkeyTests: XCTestCase {
                        HotkeySpec(key: .a, modifiers: [.command, .control, .option, .shift]))
         XCTAssertEqual(try HotkeySpec(parsing: "ctrl+home"), HotkeySpec(key: .home, modifiers: [.control]))
         XCTAssertEqual(try HotkeySpec(parsing: "alt+end"), HotkeySpec(key: .end, modifiers: [.option]))
+        XCTAssertEqual(try HotkeySpec(parsing: "ctrl+escape"), HotkeySpec(key: .escape, modifiers: [.control]))
     }
 
     func testCaseAndWhitespaceDoNotMatter() throws {
@@ -38,8 +42,8 @@ final class HotkeyTests: XCTestCase {
     }
 
     func testAliases() throws {
-        XCTAssertEqual(try HotkeySpec(parsing: "esc"), HotkeySpec(key: .escape))
-        XCTAssertEqual(try HotkeySpec(parsing: "escape"), HotkeySpec(key: .escape))
+        XCTAssertEqual(try HotkeySpec(parsing: "cmd+esc"), HotkeySpec(key: .escape, modifiers: [.command]))
+        XCTAssertEqual(try HotkeySpec(parsing: "cmd+escape"), HotkeySpec(key: .escape, modifiers: [.command]))
         XCTAssertEqual(try HotkeySpec(parsing: "command+a"), try HotkeySpec(parsing: "cmd+a"))
         XCTAssertEqual(try HotkeySpec(parsing: "control+a"), try HotkeySpec(parsing: "ctrl+a"))
         XCTAssertEqual(try HotkeySpec(parsing: "alt+a"), try HotkeySpec(parsing: "opt+a"))
@@ -48,8 +52,11 @@ final class HotkeyTests: XCTestCase {
 
     func testEveryKeyParsesByName() throws {
         for key in HotkeySpec.Key.allCases {
-            XCTAssertEqual(try HotkeySpec(parsing: key.rawValue), HotkeySpec(key: key), key.rawValue)
-            XCTAssertEqual(try HotkeySpec(parsing: "cmd+" + key.rawValue.uppercased()).key, key)
+            XCTAssertEqual(try HotkeySpec(parsing: "cmd+" + key.rawValue), HotkeySpec(key: key, modifiers: [.command]))
+            XCTAssertEqual(try HotkeySpec(parsing: "ctrl+" + key.rawValue.uppercased()).key, key)
+            if !key.requiresModifier {
+                XCTAssertEqual(try HotkeySpec(parsing: key.rawValue), HotkeySpec(key: key), key.rawValue)
+            }
         }
     }
 
@@ -62,13 +69,19 @@ final class HotkeyTests: XCTestCase {
                        (1...20).map { "f\($0)" })
     }
 
+    func testWhichKeysMayStandAlone() {
+        let alone = HotkeySpec.Key.allCases.filter { !$0.requiresModifier }.map(\.rawValue)
+        XCTAssertEqual(alone, (1...20).map { "f\($0)" } + ["home", "end"])
+    }
+
     // MARK: Canonical form
 
     func testDescription() throws {
         XCTAssertEqual(try HotkeySpec(parsing: "shift + CMD + Space").description, "cmd+shift+space")
         XCTAssertEqual(try HotkeySpec(parsing: "opt+control+command+shift+f1").description, "cmd+ctrl+alt+shift+f1")
-        XCTAssertEqual(try HotkeySpec(parsing: "esc").description, "escape")
+        XCTAssertEqual(try HotkeySpec(parsing: "ctrl+esc").description, "ctrl+escape")
         XCTAssertEqual(try HotkeySpec(parsing: "opt+1").description, "alt+1")
+        XCTAssertEqual(try HotkeySpec(parsing: "F3").description, "f3")
     }
 
     func testDescriptionParsesBack() throws {
@@ -76,7 +89,7 @@ final class HotkeyTests: XCTestCase {
             [], [.command], [.shift], [.command, .shift], [.control, .option], [.command, .control, .option, .shift],
         ]
         for key in HotkeySpec.Key.allCases {
-            for modifiers in combinations {
+            for modifiers in combinations where !key.requiresModifier || !modifiers.subtracting(.shift).isEmpty {
                 let spec = HotkeySpec(key: key, modifiers: modifiers)
                 XCTAssertEqual(try HotkeySpec(parsing: spec.description), spec, spec.description)
             }
@@ -112,6 +125,20 @@ final class HotkeyTests: XCTestCase {
         assertInvalid("Shift+SHIFT+a", .duplicateModifier("shift"))
     }
 
+    func testTypingKeysNeedARealModifier() {
+        // Global: a bare "a" or "space" would be taken from every app.
+        assertInvalid("a", .needsModifier("a"))
+        assertInvalid("Z", .needsModifier("z"))
+        assertInvalid("1", .needsModifier("1"))
+        assertInvalid("space", .needsModifier("space"))
+        assertInvalid("esc", .needsModifier("esc"))
+        assertInvalid("escape", .needsModifier("escape"))
+        assertInvalid("shift+a", .needsModifier("a"))
+        assertInvalid("shift+space", .needsModifier("space"))
+        XCTAssertNoThrow(try HotkeySpec(parsing: "alt+a"))
+        XCTAssertNoThrow(try HotkeySpec(parsing: "ctrl+shift+1"))
+    }
+
     func testErrorMessagesNameTheProblem() {
         XCTAssertEqual(message(""), "hotkey is empty")
         XCTAssertEqual(message("cmd+"),
@@ -119,6 +146,9 @@ final class HotkeyTests: XCTestCase {
         XCTAssertEqual(message("cmd+shift"), "hotkey 'cmd+shift': only modifiers; add one key, as in cmd+shift+space")
         XCTAssertEqual(message("a+b"), "hotkey 'a+b': more than one key (a, b); use exactly one")
         XCTAssertEqual(message("alt+opt+a"), "hotkey 'alt+opt+a': 'opt' repeats a modifier")
+        XCTAssertEqual(message("shift+space"),
+                       "hotkey 'shift+space': 'space' needs cmd, ctrl or alt, or it would be taken from every app"
+                        + " (only f1-f20, home and end may stand alone)")
         let unknown = message("cmd+foo")
         XCTAssertTrue(unknown.hasPrefix("hotkey 'cmd+foo': unknown name 'foo'; keys are f1-f20, a-z, 0-9"), unknown)
         XCTAssertTrue(unknown.contains("modifiers are cmd, ctrl, alt (opt) and shift"), unknown)
@@ -145,13 +175,13 @@ final class HotkeyTests: XCTestCase {
             ("0", 0x1D), ("1", 0x12), ("2", 0x13), ("5", 0x17), ("6", 0x16), ("7", 0x1A), ("9", 0x19),
         ]
         for (name, code) in spotChecks {
-            XCTAssertEqual(try HotkeySpec(parsing: name).macKeyCode, code, name)
+            XCTAssertEqual(try HotkeySpec(parsing: "cmd+" + name).macKeyCode, code, name)
         }
     }
 
     func testSpecialKeyCodes() throws {
-        XCTAssertEqual(try HotkeySpec(parsing: "space").macKeyCode, 0x31)
-        XCTAssertEqual(try HotkeySpec(parsing: "escape").macKeyCode, 0x35)
+        XCTAssertEqual(try HotkeySpec(parsing: "cmd+space").macKeyCode, 0x31)
+        XCTAssertEqual(try HotkeySpec(parsing: "cmd+escape").macKeyCode, 0x35)
         XCTAssertEqual(try HotkeySpec(parsing: "home").macKeyCode, 0x73)
         XCTAssertEqual(try HotkeySpec(parsing: "end").macKeyCode, 0x77)
     }
