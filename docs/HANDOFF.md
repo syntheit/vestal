@@ -6,7 +6,11 @@ Written by the agent executing `docs/TASKS.md`, read by the owner who pulls the 
 
 (One paragraph: which phases are done, what is unverified, and whether the branch is expected to compile on macOS.)
 
-In progress. Phases 0 and 1 done; phase 2 (package split) implemented and awaiting review. Every macOS file compiles here against the macOS 14.4 SDK (see Environment), so the branch is expected to compile on macOS; runtime behaviour and the darwin Nix build are unverified (see "Unverified on macOS"). The CI `macos` job is the independent check.
+In progress. Phases 0, 1 and 2 done. Every macOS file compiles here against the macOS 14.4 SDK (see Environment), and CI's `macos` job (macos-14, Xcode 15.4) builds the release app and runs `swift test` green, so the branch is expected to compile on macOS; runtime behaviour and the darwin Nix build are unverified (see "Unverified on macOS").
+
+Invariants (TASKS) that still fail, and the phase that clears each:
+- Personal values: `Sources/VestalCore/DefaultConfig.swift` (the owner's hosts, clocks and exchange sources). Phase 3 replaces it with generic JSON defaults and moves the setup to `examples/full.json`.
+- `"/tmp` literals: `Sources/VestalCore/AsyncData.swift` (`/tmp/dashboard-cache`, host health and calendar caches) and `Sources/VestalMac/SystemBridge.swift` (CPU ticks, network bytes and the Spotify cache: phase 4 deletes them; the privacy state file `/tmp/.privacy-mode`: phase 5 reads it from config).
 
 ## Environment
 
@@ -43,6 +47,7 @@ Since phase 2 every macOS file is also compiled here against the macOS 14.4 SDK 
 - **Calendar through `CalendarProvider`** (`MacPlatform.swift:55-94`, `Sources/VestalCore/AsyncData.swift` `getTodayEvents(from:)`). Access request and query now use one `EKEventStore` each, created off the main thread; the request's store is kept alive until the answer arrives. If calendar access was never granted, the prompt still appears and the agenda fills after granting; with access already granted, today's events show as before.
 - **HTTP fetches without async URLSession** (`Sources/VestalCore/Runtime.swift:127`, `:247-293`). corelibs Foundation has no `data(for:)`, so every platform now uses `dataTask` plus a continuation (cancelling the task cancels the request). Weather and exchange must still load; `log stream --predicate 'process == "vestal"'` must not show `[vestal] source … fetch failed`.
 - **CLI** (`Sources/vestal/main.swift`). `vestal version`, `vestal help`, `vestal toggle|show|hide` behave as before on macOS.
+- **Battery time label** (`Sources/VestalMac/DashboardView.swift:410`). It is now `Text(Format.batteryRemaining(minutes:))`, a verbatim `String`; `9c17bfc` passed a string literal, i.e. a `LocalizedStringKey`, whose integer interpolations SwiftUI formats for the locale. Identical in locales with Latin digits (so on swift); only a locale with other digits could render the two differently. Look for: "2h 5m" / "45m" next to the battery percentage, as before.
 
 ### Phase 1 (bug fixes)
 
@@ -88,6 +93,16 @@ Decisions made without the owner, and why.
 ## Phase log
 
 Per phase: commits, what changed, review findings and how they were resolved.
+
+### Phase 2: Package split
+
+- `51d7530` Split package into VestalCore and VestalMac. `VestalCore` (Foundation only; config, loader, JSONPath, formatters, runtime, AsyncData fetch/parse logic, ClaudeUsage, CommandRunner, HostKeys, platform protocols and their value types), `VestalMac` (views, `SystemBridge`, `MacPlatform` adapters, `VestalApp.run()`; every file inside `#if os(macOS)`), executable `vestal` (CLI dispatch, then `VestalApp.run()` on macOS). HTTP through a `dataTask` continuation (no async `URLSession` in corelibs). Display strings moved to `Format`, byte for byte.
+- `f3c44f7` Treat a missing exchange pick key as empty (see Judgment calls).
+- `64f236e` Add VestalCore tests with fixtures. 78 XCTest cases: config decoding and round trips, `AnyJSON.matches`, JSONPath, durations, exchange and weather picking, foyer health, ClaudeUsage, `Format`, `HostKeys`, `CommandRunner` (argv, PATH resolution, timeout and kill, large output, fd leak).
+- `913ca0d` Build with SwiftPM in the flake. `package.nix` (SwiftPM, BuildInfo stamped); verified on Linux with the pinned nixpkgs, darwin still `[~]`.
+- `fb0b316` Record phase 2 notes in HANDOFF.
+- Review (1 subagent, `a17cbb0..fb0b316`): no high or medium findings. Two lows, both resolved in this log: the invariants that still fail were not written down (now under Summary), and the battery time label changed from a `LocalizedStringKey` to a verbatim `String` (kept, noted under "Unverified on macOS", phase 2).
+- Verification: `swift build && swift test` on Linux (78 tests pass); `mac-typecheck` of all three modules against the macOS 14.4 SDK with zero errors and warnings; the reviewer also linked the arm64 objects with `ld64.lld` against SDK 14.4: no undefined symbols. CI run #3 (`fb0b316`) is green: `macos` on macos-14 (release build and `swift test`, Xcode 15.4) and `linux`.
 
 ### Phase 1: Bug fixes
 

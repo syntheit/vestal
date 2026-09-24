@@ -71,9 +71,9 @@ Sources/vestal/main.swift   entry: CLI dispatch (portable), then on macOS starts
 Tests/VestalCoreTests/  XCTest
 ```
 
-- [ ] `Package.swift`: library `VestalCore`; target `VestalMac` depending on `VestalCore` (link the macOS frameworks only there, using `linkerSettings` with `.when(platforms: [.macOS])`); executable `vestal` depending on both; test target `VestalCoreTests`. It must build on both Linux and macOS. Keep tools-version 5.9 and `platforms: [.macOS(.v14)]`.
-- [ ] Move the portable code into `VestalCore` and make the needed API `public`: Config, ConfigLoader, DefaultConfig, JSONPath, Formatters, BuildInfo, Runtime/AppRuntime (minus UI), the fetch logic from AsyncData (http, foyer JSON parsing, exchange/weather picking), ClaudeUsage parsing, and the command runner from phase 1.
-- [ ] Define platform protocols in `VestalCore` (names are a suggestion):
+- [x] `Package.swift`: library `VestalCore`; target `VestalMac` depending on `VestalCore` (link the macOS frameworks only there, using `linkerSettings` with `.when(platforms: [.macOS])`); executable `vestal` depending on both; test target `VestalCoreTests`. It must build on both Linux and macOS. Keep tools-version 5.9 and `platforms: [.macOS(.v14)]`.
+- [x] Move the portable code into `VestalCore` and make the needed API `public`: Config, ConfigLoader, DefaultConfig, JSONPath, Formatters, BuildInfo, Runtime/AppRuntime (minus UI), the fetch logic from AsyncData (http, foyer JSON parsing, exchange/weather picking), ClaudeUsage parsing, and the command runner from phase 1.
+- [x] Define platform protocols in `VestalCore` (names are a suggestion):
   - `SystemStatsProvider`: cpu, memory, temperature, battery, network rates, disk, uptime.
   - `MediaProvider`: now playing, play/pause.
   - `CalendarProvider`: upcoming events.
@@ -81,9 +81,9 @@ Tests/VestalCoreTests/  XCTest
   - `PrivacyProvider`: state and toggle.
 
   `VestalMac` implements them with the existing Mach/SMC/IOKit/CoreAudio/AppleScript/EventKit code. Move the code; don't rewrite it.
-- [ ] `BuildInfo` stays substitutable by the flake (`let commit  = "dev"` literal, exact spacing), or update the flake's `substituteInPlace` to match.
-- [ ] Views keep their exact visual output. This phase moves files and draws boundaries; it does not redesign anything.
-- [ ] Tests (Linux): Config decoding round-trips; `AnyJSON.matches`; JSONPath (indexes, nested, missing paths); duration parsing (`30s`, `5m`, `4h`, `1d`, invalid); `PickItem` exchange picking against a recorded dolarapi fixture; weather field picking against a recorded wttr.in `j1` fixture; foyer health JSON parsing against a fixture; ClaudeUsage JSONL parsing against a fixture. Fixtures go in `Tests/VestalCoreTests/Fixtures/`. Build them from the code's own field expectations; do not fetch live.
+- [x] `BuildInfo` stays substitutable by the flake (`let commit  = "dev"` literal, exact spacing), or update the flake's `substituteInPlace` to match.
+- [x] Views keep their exact visual output. This phase moves files and draws boundaries; it does not redesign anything.
+- [x] Tests (Linux): Config decoding round-trips; `AnyJSON.matches`; JSONPath (indexes, nested, missing paths); duration parsing (`30s`, `5m`, `4h`, `1d`, invalid); `PickItem` exchange picking against a recorded dolarapi fixture; weather field picking against a recorded wttr.in `j1` fixture; foyer health JSON parsing against a fixture; ClaudeUsage JSONL parsing against a fixture. Fixtures go in `Tests/VestalCoreTests/Fixtures/`. Build them from the code's own field expectations; do not fetch live.
 - [~] Update `flake.nix` to build with SwiftPM rather than raw `swiftc`: nixpkgs `swift` + `swiftpm` (the `swiftpm` setup hook runs `swift build -c release`), plus `swiftPackages.stdenv` if that is needed. Keep darwin-only for now. If you judge that SwiftPM under Nix is too risky to leave unverified, keep raw `swiftc` with one invocation per module (`-emit-module`/`-emit-library` for VestalCore, then the app with `-I`/`-L`), and explain the choice in HANDOFF. Either way, mark it `[~]` "verify with `nix build` on swift". *(Verify with `nix build .#default` on swift. SwiftPM via `package.nix`; the same file builds the CLI on Linux with the pinned nixpkgs.)*
 
 ## Phase 3: Config complete
