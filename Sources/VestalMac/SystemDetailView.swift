@@ -1,4 +1,6 @@
+#if os(macOS)
 import SwiftUI
+import VestalCore
 
 struct SystemDetailView: View {
     let detail: AsyncData.ServerDetail?
@@ -237,4 +239,4 @@ private struct ProgressBar: View {
         }
     }
 }
-
+#endif

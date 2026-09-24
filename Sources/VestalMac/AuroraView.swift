@@ -1,3 +1,4 @@
+#if os(macOS)
 import AppKit
 import Metal
 import MetalKit
@@ -173,3 +174,4 @@ final class AuroraRenderer: NSObject, MTKViewDelegate {
     }
     """
 }
+#endif

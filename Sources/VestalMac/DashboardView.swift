@@ -1,4 +1,6 @@
+#if os(macOS)
 import SwiftUI
+import VestalCore
 
 // MARK: - Color theme (Tokyo Night inspired)
 
@@ -19,23 +21,23 @@ extension Color {
 
 struct DashboardView: View {
     // Mach/IOKit calls are <1ms — safe to init synchronously
-    @State private var cpu = SystemBridge.getCPU()
-    @State private var memory = SystemBridge.getMemory()
-    @State private var temp = SystemBridge.getTemp()
-    @State private var battery = SystemBridge.getBattery()
+    @State private var cpu = MacPlatform.stats.cpuPercent()
+    @State private var memory = MacPlatform.stats.memory()
+    @State private var temp = MacPlatform.stats.temperature()
+    @State private var battery = MacPlatform.stats.battery()
     @State private var time = Date()
-    @State private var privacyMode = SystemBridge.isPrivacyMode()
-    @State private var uptime = SystemBridge.getUptime()
-    @State private var diskFree = SystemBridge.getDiskFree()
-    @State private var network = SystemBridge.getNetwork()
+    @State private var privacyMode = MacPlatform.privacy.isEnabled()
+    @State private var uptime = Format.uptimeLong(Int(MacPlatform.stats.uptime()))
+    @State private var diskFree = Format.diskFree(MacPlatform.stats.disk())
+    @State private var network = MacPlatform.stats.networkRate()
     @State private var claudeUsage = ClaudeUsage.Snapshot.zero
     @State private var expandedHost: String?
     @State private var expandedDetail: AsyncData.ServerDetail?
     @State private var showingInfo: Bool = false
 
     // Volume via CoreAudio is instant (<1ms), Spotify needs AppleScript cache
-    @State private var volume = SystemBridge.getVolume()
-    @State private var spotify = SystemBridge.getCachedSpotify()
+    @State private var volume = MacPlatform.audio.volume()
+    @State private var spotify = MacPlatform.media.cachedNowPlaying()
 
     // Bumped on every play/pause click. A Spotify poll that started before
     // the latest click may have read the old state, so it must not overwrite
@@ -46,7 +48,7 @@ struct DashboardView: View {
     @State private var runtimeGeneration = 0
 
     // Remote foyer hosts come from config. The local entry (source: "local")
-    // is rendered separately in `allSystems` below using SystemBridge data.
+    // is rendered separately in `allSystems` below from the local stats.
     // Missing config → empty list, no remote hosts shown.
     private static var foyerServers: [AsyncData.FoyerConfig] {
         AppConfig.current.widgets["systems"]?.hosts?
@@ -123,8 +125,8 @@ struct DashboardView: View {
         .task(id: "clock") {
             while !Task.isCancelled {
                 time = Date()
-                privacyMode = SystemBridge.isPrivacyMode()
-                network = SystemBridge.getNetwork()
+                privacyMode = MacPlatform.privacy.isEnabled()
+                network = MacPlatform.stats.networkRate()
                 try? await Task.sleep(for: .seconds(1))
             }
         }
@@ -141,7 +143,7 @@ struct DashboardView: View {
             // the stats above must not wait for it.
             while !Task.isCancelled {
                 let generation = spotifyGeneration
-                let fresh = await SystemBridge.spotify()
+                let fresh = await MacPlatform.media.nowPlaying()
                 if generation == spotifyGeneration { spotify = fresh }
                 try? await Task.sleep(for: .seconds(3))
             }
@@ -165,7 +167,7 @@ struct DashboardView: View {
             // own 5-minute cache TTL. Separate from "slow" so a runtime source
             // that takes its full wait can't delay it.
             while !Task.isCancelled {
-                agenda = await AsyncData.getTodayEvents()
+                agenda = await AsyncData.getTodayEvents(from: MacPlatform.calendar)
                 try? await Task.sleep(for: .seconds(300))
             }
         }
@@ -230,7 +232,7 @@ struct DashboardView: View {
     }
 
     /// Configured host names whose source is "local" — used to route detail
-    /// loading to the in-process SystemBridge rather than a foyer URL.
+    /// loading to the in-process stats rather than a foyer URL.
     private static var localHostNames: Set<String> {
         Set((AppConfig.current.widgets["systems"]?.hosts ?? [])
             .filter { $0.source == "local" }
@@ -287,13 +289,13 @@ struct DashboardView: View {
     /// Spotify goes through AppleScript and is fetched separately, off the
     /// main thread, by the "spotify" task.
     private func refreshFast() {
-        cpu = SystemBridge.getCPU()
-        memory = SystemBridge.getMemory()
-        temp = SystemBridge.getTemp()
-        battery = SystemBridge.getBattery()
-        volume = SystemBridge.getVolume()
-        uptime = SystemBridge.getUptime()
-        diskFree = SystemBridge.getDiskFree()
+        cpu = MacPlatform.stats.cpuPercent()
+        memory = MacPlatform.stats.memory()
+        temp = MacPlatform.stats.temperature()
+        battery = MacPlatform.stats.battery()
+        volume = MacPlatform.audio.volume()
+        uptime = Format.uptimeLong(Int(MacPlatform.stats.uptime()))
+        diskFree = Format.diskFree(MacPlatform.stats.disk())
     }
 
     /// Re-read the sections backed by AppRuntime sources. Runs at launch and
@@ -405,8 +407,7 @@ struct DashboardView: View {
                             .font(.system(size: 11))
                             .foregroundStyle(Color.dimmed)
                     } else if let mins = b.timeRemaining {
-                        let h = mins / 60, m = mins % 60
-                        Text(h > 0 ? "\(h)h \(m)m" : "\(m)m")
+                        Text(Format.batteryRemaining(minutes: mins))
                             .font(.system(size: 11))
                             .foregroundStyle(Color.dimmed)
                     }
@@ -449,7 +450,7 @@ struct DashboardView: View {
     private var privacyIndicator: some View {
         Button(action: {
             privacyMode.toggle()
-            SystemBridge.togglePrivacy()
+            MacPlatform.privacy.toggle()
         }) {
             HStack(spacing: 6) {
                 Image(systemName: privacyMode ? "mic.slash.fill" : "mic.fill")
@@ -467,7 +468,7 @@ struct DashboardView: View {
     private var mediaSection: some View {
         HStack(spacing: 12) {
             Button(action: {
-                SystemBridge.toggleSpotify()
+                MacPlatform.media.playPause()
                 spotifyGeneration += 1
                 if spotify.state == "playing" { spotify.state = "paused" }
                 else if spotify.state == "paused" { spotify.state = "playing" }
@@ -495,7 +496,7 @@ struct DashboardView: View {
     private var volumeIndicator: some View {
         Button(action: {
             volume.muted.toggle()
-            SystemBridge.setMuted(volume.muted)
+            MacPlatform.audio.setMuted(volume.muted)
         }) {
             HStack(spacing: 6) {
                 Image(systemName: volume.muted ? "speaker.slash.fill" : volumeIcon)
@@ -556,13 +557,7 @@ struct DashboardView: View {
                             .foregroundStyle(Color.accent)
                     } else if index == firstTimedIndex {
                         let mins = Int(event.startDate.timeIntervalSince(time) / 60)
-                        let relative: String = {
-                            if mins <= 0 { return "now" }
-                            if mins < 60 { return "in \(mins)m" }
-                            let h = mins / 60, m = mins % 60
-                            return m > 0 ? "in \(h)h \(m)m" : "in \(h)h"
-                        }()
-                        Text(relative)
+                        Text(Format.startsIn(minutes: mins))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(mins <= 15 ? Color.yellow : Color.accent)
                     }
@@ -573,7 +568,7 @@ struct DashboardView: View {
 
     private var allSystems: [AsyncData.ServerHealth] {
         // Walk the configured host order. Local entries (source: "local") are
-        // built from SystemBridge. Remote entries match against the foyer
+        // built from the local stats. Remote entries match against the foyer
         // fetch results by name. Hosts not yet known in `servers` are skipped
         // until their first health snapshot arrives.
         guard let hosts = AppConfig.current.widgets["systems"]?.hosts, !hosts.isEmpty else {
@@ -699,7 +694,7 @@ struct DashboardView: View {
                                 .foregroundStyle(Color.subtle)
                         }
                     }
-                    if let ctx = sunContext(w) {
+                    if let ctx = Format.sunContext(sunrise: w.sunrise, sunset: w.sunset, now: time) {
                         Text(ctx)
                             .font(.system(size: 12))
                             .foregroundStyle(Color.dimmed)
@@ -707,32 +702,6 @@ struct DashboardView: View {
                 }
             }
         }
-    }
-
-    /// Contextual sun info: "rises in Xh", "sets in Xh Ym", or "Xh Ym daylight"
-    private func sunContext(_ w: AsyncData.WeatherInfo) -> String? {
-        guard let sr = w.sunrise, let ss = w.sunset else { return nil }
-        let srParts = sr.split(separator: ":"), ssParts = ss.split(separator: ":")
-        guard srParts.count == 2, ssParts.count == 2,
-              let srH = Int(srParts[0]), let srM = Int(srParts[1]),
-              let ssH = Int(ssParts[0]), let ssM = Int(ssParts[1]) else { return nil }
-        let cal = Foundation.Calendar.current
-        let nowH = cal.component(.hour, from: time)
-        let nowM = cal.component(.minute, from: time)
-        let now = nowH * 60 + nowM
-        let rise = srH * 60 + srM
-        let set = ssH * 60 + ssM
-        if now < rise {
-            let d = rise - now
-            return d < 60 ? "rises in \(d)m" : "rises in \(d / 60)h \(d % 60)m"
-        }
-        if now < set {
-            let d = set - now
-            return d < 60 ? "sets in \(d)m" : "sets in \(d / 60)h \(d % 60)m"
-        }
-        let daylight = set - rise
-        guard daylight > 0 else { return nil }
-        return "\(daylight / 60)h \(daylight % 60)m daylight"
     }
 }
 
@@ -802,3 +771,4 @@ final class DashboardExpansionState {
     var isOpen: Bool = false      // true if any overlay (host or info) is showing
     var infoOpen: Bool = false    // routes Esc to close info specifically
 }
+#endif

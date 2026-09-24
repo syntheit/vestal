@@ -4,7 +4,7 @@ import Foundation
 // assignment below with the actual short commit hash. Dev builds (raw
 // `swift build` without Nix) leave it as "dev" — no detection logic
 // needed, since whatever's here IS the display string.
-enum BuildInfo {
-    static let version = "0.1.0"
-    static let commit  = "dev"
+public enum BuildInfo {
+    public static let version = "0.1.0"
+    public static let commit  = "dev"
 }

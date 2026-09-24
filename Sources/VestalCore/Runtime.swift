@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 // MARK: - AppRuntime
 //
@@ -9,15 +12,16 @@ import Foundation
 // updates through an ObservableObject adapter come in phase 4 (no macros:
 // the Nix toolchain can't load macro plugins).
 //
-// Disk cache lives at ~/Library/Caches/Vestal/<source>.json — populated
-// synchronously on `start()` so the first frame after launch is instant.
+// Disk cache lives at ~/Library/Caches/Vestal/<source>.json (Linux:
+// $XDG_CACHE_HOME/vestal, default ~/.cache/vestal) — populated synchronously
+// on `start()` so the first frame after launch is instant.
 //
 // v0.2 C3a scope: HTTP sources only. EventKit and command (foyer) routes
 // stay on their existing AsyncData paths until C3b/C4.
 
 @MainActor
-final class AppRuntime {
-    static let shared = AppRuntime()
+public final class AppRuntime {
+    public static let shared = AppRuntime()
 
     /// Per-source snapshots. Observed by views; mutated only on MainActor.
     private(set) var snapshots: [String: SourceSnapshot] = [:]
@@ -29,7 +33,7 @@ final class AppRuntime {
 
     /// Spin up fetch loops for every supported source in the loaded config.
     /// Idempotent — second call is a no-op.
-    func start() {
+    public func start() {
         guard !started else { return }
         started = true
 
@@ -47,7 +51,7 @@ final class AppRuntime {
     }
 
     /// Cancel all fetch loops. Call on app shutdown.
-    func stop() {
+    public func stop() {
         for (_, t) in tasks { t.cancel() }
         tasks.removeAll()
         started = false
@@ -120,7 +124,7 @@ final class AppRuntime {
         req.setValue("vestal/\(BuildInfo.version)", forHTTPHeaderField: "User-Agent")
 
         do {
-            let (data, _) = try await URLSession.shared.data(for: req)
+            let (data, _) = try await URLSession.shared.vestalData(for: req)
             var snap = snapshots[name] ?? SourceSnapshot()
             snap.data = data
             snap.lastFetch = Date()
@@ -143,7 +147,7 @@ final class AppRuntime {
 
     /// Parse "30s" / "5m" / "1h" / "4h" / "2d" into a Swift Duration.
     /// Returns nil for unparseable input; callers fall back to a 30m default.
-    static func parseDuration(_ s: String) -> Duration? {
+    public nonisolated static func parseDuration(_ s: String) -> Duration? {
         let trimmed = s.trimmingCharacters(in: .whitespaces)
         guard let unit = trimmed.last else { return nil }
         let valueStr = String(trimmed.dropLast())
@@ -160,7 +164,7 @@ final class AppRuntime {
 
 extension Notification.Name {
     /// Posted after a source fetch succeeds; userInfo["source"] is its name.
-    static let runtimeSourceUpdated = Notification.Name("vestalRuntimeSourceUpdated")
+    public static let runtimeSourceUpdated = Notification.Name("vestalRuntimeSourceUpdated")
 }
 
 // MARK: - SourceSnapshot
@@ -194,12 +198,19 @@ struct SourceSnapshot: Codable {
 
 // MARK: - On-disk cache
 //
-// One file per source under ~/Library/Caches/Vestal/. Atomic writes so a
+// One file per source under the user cache dir (see `dir`). Atomic writes so a
 // crashed write never corrupts the cache. Source names are URL-encoded for
 // filesystem safety (forward slash is the only realistic culprit).
 
 enum SourceCache {
-    static let dir: String = "\(NSHomeDirectory())/Library/Caches/Vestal"
+    static let dir: String = {
+        #if os(macOS)
+        return "\(NSHomeDirectory())/Library/Caches/Vestal"
+        #else
+        let xdg = ProcessInfo.processInfo.environment["XDG_CACHE_HOME"] ?? ""
+        return xdg.isEmpty ? "\(NSHomeDirectory())/.cache/vestal" : "\(xdg)/vestal"
+        #endif
+    }()
 
     static func path(name: String) -> String {
         let safe = name.replacingOccurrences(of: "/", with: "_")
@@ -224,5 +235,57 @@ enum SourceCache {
         ensureDir()
         guard let raw = try? JSONEncoder().encode(snapshot) else { return }
         try? raw.write(to: URL(fileURLWithPath: path(name: name)), options: .atomic)
+    }
+}
+
+// MARK: - URLSession
+
+extension URLSession {
+    /// `data(for:)` on every platform: corelibs Foundation 5.10 (Linux) has
+    /// no async URLSession API. Cancelling the calling task cancels the
+    /// request, which then fails with `URLError(.cancelled)`.
+    func vestalData(for request: URLRequest) async throws -> (Data, URLResponse) {
+        let pending = PendingDataTask()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                let task = dataTask(with: request) { data, response, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else if let data, let response {
+                        continuation.resume(returning: (data, response))
+                    } else {
+                        continuation.resume(throwing: URLError(.badServerResponse))
+                    }
+                }
+                pending.start(task)
+            }
+        } onCancel: {
+            pending.cancel()
+        }
+    }
+}
+
+/// Hands a data task to the cancellation handler, which can run before the
+/// task exists or concurrently with starting it.
+private final class PendingDataTask: @unchecked Sendable {
+    private let lock = NSLock()
+    private var task: URLSessionDataTask?
+    private var cancelled = false
+
+    func start(_ task: URLSessionDataTask) {
+        lock.lock()
+        self.task = task
+        let cancelled = self.cancelled
+        lock.unlock()
+        task.resume()
+        if cancelled { task.cancel() }
+    }
+
+    func cancel() {
+        lock.lock()
+        cancelled = true
+        let task = self.task
+        lock.unlock()
+        task?.cancel()
     }
 }

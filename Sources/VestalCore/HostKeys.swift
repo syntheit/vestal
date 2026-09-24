@@ -14,11 +14,11 @@ import Foundation
 //
 // Portable: no AppKit.
 
-enum HostKeys {
-    static let reserved: Set<Character> = ["p", "i"]
+public enum HostKeys {
+    public static let reserved: Set<Character> = ["p", "i"]
 
     /// Returns key → host name.
-    static func assign(_ names: [String], reserved: Set<Character> = reserved) -> [Character: String] {
+    public static func assign(_ names: [String], reserved: Set<Character> = reserved) -> [Character: String] {
         var map: [Character: String] = [:]
         for name in names {
             for ch in name.lowercased() where ch.isLetter && !reserved.contains(ch) && map[ch] == nil {

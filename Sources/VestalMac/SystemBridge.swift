@@ -1,7 +1,13 @@
+#if os(macOS)
 import Foundation
 import IOKit
 import IOKit.ps
 import CoreAudio
+import VestalCore
+
+// The macOS system reads behind VestalCore's platform protocols (the adapters
+// are in MacPlatform.swift): Mach, SMC/IOKit, getifaddrs, CoreAudio,
+// AppleScript and the privacy script.
 
 // MARK: - CPU Usage (delta-based, via host_processor_info)
 
@@ -62,11 +68,6 @@ enum SystemBridge {
     }
 
     // MARK: - RAM Usage + Memory Pressure (single host_statistics64 call)
-
-    struct MemoryInfo {
-        var ramPercent: Int       // used RAM as % of total
-        var pressurePercent: Int  // compressed memory as % of total
-    }
 
     static func getMemory() -> MemoryInfo {
         var size = mach_msg_type_number_t(
@@ -161,13 +162,6 @@ enum SystemBridge {
 
     // MARK: - Battery (via IOKit Power Sources)
 
-    struct BatteryInfo {
-        var percent: Int
-        var charging: Bool
-        var acPower: Bool
-        var timeRemaining: Int? // minutes
-    }
-
     static func getBattery() -> BatteryInfo? {
         guard let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
               let sources = IOPSCopyPowerSourcesList(snapshot)?.takeRetainedValue() as? [Any],
@@ -186,31 +180,22 @@ enum SystemBridge {
 
     // MARK: - Uptime
 
-    static func getUptime() -> String {
-        let secs = Int(ProcessInfo.processInfo.systemUptime)
-        let d = secs / 86400, h = (secs % 86400) / 3600, m = (secs % 3600) / 60
-        if d > 0 { return "\(d)d \(h)h" }
-        return "\(h)h \(m)m"
+    static func getUptime() -> TimeInterval {
+        ProcessInfo.processInfo.systemUptime
     }
 
     // MARK: - Disk Space
 
-    static func getDiskFree() -> String {
+    /// The root volume. Formatted for display by `Format.diskFree`.
+    static func getDisk() -> DiskUsage? {
         guard let attrs = try? FileManager.default.attributesOfFileSystem(forPath: "/"),
               let total = attrs[.systemSize] as? Int64,
               let free = attrs[.systemFreeSize] as? Int64
-        else { return "" }
-        let freeGB = Double(free) / 1_073_741_824
-        let totalGB = Double(total) / 1_073_741_824
-        return String(format: "%.0f/%.0fGB", freeGB, totalGB)
+        else { return nil }
+        return DiskUsage(totalBytes: total, freeBytes: free)
     }
 
     // MARK: - Network Activity (delta-based, via getifaddrs)
-
-    struct NetworkRate {
-        var bytesIn: Int64   // bytes per second
-        var bytesOut: Int64  // bytes per second
-    }
 
     private static let netBytesFile = "/tmp/.dashboard_net_bytes"
 
@@ -272,9 +257,9 @@ enum SystemBridge {
     }
 
     /// Runs the toggle script in the background and returns immediately.
-    /// Through `bash` found on PATH, like the old `/bin/bash script` call, so
-    /// the script needs neither a shebang nor the executable bit. The path is
-    /// an argument, not argv[0], so its `~` is expanded here.
+    /// Through `bash` found on PATH, as before (it used to be a hardcoded
+    /// bash path), so the script needs neither a shebang nor the executable
+    /// bit. The path is an argument, not argv[0], so its `~` is expanded here.
     static func togglePrivacy() {
         Task.detached(priority: .utility) {
             let script = CommandRunner.expandTilde("~/.local/bin/toggle-privacy")
@@ -296,11 +281,6 @@ enum SystemBridge {
         var error: NSDictionary?
         let result = script?.executeAndReturnError(&error)
         return result?.stringValue
-    }
-
-    struct VolumeInfo {
-        var level: Int
-        var muted: Bool
     }
 
     // MARK: - CoreAudio (direct, no AppleScript)
@@ -364,12 +344,6 @@ enum SystemBridge {
         }
     }
 
-    struct SpotifyInfo {
-        var title: String
-        var artist: String
-        var state: String // playing, paused, stopped, off
-    }
-
     /// AppleScript runs on this serial queue, never on the main thread: an
     /// Apple Events round-trip to a busy or hung app can take seconds, and the
     /// dashboard would freeze for all of it. Serial, so one NSAppleScript
@@ -384,16 +358,16 @@ enum SystemBridge {
 
     /// Now-playing state, fetched on `appleScriptQueue`. The caller resumes
     /// on its own executor (the main actor for the dashboard's tasks).
-    static func spotify() async -> SpotifyInfo {
+    static func spotify() async -> NowPlaying {
         await withCheckedContinuation { continuation in
             appleScriptQueue.async { continuation.resume(returning: getSpotify()) }
         }
     }
 
     private static let spotifyCachePath = "/tmp/dashboard-cache/spotify"
-    private static let spotifyOff = SpotifyInfo(title: "", artist: "", state: "off")
+    private static let spotifyOff = NowPlaying.off
 
-    static func getCachedSpotify() -> SpotifyInfo {
+    static func getCachedSpotify() -> NowPlaying {
         guard let raw = try? String(contentsOfFile: spotifyCachePath, encoding: .utf8) else {
             return spotifyOff
         }
@@ -401,7 +375,7 @@ enum SystemBridge {
     }
 
     /// Single AppleScript call that checks running state, player state, and track metadata
-    static func getSpotify() -> SpotifyInfo {
+    static func getSpotify() -> NowPlaying {
         guard let raw = runAppleScript("""
             if application "Spotify" is not running then return "off||"
             tell application "Spotify"
@@ -420,10 +394,11 @@ enum SystemBridge {
         return parseSpotifyCache(raw)
     }
 
-    private static func parseSpotifyCache(_ raw: String) -> SpotifyInfo {
+    private static func parseSpotifyCache(_ raw: String) -> NowPlaying {
         let parts = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             .split(separator: "|", omittingEmptySubsequences: false)
         guard parts.count >= 3, parts[0] != "off" else { return spotifyOff }
-        return SpotifyInfo(title: String(parts[1]), artist: String(parts[2]), state: String(parts[0]))
+        return NowPlaying(title: String(parts[1]), artist: String(parts[2]), state: String(parts[0]))
     }
 }
+#endif

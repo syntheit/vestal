@@ -10,8 +10,8 @@ import Foundation
 // Used by widget extractors (weather fields, exchange items) so users can
 // express data shape in config without code changes.
 
-enum JSONPath {
-    enum Segment: Equatable {
+public enum JSONPath {
+    public enum Segment: Equatable, Sendable {
         case field(String)
         case index(Int)
     }
@@ -24,7 +24,7 @@ enum JSONPath {
     ///     → [.field("rates"), .field("BRL")]
     ///   "items[2].name"
     ///     → [.field("items"), .index(2), .field("name")]
-    static func tokenize(_ path: String) -> [Segment] {
+    public static func tokenize(_ path: String) -> [Segment] {
         var segments: [Segment] = []
         var buffer = ""
         var inBracket = false
@@ -60,7 +60,7 @@ enum JSONPath {
 
     /// Resolve a path against a parsed-JSON root. Returns nil if any segment
     /// fails (missing key, out-of-bounds index, type mismatch).
-    static func resolve(_ path: String, in root: Any) -> Any? {
+    public static func resolve(_ path: String, in root: Any) -> Any? {
         let segments = tokenize(path)
         if segments.isEmpty { return root }
         var current: Any? = root
