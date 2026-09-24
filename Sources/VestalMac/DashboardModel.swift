@@ -61,6 +61,8 @@ final class DashboardModel: ObservableObject {
     private let runtime: AppRuntime
     /// Where each player's last state is kept for the next start.
     private let cache: SnapshotCache?
+    /// What the cache holds for each player, so only changes are written.
+    private var savedNowPlaying: [String: NowPlaying] = [:]
     /// The hosts the layout shows, the first entry of each name.
     private let hosts: [HostConfig]
     /// The root volume, for the local host's popup.
@@ -130,7 +132,9 @@ final class DashboardModel: ObservableObject {
         // the row would appear a moment after the dashboard, shifting it.
         if let cache {
             for player in players {
-                if let playing = cache.loadNowPlaying(player: player) { nowPlaying[player] = playing }
+                guard let playing = cache.loadNowPlaying(player: player) else { continue }
+                nowPlaying[player] = playing
+                savedNowPlaying[player] = playing
             }
         }
 
@@ -258,9 +262,12 @@ final class DashboardModel: ObservableObject {
             guard let provider = players[player] else { continue }
             let generation = mediaGeneration[player, default: 0]
             let playing = await provider.nowPlaying()
-            guard generation == mediaGeneration[player, default: 0], nowPlaying[player] != playing else { continue }
+            guard generation == mediaGeneration[player, default: 0] else { continue }
             update(\.nowPlaying, player, playing)
-            if let cache {
+            // A play/pause click changes the state without a poll, so this
+            // compares with what was saved, not with what is shown.
+            if let cache, savedNowPlaying[player] != playing {
+                savedNowPlaying[player] = playing
                 Task.detached(priority: .utility) { cache.saveNowPlaying(playing, player: player) }
             }
         }
