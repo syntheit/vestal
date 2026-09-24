@@ -85,6 +85,9 @@ public final class AppRuntime {
     private var tasks: [JobID: Task<Void, Never>] = [:]
     private var observers: [(id: Int, handler: @MainActor (RuntimeEvent) -> Void)] = []
     private var lastObserverID = 0
+    /// Numbers each start, across all jobs, so a result from a cancelled or
+    /// replaced run never matches the job that took its place.
+    private var lastGeneration = 0
     private var started = false
     private var timer: Task<Void, Never>?
 
@@ -250,8 +253,9 @@ public final class AppRuntime {
 
     private func launch(_ id: JobID, _ job: Job, at now: Date) {
         job.lastStart = now
-        job.generation &+= 1
-        let generation = job.generation
+        lastGeneration &+= 1
+        job.generation = lastGeneration
+        let generation = lastGeneration
         switch job.work {
         case .tick:
             tasks[id] = Task { [weak self] in
@@ -291,7 +295,8 @@ public final class AppRuntime {
     }
 
     private func finish(_ id: JobID, _ generation: Int, _ outcome: Outcome) {
-        // A job cancelled by `apply` (or replaced) is on a newer generation.
+        // The result of a run that was cancelled, or whose job was replaced
+        // or removed since, is dropped.
         guard let job = jobs[id], job.generation == generation else { return }
         tasks[id] = nil
         switch outcome {
@@ -312,7 +317,7 @@ public final class AppRuntime {
 
     private func cancel(_ id: JobID) {
         tasks.removeValue(forKey: id)?.cancel()
-        jobs[id]?.generation &+= 1
+        jobs[id]?.generation = 0   // no run has 0
     }
 
     private func notify(_ event: RuntimeEvent) {
@@ -376,8 +381,7 @@ public final class AppRuntime {
         var snapshot = SourceSnapshot()
         var lastStart: Date?
         var failed = false
-        /// Bumped by every start and cancel; a result from an older run is
-        /// dropped.
+        /// The running start's number (`lastGeneration`); 0 when none runs.
         var generation = 0
 
         init(work: Work, plan: Plan?, interval: TimeInterval, visibleOnly: Bool, aligned: Bool) {
