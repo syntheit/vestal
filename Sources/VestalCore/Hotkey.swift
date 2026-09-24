@@ -10,6 +10,10 @@ import Foundation
 //   keys       f1-f20, a-z, 0-9, space, escape (or esc), home, end
 //   modifiers  cmd (command), ctrl (control), alt (opt, option), shift
 //
+// The hotkey is global: the key is taken from every app. So letters,
+// digits, space and escape need cmd, ctrl or alt (shift alone just types a
+// capital); function keys, home and end may stand alone.
+//
 // The macOS virtual keycodes and Carbon modifier masks are plain numbers
 // here, copied from HIToolbox's Events.h (kVK_* and cmdKey etc.), so
 // VestalMac can call RegisterEventHotKey without tables of its own and the
@@ -96,6 +100,9 @@ public struct HotkeySpec: Equatable, Hashable, Sendable, CustomStringConvertible
         guard keys.count == 1 else {
             throw HotkeyParseError(input: text, reason: .multipleKeys(keys.map(\.name)))
         }
+        guard !only.key.requiresModifier || !modifiers.isDisjoint(with: [.command, .control, .option]) else {
+            throw HotkeyParseError(input: text, reason: .needsModifier(only.name))
+        }
         self.init(key: only.key, modifiers: modifiers)
     }
 
@@ -123,6 +130,19 @@ public struct HotkeySpec: Equatable, Hashable, Sendable, CustomStringConvertible
 }
 
 extension HotkeySpec.Key {
+    /// Keys that type something (or escape), which a global hotkey may only
+    /// take together with cmd, ctrl or alt.
+    public var requiresModifier: Bool {
+        switch self {
+        case .f1, .f2, .f3, .f4, .f5, .f6, .f7, .f8, .f9, .f10,
+             .f11, .f12, .f13, .f14, .f15, .f16, .f17, .f18, .f19, .f20,
+             .home, .end:
+            return false
+        default:
+            return true
+        }
+    }
+
     /// The macOS virtual keycode, kVK_* in Events.h.
     public var macKeyCode: UInt32 {
         switch self {
@@ -204,6 +224,8 @@ public struct HotkeyParseError: Error, Equatable, CustomStringConvertible {
         case multipleKeys([String])
         case unknownName(String)
         case duplicateModifier(String)
+        /// A letter, digit, space or escape without cmd, ctrl or alt.
+        case needsModifier(String)
     }
 
     public var input: String
@@ -230,6 +252,9 @@ public struct HotkeyParseError: Error, Equatable, CustomStringConvertible {
                 + " home and end; modifiers are cmd, ctrl, alt (opt) and shift"
         case .duplicateModifier(let name):
             return "\(hotkey): '\(name)' repeats a modifier"
+        case .needsModifier(let name):
+            return "\(hotkey): '\(name)' needs cmd, ctrl or alt, or it would be taken from every app"
+                + " (only f1-f20, home and end may stand alone)"
         }
     }
 }
