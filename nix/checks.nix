@@ -82,6 +82,10 @@ in
     swiftpmFlags = [ "--build-tests" ];
     postPatch = old.postPatch + ''
       python3 ${./gen-linuxmain.py} Tests
+      # The build sandbox has no /usr/bin/env.
+      for f in $(grep -rlF '"/usr/bin/env"' Tests || true); do
+        substituteInPlace "$f" --replace-fail '"/usr/bin/env"' '"${pkgs.coreutils}/bin/env"'
+      done
     '';
     doCheck = true;
     checkPhase = ''
