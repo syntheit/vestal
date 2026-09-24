@@ -193,8 +193,14 @@ final class CommandRunnerTests: XCTestCase {
     /// corelibs Foundation 5.10 leaked two fds per run until `waitUntilExit()`.
     func testFileDescriptorsStayFlatAcrossManyRuns() async throws {
         #if os(Linux)
+        // Pipes and sockets are what a run opens. The run loops corelibs
+        // creates on dispatch worker threads (eventpoll, eventfd, timerfd)
+        // live as long as their thread, and more threads appear under load.
         func openFDs() throws -> Int {
-            try FileManager.default.contentsOfDirectory(atPath: "/proc/self/fd").count
+            try FileManager.default.contentsOfDirectory(atPath: "/proc/self/fd").filter { fd in
+                let target = (try? FileManager.default.destinationOfSymbolicLink(atPath: "/proc/self/fd/\(fd)")) ?? ""
+                return target.hasPrefix("pipe:") || target.hasPrefix("socket:")
+            }.count
         }
         _ = try await CommandRunner.run(["true"])  // one-time setup (monitor thread etc.)
         try await Task.sleep(nanoseconds: 100_000_000)
@@ -202,8 +208,15 @@ final class CommandRunnerTests: XCTestCase {
         for _ in 0..<100 {
             _ = try await CommandRunner.run(["true"])
         }
-        try await Task.sleep(nanoseconds: 200_000_000)
-        XCTAssertLessThanOrEqual(try openFDs(), before + 4, "fds leaked across 100 runs")
+        // Pipes close on dispatch queues, which can lag on a loaded machine.
+        // A real leak (two per run) never settles.
+        let deadline = Date().addingTimeInterval(3)
+        var open = try openFDs()
+        while open > before + 4 && Date() < deadline {
+            try await Task.sleep(nanoseconds: 100_000_000)
+            open = try openFDs()
+        }
+        XCTAssertLessThanOrEqual(open, before + 4, "fds leaked across 100 runs")
         #else
         throw XCTSkip("counts /proc/self/fd, Linux only")
         #endif
