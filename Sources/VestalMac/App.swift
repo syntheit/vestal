@@ -13,10 +13,16 @@ public enum VestalApp {
     /// Loads the config, opens the dashboard window and runs the AppKit event
     /// loop. Does not return; the app ends through `NSApp.terminate`.
     public static func run() -> Never {
-        // Touch AppConfig early so the lazy load fires (and any config-load
-        // errors land before the window appears).
-        let bootCfg = AppConfig.current
-        NSLog("[vestal] config loaded: \(bootCfg.sources.count) sources, \(bootCfg.widgets.count) widgets, \(bootCfg.views.count) views (version \(bootCfg.version))")
+        // Touch AppConfig early so the lazy load fires before the window
+        // appears. Its warnings are what `vestal check-config` prints. The
+        // messages quote config values, so they go in as arguments, never as
+        // the format string.
+        let loaded = AppConfig.loaded
+        let bootCfg = loaded.config
+        NSLog("%@", "[vestal] config \(loaded.path ?? "(built-in defaults)"): \(bootCfg.sources.count) sources, \(bootCfg.widgets.count) widgets, \(bootCfg.views.count) views, \(loaded.warnings.count) warnings")
+        for warning in loaded.warnings {
+            NSLog("%@", "[vestal] config warning: \(warning)")
+        }
 
         // Called from main.swift's top-level code, which Swift 5.10 treats as
         // nonisolated; it does run on the main thread, so claim the main actor.

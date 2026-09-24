@@ -43,8 +43,98 @@ final class ConfigTests: XCTestCase {
         XCTAssertEqual(config.widgets["c"]?.type, "clock")
     }
 
-    func testSourceWithoutTypeFailsToDecode() {
-        XCTAssertThrowsError(try decode(#"{"sources": {"x": {"url": "https://example.com"}}}"#))
+    func testEntriesWithoutTypeAreDroppedAlone() throws {
+        let config = try decode("""
+        {"sources": {"x": {"url": "https://example.com"}, "y": {"type": "http"}},
+         "widgets": {"a": {"title": "A"}, "b": {"type": "clock"}}}
+        """)
+        XCTAssertEqual(Set(config.sources.keys), ["y"])
+        XCTAssertEqual(Set(config.widgets.keys), ["b"])
+    }
+
+    func testWrongTypedValuesCountAsAbsent() throws {
+        let config = try decode("""
+        {"version": "1", "theme": {"palette": 3},
+         "sources": {"s": {"type": "http", "refresh": 5, "days": "2"}},
+         "widgets": {"a": {"type": "agendaList", "maxEvents": "5", "source": "s"},
+                     "c": {"type": "clock", "worldClocks": [{"label": "A", "tz": "UTC"}, {"label": "B"}, 7]}},
+         "views": {"main": {"order": "clock"}}}
+        """)
+        XCTAssertEqual(config.version, 1)
+        XCTAssertEqual(config.theme.palette, "tokyo-night")
+        XCTAssertEqual(config.sources["s"], SourceConfig(type: "http"))
+        XCTAssertNil(config.widgets["a"]?.maxEvents)
+        XCTAssertEqual(config.widgets["a"]?.source, "s")
+        XCTAssertEqual(config.widgets["c"]?.worldClocks, [WorldClock(label: "A", tz: "UTC")])
+        XCTAssertEqual(config.views["main"], ViewConfig())
+    }
+
+    func testTypeAliases() throws {
+        let config = try decode("""
+        {"sources": {"cal": {"type": "eventkit"}}, "widgets": {"m": {"type": "spotify"}}}
+        """)
+        XCTAssertEqual(config.sources["cal"]?.type, "calendar")
+        XCTAssertEqual(config.widgets["m"]?.type, "media")
+    }
+
+    func testSchemaAdditionsDecode() throws {
+        let config = try decode("""
+        {
+          "sources": {
+            "cmd": {"type": "command", "argv": ["foo", "--bar"], "timeout": "3s", "refresh": "1m",
+                    "parse": "raw", "env": {"A": "1"}},
+            "cal": {"type": "calendar", "days": 3, "calendars": ["Work"]}
+          },
+          "widgets": {
+            "bar": {"type": "systemBar", "show": ["network", "uptime"],
+                    "privacy": {"command": ["toggle"], "stateFile": "/run/p"}},
+            "m": {"type": "media", "player": "Music", "hideWhenOff": false},
+            "sys": {"type": "systemHealth", "hosts": [{"source": "local", "key": "l", "interval": "10s"},
+                                                      {"name": "box", "source": "cmd"}]},
+            "w": {"type": "weatherCard", "units": "imperial"},
+            "cu": {"type": "claudeUsage", "path": "/x", "fiveHourLimit": 10, "weeklyLimit": 20}
+          }
+        }
+        """)
+        XCTAssertEqual(config.sources["cmd"], SourceConfig(
+            type: "command", refresh: "1m", parse: "raw", argv: ["foo", "--bar"], timeout: "3s", env: ["A": "1"]))
+        XCTAssertEqual(config.sources["cal"], SourceConfig(type: "calendar", days: 3, calendars: ["Work"]))
+        XCTAssertEqual(config.widgets["bar"]?.show, ["network", "uptime"])
+        XCTAssertEqual(config.widgets["bar"]?.privacy, PrivacyConfig(command: ["toggle"], stateFile: "/run/p"))
+        XCTAssertEqual(config.widgets["bar"]?.privacy?.isConfigured, true)
+        XCTAssertEqual(config.widgets["m"]?.player, "Music")
+        XCTAssertEqual(config.widgets["m"]?.hideWhenOff, false)
+        XCTAssertEqual(config.widgets["sys"]?.hosts, [
+            HostConfig(name: LocalHost.shortName, source: "local", key: "l", interval: "10s"),
+            HostConfig(name: "box", source: "cmd"),
+        ])
+        XCTAssertEqual(config.widgets["w"]?.units, "imperial")
+        XCTAssertEqual(config.widgets["cu"], WidgetConfig(
+            type: "claudeUsage", path: "/x", fiveHourLimit: 10, weeklyLimit: 20))
+    }
+
+    func testLocalHostNameDefaultsToShortHostname() throws {
+        XCTAssertFalse(LocalHost.shortName.isEmpty)
+        XCTAssertFalse(LocalHost.shortName.contains("."))
+        let config = try decode(#"{"widgets": {"s": {"type": "systemHealth", "hosts": [{"source": "local"}, {"url": "https://x"}]}}}"#)
+        // The remote host without a name is dropped; the local one is named after this machine.
+        XCTAssertEqual(config.widgets["s"]?.hosts, [HostConfig(name: LocalHost.shortName, source: "local")])
+    }
+
+    func testPrivacyNeedsBothKeys() {
+        XCTAssertFalse(PrivacyConfig(command: ["x"]).isConfigured)
+        XCTAssertFalse(PrivacyConfig(stateFile: "/s").isConfigured)
+        XCTAssertFalse(PrivacyConfig(command: [], stateFile: "/s").isConfigured)
+        XCTAssertTrue(PrivacyConfig(command: ["x"], stateFile: "/s").isConfigured)
+    }
+
+    func testWidgetTitles() {
+        XCTAssertEqual(WidgetConfig(type: "agendaList").title(forKey: "agenda"), "Today")
+        XCTAssertEqual(WidgetConfig(type: "systemHealth").title(forKey: "systems"), "Systems")
+        XCTAssertEqual(WidgetConfig(type: "weatherCard").title(forKey: "weather"), "Weather")
+        XCTAssertEqual(WidgetConfig(type: "keyValueList").title(forKey: "exchangeRates"), "ExchangeRates")
+        XCTAssertEqual(WidgetConfig(type: "keyValueList", title: "Currencies").title(forKey: "exchange"), "Currencies")
+        XCTAssertNil(WidgetConfig(type: "clock").title(forKey: "clock"))
     }
 
     func testFullConfigRoundTrips() throws {
@@ -66,9 +156,10 @@ final class ConfigTests: XCTestCase {
                    "items": [{"label": "A", "match": {"k": "a", "n": 1, "d": 1.5, "b": true, "z": null},
                               "picks": {"buy": "x", "sell": "y"}, "format": "int"},
                              {"label": "B", "source": "other", "pick": "rates.B", "format": "decimal"}]},
-            "weather": {"type": "weatherCard", "source": "w", "units": "imperial",
-                        "fields": {"temp": ".t"}, "fixedLocation": {"lat": 1.25, "lon": -2.5}},
-            "media": {"type": "spotify", "hideWhenOff": false},
+            "weather": {"type": "weatherCard", "source": "w", "units": "imperial", "fields": {"temp": ".t"}},
+            "media": {"type": "spotify", "player": "Spotify", "hideWhenOff": false},
+            "bar2": {"type": "systemBar", "privacy": {"command": ["t"], "stateFile": "/s"}},
+            "claude": {"type": "claudeUsage", "fiveHourLimit": 1, "weeklyLimit": 2},
             "agenda": {"type": "agendaList", "source": "calendar", "maxEvents": 3}
           },
           "views": {"main": {"order": ["clock", "bar"], "layout": "stack"}}
@@ -80,14 +171,14 @@ final class ConfigTests: XCTestCase {
         XCTAssertEqual(config.widgets["fx"]?.items?.first?.match?["d"], .double(1.5))
         XCTAssertEqual(config.widgets["fx"]?.items?.first?.match?["b"], .bool(true))
         XCTAssertEqual(config.widgets["fx"]?.items?.first?.match?["z"], .null)
-        XCTAssertEqual(config.widgets["weather"]?.fixedLocation, FixedLocation(lat: 1.25, lon: -2.5))
+        XCTAssertEqual(config.widgets["media"]?.type, "media")
     }
 
-    func testBundledDefaultsRoundTrip() throws {
+    func testBuiltInDefaultsRoundTrip() throws {
         XCTAssertEqual(try roundTrip(DefaultConfig.config), DefaultConfig.config)
     }
 
-    func testBundledDefaultsReferenceExistingWidgetsAndSources() {
+    func testBuiltInDefaultsReferenceExistingWidgetsAndSources() {
         let config = DefaultConfig.config
         for key in config.views["main"]?.order ?? [] {
             XCTAssertNotNil(config.widgets[key], "view order names missing widget \(key)")
@@ -113,8 +204,21 @@ final class ConfigTests: XCTestCase {
         XCTAssertEqual(values, ["s": .string("blue"), "i": .int(7), "d": .double(2.5), "b": .bool(false), "n": .null])
     }
 
-    func testAnyJSONRejectsContainers() {
-        XCTAssertThrowsError(try JSONDecoder().decode(AnyJSON.self, from: Data("[1]".utf8)))
+    func testAnyJSONDecodesContainers() throws {
+        let value = try JSONDecoder().decode(AnyJSON.self, from: Data(#"{"a": [1, 2.5, "x", null, {"b": true}], "o": {}}"#.utf8))
+        XCTAssertEqual(value, .object([
+            "a": .array([.int(1), .double(2.5), .string("x"), .null, .object(["b": .bool(true)])]),
+            "o": .object([:]),
+        ]))
+        XCTAssertEqual(try JSONDecoder().decode(AnyJSON.self, from: JSONEncoder().encode(value)), value)
+    }
+
+    func testAnyJSONMatchesContainers() throws {
+        let element = try JSONSerialization.jsonObject(with: Data(#"{"l": [1, "a"], "o": {"k": 2.0}}"#.utf8)) as? [String: Any]
+        XCTAssertTrue(AnyJSON.array([.int(1), .string("a")]).matches(element?["l"]))
+        XCTAssertFalse(AnyJSON.array([.int(1)]).matches(element?["l"]))
+        XCTAssertTrue(AnyJSON.object(["k": .int(2)]).matches(element?["o"]))
+        XCTAssertFalse(AnyJSON.object(["k": .int(2), "z": .null]).matches(element?["o"]))
     }
 
     func testAnyJSONMatchesStrings() {
@@ -132,6 +236,9 @@ final class ConfigTests: XCTestCase {
         XCTAssertTrue(AnyJSON.double(2.5).matches(2.5))
         XCTAssertTrue(AnyJSON.double(2.0).matches(2))
         XCTAssertFalse(AnyJSON.double(2.5).matches(2))
+        // Only exact equality: 3.5 is not 3, and a huge double doesn't trap.
+        XCTAssertFalse(AnyJSON.int(3).matches(3.5))
+        XCTAssertFalse(AnyJSON.int(3).matches(1e300))
     }
 
     func testAnyJSONMatchesBoolsAndNull() {

@@ -21,6 +21,20 @@ enum Fixture {
     static func json(_ name: String) throws -> Any {
         try JSONSerialization.jsonObject(with: data(name))
     }
+
+    /// A file in the repository, by its path from the root.
+    static func repository(_ path: String) -> URL {
+        directory
+            .deletingLastPathComponent()  // Tests/VestalCoreTests
+            .deletingLastPathComponent()  // Tests
+            .deletingLastPathComponent()  // repository root
+            .appendingPathComponent(path)
+    }
+
+    /// A file in the repository's `examples/` directory.
+    static func example(_ name: String) -> URL {
+        repository("examples/\(name)")
+    }
 }
 
 extension XCTestCase {
