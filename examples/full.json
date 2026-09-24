@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "hotkey": null,
+  "theme": { "palette": "tokyo-night", "background": "aurora" },
+  "sources": {
+    "weather": {
+      "type": "http",
+      "url": "https://wttr.in/?m&format=j1",
+      "refresh": "30m",
+      "parse": "json"
+    },
+    "dolares": {
+      "type": "http",
+      "url": "https://dolarapi.com/v1/dolares",
+      "refresh": "4h",
+      "parse": "json"
+    },
+    "rates": {
+      "type": "http",
+      "url": "https://raw.githubusercontent.com/syntheit/exchange-rates/refs/heads/main/rates.json",
+      "refresh": "4h",
+      "parse": "json"
+    },
+    "calendar": { "type": "calendar", "refresh": "5m", "days": 1 }
+  },
+  "widgets": {
+    "clock": {
+      "type": "clock",
+      "worldClocks": [
+        { "label": "BA", "tz": "America/Argentina/Buenos_Aires" },
+        { "label": "NYC", "tz": "America/New_York" },
+        { "label": "CHI", "tz": "America/Chicago" }
+      ]
+    },
+    "systemBar": {
+      "type": "systemBar",
+      "show": ["uptime", "disk", "battery", "claudeUsage", "network", "privacy"],
+      "privacy": {
+        "command": ["bash", "~/.local/bin/toggle-privacy"],
+        "stateFile": "/tmp/.privacy-mode"
+      }
+    },
+    "claude": {
+      "type": "claudeUsage",
+      "path": "~/.claude/projects",
+      "fiveHourLimit": 8000000,
+      "weeklyLimit": 95000000
+    },
+    "media": null,
+    "spotify": { "type": "media", "player": "Spotify", "hideWhenOff": true },
+    "agenda": { "type": "agendaList", "title": "Today", "source": "calendar", "maxEvents": 5 },
+    "systems": {
+      "type": "systemHealth",
+      "title": "Systems",
+      "provider": "foyer",
+      "hosts": [
+        { "name": "swift", "source": "local" },
+        { "name": "harbor", "url": "https://harbor.matv.io" },
+        { "name": "raven", "url": "https://raven.matv.io" },
+        { "name": "conduit", "url": "https://conduit.matv.io" }
+      ]
+    },
+    "exchange": {
+      "type": "keyValueList",
+      "title": "Currencies",
+      "source": "dolares",
+      "items": [
+        { "label": "Blue", "match": { "casa": "blue" }, "picks": { "buy": "compra", "sell": "venta" }, "format": "int" },
+        { "label": "Official", "match": { "casa": "oficial" }, "picks": { "buy": "compra", "sell": "venta" }, "format": "int" },
+        { "label": "MEP", "match": { "casa": "bolsa" }, "picks": { "buy": "compra", "sell": "venta" }, "format": "int" },
+        { "label": "BRL", "source": "rates", "pick": "rates.BRL", "format": "decimal" }
+      ]
+    },
+    "weather": {
+      "type": "weatherCard",
+      "title": "Weather",
+      "source": "weather",
+      "units": "metric",
+      "fields": {
+        "location": ".nearest_area[0].areaName[0].value",
+        "region": ".nearest_area[0].region[0].value",
+        "condition": ".current_condition[0].weatherDesc[0].value",
+        "temp": ".current_condition[0].temp_C",
+        "sunrise": ".weather[0].astronomy[0].sunrise",
+        "sunset": ".weather[0].astronomy[0].sunset"
+      }
+    }
+  },
+  "views": {
+    "main": {
+      "order": ["clock", "systemBar", "spotify", "agenda", "systems", "exchange", "weather"],
+      "layout": "stack"
+    }
+  }
+}

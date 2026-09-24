@@ -145,20 +145,11 @@ public final class AppRuntime {
 
     // MARK: - Helpers
 
-    /// Parse "30s" / "5m" / "1h" / "4h" / "2d" into a Swift Duration.
-    /// Returns nil for unparseable input; callers fall back to a 30m default.
+    /// Parse "30s" / "5m" / "1h" / "4h" / "2d" into a Swift Duration (see
+    /// `ConfigDuration`). Returns nil for unparseable input; callers fall
+    /// back to a 30m default.
     public nonisolated static func parseDuration(_ s: String) -> Duration? {
-        let trimmed = s.trimmingCharacters(in: .whitespaces)
-        guard let unit = trimmed.last else { return nil }
-        let valueStr = String(trimmed.dropLast())
-        guard let value = Int(valueStr), value > 0 else { return nil }
-        switch unit {
-        case "s": return .seconds(value)
-        case "m": return .seconds(value * 60)
-        case "h": return .seconds(value * 3600)
-        case "d": return .seconds(value * 86400)
-        default:  return nil
-        }
+        ConfigDuration.parse(s)
     }
 }
 

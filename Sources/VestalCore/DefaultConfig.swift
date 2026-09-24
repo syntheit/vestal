@@ -1,159 +1,65 @@
 import Foundation
 
-// MARK: - Bundled defaults
+// MARK: - Built-in defaults
 //
-// Matches the current hardcoded dashboard exactly. Vestal works out-of-the-
-// box with zero config — the Nix module or user-written config.json layers
-// on top of these defaults as overrides.
+// The bottom layer of every config: a generic dashboard that works with no
+// config file at all (local clock, system bar, media, today's calendar,
+// weather for wherever wttr.in places you, this machine's health). Nothing
+// personal belongs here; the owner's setup lives in examples/full.json.
 //
-// As widgets get ported to read from config (Checkpoints 2-4), the hardcoded
-// constants in their Swift source get removed and these defaults become the
-// only source of truth.
+// JSON rather than Swift values, so defaults and user files merge the same
+// way (see ConfigLoader.merge). docs/CONFIG.md shows this document; keep the
+// two in step. A test checks that it parses and validates with no warnings.
 
 public enum DefaultConfig {
-    public static let config = Config(
-        version: 1,
-        hotkey: nil, // built-in hotkey comes in v0.3; external bind for now
-        theme: ThemeConfig(palette: "tokyo-night", background: "aurora"),
-
-        sources: [
-            "weather": SourceConfig(
-                type: "http",
-                url: "https://wttr.in/?m&format=j1",
-                refresh: "30m",
-                parse: "json"
-            ),
-            "dolares": SourceConfig(
-                type: "http",
-                url: "https://dolarapi.com/v1/dolares",
-                refresh: "4h",
-                parse: "json"
-            ),
-            "rates": SourceConfig(
-                type: "http",
-                url: "https://raw.githubusercontent.com/syntheit/exchange-rates/refs/heads/main/rates.json",
-                refresh: "4h",
-                parse: "json"
-            ),
-            "calendar": SourceConfig(
-                type: "eventkit",
-                url: nil,
-                refresh: "5m",
-                parse: "raw"
-            ),
-        ],
-
-        widgets: [
-            "clock": WidgetConfig(
-                type: "clock",
-                worldClocks: [
-                    WorldClock(label: "BA",  tz: "America/Argentina/Buenos_Aires"),
-                    WorldClock(label: "NYC", tz: "America/New_York"),
-                    WorldClock(label: "CHI", tz: "America/Chicago"),
-                ]
-            ),
-            "systemBar": WidgetConfig(
-                type: "systemBar",
-                show: ["uptime", "disk", "battery", "claudeUsage", "network", "privacy"]
-            ),
-            "spotify": WidgetConfig(
-                type: "spotify",
-                hideWhenOff: true
-            ),
-            "agenda": WidgetConfig(
-                type: "agendaList",
-                source: "calendar",
-                maxEvents: 5
-            ),
-            "systems": WidgetConfig(
-                type: "systemHealth",
-                hosts: [
-                    HostConfig(name: "swift",   source: "local"),
-                    HostConfig(name: "harbor",  url: "https://harbor.matv.io"),
-                    HostConfig(name: "raven",   url: "https://raven.matv.io"),
-                    HostConfig(name: "conduit", url: "https://conduit.matv.io"),
-                ],
-                provider: "foyer"
-            ),
-            "exchange": WidgetConfig(
-                type: "keyValueList",
-                title: "Exchange",
-                source: "dolares",
-                items: [
-                    PickItem(label: "Blue",
-                             match: ["casa": .string("blue")],
-                             picks: ["buy": "compra", "sell": "venta"],
-                             format: "int"),
-                    PickItem(label: "Official",
-                             match: ["casa": .string("oficial")],
-                             picks: ["buy": "compra", "sell": "venta"],
-                             format: "int"),
-                    PickItem(label: "MEP",
-                             match: ["casa": .string("bolsa")],
-                             picks: ["buy": "compra", "sell": "venta"],
-                             format: "int"),
-                    PickItem(label: "BRL",
-                             source: "rates",
-                             pick: "rates.BRL",
-                             format: "decimal"),
-                ]
-            ),
-            "weather": WidgetConfig(
-                type: "weatherCard",
-                source: "weather",
-                fields: [
-                    "location":  ".nearest_area[0].areaName[0].value",
-                    "region":    ".nearest_area[0].region[0].value",
-                    "condition": ".current_condition[0].weatherDesc[0].value",
-                    "temp":      ".current_condition[0].temp_C",
-                    "sunrise":   ".weather[0].astronomy[0].sunrise",
-                    "sunset":    ".weather[0].astronomy[0].sunset",
-                ]
-            ),
-        ],
-
-        views: [
-            "main": ViewConfig(
-                order: ["clock", "systemBar", "spotify", "agenda", "systems", "exchange", "weather"],
-                layout: "stack"
-            ),
-        ]
-    )
-}
-
-// Convenience initializers used by DefaultConfig — WidgetConfig has many
-// optional fields and we don't want each call site to spell out 14 nils.
-extension WidgetConfig {
-    public init(
-        type: String,
-        title: String? = nil,
-        source: String? = nil,
-        worldClocks: [WorldClock]? = nil,
-        show: [String]? = nil,
-        hideWhenOff: Bool? = nil,
-        maxEvents: Int? = nil,
-        hosts: [HostConfig]? = nil,
-        provider: String? = nil,
-        items: [PickItem]? = nil,
-        fields: [String: String]? = nil,
-        pick: String? = nil,
-        fixedLocation: FixedLocation? = nil,
-        units: String? = nil
-    ) {
-        self.type = type
-        self.title = title
-        self.source = source
-        self.worldClocks = worldClocks
-        self.show = show
-        self.hideWhenOff = hideWhenOff
-        self.maxEvents = maxEvents
-        self.hosts = hosts
-        self.provider = provider
-        self.items = items
-        self.fields = fields
-        self.pick = pick
-        self.fixedLocation = fixedLocation
-        self.units = units
-        self.extras = nil
+    public static let json = """
+    {
+      "version": 1,
+      "theme": { "palette": "tokyo-night", "background": "aurora" },
+      "sources": {
+        "weather": {
+          "type": "http",
+          "url": "https://wttr.in/?m&format=j1",
+          "refresh": "30m",
+          "parse": "json"
+        },
+        "calendar": { "type": "calendar", "refresh": "5m", "days": 1 }
+      },
+      "widgets": {
+        "clock": { "type": "clock" },
+        "systemBar": { "type": "systemBar", "show": ["uptime", "disk", "battery", "network"] },
+        "media": { "type": "media", "hideWhenOff": true },
+        "agenda": { "type": "agendaList", "source": "calendar", "maxEvents": 5 },
+        "systems": { "type": "systemHealth", "hosts": [{ "source": "local" }] },
+        "weather": {
+          "type": "weatherCard",
+          "source": "weather",
+          "fields": {
+            "location": ".nearest_area[0].areaName[0].value",
+            "region": ".nearest_area[0].region[0].value",
+            "condition": ".current_condition[0].weatherDesc[0].value",
+            "temp": ".current_condition[0].temp_C",
+            "sunrise": ".weather[0].astronomy[0].sunrise",
+            "sunset": ".weather[0].astronomy[0].sunset"
+          }
+        }
+      },
+      "views": {
+        "main": {
+          "order": ["clock", "systemBar", "media", "agenda", "systems", "weather"],
+          "layout": "stack"
+        }
+      }
     }
+    """
+
+    /// The defaults as a JSON tree, the base layer of every merge.
+    public static let tree: AnyJSON = {
+        guard case .success(let tree) = AnyJSON.parse(Data(json.utf8)) else { return .object([:]) }
+        return tree
+    }()
+
+    /// The defaults alone, decoded (what vestal runs with when there is no
+    /// config file).
+    public static var config: Config { ConfigLoader.decode(tree) }
 }

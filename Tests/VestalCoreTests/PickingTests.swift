@@ -12,10 +12,17 @@ final class PickingTests: XCTestCase {
          "rates": try Fixture.json("exchange-rates.json")]
     }
 
+    /// The owner's setup (examples/full.json), which these payloads feed.
+    private func fullConfig() throws -> Config {
+        let loaded = ConfigLoader.load(path: Fixture.example("full.json").path)
+        XCTAssertEqual(loaded.warnings, [])
+        return loaded.config
+    }
+
     // MARK: Exchange
 
-    func testBundledExchangeItemsAgainstRecordedPayloads() throws {
-        let widget = try XCTUnwrap(DefaultConfig.config.widgets["exchange"])
+    func testExampleExchangeItemsAgainstRecordedPayloads() throws {
+        let widget = try XCTUnwrap(try fullConfig().widgets["exchange"])
         let rates = AsyncData.exchangeRates(
             try XCTUnwrap(widget.items), defaultSource: try XCTUnwrap(widget.source),
             parsedBySource: try sources())
@@ -77,8 +84,13 @@ final class PickingTests: XCTestCase {
 
     // MARK: Weather
 
+    /// The built-in defaults and examples/full.json use the same fields.
     private var bundledWeatherFields: [String: String] {
         DefaultConfig.config.widgets["weather"]?.fields ?? [:]
+    }
+
+    func testExampleWeatherFieldsMatchTheDefaults() throws {
+        XCTAssertEqual(try fullConfig().widgets["weather"]?.fields, bundledWeatherFields)
     }
 
     func testBundledWeatherFieldsAgainstRecordedPayload() throws {
