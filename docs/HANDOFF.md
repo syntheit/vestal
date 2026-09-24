@@ -50,7 +50,8 @@ Supersedes phase 1's notes on the calendar cache, the first frame and the privac
 - **Calendar as a runtime source** (`Sources/VestalCore/SourceFetcher.swift:113-121`, `MacPlatform.swift:120`). The agenda reads the `calendar` source (every 5m, cached on disk; events that have ended are dropped when shown). `EventKitCalendar` is now `Sendable` (it has no state). Look for: the access prompt on first run, then today's events; a finished event drops within 5 minutes.
 - **HTTP checks** (`SourceFetcher.swift:78-88`). A non-2xx answer or invalid JSON is now an error that keeps the previous data. Look for: weather and currencies load as before.
 - **Existing cache files** (`Sources/VestalCore/SnapshotCache.swift:52-58`). `~/Library/Caches/Vestal/*.json` written before (with `lastFetch`) still load, so the first launch after upgrading still shows cached weather at once. New files add `fetchedAt` and `source`.
-- **One timer** (`Sources/VestalCore/Runtime.swift:235-248`). A single `Task.sleep` timer is re-armed after each job. After the Mac wakes from sleep, overdue sources run when the timer fires or at the next show.
+- **One timer** (`Sources/VestalCore/Runtime.swift:238-252`). A single `Task.sleep` timer is re-armed after each job. After the Mac wakes from sleep, overdue sources run when the timer fires or at the next show.
+- **Moved code.** Phase 2's `dataTask` wrapper for HTTP is now at the end of `Sources/VestalCore/SourceFetcher.swift`, and fetch errors are logged as `[vestal] source <name>: <error>` (once per new error).
 
 ### Phase 3 (config)
 
