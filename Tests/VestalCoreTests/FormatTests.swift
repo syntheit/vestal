@@ -98,10 +98,35 @@ final class AgendaTests: XCTestCase {
         XCTAssertEqual(events[1].id, "standup\(Int(base.addingTimeInterval(9.5 * 3600).timeIntervalSince1970))")
     }
 
-    func testEventsRoundTripThroughTheCacheFormat() throws {
-        let event = AsyncData.CalendarEvent(title: "a | b\nc", time: "09:30",
-                                            startDate: utc("2026-09-22T09:30:00Z"), isAllDay: false)
-        let data = try JSONEncoder().encode([event])
-        XCTAssertEqual(try JSONDecoder().decode([AsyncData.CalendarEvent].self, from: data), [event])
+    func testSnapshotFormat() throws {
+        let entry = CalendarEntry(title: "a | b\nc", start: utc("2026-09-22T09:30:00Z"),
+                                  end: utc("2026-09-22T10:00:00Z"), allDay: false, calendar: "Work")
+        let data = try CalendarEntry.encodeList([entry])
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
+        XCTAssertEqual(json.count, 1)
+        XCTAssertEqual(Set(json[0].keys), ["title", "start", "end", "allDay", "calendar"])
+        XCTAssertEqual(json[0]["start"] as? Double, 1_790_069_400, "seconds since 1970")
+        XCTAssertEqual(json[0]["end"] as? Double, 1_790_071_200)
+        XCTAssertEqual(json[0]["title"] as? String, "a | b\nc")
+        XCTAssertEqual(try CalendarEntry.decodeList(data), [entry])
+    }
+
+    func testAgendaFromSnapshotDropsEndedEvents() throws {
+        let now = utc("2026-09-22T12:00:00Z")
+        let entries = [
+            CalendarEntry(title: "yesterday", start: utc("2026-09-21T09:00:00Z"),
+                          end: utc("2026-09-21T10:00:00Z"), allDay: false, calendar: "Work"),
+            CalendarEntry(title: "ended", start: utc("2026-09-22T11:00:00Z"),
+                          end: now, allDay: false, calendar: "Work"),
+            CalendarEntry(title: "ongoing", start: utc("2026-09-22T11:30:00Z"),
+                          end: utc("2026-09-22T12:30:00Z"), allDay: false, calendar: "Work"),
+            CalendarEntry(title: "later", start: utc("2026-09-22T15:00:00Z"),
+                          end: utc("2026-09-22T16:00:00Z"), allDay: false, calendar: "Home"),
+        ]
+        let data = try CalendarEntry.encodeList(entries)
+        XCTAssertEqual(AsyncData.agenda(from: data, maxEvents: 5, now: now).map(\.title), ["ongoing", "later"])
+        XCTAssertEqual(AsyncData.agenda(from: data, maxEvents: 1, now: now).map(\.title), ["ongoing"])
+        XCTAssertEqual(AsyncData.agenda(from: nil, maxEvents: 5, now: now), [])
+        XCTAssertEqual(AsyncData.agenda(from: Data("{}".utf8), maxEvents: 5, now: now), [])
     }
 }

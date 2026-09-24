@@ -7,7 +7,8 @@ import VestalCore
 //
 // VestalCore's platform protocols, implemented with the existing macOS code in
 // SystemBridge (Mach, SMC/IOKit, CoreAudio, AppleScript) and EventKit below.
-// One shared instance each; the views and the app delegate go through these.
+// One shared instance each; the dashboard model and the app delegate go
+// through these.
 
 enum MacPlatform {
     static let stats: SystemStatsProvider = MacSystemStats()
@@ -64,7 +65,6 @@ final class MacSystemStats: SystemStatsProvider {
 // MARK: - Media (Spotify over AppleScript, off the main thread)
 
 final class SpotifyMedia: MediaProvider {
-    func cachedNowPlaying() -> NowPlaying { SystemBridge.getCachedSpotify() }
     func nowPlaying() async -> NowPlaying { await SystemBridge.spotify() }
     func playPause() { SystemBridge.toggleSpotify() }
 }

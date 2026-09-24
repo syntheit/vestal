@@ -45,6 +45,10 @@ public enum VestalApp {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow!
+    /// Fetches sources and host health, and runs the dashboard's tickers.
+    private var runtime: AppRuntime?
+    /// What the dashboard shows, kept current by the runtime.
+    private var model: DashboardModel?
 
     /// Single-key shortcut → host name. Built from DashboardView's host list so
     /// adding a new foyer host doesn't silently break the keymap. Hosts that
@@ -56,6 +60,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let screen = NSScreen.main else { NSApp.terminate(nil); return }
+
+        // The runtime serves its disk cache at once, so the model's first
+        // values, and with them the first frame, already have data.
+        let config = AppConfig.current
+        let runtime = AppRuntime(config: config, fetcher: LiveFetcher(calendar: MacPlatform.calendar))
+        let model = DashboardModel(runtime: runtime, config: config)
+        self.runtime = runtime
+        self.model = model
 
         let window = NSWindow(
             contentRect: screen.frame,
@@ -77,7 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         visual.appearance = NSAppearance(named: .darkAqua)
         visual.autoresizingMask = [.width, .height]
 
-        let hosting = NSHostingView(rootView: DashboardView())
+        let hosting = NSHostingView(rootView: DashboardView(model: model))
         hosting.frame = visual.bounds
         hosting.autoresizingMask = [.width, .height]
         hosting.alphaValue = 0
@@ -150,13 +162,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sigterm.resume()
         sigtermSource = sigterm
 
-        // Spin up the runtime: kicks off background fetch loops for every
-        // HTTP source declared in config (weather, dolares, rates, ...).
-        // Hydrates from disk cache synchronously so the first frame is fed.
-        AppRuntime.shared.start()
+        // Fetch what is stale, and run host health and the tickers while
+        // the dashboard is on screen.
+        runtime.start()
+        runtime.setVisible(true)
     }
 
+    /// Escape: hide, which for now means quit (phase 6 keeps the process).
+    /// Called by the key monitor, on the main thread.
+    @MainActor
     func gracefulQuit() {
+        // Hidden from here on: no host health, stats or media polling
+        // during the fade.
+        runtime?.setVisible(false)
         guard let content = window.contentView?.subviews.first else {
             NSApp.terminate(nil)
             return
@@ -168,6 +186,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }, completionHandler: {
             NSApp.terminate(nil)
         })
+    }
+
+    /// Every quit path (Escape, SIGTERM from `vestal hide`) ends here.
+    func applicationWillTerminate(_ notification: Notification) {
+        runtime?.setVisible(false)
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }

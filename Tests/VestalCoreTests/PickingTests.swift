@@ -34,6 +34,24 @@ final class PickingTests: XCTestCase {
         ])
     }
 
+    func testExampleExchangeRowsFromSnapshotData() throws {
+        // What the dashboard does with the runtime's snapshots: each source
+        // parsed once, looked up by name.
+        let widget = try XCTUnwrap(try fullConfig().widgets["exchange"])
+        let data = ["dolares": try Fixture.data("dolarapi-dolares.json"),
+                    "rates": try Fixture.data("exchange-rates.json")]
+        var asked: [String] = []
+        let rates = AsyncData.exchangeRates(for: widget) { name in
+            asked.append(name)
+            return data[name]
+        }
+        XCTAssertEqual(rates.map(\.label), ["Blue", "Official", "MEP", "BRL"])
+        XCTAssertEqual(asked.sorted(), ["dolares", "rates"])
+        XCTAssertEqual(AsyncData.exchangeRates(for: widget) { $0 == "rates" ? data["rates"] : nil }.map(\.label), ["BRL"])
+        XCTAssertEqual(AsyncData.exchangeRates(for: widget) { _ in Data("<html>".utf8) }, [])
+        XCTAssertEqual(widget.sourceNames, ["dolares", "rates"])
+    }
+
     func testItemsWhoseSourceHasNoDataAreSkipped() throws {
         let items = [
             PickItem(label: "Blue", match: ["casa": .string("blue")], picks: ["buy": "compra"], format: "int"),

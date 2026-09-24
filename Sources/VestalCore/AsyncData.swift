@@ -1,63 +1,11 @@
 import Foundation
 
-// MARK: - Async data providers (weather, exchange, server health, agenda)
-// Host health and the agenda are cached to /tmp/dashboard-cache/ so repeated
-// opens are instant (phase 4 replaces this with the runtime's cache).
+// MARK: - Widget data (weather, exchange, server health, agenda)
 //
-// Portable: the calendar comes in through `CalendarProvider`, commands through
-// `CommandRunner`. Each `parse…` function is pure, so it is tested against
-// recorded payloads.
-
-private let cacheDir = "/tmp/dashboard-cache"
-private let cacheTTL: TimeInterval = 1800 // 30 minutes
+// What the widgets show, derived from AppRuntime's snapshots. Every function
+// here is pure, so each is tested against recorded payloads.
 
 public enum AsyncData {
-
-    // MARK: - Cache helpers
-
-    private static func ensureCacheDir() {
-        try? FileManager.default.createDirectory(
-            atPath: cacheDir, withIntermediateDirectories: true)
-    }
-
-    private static func readCache(_ name: String, ttl: TimeInterval = cacheTTL) -> String? {
-        let path = "\(cacheDir)/\(name)"
-        guard let attrs = try? FileManager.default.attributesOfItem(atPath: path),
-              let modified = attrs[.modificationDate] as? Date,
-              Date().timeIntervalSince(modified) < ttl
-        else { return nil }
-        return try? String(contentsOfFile: path, encoding: .utf8)
-    }
-
-    private static func writeCache(_ name: String, _ content: String) {
-        ensureCacheDir()
-        try? content.write(toFile: "\(cacheDir)/\(name)", atomically: true, encoding: .utf8)
-    }
-
-    // MARK: - Synchronous cache readers (for instant first frame)
-    //
-    // Read AppRuntime's on-disk snapshots directly (SourceCache is plain file
-    // I/O, no actor hop), so the very first frame has data even before the
-    // runtime's first fetch lands.
-
-    public static func cachedWeather() -> WeatherInfo? {
-        guard let data = SourceCache.load(name: "weather")?.data else { return nil }
-        return parseWeatherJSON(data)
-    }
-
-    public static func cachedExchange() -> [ExchangeRate] {
-        guard let widget = AppConfig.current.widgets["exchange"],
-              let items = widget.items else { return [] }
-        let defaultSource = widget.source ?? ""
-        var parsedBySource: [String: Any] = [:]
-        for src in Set(items.map { $0.source ?? defaultSource }) where !src.isEmpty {
-            if let data = SourceCache.load(name: src)?.data,
-               let obj = try? JSONSerialization.jsonObject(with: data) {
-                parsedBySource[src] = obj
-            }
-        }
-        return exchangeRates(items, defaultSource: defaultSource, parsedBySource: parsedBySource)
-    }
 
     // MARK: - Weather
 
@@ -73,17 +21,6 @@ public enum AsyncData {
             self.location = location; self.condition = condition; self.temp = temp
             self.sunrise = sunrise; self.sunset = sunset
         }
-    }
-
-    public static func getWeather() async -> WeatherInfo? {
-        // Routed through AppRuntime: the runtime owns the fetch schedule + cache.
-        // We just parse whatever raw JSON it has on hand.
-        guard let data = await AppRuntime.shared.waitForData("weather") else { return nil }
-        return parseWeatherJSON(data)
-    }
-
-    private static func parseWeatherJSON(_ data: Data) -> WeatherInfo? {
-        parseWeather(data, fields: AppConfig.current.widgets["weather"]?.fields ?? [:])
     }
 
     /// Parse a weather payload into WeatherInfo. Field extraction is driven
@@ -158,31 +95,17 @@ public enum AsyncData {
         }
     }
 
-    public static func getExchange() async -> [ExchangeRate] {
-        // Config-driven: items come from widgets.exchange.items in the config.
-        // Each item may use the widget's default source or specify its own.
-        guard let widget = AppConfig.current.widgets["exchange"],
-              let items = widget.items else { return [] }
-
+    /// A keyValueList widget's rows from its sources' latest data (`data`
+    /// looks a source up by name). Items whose source has no data are skipped.
+    public static func exchangeRates(for widget: WidgetConfig, data: (String) -> Data?) -> [ExchangeRate] {
+        guard let items = widget.items else { return [] }
         let defaultSource = widget.source ?? ""
-
-        // Collect every source we'll need + wait on each in parallel.
-        let sourceNames: Set<String> = Set(items.map { $0.source ?? defaultSource }
-            .filter { !$0.isEmpty })
-
         var parsedBySource: [String: Any] = [:]
-        await withTaskGroup(of: (String, Any?).self) { group in
-            for src in sourceNames {
-                group.addTask {
-                    guard let data = await AppRuntime.shared.waitForData(src) else { return (src, nil) }
-                    return (src, try? JSONSerialization.jsonObject(with: data))
-                }
-            }
-            for await (src, obj) in group {
-                if let o = obj { parsedBySource[src] = o }
+        for src in Set(items.map { $0.source ?? defaultSource }) where !src.isEmpty {
+            if let raw = data(src), let obj = try? JSONSerialization.jsonObject(with: raw) {
+                parsedBySource[src] = obj
             }
         }
-
         return exchangeRates(items, defaultSource: defaultSource, parsedBySource: parsedBySource)
     }
 
@@ -280,68 +203,34 @@ public enum AsyncData {
         }
     }
 
-    public struct FoyerConfig: Equatable, Sendable {
-        public var name: String   // Display name from the config
-        public var url: String    // Foyer API base URL
-
-        public init(name: String, url: String) {
-            self.name = name; self.url = url
-        }
+    /// A host's systems-row entry from its health snapshot: nil before the
+    /// first result, offline while the latest fetch fails.
+    public static func health(name: String, snapshot: SourceSnapshot?) -> ServerHealth? {
+        guard let snapshot, snapshot.lastError != nil || snapshot.data != nil else { return nil }
+        guard let json = healthPayload(snapshot) else { return ServerHealth(name: name, ok: false) }
+        return parseFoyerHealth(name: name, json: json)
     }
 
-    public static func getServers(foyerServers: [FoyerConfig], useCache: Bool = true) async -> [ServerHealth] {
-        let names = foyerServers.map(\.name)
-        if useCache, let cached = readCachedServers(names), !cached.isEmpty {
-            return cached
-        }
-
-        return await withTaskGroup(of: ServerHealth.self) { group in
-            for cfg in foyerServers {
-                group.addTask { await fetchFoyerServer(cfg) }
-            }
-            var results: [ServerHealth] = []
-            for await result in group { results.append(result) }
-            return names.compactMap { n in results.first { $0.name == n } }
-        }
+    /// The host popup's view of the same snapshot: nil before the first
+    /// result ("loading…"), offline while the latest fetch fails.
+    public static func detail(name: String, snapshot: SourceSnapshot?) -> ServerDetail? {
+        guard let snapshot, snapshot.lastError != nil || snapshot.data != nil else { return nil }
+        guard let json = healthPayload(snapshot) else { return .offline(name: name) }
+        return parseServerDetail(name: name, json: json)
     }
 
-    public static func getCachedServers(_ names: [String]) -> [ServerHealth] {
-        var results: [ServerHealth] = []
-        for name in names {
-            if let cached = readCache("server_\(name)") {
-                let h = parseServerCache(name: name, raw: cached)
-                results.append(h)
-            }
-        }
-        return results
+    /// The `/api/health` object, unless the latest fetch failed.
+    private static func healthPayload(_ snapshot: SourceSnapshot) -> [String: Any]? {
+        guard snapshot.lastError == nil, let data = snapshot.data else { return nil }
+        return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
     }
 
-    private static func readCachedServers(_ names: [String]) -> [ServerHealth]? {
-        var results: [ServerHealth] = []
-        for name in names {
-            guard let cached = readCache("server_\(name)") else { return nil }
-            results.append(parseServerCache(name: name, raw: cached))
-        }
-        return results
-    }
-
-    // MARK: Foyer API fetch (via foyer-api binary which handles SSH key signing)
+    // MARK: Foyer (the foyer-api binary handles the SSH key signing)
 
     /// argv for one foyer health request. The URL is a single argument, never
     /// part of a shell string, so a config value can't inject commands.
     public static func foyerHealthArgv(url: String) -> [String] {
         ["foyer-api", "--host", url, "/api/health"]
-    }
-
-    private static func fetchFoyerServer(_ cfg: FoyerConfig) async -> ServerHealth {
-        guard let result = try? await CommandRunner.run(foyerHealthArgv(url: cfg.url), timeout: 10),
-              let json = try? JSONSerialization.jsonObject(with: result.stdout) as? [String: Any]
-        else {
-            return ServerHealth(name: cfg.name, ok: false)
-        }
-        let health = parseFoyerHealth(name: cfg.name, json: json)
-        writeCache("server_\(cfg.name)", foyerCacheLine(health, json: json))
-        return health
     }
 
     /// The systems-row summary of a foyer `/api/health` payload.
@@ -362,42 +251,7 @@ public enum AsyncData {
         )
     }
 
-    /// Cache line: foyer|cpu|ram|uptime|load|containers|cpuTemp|cmpr
-    static func foyerCacheLine(_ health: ServerHealth, json: [String: Any]) -> String {
-        let sys = json["system"] as? [String: Any]
-        let load = (sys?["load_avg"] as? [Double])?.first ?? 0
-        let containers = ((json["docker"] as? [String: Any])?["containers"] as? [[String: Any]])?
-            .filter { ($0["state"] as? String) == "running" }.count ?? 0
-        let cpu = health.cpuPercent ?? 0, ram = health.ramPercent ?? 0
-        let uptime = health.uptimeSecs ?? 0, temp = health.cpuTemp ?? 0
-        let cmpr = health.memPressure ?? 0
-        return "foyer|\(cpu)|\(ram)|\(uptime)|\(String(format: "%.2f", load))|\(containers)|\(temp)|\(cmpr)"
-    }
-
-    // MARK: Cache parsing
-
-    static func parseServerCache(name: String, raw: String) -> ServerHealth {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.hasPrefix("foyer|") else {
-            return ServerHealth(name: name, ok: false)
-        }
-        let parts = trimmed.split(separator: "|")
-        guard parts.count >= 6 else {
-            return ServerHealth(name: name, ok: false)
-        }
-        let cpu = Int(parts[1]) ?? 0
-        let ram = Int(parts[2]) ?? 0
-        let uptimeSec = Int(parts[3]) ?? 0
-        let temp = parts.count >= 7 ? Int(parts[6]) ?? 0 : 0
-        let cmpr = parts.count >= 8 ? Int(parts[7]) ?? 0 : 0
-        return ServerHealth(
-            name: name, ok: true,
-            cpuPercent: cpu, ramPercent: ram, memPressure: cmpr,
-            cpuTemp: temp, uptimeSecs: uptimeSec
-        )
-    }
-
-    // MARK: - Server Detail (full /api/health payload, fetched on demand)
+    // MARK: - Server Detail (the host popup)
 
     public struct ServerDetail: Equatable, Sendable {
         public var name: String
@@ -434,6 +288,12 @@ public enum AsyncData {
             self.rxBytesPerSec = rxBytesPerSec; self.txBytesPerSec = txBytesPerSec
             self.dockerRunning = dockerRunning; self.jellyfinStreams = jellyfinStreams
             self.minecraft = minecraft
+        }
+
+        /// "offline": the host didn't answer.
+        public static func offline(name: String) -> ServerDetail {
+            ServerDetail(name: name, ok: false, cpuPercent: 0, ramPercent: 0,
+                         pools: [], mounts: [], rxBytesPerSec: 0, txBytesPerSec: 0)
         }
     }
 
@@ -489,20 +349,6 @@ public enum AsyncData {
             self.mountpoint = mountpoint; self.usagePercent = usagePercent
             self.totalBytes = totalBytes; self.usedBytes = usedBytes
         }
-    }
-
-    public static func getServerDetail(name: String, url: String) async -> ServerDetail {
-        guard let result = try? await CommandRunner.run(foyerHealthArgv(url: url), timeout: 8),
-              let json = try? JSONSerialization.jsonObject(with: result.stdout) as? [String: Any]
-        else {
-            return ServerDetail(
-                name: name, ok: false,
-                cpuPercent: 0, ramPercent: 0,
-                pools: [], mounts: [],
-                rxBytesPerSec: 0, txBytesPerSec: 0
-            )
-        }
-        return parseServerDetail(name: name, json: json)
     }
 
     /// The host popup's view of a foyer `/api/health` payload.
@@ -590,7 +436,7 @@ public enum AsyncData {
 
     // MARK: - Calendar (today's agenda, from the platform's CalendarProvider)
 
-    public struct CalendarEvent: Identifiable, Codable, Equatable, Sendable {
+    public struct CalendarEvent: Identifiable, Equatable, Sendable {
         public var id: String { "\(title)\(Int(startDate.timeIntervalSince1970))" }
         public var title: String
         public var time: String     // "14:30" or "" for all-day
@@ -602,43 +448,16 @@ public enum AsyncData {
         }
     }
 
-    private static let calendarCacheTTL: TimeInterval = 300 // 5 minutes
     private static let timeFmt: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
     }()
 
-    public static func getCachedCalendar() -> [CalendarEvent] {
-        guard let raw = readCache("calendar", ttl: calendarCacheTTL) else { return [] }
-        return parseCalendarCache(raw)
-    }
-
-    /// The rest of today's events, soonest first. Served from the cache while
-    /// it's fresh; otherwise asks `calendar` (access first, then events).
-    public static func getTodayEvents(from calendar: CalendarProvider) async -> [CalendarEvent] {
-        let cached = getCachedCalendar()
-        if !cached.isEmpty { return cached }
-
-        guard await calendar.requestAccess() else { return [] }
-
-        let cal = Foundation.Calendar.current
-        let now = Date()
-        let endOfDay = cal.date(bySettingHour: 23, minute: 59, second: 59, of: now)!
-        let maxEvents = AppConfig.current.widgets["agenda"]?.maxEvents ?? 5
-        let entries: [CalendarEntry]
-        do {
-            entries = try await calendar.events(from: now, to: endOfDay, calendars: nil)
-        } catch {
-            NSLog("[vestal] calendar query failed: \(error)")
-            return []
-        }
-        let events = agendaEvents(entries, maxEvents: maxEvents)
-
-        // Cache as JSON: titles may contain "|" or newlines, which broke the
-        // old pipe-separated format.
-        if let json = try? JSONEncoder().encode(events) {
-            writeCache("calendar", String(decoding: json, as: UTF8.self))
-        }
-        return events
+    /// The agenda from a calendar source's snapshot data (see
+    /// `CalendarEntry.encodeList`): events that haven't ended by `now`, so an
+    /// old cache never shows yesterday.
+    public static func agenda(from data: Data?, maxEvents: Int, now: Date) -> [CalendarEvent] {
+        guard let data, let entries = try? CalendarEntry.decodeList(data) else { return [] }
+        return agendaEvents(entries.filter { $0.end > now }, maxEvents: maxEvents)
     }
 
     /// Sorted by start, capped at `maxEvents`, labelled "HH:mm" (local time;
@@ -656,9 +475,4 @@ public enum AsyncData {
                 )
             }
     }
-
-    private static func parseCalendarCache(_ raw: String) -> [CalendarEvent] {
-        (try? JSONDecoder().decode([CalendarEvent].self, from: Data(raw.utf8))) ?? []
-    }
-
 }
