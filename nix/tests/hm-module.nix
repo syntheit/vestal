@@ -170,10 +170,12 @@ let
     platform.linux.hotkey = "home";
   };
 
-  # A stand-in package that builds on any system: a Vestal.app whose
-  # executable is a script, and a Linux-style daemon flag.
-  fake =
-    pkgs.runCommand "vestal-fake"
+  # Stand-in packages that build on any system: a Vestal.app whose executable
+  # is a script naming the build, and a Linux-style daemon flag. Two builds,
+  # to test updates.
+  fakeBuild =
+    name:
+    pkgs.runCommand name
       {
         passthru.supportsDaemon = true;
         meta.mainProgram = "vestal";
@@ -181,11 +183,13 @@ let
       ''
         app=$out/Applications/Vestal.app/Contents
         mkdir -p $app/MacOS $out/bin
-        printf '#!/bin/sh\necho fake vestal "$@"\n' > $app/MacOS/vestal
+        printf '#!/bin/sh\necho ${name} "$@"\n' > $app/MacOS/vestal
         chmod +x $app/MacOS/vestal
         echo '<plist version="1.0"><dict/></plist>' > $app/Info.plist
         ln -s $app/MacOS/vestal $out/bin/vestal
       '';
+  fake = fakeBuild "vestal-fake";
+  fakeB = fakeBuild "vestal-fake-b";
 
   evaluate =
     system: vestal:
@@ -256,6 +260,8 @@ let
       lib.elem "linkGeneration" darwin.home.activation.vestalReload.after
       && lib.hasInfix "/bin/vestal reload" darwin.home.activation.vestalReload.data;
     "darwin: no signing without an identity" = !(darwin.home.activation ? vestalSignApp);
+    "darwin: removes a signed copy once the identity is unset" =
+      lib.elem "setupLaunchAgents" darwin.home.activation.vestalRemoveSignedApp.after;
     "darwin: assertions pass" = passes darwin;
 
     "signed: settings written with version 1" =
@@ -268,13 +274,15 @@ let
       darwinSigned.home.activation.vestalSignApp.after == [ "writeBoundary" ]
       && darwinSigned.home.activation.vestalSignApp.before == [ "setupLaunchAgents" ];
     "signed: PATH runs the signed copy" = names darwinSigned == [ "vestal" ];
+    "signed: no removal step" = !(darwinSigned.home.activation ? vestalRemoveSignedApp);
     "signed, no agent: nothing to restart" =
       !(darwinSignedNoAgent.launchd.agents ? vestal)
       && lib.hasInfix "local agent=''\n" darwinSignedNoAgent.home.activation.vestalSignApp.data;
 
     "linux: no service until the package has a daemon" = linux.systemd.user.services == { };
     "linux: no launchd agent" = linux.launchd.agents == { };
-    "linux: signing identity ignored" = !(linux.home.activation ? vestalSignApp);
+    "linux: signing identity ignored" =
+      !(linux.home.activation ? vestalSignApp) && !(linux.home.activation ? vestalRemoveSignedApp);
     "linux: the package on PATH" = names linux == [ self.packages.x86_64-linux.vestal.name ];
     "linux: reload on activation" = linux.home.activation ? vestalReload;
     "linux daemon: service" =
@@ -292,6 +300,7 @@ let
     "signed-agent.plist" = plist darwinSigned;
     "sign.sh" = darwinSigned.home.activation.vestalSignApp.data;
     "sign-no-agent.sh" = darwinSignedNoAgent.home.activation.vestalSignApp.data;
+    "unsign.sh" = darwin.home.activation.vestalRemoveSignedApp.data;
     "reload.sh" = darwin.home.activation.vestalReload.data;
     "linux-service.json" = builtins.toJSON linuxDaemon.systemd.user.services.vestal;
   };
@@ -315,55 +324,110 @@ pkgs.runCommand "vestal-hm-module"
       bash -n "$f"
     done
 
-    # Run the signing step against the fake app, as activation does.
+    # Run the signing steps against the fake builds, as activation does.
     stubs=$PWD/stubs home=$PWD/home log=$PWD/log
     mkdir -p "$stubs" "$home"
     cat > "$stubs/codesign" <<'EOF'
     #!/bin/sh
     echo "codesign $*" >> "$LOG"
     for last; do :; done
-    case "$1" in
-      --verify) test -f "$last/Contents/_CodeSignature/CodeResources" ;;
-      --force)  # --force --deep --sign IDENTITY PATH
-        [ "$4" != - ] && [ -n "''${FAIL_SIGN:-}" ] && exit 1
-        mkdir -p "$last/Contents/_CodeSignature" && echo "$4" > "$last/Contents/_CodeSignature/CodeResources" ;;
+    mode= identity=
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --verify) mode=verify ;;
+        --force) mode=sign ;;
+        --sign) identity=$2; shift ;;
+      esac
+      shift
+    done
+    case "$mode" in
+      verify) test -f "$last/Contents/_CodeSignature/CodeResources" ;;
+      sign)
+        case "''${CODESIGN_ALLOCATE:-}" in */bin/codesign_allocate) ;; *) exit 3 ;; esac
+        if [ "$identity" = - ]; then
+          [ -z "''${FAIL_ADHOC:-}" ] || exit 1
+        else
+          [ -z "''${FAIL_SIGN:-}" ] || exit 1
+        fi
+        mkdir -p "$last/Contents/_CodeSignature" && echo "$identity" > "$last/Contents/_CodeSignature/CodeResources" ;;
       *) exit 2 ;;
     esac
     EOF
     printf '#!/bin/sh\necho "launchctl $*" >> "$LOG"\nexit 113\n' > "$stubs/launchctl"
     chmod +x "$stubs"/*
-    sed -e "s|${home}|$home|g" -e "s|/usr/bin/codesign|$stubs/codesign|g" \
-      -e "s|/bin/launchctl|$stubs/launchctl|g" $out/sign.sh > sign.sh
+    stub() {
+      sed -e "s|${home}|$home|g" -e "s|/usr/bin/codesign|$stubs/codesign|g" \
+        -e "s|/bin/launchctl|$stubs/launchctl|g" "$@"
+    }
+    stub $out/sign.sh > signA.sh
+    stub -e "s|${fake}|${fakeB}|g" $out/sign.sh > signB.sh
+    stub $out/unsign.sh > unsign.sh
     app=$home/Applications/Vestal.app sig=Contents/_CodeSignature/CodeResources
     stamp=$home/.local/state/vestal/signed-app
-    activate() { (export LOG=$log; set -euo pipefail; source ./sign.sh); }
-    fail() { echo "hm-module: sign step: $*" >&2; exit 1; }
+    A='${fake}/Applications/Vestal.app' B='${fakeB}/Applications/Vestal.app'
+    activate() { (export LOG=$log; set -euo pipefail; source "./$1.sh") 2> err; }
+    fail() { echo "hm-module: sign step: $*" >&2; cat err >&2; exit 1; }
+    build() { grep -qxF "echo $1 \"\$@\"" "$app/Contents/MacOS/vestal"; }
+    signed() { grep -qxF -- "$1" "$app/$sig"; }
 
-    activate
-    grep -qF '${identity}' "$app/$sig" || fail "first run did not sign the copy"
-    grep -qxF '${fake}/Applications/Vestal.app ${identity}' "$stamp" || fail "no stamp"
+    activate signA
+    build vestal-fake && signed '${identity}' || fail "first run did not install A signed"
+    grep -qxF "$A ${identity}" "$stamp" || fail "no stamp"
+    grep -q -- '--timestamp=none' "$log" || fail "codesign without --timestamp=none"
     grep -q 'kickstart -k gui/[0-9]*/org.nix-community.home.vestal' "$log" || fail "no agent restart"
-    test -x "$app/Contents/MacOS/vestal" -a ! -e "$app.nix-new" || fail "copy incomplete"
+    test ! -e "$app.nix-new" || fail "temporary copy left behind"
 
-    : > "$log"; activate
+    : > "$log"; activate signA
     ! grep -q -- --force "$log" || fail "re-signed an unchanged copy"
 
-    echo stale > "$stamp"; : > "$log"; activate
-    grep -q -- --force "$log" || fail "did not re-sign a changed build"
-    test -e "$stamp" -a ! -e "$app.nix-old" -a ! -e "$app.nix-new" || fail "swap left files behind"
+    activate signB
+    build vestal-fake-b && signed '${identity}' || fail "update to B not signed"
+    grep -qxF "$B ${identity}" "$stamp" || fail "stamp not updated to B"
+    test ! -e "$app.nix-old" -a ! -e "$app.nix-new" || fail "swap left files behind"
 
-    echo stale > "$stamp"
-    FAIL_SIGN=1 activate 2> err
-    grep -q 'keeping the previous' err || fail "no warning on a failed signing"
-    grep -qF '${identity}' "$app/$sig" || fail "a failed signing replaced the copy"
-    test ! -e "$app.nix-new" || fail "a failed signing left its temporary copy"
+    # Signing fails: a copy signed with the identity stays, even an older build.
+    FAIL_SIGN=1 activate signA
+    grep -q 'keeping .*signed with' err || fail "no warning when signing fails"
+    build vestal-fake-b && signed '${identity}' || fail "a failed signing replaced a signed copy"
+    grep -qxF "$B ${identity}" "$stamp" || fail "a failed signing changed the stamp"
 
+    # ... and on a first install, the build goes in signed ad hoc.
     rm -rf "$app" "$stamp"
-    FAIL_SIGN=1 activate 2> err
-    grep -qx -- - "$app/$sig" || fail "no ad-hoc copy when signing fails on first install"
-    test ! -e "$stamp" || fail "stamp written for an ad-hoc copy"
+    FAIL_SIGN=1 activate signA
+    grep -q 'ad hoc' err || fail "no ad-hoc warning"
+    build vestal-fake && signed - || fail "no ad-hoc copy when signing fails on first install"
+    grep -qxF "$A -" "$stamp" || fail "no ad-hoc stamp"
+
+    : > "$log"; FAIL_SIGN=1 activate signA
+    ! grep -q -- '--sign -' "$log" || fail "re-installed the same ad-hoc build"
+
+    # A installed ad hoc, then an update to B while signing still fails.
+    FAIL_SIGN=1 activate signB
+    build vestal-fake-b && signed - || fail "kept an ad-hoc copy of an old build"
+    grep -qxF "$B -" "$stamp" || fail "stamp not updated to B ad hoc"
+
+    FAIL_SIGN=1 FAIL_ADHOC=1 activate signA
+    build vestal-fake && test ! -e "$app/Contents/_CodeSignature" \
+      && cmp -s "$app/Contents/MacOS/vestal" "$A/Contents/MacOS/vestal" \
+      || fail "not installed as built when ad-hoc signing fails too"
+
+    mkdir -p "$app.nix-old/Vestal.app"
+    (rm() { case "$*" in *.nix-old*) return 1 ;; *) command rm "$@" ;; esac; }; activate signB)
+    grep -q 'cannot remove' err || fail "no warning when the old copy can't be removed"
+    build vestal-fake && test ! -e "$app.nix-old/Vestal.app/Contents" -a ! -e "$app.nix-new" \
+      || fail "moved the app into a stale old copy"
+    rm -rf "$app.nix-old"
 
     rm -rf "$app"
-    DRY_RUN=1 activate | grep -q 'Would install' || fail "no dry-run message"
+    DRY_RUN=1 activate signA | grep -q 'Would install' || fail "no dry-run message"
     test ! -e "$app" || fail "a dry run installed the copy"
+
+    # signingIdentity unset: remove the copy only when the stamp says it is ours.
+    activate signA
+    DRY_RUN=1 activate unsign | grep -q 'Would remove' || fail "no dry-run removal message"
+    test -d "$app" || fail "a dry run removed the copy"
+    activate unsign
+    test ! -e "$app" -a ! -e "$stamp" || fail "the signed copy was not removed"
+    mkdir -p "$app"; activate unsign
+    test -d "$app" || fail "removed an app without a stamp"
   ''
