@@ -62,7 +62,7 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 | Key | Type | Default | |
 |---|---|---|---|
 | `version` | integer | `1` | Schema version. Only `1` exists. |
-| `hotkey` | string or `null` | `null` | Built-in toggle hotkey, such as `"f3"` or `"cmd+shift+space"`: keys `f1`-`f20`, letters, digits, `space`, `escape`, `home`, `end`, with modifiers `cmd`, `ctrl`, `alt` (or `opt`) and `shift`, joined with `+`. `null` registers nothing; bind `vestal toggle` in skhd, Hyprland or similar instead. |
+| `hotkey` | string or `null` | `null` | Built-in toggle hotkey, such as `"f3"` or `"cmd+shift+space"`: keys `f1`-`f20`, letters, digits, `space`, `escape` (or `esc`), `home`, `end`, with modifiers `cmd`, `ctrl`, `alt` (or `opt`) and `shift`, joined with `+`, case-insensitive. The hotkey is taken from every app, so letters, digits, `space` and `escape` need `cmd`, `ctrl` or `alt` (`shift` alone is not enough); `f1`-`f20`, `home` and `end` may stand alone. One that doesn't parse registers nothing and is a warning (`check-config`, `vestal status`). `null` registers nothing; bind `vestal toggle` in skhd, Hyprland or similar instead. On macOS, letters and digits are key positions on a US layout. |
 | `theme` | object | see [theme](#theme) | |
 | `sources` | object | `weather`, `calendar` | Named data sources, see [sources](#sources). |
 | `widgets` | object | see [defaults](#built-in-defaults) | Named widgets, see [widgets](#widgets). |

@@ -237,23 +237,27 @@ public struct HotkeyParseError: Error, Equatable, CustomStringConvertible {
     }
 
     public var description: String {
-        let hotkey = "hotkey '\(input)'"
+        reason == .empty ? "hotkey is empty" : "hotkey '\(input)': \(detail)"
+    }
+
+    /// What is wrong, without the hotkey itself.
+    public var detail: String {
         switch reason {
         case .empty:
-            return "hotkey is empty"
+            return "empty"
         case .emptyPart:
-            return "\(hotkey): empty name; join names with single '+' signs, as in cmd+shift+space"
+            return "empty name; join names with single '+' signs, as in cmd+shift+space"
         case .noKey:
-            return "\(hotkey): only modifiers; add one key, as in cmd+shift+space"
+            return "only modifiers; add one key, as in cmd+shift+space"
         case .multipleKeys(let names):
-            return "\(hotkey): more than one key (\(names.joined(separator: ", "))); use exactly one"
+            return "more than one key (\(names.joined(separator: ", "))); use exactly one"
         case .unknownName(let name):
-            return "\(hotkey): unknown name '\(name)'; keys are f1-f20, a-z, 0-9, space, escape (esc),"
+            return "unknown name '\(name)'; keys are f1-f20, a-z, 0-9, space, escape (esc),"
                 + " home and end; modifiers are cmd, ctrl, alt (opt) and shift"
         case .duplicateModifier(let name):
-            return "\(hotkey): '\(name)' repeats a modifier"
+            return "'\(name)' repeats a modifier"
         case .needsModifier(let name):
-            return "\(hotkey): '\(name)' needs cmd, ctrl or alt, or it would be taken from every app"
+            return "'\(name)' needs cmd, ctrl or alt, or it would be taken from every app"
                 + " (only f1-f20, home and end may stand alone)"
         }
     }

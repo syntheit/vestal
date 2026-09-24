@@ -19,27 +19,65 @@ final class IPCTests: XCTestCase {
 
     func testDefaultSocketPathPrefersTheRuntimeDirectory() {
         XCTAssertEqual(IPC.defaultSocketPath(environment: ["XDG_RUNTIME_DIR": "/run/user/1000"],
-                                             temporaryDirectory: "/var/tmp/", uid: 1000, usesRuntimeDirectory: true),
+                                             temporaryDirectory: "/var/tmp/", uid: 1000, usesRuntimeDirectory: true, isOwnDirectory: noRunUser),
                        "/run/user/1000/vestal.sock")
         XCTAssertEqual(IPC.defaultSocketPath(environment: ["XDG_RUNTIME_DIR": "/run/user/1000/"],
-                                             temporaryDirectory: "/var/tmp/", uid: 1000, usesRuntimeDirectory: true),
+                                             temporaryDirectory: "/var/tmp/", uid: 1000, usesRuntimeDirectory: true, isOwnDirectory: noRunUser),
                        "/run/user/1000/vestal.sock")
     }
 
     func testDefaultSocketPathFallsBackToTheTemporaryDirectory() {
         XCTAssertEqual(IPC.defaultSocketPath(environment: [:], temporaryDirectory: "/var/tmp/", uid: 501,
-                                             usesRuntimeDirectory: true),
+                                             usesRuntimeDirectory: true, isOwnDirectory: noRunUser),
                        "/var/tmp/vestal-501.sock")
         XCTAssertEqual(IPC.defaultSocketPath(environment: [:], temporaryDirectory: "/var/tmp", uid: 501,
-                                             usesRuntimeDirectory: true),
+                                             usesRuntimeDirectory: true, isOwnDirectory: noRunUser),
                        "/var/tmp/vestal-501.sock")
         // Empty and relative values are ignored (XDG base directory spec).
         XCTAssertEqual(IPC.defaultSocketPath(environment: ["XDG_RUNTIME_DIR": ""],
-                                             temporaryDirectory: "/var/tmp/", uid: 501, usesRuntimeDirectory: true),
+                                             temporaryDirectory: "/var/tmp/", uid: 501, usesRuntimeDirectory: true, isOwnDirectory: noRunUser),
                        "/var/tmp/vestal-501.sock")
         XCTAssertEqual(IPC.defaultSocketPath(environment: ["XDG_RUNTIME_DIR": "run/user/501"],
-                                             temporaryDirectory: "/var/tmp/", uid: 501, usesRuntimeDirectory: true),
+                                             temporaryDirectory: "/var/tmp/", uid: 501, usesRuntimeDirectory: true, isOwnDirectory: noRunUser),
                        "/var/tmp/vestal-501.sock")
+    }
+
+    func testWithoutTheVariableSystemdsRuntimeDirectoryIsUsed() {
+        XCTAssertEqual(IPC.defaultSocketPath(environment: [:], temporaryDirectory: "/var/tmp/", uid: 1000,
+                                             usesRuntimeDirectory: true,
+                                             isOwnDirectory: { $0 == "/run/user/1000" && $1 == 1000 }),
+                       "/run/user/1000/vestal.sock")
+        XCTAssertEqual(IPC.candidateSocketPaths(environment: [:], temporaryDirectory: "/var/tmp/", uid: 1000,
+                                                usesRuntimeDirectory: true, isOwnDirectory: { _, _ in true }),
+                       ["/run/user/1000/vestal.sock", "/var/tmp/vestal-1000.sock"])
+        // The variable wins; macOS never looks.
+        XCTAssertEqual(IPC.defaultSocketPath(environment: ["XDG_RUNTIME_DIR": "/x"], temporaryDirectory: "/var/tmp/",
+                                             uid: 1000, usesRuntimeDirectory: true, isOwnDirectory: { _, _ in true }),
+                       "/x/vestal.sock")
+        XCTAssertEqual(IPC.defaultSocketPath(environment: [:], temporaryDirectory: "/var/tmp/", uid: 1000,
+                                             usesRuntimeDirectory: false, isOwnDirectory: { _, _ in true }),
+                       "/var/tmp/vestal-1000.sock")
+    }
+
+    func testIsOwnDirectory() throws {
+        let directory = try makeSocketDirectory()
+        XCTAssertTrue(IPC.isOwnDirectory(directory, uid: geteuid()))
+        XCTAssertFalse(IPC.isOwnDirectory(directory, uid: geteuid() + 1))
+        XCTAssertFalse(IPC.isOwnDirectory(directory + "/missing", uid: geteuid()))
+        let link = directory + "/link"
+        XCTAssertEqual(symlink(directory, link), 0)
+        XCTAssertFalse(IPC.isOwnDirectory(link, uid: geteuid()), "a symlink is not the directory")
+    }
+
+    func testTheTemporaryDirectory() {
+        let directory = IPC.temporaryDirectory()
+        XCTAssertTrue(directory.hasPrefix("/"), directory)
+        #if canImport(Darwin)
+        // The per-user directory, whatever TMPDIR says.
+        XCTAssertTrue(directory.contains("/T/"), directory)
+        #else
+        XCTAssertEqual(directory, NSTemporaryDirectory())
+        #endif
     }
 
     func testMacOSIgnoresTheRuntimeDirectory() {
@@ -69,10 +107,10 @@ final class IPCTests: XCTestCase {
 
     func testCandidateSocketPaths() {
         XCTAssertEqual(IPC.candidateSocketPaths(environment: ["XDG_RUNTIME_DIR": "/run/user/1000"],
-                                                temporaryDirectory: "/var/tmp/", uid: 1000, usesRuntimeDirectory: true),
+                                                temporaryDirectory: "/var/tmp/", uid: 1000, usesRuntimeDirectory: true, isOwnDirectory: noRunUser),
                        ["/run/user/1000/vestal.sock", "/var/tmp/vestal-1000.sock"])
         XCTAssertEqual(IPC.candidateSocketPaths(environment: [:], temporaryDirectory: "/var/tmp/", uid: 1000,
-                                                usesRuntimeDirectory: true),
+                                                usesRuntimeDirectory: true, isOwnDirectory: noRunUser),
                        ["/var/tmp/vestal-1000.sock"])
     }
 
@@ -336,11 +374,12 @@ final class IPCTests: XCTestCase {
         let server = makeServer(path, ioTimeout: 1) { _, reply in reply(.ok) }
         try server.start()
 
+        // Before the others connect: their deadlines count from then.
+        let start = Date()
         let silent = try RawIPCSocket(connectingTo: path)
         let partial = try RawIPCSocket(connectingTo: path)
         partial.transmit("sta")
 
-        let start = Date()
         XCTAssertEqual(try IPCClient.send(.show, path: path), .ok)
         XCTAssertLessThan(Date().timeIntervalSince(start), 0.5, "served while the others hang")
 
@@ -1354,6 +1393,9 @@ private func posixBind(_ fd: Int32, _ address: UnsafePointer<sockaddr>, _ length
     return Glibc.bind(fd, address, length)
     #endif
 }
+
+/// For the path tests: no /run/user/<uid> here, whatever this machine has.
+private func noRunUser(_ path: String, _ uid: uid_t) -> Bool { false }
 
 private func withTestSocketAddress<Result>(_ path: String, _ body: (UnsafePointer<sockaddr>, socklen_t) -> Result) -> Result {
     var address = sockaddr_un()
