@@ -202,7 +202,12 @@ public final class Resident {
             return .failure("\(file): \(problems); the previous config stays in effect")
         }
         reloadProblem = nil
-        guard fresh != loaded else { return .ok }
+        guard fresh != loaded else {
+            // Nothing changed, but a previously refused hotkey still
+            // deserves another try (the other app may have let go).
+            if hotkeyProblem != nil { registerHotkey() }
+            return .ok
+        }
         let hotkeyChanged = fresh.config.hotkey != loaded.config.hotkey
         loaded = fresh
         vestalLog("config reloaded from \(fresh.path ?? "the built-in defaults"): \(fresh.warnings.count) warnings")

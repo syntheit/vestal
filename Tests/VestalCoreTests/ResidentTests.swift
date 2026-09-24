@@ -123,6 +123,25 @@ final class ResidentTests: XCTestCase {
         XCTAssertEqual(resident.status().warnings, ["hotkey f3: another app has registered it"])
     }
 
+    @MainActor
+    func testARefusedHotkeyIsRetriedOnAnUnchangedReload() async {
+        let hotkeys = FakeHotkeys()
+        hotkeys.refusal = "another app has registered it"
+        let loader = Loader(loaded(hotkey: "f3"))
+        let (resident, _, _) = make(loaded(hotkey: "f3"), hotkeys: hotkeys, load: loader)
+        resident.start(hidden: true)
+        XCTAssertNil(resident.status().hotkey, "the first registration was refused")
+
+        // The config hasn't changed, but the other app may have let go by
+        // now: the retry must not be skipped as "nothing changed".
+        hotkeys.refusal = nil
+        loader.next = loaded(hotkey: "f3")
+        XCTAssertEqual(resident.reload(), .ok)
+        XCTAssertEqual(hotkeys.registered.count, 2, "retried although the config didn't change")
+        XCTAssertEqual(resident.status().hotkey, "f3")
+        XCTAssertEqual(resident.status().warnings, [])
+    }
+
     // MARK: Reload
 
     @MainActor
