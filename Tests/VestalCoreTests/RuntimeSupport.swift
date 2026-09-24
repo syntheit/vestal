@@ -74,11 +74,10 @@ final class FakeFetcher: SourceFetcher, @unchecked Sendable {
 
     func fetch(_ source: SourceConfig) async throws -> Data {
         let key = Self.key(source)
-        let reply: Reply = {
-            lock.lock(); defer { lock.unlock() }
+        let reply: Reply = withLock {
             fetched.append(source)
             return replies[key] ?? .data("{\"n\": \(fetched.count)}")
-        }()
+        }
         switch reply {
         case .data(let text):
             return Data(text.utf8)
@@ -88,7 +87,7 @@ final class FakeFetcher: SourceFetcher, @unchecked Sendable {
             do {
                 while !isReleased(key) { try await Task.sleep(nanoseconds: 2_000_000) }
             } catch {
-                lock.lock(); cancelled.append(key); lock.unlock()
+                withLock { cancelled.append(key) }
                 throw error
             }
             return Data("{\"released\": true}".utf8)
@@ -96,8 +95,14 @@ final class FakeFetcher: SourceFetcher, @unchecked Sendable {
     }
 
     private func isReleased(_ key: String) -> Bool {
+        withLock { released.contains(key) }
+    }
+
+    /// Synchronous, so async functions can use it (NSLock is noasync on
+    /// macOS).
+    private func withLock<T>(_ body: () -> T) -> T {
         lock.lock(); defer { lock.unlock() }
-        return released.contains(key)
+        return body()
     }
 }
 

@@ -194,14 +194,20 @@ final class FakeCalendar: CalendarProvider, @unchecked Sendable {
     }
 
     var requests: [Request] {
-        lock.lock(); defer { lock.unlock() }
-        return recorded
+        withLock { recorded }
     }
 
     func requestAccess() async -> Bool { granted }
 
     func events(from start: Date, to end: Date, calendars: [String]?) async throws -> [CalendarEntry] {
-        lock.lock(); recorded.append(Request(start: start, end: end, calendars: calendars)); lock.unlock()
+        withLock { recorded.append(Request(start: start, end: end, calendars: calendars)) }
         return entries
+    }
+
+    /// Synchronous, so async functions can use it (NSLock is noasync on
+    /// macOS).
+    private func withLock<T>(_ body: () -> T) -> T {
+        lock.lock(); defer { lock.unlock() }
+        return body()
     }
 }

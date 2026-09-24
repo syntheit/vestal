@@ -1121,7 +1121,7 @@ final class IPCTests: XCTestCase {
     private func makeStaleSocket(at path: String) throws {
         let fd = RawIPCSocket.makeSocket()
         defer { _ = close(fd) }
-        XCTAssertEqual(withTestSocketAddress(path) { bind(fd, $0, $1) }, 0, "bind: \(errno)")
+        XCTAssertEqual(withTestSocketAddress(path) { posixBind(fd, $0, $1) }, 0, "bind: \(errno)")
     }
 
     /// Sends raw bytes on a fresh connection and decodes the reply line.
@@ -1343,6 +1343,16 @@ private final class RawIPCSocket {
             if result < 0 && errno != EINTR { return false }
         }
     }
+}
+
+/// bind(2). Inside an XCTestCase on macOS a bare `bind` is NSObject's Cocoa
+/// bindings method, `bind(_:to:withKeyPath:options:)`.
+private func posixBind(_ fd: Int32, _ address: UnsafePointer<sockaddr>, _ length: socklen_t) -> Int32 {
+    #if canImport(Darwin)
+    return Darwin.bind(fd, address, length)
+    #else
+    return Glibc.bind(fd, address, length)
+    #endif
 }
 
 private func withTestSocketAddress<Result>(_ path: String, _ body: (UnsafePointer<sockaddr>, socklen_t) -> Result) -> Result {
