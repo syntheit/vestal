@@ -289,15 +289,7 @@ enum SystemBridge {
         }
     }
 
-    private static let spotifyCachePath = "/tmp/dashboard-cache/spotify"
     private static let spotifyOff = NowPlaying.off
-
-    static func getCachedSpotify() -> NowPlaying {
-        guard let raw = try? String(contentsOfFile: spotifyCachePath, encoding: .utf8) else {
-            return spotifyOff
-        }
-        return parseSpotifyCache(raw)
-    }
 
     /// Single AppleScript call that checks running state, player state, and track metadata
     static func getSpotify() -> NowPlaying {
@@ -311,15 +303,12 @@ enum SystemBridge {
             end tell
             return "off||"
             """)
-        else {
-            try? "off||".write(toFile: spotifyCachePath, atomically: true, encoding: .utf8)
-            return spotifyOff
-        }
-        try? raw.write(toFile: spotifyCachePath, atomically: true, encoding: .utf8)
-        return parseSpotifyCache(raw)
+        else { return spotifyOff }
+        return parseSpotifyState(raw)
     }
 
-    private static func parseSpotifyCache(_ raw: String) -> NowPlaying {
+    /// "state|title|artist", as the script above returns it.
+    private static func parseSpotifyState(_ raw: String) -> NowPlaying {
         let parts = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             .split(separator: "|", omittingEmptySubsequences: false)
         guard parts.count >= 3, parts[0] != "off" else { return spotifyOff }

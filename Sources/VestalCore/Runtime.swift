@@ -1,282 +1,445 @@
 import Foundation
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
 
 // MARK: - AppRuntime
 //
-// Central source registry + fetch scheduler. Each source declared in the
-// config gets its own background fetch loop. Widgets currently read the
-// cached data via polling (AsyncData.getWeather etc. → waitForData), plus a
-// `runtimeSourceUpdated` notification after each successful fetch. Push
-// updates through an ObservableObject adapter come in phase 4 (no macros:
-// the Nix toolchain can't load macro plugins).
+// Owns the data the dashboard shows, and one scheduler for all of it. Each
+// piece of work is a job:
 //
-// Disk cache lives at ~/Library/Caches/Vestal/<source>.json (Linux:
-// $XDG_CACHE_HOME/vestal, default ~/.cache/vestal) — populated synchronously
-// on `start()` so the first frame after launch is instant.
+//   - a source from the config (http, command, calendar): runs whether or not
+//     the dashboard is visible, every `refresh`. Its last good result is kept
+//     on disk (SnapshotCache) and served at once on the next start.
+//   - a host's health (`host:<name>`), for each foyer host the main view
+//     shows: the command `foyer-api --host <url> /api/health`, every
+//     `interval`, only while the dashboard is visible, not kept on disk.
+//   - a ticker the platform layer registers (clock, stats, media, ...): a
+//     callback on the main actor, usually visible-only.
 //
-// v0.2 C3a scope: HTTP sources only. EventKit and command (foyer) routes
-// stay on their existing AsyncData paths until C3b/C4.
+// A job is due when it isn't running, it may run now (the dashboard is
+// visible, or the job doesn't care) and its interval has passed since it last
+// started; after an error it retries after min(interval, 60s). One timer
+// sleeps until the next job is due. A finished job, `setVisible` and `apply`
+// re-plan at once, so showing the dashboard refreshes everything older than
+// its interval right away, and while it is hidden only sources run.
+//
+// Updates are pushed: `observe` callbacks run on the main actor after every
+// snapshot change. Nothing polls. Portable: the platform layer injects its
+// calendar through `LiveFetcher` and registers its own tickers.
+
+/// Names a snapshot: a source from the config, or a host's health.
+public enum RuntimeKey: Hashable, Sendable, CustomStringConvertible {
+    case source(String)
+    case host(String)
+
+    public var description: String {
+        switch self {
+        case .source(let name): return name
+        case .host(let name): return "host:\(name)"
+        }
+    }
+}
+
+/// What `AppRuntime.observe` callbacks receive.
+public enum RuntimeEvent: Hashable, Sendable {
+    /// The snapshot for this key changed: new data, a new error, or the key
+    /// is gone (after `apply`).
+    case snapshot(RuntimeKey)
+}
+
+/// The latest state of a source or of a host's health.
+public struct SourceSnapshot: Equatable, Sendable {
+    /// The last good result, as fetched: JSON, unless the source parses
+    /// `raw`. A failed fetch leaves it alone.
+    public var data: Data?
+    /// When the fetch that produced `data` started.
+    public var fetchedAt: Date?
+    /// Why the latest fetch failed, or why the source can never run; nil
+    /// after a success.
+    public var lastError: String?
+
+    public init(data: Data? = nil, fetchedAt: Date? = nil, lastError: String? = nil) {
+        self.data = data; self.fetchedAt = fetchedAt; self.lastError = lastError
+    }
+}
+
+/// Returned by `AppRuntime.observe`, for `removeObserver`.
+public struct RuntimeObservation: Hashable, Sendable {
+    fileprivate let id: Int
+}
 
 @MainActor
 public final class AppRuntime {
-    public static let shared = AppRuntime()
+    /// A failed job retries after its interval or this, whichever is shorter.
+    static let maxRetryDelay: TimeInterval = 60
+    /// How long one foyer health request may take.
+    static let hostTimeout = "10s"
 
-    /// Per-source snapshots. Observed by views; mutated only on MainActor.
-    private(set) var snapshots: [String: SourceSnapshot] = [:]
+    public private(set) var isVisible = false
 
-    private var tasks: [String: Task<Void, Never>] = [:]
+    private let fetcher: SourceFetcher
+    private let cache: SnapshotCache?
+    /// The scheduler's clock. The timer sleeps in real time for the gap this
+    /// clock reports, so a fake clock only moves when a test moves it.
+    private let now: () -> Date
+    private var jobs: [JobID: Job] = [:]
+    /// Running jobs, apart from `jobs` so that deinit can cancel them.
+    private var tasks: [JobID: Task<Void, Never>] = [:]
+    private var observers: [(id: Int, handler: @MainActor (RuntimeEvent) -> Void)] = []
+    private var lastObserverID = 0
     private var started = false
+    private var timer: Task<Void, Never>?
 
-    nonisolated private init() {}
+    /// Plans the config's sources and hosts and serves the disk cache at
+    /// once (`snapshot(_:)`); nothing runs until `start()`. `cache` nil keeps
+    /// nothing on disk.
+    public init(
+        config: Config,
+        fetcher: SourceFetcher = LiveFetcher(),
+        cache: SnapshotCache? = SnapshotCache(),
+        now: @escaping () -> Date = Date.init
+    ) {
+        self.fetcher = fetcher
+        self.cache = cache
+        self.now = now
+        for (key, plan) in Self.plans(for: config) {
+            jobs[.snapshot(key)] = makeJob(key, plan)
+        }
+    }
 
-    /// Spin up fetch loops for every supported source in the loaded config.
-    /// Idempotent — second call is a no-op.
+    deinit {
+        // Kills running commands; nothing may call back into a runtime
+        // that is gone.
+        timer?.cancel()
+        for task in tasks.values { task.cancel() }
+    }
+
+    /// The latest snapshot for `key`; nil if the config has no such source
+    /// or foyer host.
+    public func snapshot(_ key: RuntimeKey) -> SourceSnapshot? {
+        jobs[.snapshot(key)]?.snapshot
+    }
+
+    // MARK: Lifecycle
+
+    /// Starts scheduling: every due job runs now, the rest on time.
     public func start() {
         guard !started else { return }
         started = true
+        startDueJobs()
+    }
 
-        for (name, cfg) in AppConfig.current.sources {
-            // Hydrate from disk synchronously for instant first frame
-            if let cached = SourceCache.load(name: name) {
-                snapshots[name] = cached
+    /// Visible-only jobs (host health, the platform's tickers) run only while
+    /// this is true. Becoming visible runs every job whose interval has passed
+    /// at once.
+    public func setVisible(_ visible: Bool) {
+        guard visible != isVisible else { return }
+        isVisible = visible
+        replan()
+    }
+
+    /// Switches to `config` (a reload). Unchanged sources and hosts keep their
+    /// snapshot and schedule. Changed ones keep their data for now and fetch
+    /// again at once. Removed ones are cancelled and dropped. Tickers stay.
+    public func apply(_ config: Config) {
+        let plans = Self.plans(for: config)
+        var changed: [RuntimeKey] = []
+        for (id, job) in jobs {
+            guard case .snapshot(let key) = id, let old = job.plan else { continue }
+            guard let plan = plans[key] else {
+                cancel(id)
+                jobs[id] = nil
+                changed.append(key)
+                continue
             }
-            guard isSupported(type: cfg.type) else { continue }
-            tasks[name] = Task { [weak self] in
-                await self?.runFetchLoop(name: name, config: cfg)
+            guard plan != old else { continue }
+            cancel(id)
+            let replacement = makeJob(key, plan, hydrate: false)
+            replacement.snapshot.data = job.snapshot.data
+            replacement.snapshot.fetchedAt = job.snapshot.fetchedAt
+            jobs[id] = replacement
+            changed.append(key)
+        }
+        for (key, plan) in plans where jobs[.snapshot(key)] == nil {
+            jobs[.snapshot(key)] = makeJob(key, plan)
+            changed.append(key)
+        }
+        for key in changed { notify(.snapshot(key)) }
+        replan()
+    }
+
+    // MARK: Observers and tickers
+
+    /// Calls `handler` after every snapshot change, on the main actor.
+    @discardableResult
+    public func observe(_ handler: @escaping @MainActor (RuntimeEvent) -> Void) -> RuntimeObservation {
+        lastObserverID += 1
+        observers.append((lastObserverID, handler))
+        return RuntimeObservation(id: lastObserverID)
+    }
+
+    public func removeObserver(_ observation: RuntimeObservation) {
+        observers.removeAll { $0.id == observation.id }
+    }
+
+    /// Runs `action` every `interval` seconds; a run starts only after the
+    /// previous one returned. `aligned` puts runs on whole multiples of the
+    /// interval (a clock ticks on the second). `startNow` false waits one
+    /// interval before the first run, for a caller that has fresh values
+    /// already. A ticker with the same name is replaced.
+    public func addTicker(
+        name: String,
+        interval: TimeInterval,
+        visibleOnly: Bool = true,
+        aligned: Bool = false,
+        startNow: Bool = true,
+        action: @escaping @MainActor () async -> Void
+    ) {
+        let id = JobID.ticker(name)
+        cancel(id)
+        let job = Job(work: .tick(action), plan: nil, interval: max(interval, 0.01),
+                      visibleOnly: visibleOnly, aligned: aligned)
+        if !startNow { job.lastStart = now() }
+        jobs[id] = job
+        replan()
+    }
+
+    // MARK: Scheduling
+
+    /// Starts every job that is due and sets the timer for the next one. The
+    /// timer calls this; tests with a fake clock call it too.
+    public func startDueJobs() {
+        let now = self.now()
+        for (id, job) in jobs {
+            if let due = nextRun(id, job, now: now), due <= now { launch(id, job, at: now) }
+        }
+        setTimer(now: now)
+    }
+
+    /// Something changed what is due. A runtime that isn't started does
+    /// nothing on its own.
+    private func replan() {
+        if started { startDueJobs() }
+    }
+
+    /// When `job` should next start; nil while it runs, can never run, or
+    /// waits for the dashboard to show.
+    private func nextRun(_ id: JobID, _ job: Job, now: Date) -> Date? {
+        guard job.problem == nil, tasks[id] == nil, isVisible || !job.visibleOnly else { return nil }
+        // Never ran, or the clock went back: due now.
+        guard let last = job.lastStart, last <= now else { return now }
+        let wait = job.failed ? min(job.interval, Self.maxRetryDelay) : job.interval
+        guard job.aligned else { return last.addingTimeInterval(wait) }
+        let t = last.timeIntervalSinceReferenceDate
+        return Date(timeIntervalSinceReferenceDate: (floor(t / wait) + 1) * wait)
+    }
+
+    private func setTimer(now: Date) {
+        timer?.cancel()
+        timer = nil
+        guard started, let next = jobs.compactMap({ nextRun($0.key, $0.value, now: now) }).min() else { return }
+        // At most a day: a far-off refresh just re-plans once a day.
+        let delay = min(max(next.timeIntervalSince(now), 0.005), 86_400)
+        timer = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            } catch {
+                return  // replaced by a newer timer
+            }
+            self?.startDueJobs()
+        }
+    }
+
+    private func launch(_ id: JobID, _ job: Job, at now: Date) {
+        job.lastStart = now
+        job.generation &+= 1
+        let generation = job.generation
+        switch job.work {
+        case .tick:
+            tasks[id] = Task { [weak self] in
+                await self?.tick(id, generation)
+            }
+        case .fetch(let source, let cacheName):
+            let fetcher = self.fetcher
+            let cache = cacheName == nil ? nil : self.cache
+            tasks[id] = Task { [weak self] in
+                let outcome = await AppRuntime.fetch(source, with: fetcher, cache: cache,
+                                                     cacheName: cacheName, startedAt: now)
+                self?.finish(id, generation, outcome)
             }
         }
-        NSLog("[vestal] runtime started: \(tasks.count) active source(s)")
     }
 
-    /// Cancel all fetch loops. Call on app shutdown.
-    public func stop() {
-        for (_, t) in tasks { t.cancel() }
-        tasks.removeAll()
-        started = false
+    private func tick(_ id: JobID, _ generation: Int) async {
+        guard let job = jobs[id], case .tick(let action) = job.work else { return }
+        await action()
+        finish(id, generation, .ticked)
     }
 
-    // MARK: - Snapshot accessors
-
-    func snapshot(_ name: String) -> SourceSnapshot? { snapshots[name] }
-    func data(_ name: String) -> Data? { snapshots[name]?.data }
-
-    /// Wait for a source's first fetch to land (or use whatever's cached
-    /// from disk). Returns nil if nothing arrives within `timeout` seconds.
-    /// Polling, not stream-based — refactor to AsyncStream in a later pass
-    /// if the polling cost becomes meaningful (it won't: 20 wakeups × 500ms).
-    func waitForData(_ name: String, timeout: TimeInterval = 10) async -> Data? {
-        if let d = snapshots[name]?.data { return d }
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
-            // A cancelled sleep throws at once; ignoring that would spin this
-            // loop flat out until the deadline.
-            do { try await Task.sleep(for: .milliseconds(500)) } catch { return nil }
-            if let d = snapshots[name]?.data { return d }
-        }
-        return nil
-    }
-
-    // MARK: - Type gating
-
-    private func isSupported(type: String) -> Bool {
-        switch type {
-        case "http": return true
-        default: return false        // "eventkit", "command" handled by legacy paths in C3a
-        }
-    }
-
-    // MARK: - Fetch loop
-
-    private func runFetchLoop(name: String, config: SourceConfig) async {
-        // Initial fetch fires immediately so first-launch users see something
-        // beyond the disk cache (or nothing) within seconds.
-        await fetch(name: name, config: config)
-        let interval = Self.parseDuration(config.refresh) ?? .seconds(1800)
-        while !Task.isCancelled {
-            try? await Task.sleep(for: interval)
-            if Task.isCancelled { return }
-            await fetch(name: name, config: config)
-        }
-    }
-
-    private func fetch(name: String, config: SourceConfig) async {
-        switch config.type {
-        case "http":
-            await fetchHTTP(name: name, config: config)
-        default:
-            return
-        }
-    }
-
-    private func fetchHTTP(name: String, config: SourceConfig) async {
-        guard let urlString = config.url,
-              let url = URL(string: urlString)
-        else {
-            NSLog("[vestal] source \(name): missing or invalid url")
-            return
-        }
-
-        var req = URLRequest(url: url, timeoutInterval: 10)
-        // wttr.in rejects empty User-Agent. Set a stable identifier for
-        // all our HTTP fetches — also helpful for upstream rate limits.
-        req.setValue("vestal/\(BuildInfo.version)", forHTTPHeaderField: "User-Agent")
-
+    /// Off the main actor: the fetch, and the cache write after a success.
+    nonisolated private static func fetch(
+        _ source: SourceConfig, with fetcher: SourceFetcher,
+        cache: SnapshotCache?, cacheName: String?, startedAt: Date
+    ) async -> Outcome {
         do {
-            let (data, _) = try await URLSession.shared.vestalData(for: req)
-            var snap = snapshots[name] ?? SourceSnapshot()
-            snap.data = data
-            snap.lastFetch = Date()
-            snap.lastError = nil
-            snapshots[name] = snap
-            SourceCache.save(name: name, snapshot: snap)
-            // Tell the UI there's fresh data. Posted on the main actor, so
-            // observers run on the main thread.
-            NotificationCenter.default.post(
-                name: .runtimeSourceUpdated, object: nil, userInfo: ["source": name])
-        } catch {
-            var snap = snapshots[name] ?? SourceSnapshot()
-            snap.lastError = error
-            snapshots[name] = snap
-            NSLog("[vestal] source \(name) fetch failed: \(error.localizedDescription)")
-        }
-    }
-
-    // MARK: - Helpers
-
-    /// Parse "30s" / "5m" / "1h" / "4h" / "2d" into a Swift Duration (see
-    /// `ConfigDuration`). Returns nil for unparseable input; callers fall
-    /// back to a 30m default.
-    public nonisolated static func parseDuration(_ s: String) -> Duration? {
-        ConfigDuration.parse(s)
-    }
-}
-
-extension Notification.Name {
-    /// Posted after a source fetch succeeds; userInfo["source"] is its name.
-    public static let runtimeSourceUpdated = Notification.Name("vestalRuntimeSourceUpdated")
-}
-
-// MARK: - SourceSnapshot
-
-/// What we store per source. `data` is the raw fetched bytes (JSON for now);
-/// widgets parse via type-aware helpers in AsyncData (or, in C4+, directly
-/// via path-based accessors). `lastError` is non-Codable and not persisted;
-/// it's only useful for the current process's UI state.
-struct SourceSnapshot: Codable {
-    var data: Data?
-    var lastFetch: Date?
-    var lastError: Error?
-
-    private enum CodingKeys: String, CodingKey { case data, lastFetch }
-
-    init() {}
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        data = try c.decodeIfPresent(Data.self, forKey: .data)
-        lastFetch = try c.decodeIfPresent(Date.self, forKey: .lastFetch)
-        lastError = nil
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var c = encoder.container(keyedBy: CodingKeys.self)
-        try c.encodeIfPresent(data, forKey: .data)
-        try c.encodeIfPresent(lastFetch, forKey: .lastFetch)
-    }
-}
-
-// MARK: - On-disk cache
-//
-// One file per source under the user cache dir (see `dir`). Atomic writes so a
-// crashed write never corrupts the cache. Source names are URL-encoded for
-// filesystem safety (forward slash is the only realistic culprit).
-
-enum SourceCache {
-    static let dir: String = {
-        #if os(macOS)
-        return "\(NSHomeDirectory())/Library/Caches/Vestal"
-        #else
-        let xdg = ProcessInfo.processInfo.environment["XDG_CACHE_HOME"] ?? ""
-        return xdg.isEmpty ? "\(NSHomeDirectory())/.cache/vestal" : "\(xdg)/vestal"
-        #endif
-    }()
-
-    static func path(name: String) -> String {
-        let safe = name.replacingOccurrences(of: "/", with: "_")
-        return "\(dir)/\(safe).json"
-    }
-
-    private static func ensureDir() {
-        try? FileManager.default.createDirectory(
-            atPath: dir, withIntermediateDirectories: true
-        )
-    }
-
-    static func load(name: String) -> SourceSnapshot? {
-        let p = path(name: name)
-        guard FileManager.default.fileExists(atPath: p),
-              let raw = try? Data(contentsOf: URL(fileURLWithPath: p))
-        else { return nil }
-        return try? JSONDecoder().decode(SourceSnapshot.self, from: raw)
-    }
-
-    static func save(name: String, snapshot: SourceSnapshot) {
-        ensureDir()
-        guard let raw = try? JSONEncoder().encode(snapshot) else { return }
-        try? raw.write(to: URL(fileURLWithPath: path(name: name)), options: .atomic)
-    }
-}
-
-// MARK: - URLSession
-
-extension URLSession {
-    /// `data(for:)` on every platform: corelibs Foundation 5.10 (Linux) has
-    /// no async URLSession API. Cancelling the calling task cancels the
-    /// request, which then fails with `URLError(.cancelled)`.
-    func vestalData(for request: URLRequest) async throws -> (Data, URLResponse) {
-        let pending = PendingDataTask()
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                let task = dataTask(with: request) { data, response, error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else if let data, let response {
-                        continuation.resume(returning: (data, response))
-                    } else {
-                        continuation.resume(throwing: URLError(.badServerResponse))
-                    }
-                }
-                pending.start(task)
+            let data = try await fetcher.fetch(source)
+            if let cache, let cacheName {
+                cache.save(SourceSnapshot(data: data, fetchedAt: startedAt), source: source, as: cacheName)
             }
-        } onCancel: {
-            pending.cancel()
+            return .fetched(data)
+        } catch {
+            return .failed(describe(error))
         }
+    }
+
+    private func finish(_ id: JobID, _ generation: Int, _ outcome: Outcome) {
+        // A job cancelled by `apply` (or replaced) is on a newer generation.
+        guard let job = jobs[id], job.generation == generation else { return }
+        tasks[id] = nil
+        switch outcome {
+        case .ticked:
+            break
+        case .fetched(let data):
+            job.failed = false
+            job.snapshot = SourceSnapshot(data: data, fetchedAt: job.lastStart)
+        case .failed(let message):
+            // Once per new error, not on every retry.
+            if message != job.snapshot.lastError { vestalLog("\(id): \(message)") }
+            job.failed = true
+            job.snapshot.lastError = message
+        }
+        if case .snapshot(let key) = id { notify(.snapshot(key)) }
+        replan()
+    }
+
+    private func cancel(_ id: JobID) {
+        tasks.removeValue(forKey: id)?.cancel()
+        jobs[id]?.generation &+= 1
+    }
+
+    private func notify(_ event: RuntimeEvent) {
+        for observer in observers { observer.handler(event) }
+    }
+
+    nonisolated static func describe(_ error: Error) -> String {
+        switch error {
+        case let error as SourceError: return error.description
+        case let error as CommandError: return error.description
+        case is CancellationError: return "cancelled"
+        default: return error.localizedDescription
+        }
+    }
+
+    // MARK: Jobs
+
+    private enum JobID: Hashable, CustomStringConvertible {
+        case snapshot(RuntimeKey)
+        case ticker(String)
+
+        var description: String {
+            switch self {
+            case .snapshot(.source(let name)): return "source \(name)"
+            case .snapshot(.host(let name)): return "host \(name)"
+            case .ticker(let name): return "ticker \(name)"
+            }
+        }
+    }
+
+    /// A source or host job as the config describes it; `apply` compares them.
+    private struct Plan: Equatable {
+        var source: SourceConfig
+        var interval: TimeInterval
+        var visibleOnly: Bool
+        /// The disk cache entry; nil for host health.
+        var cacheName: String?
+        /// Set when the config rules the job out (an unknown provider).
+        var problem: String?
+    }
+
+    private enum Outcome: Sendable {
+        case fetched(Data)
+        case failed(String)
+        case ticked
+    }
+
+    private final class Job {
+        enum Work {
+            case fetch(SourceConfig, cacheName: String?)
+            case tick(@MainActor () async -> Void)
+        }
+
+        let work: Work
+        let plan: Plan?
+        let interval: TimeInterval
+        let visibleOnly: Bool
+        let aligned: Bool
+        /// Why the job can never run; it is never scheduled.
+        var problem: String?
+        var snapshot = SourceSnapshot()
+        var lastStart: Date?
+        var failed = false
+        /// Bumped by every start and cancel; a result from an older run is
+        /// dropped.
+        var generation = 0
+
+        init(work: Work, plan: Plan?, interval: TimeInterval, visibleOnly: Bool, aligned: Bool) {
+            self.work = work; self.plan = plan; self.interval = interval
+            self.visibleOnly = visibleOnly; self.aligned = aligned
+        }
+    }
+
+    /// Every source, plus the health of each foyer host in the main view's
+    /// systemHealth widgets. Local hosts come from the platform's stats, and
+    /// a host with a `source` reads that source instead.
+    private static func plans(for config: Config) -> [RuntimeKey: Plan] {
+        var plans: [RuntimeKey: Plan] = [:]
+        let defaultRefresh = ConfigDuration.seconds(SourceConfig.defaultRefresh) ?? 1800
+        for (name, source) in config.sources {
+            plans[.source(name)] = Plan(
+                source: source, interval: ConfigDuration.seconds(source.refresh) ?? defaultRefresh,
+                visibleOnly: false, cacheName: name)
+        }
+        let defaultInterval = ConfigDuration.seconds(HostConfig.defaultInterval) ?? 5
+        for key in config.views["main"]?.order ?? [] {
+            guard let widget = config.widgets[key], widget.type == "systemHealth" else { continue }
+            let provider = widget.provider ?? WidgetConfig.Defaults.provider
+            for host in widget.hosts ?? [] where host.source == nil {
+                guard let url = host.url, plans[.host(host.name)] == nil else { continue }
+                let command = SourceConfig(type: "command", refresh: host.interval,
+                                           argv: AsyncData.foyerHealthArgv(url: url), timeout: hostTimeout)
+                plans[.host(host.name)] = Plan(
+                    source: command, interval: ConfigDuration.seconds(host.interval) ?? defaultInterval,
+                    visibleOnly: true, cacheName: nil,
+                    problem: provider == "foyer" ? nil : "unknown health provider \"\(provider)\"")
+            }
+        }
+        return plans
+    }
+
+    /// A job for `plan`, with its snapshot from the disk cache if `hydrate`.
+    private func makeJob(_ key: RuntimeKey, _ plan: Plan, hydrate: Bool = true) -> Job {
+        let job = Job(work: .fetch(plan.source, cacheName: plan.cacheName), plan: plan,
+                      interval: plan.interval, visibleOnly: plan.visibleOnly, aligned: false)
+        let knownType = SourceConfig.keysByType[plan.source.type] != nil
+        if let problem = plan.problem
+            ?? (knownType ? fetcher.problem(with: plan.source) : "unknown source type \"\(plan.source.type)\"") {
+            vestalLog("\(JobID.snapshot(key)): \(problem)")
+            job.problem = problem
+            job.snapshot.lastError = problem
+            return job
+        }
+        if hydrate, let cache, let name = plan.cacheName, let entry = cache.load(name) {
+            job.snapshot = entry.snapshot
+            // Data from another definition of the source shows until the new
+            // fetch lands, which runs at once.
+            if entry.source == nil || entry.source == SnapshotCache.fingerprint(plan.source) {
+                job.lastStart = entry.snapshot.fetchedAt
+            }
+        }
+        return job
     }
 }
 
-/// Hands a data task to the cancellation handler, which can run before the
-/// task exists or concurrently with starting it.
-private final class PendingDataTask: @unchecked Sendable {
-    private let lock = NSLock()
-    private var task: URLSessionDataTask?
-    private var cancelled = false
-
-    func start(_ task: URLSessionDataTask) {
-        lock.lock()
-        self.task = task
-        let cancelled = self.cancelled
-        lock.unlock()
-        task.resume()
-        if cancelled { task.cancel() }
-    }
-
-    func cancel() {
-        lock.lock()
-        cancelled = true
-        let task = self.task
-        lock.unlock()
-        task?.cancel()
-    }
+/// To the system log (stderr on Linux). The message is an argument, never
+/// the format: it may quote config values containing `%`.
+func vestalLog(_ message: String) {
+    NSLog("%@", "[vestal] " + message)
 }

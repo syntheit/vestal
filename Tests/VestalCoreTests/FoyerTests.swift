@@ -58,6 +58,31 @@ final class FoyerTests: XCTestCase {
         XCTAssertEqual(detail.minecraft, AsyncData.MinecraftDetail(online: true, players: 3, maxPlayers: 20))
     }
 
+    func testHealthAndDetailFromASnapshot() throws {
+        let data = try Fixture.data("foyer-health.json")
+        let ok = SourceSnapshot(data: data, fetchedAt: Date())
+        XCTAssertEqual(AsyncData.health(name: "box", snapshot: ok),
+                       AsyncData.parseFoyerHealth(name: "box", json: try payload()))
+        XCTAssertEqual(AsyncData.detail(name: "box", snapshot: ok),
+                       AsyncData.parseServerDetail(name: "box", json: try payload()))
+
+        // Before the first result: nothing yet ("loading…" in the popup).
+        XCTAssertNil(AsyncData.health(name: "box", snapshot: nil))
+        XCTAssertNil(AsyncData.health(name: "box", snapshot: SourceSnapshot()))
+        XCTAssertNil(AsyncData.detail(name: "box", snapshot: SourceSnapshot()))
+
+        // The latest fetch failed: offline, even with older data around.
+        let failed = SourceSnapshot(data: data, fetchedAt: Date(), lastError: "foyer-api: timed out after 10s")
+        XCTAssertEqual(AsyncData.health(name: "box", snapshot: failed), AsyncData.ServerHealth(name: "box", ok: false))
+        XCTAssertEqual(AsyncData.detail(name: "box", snapshot: failed), .offline(name: "box"))
+        XCTAssertFalse(AsyncData.ServerDetail.offline(name: "box").ok)
+
+        // Data that isn't a health object (a source with the wrong shape).
+        let list = SourceSnapshot(data: Data("[1]".utf8))
+        XCTAssertEqual(AsyncData.health(name: "box", snapshot: list), AsyncData.ServerHealth(name: "box", ok: false))
+        XCTAssertEqual(AsyncData.detail(name: "box", snapshot: list), .offline(name: "box"))
+    }
+
     func testDetailWithMissingSections() {
         let detail = AsyncData.parseServerDetail(name: "bare", json: ["cpu": ["usage_percent": 5.0]])
         XCTAssertEqual(detail, AsyncData.ServerDetail(

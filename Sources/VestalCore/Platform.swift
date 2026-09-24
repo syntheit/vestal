@@ -90,9 +90,8 @@ public struct NowPlaying: Codable, Equatable, Sendable {
     public static let off = NowPlaying(title: "", artist: "", state: "off")
 }
 
-public protocol MediaProvider {
-    /// The last state seen, without asking the player. For the first frame.
-    func cachedNowPlaying() -> NowPlaying
+/// Sendable: `nowPlaying` runs off the caller's actor.
+public protocol MediaProvider: Sendable {
     /// Asks the player. May take seconds if it is busy; never blocks the caller's thread.
     func nowPlaying() async -> NowPlaying
     /// Fire and forget.
@@ -119,7 +118,26 @@ public struct CalendarEntry: Codable, Equatable, Sendable {
     }
 }
 
-public protocol CalendarProvider {
+extension CalendarEntry {
+    /// A calendar source's snapshot data: a JSON list of entries, dates in
+    /// seconds since 1970, such as `[{"allDay": false, "calendar": "Work",
+    /// "end": 1790001800, "start": 1790000000, "title": "Standup"}]`.
+    public static func encodeList(_ entries: [CalendarEntry]) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .secondsSince1970
+        encoder.outputFormatting = .sortedKeys
+        return try encoder.encode(entries)
+    }
+
+    public static func decodeList(_ data: Data) throws -> [CalendarEntry] {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+        return try decoder.decode([CalendarEntry].self, from: data)
+    }
+}
+
+/// Sendable: the runtime's fetcher calls it off the main thread.
+public protocol CalendarProvider: Sendable {
     /// Asks for access the first time (the OS may prompt); afterwards it
     /// returns the stored answer.
     func requestAccess() async -> Bool

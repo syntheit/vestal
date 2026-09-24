@@ -53,6 +53,12 @@ enum ConfigValidator {
         guard values.count > 1 else { return values.first ?? "" }
         return values.dropLast().joined(separator: ", ") + " or " + values.last!
     }
+
+    /// A URL an http source can fetch (LiveFetcher checks the same).
+    static func isHTTPURL(_ string: String) -> Bool {
+        guard let url = URL(string: string), let scheme = url.scheme?.lowercased() else { return false }
+        return (scheme == "http" || scheme == "https") && url.host != nil
+    }
 }
 
 private struct Walker {
@@ -133,7 +139,7 @@ private struct Walker {
             switch canonical {
             case "http":
                 if let url = string(source["url"], "\(path).url") {
-                    if !Self.isHTTPURL(url) { add(.invalidValue, "\(path).url", "not an http(s) URL") }
+                    if !ConfigValidator.isHTTPURL(url) { add(.invalidValue, "\(path).url", "not an http(s) URL") }
                 } else if isAbsent(source["url"]) {
                     add(.missingKey, path, "missing \"url\"; the source never fetches")
                 }
@@ -278,7 +284,7 @@ private struct Walker {
                 continue
             }
             let url = string(host["url"], "\(hostPath).url")
-            if let url, !Self.isHTTPURL(url) { add(.invalidValue, "\(hostPath).url", "not an http(s) URL") }
+            if let url, !ConfigValidator.isHTTPURL(url) { add(.invalidValue, "\(hostPath).url", "not an http(s) URL") }
             if let source, !isLocal, sourceTypes[source] == nil {
                 add(.missingReference, "\(hostPath).source", "no source named \"\(source)\"")
             }
@@ -365,11 +371,6 @@ private struct Walker {
 
     private static func names(_ table: [String: Set<String>]) -> [String] {
         table.keys.sorted()
-    }
-
-    private static func isHTTPURL(_ string: String) -> Bool {
-        guard let url = URL(string: string), let scheme = url.scheme?.lowercased() else { return false }
-        return (scheme == "http" || scheme == "https") && url.host != nil
     }
 
     private func isAbsent(_ value: AnyJSON?) -> Bool {

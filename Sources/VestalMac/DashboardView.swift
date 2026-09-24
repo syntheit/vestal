@@ -20,49 +20,10 @@ extension Color {
 // MARK: - Main Dashboard View
 
 struct DashboardView: View {
-    // Mach/IOKit calls are <1ms — safe to init synchronously
-    @State private var cpu = MacPlatform.stats.cpuPercent()
-    @State private var memory = MacPlatform.stats.memory()
-    @State private var temp = MacPlatform.stats.temperature()
-    @State private var battery = MacPlatform.stats.battery()
-    @State private var time = Date()
-    @State private var privacyMode = MacPlatform.privacy.isEnabled()
-    @State private var uptime = Format.uptimeLong(Int(MacPlatform.stats.uptime()))
-    @State private var diskFree = Format.diskFree(MacPlatform.stats.disk())
-    @State private var network = MacPlatform.stats.networkRate()
-    @State private var claudeUsage = ClaudeUsage.Snapshot.zero
+    /// Everything shown; the runtime keeps it current (see DashboardModel).
+    @ObservedObject var model: DashboardModel
     @State private var expandedHost: String?
-    @State private var expandedDetail: AsyncData.ServerDetail?
     @State private var showingInfo: Bool = false
-
-    // Volume via CoreAudio is instant (<1ms), Spotify needs AppleScript cache
-    @State private var volume = MacPlatform.audio.volume()
-    @State private var spotify = MacPlatform.media.cachedNowPlaying()
-
-    // Bumped on every play/pause click. A Spotify poll that started before
-    // the latest click may have read the old state, so it must not overwrite
-    // the optimistic icon.
-    @State private var spotifyGeneration = 0
-    // Bumped on every runtime refresh. Refreshes overlap and can finish out
-    // of order; only the latest one may assign.
-    @State private var runtimeGeneration = 0
-
-    // Remote foyer hosts come from config. The local entry (source: "local")
-    // is rendered separately in `allSystems` below from the local stats.
-    // Missing config → empty list, no remote hosts shown.
-    private static var foyerServers: [AsyncData.FoyerConfig] {
-        AppConfig.current.widgets["systems"]?.hosts?
-            .compactMap { host in
-                guard host.source != "local", let url = host.url else { return nil }
-                return AsyncData.FoyerConfig(name: host.name, url: url)
-            } ?? []
-    }
-
-    // First frame renders from AppRuntime's disk cache when it has one.
-    @State private var weather = AsyncData.cachedWeather()
-    @State private var exchange = AsyncData.cachedExchange()
-    @State private var servers = AsyncData.getCachedServers(foyerServers.map(\.name))
-    @State private var agenda = AsyncData.getCachedCalendar()
 
     // Tracks whether initial render is done (suppresses entry animations)
     @State private var appeared = false
@@ -76,23 +37,23 @@ struct DashboardView: View {
                 clockSection
                 systemInfoRow
                     .padding(.top, 28)
-                if spotify.state != "off" {
+                if model.spotify.state != "off" {
                     mediaSection
                         .frame(height: 20)
                         .clipped()
                         .padding(.top, 20)
                 }
-                if !agenda.isEmpty {
+                if !model.agenda.isEmpty {
                     agendaSection
                         .padding(.top, 24)
                 }
                 systemsSection
                     .padding(.top, 24)
-                if !exchange.isEmpty {
+                if !model.exchange.isEmpty {
                     exchangeSection
                         .padding(.top, 24)
                 }
-                if let w = weather {
+                if let w = model.weather {
                     weatherSection(w)
                         .padding(.top, 24)
                 }
@@ -103,8 +64,10 @@ struct DashboardView: View {
             if let host = expandedHost {
                 Color.black.opacity(0.65)
                     .ignoresSafeArea()
-                    .onTapGesture { expandedHost = nil; expandedDetail = nil }
-                SystemDetailView(detail: expandedDetail, host: host)
+                    .onTapGesture { expandedHost = nil }
+                // The host's health snapshot, already polled while the
+                // dashboard is visible: no extra foyer-api per popup.
+                SystemDetailView(detail: model.detail(for: host), host: host)
                     .transition(.opacity.combined(with: .scale(scale: 0.97)))
             }
 
@@ -119,87 +82,10 @@ struct DashboardView: View {
         .animation(.easeInOut(duration: 0.18), value: expandedHost)
         .animation(.easeInOut(duration: 0.18), value: showingInfo)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .animation(appeared ? .easeInOut(duration: 0.3) : nil, value: servers.count)
-        .animation(appeared ? .easeInOut(duration: 0.3) : nil, value: exchange.count)
-        .animation(appeared ? .easeInOut(duration: 0.3) : nil, value: weather?.location)
-        .task(id: "clock") {
-            while !Task.isCancelled {
-                time = Date()
-                privacyMode = MacPlatform.privacy.isEnabled()
-                network = MacPlatform.stats.networkRate()
-                try? await Task.sleep(for: .seconds(1))
-            }
-        }
-        .task(id: "fast") {
-            refreshFast()
-            appeared = true
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(3))
-                refreshFast()
-            }
-        }
-        .task(id: "spotify") {
-            // Its own loop: an AppleScript round-trip can take seconds, and
-            // the stats above must not wait for it.
-            while !Task.isCancelled {
-                let generation = spotifyGeneration
-                let fresh = await MacPlatform.media.nowPlaying()
-                if generation == spotifyGeneration { spotify = fresh }
-                try? await Task.sleep(for: .seconds(3))
-            }
-        }
-        .task(id: "servers") {
-            // Each round spawns one foyer-api per host; foyer's collector only
-            // refreshes every 5s, so polling faster just burns processes.
-            while !Task.isCancelled {
-                let fresh = await AsyncData.getServers(foyerServers: Self.foyerServers, useCache: false)
-                if !fresh.isEmpty { servers = fresh }
-                try? await Task.sleep(for: .seconds(5))
-            }
-        }
-        .task(id: "slow") {
-            // Weather and exchange also re-read on every runtime update (see
-            // .onReceive below).
-            await refreshRuntimeSections()
-        }
-        .task(id: "agenda") {
-            // The calendar isn't a runtime source yet, so it re-queries on its
-            // own 5-minute cache TTL. Separate from "slow" so a runtime source
-            // that takes its full wait can't delay it.
-            while !Task.isCancelled {
-                agenda = await AsyncData.getTodayEvents(from: MacPlatform.calendar)
-                try? await Task.sleep(for: .seconds(300))
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .runtimeSourceUpdated)) { _ in
-            Task { await refreshRuntimeSections() }
-        }
-        .task(id: "claude") {
-            while !Task.isCancelled {
-                let snapshot = await Task.detached(priority: .utility) {
-                    ClaudeUsage.read()
-                }.value
-                if snapshot != claudeUsage { claudeUsage = snapshot }
-                try? await Task.sleep(for: .seconds(30))
-            }
-        }
-        .task(id: expandedHost) {
-            // A different host starts from "loading…", never from the
-            // previous host's numbers.
-            expandedDetail = nil
-            guard let host = expandedHost else { return }
-            while !Task.isCancelled && expandedHost == host {
-                let snapshot = await loadDetail(for: host)
-                // Closing or switching the popup cancels this task, and a
-                // cancelled foyer fetch comes back ok:false; painting it would
-                // flash a false "offline".
-                guard !Task.isCancelled, expandedHost == host else { return }
-                if snapshot != expandedDetail { expandedDetail = snapshot }
-                // Foyer's collector refreshes every 5s; polling faster wastes
-                // subprocess invocations against unchanged data.
-                try? await Task.sleep(for: .seconds(5))
-            }
-        }
+        .animation(appeared ? .easeInOut(duration: 0.3) : nil, value: model.servers.count)
+        .animation(appeared ? .easeInOut(duration: 0.3) : nil, value: model.exchange.count)
+        .animation(appeared ? .easeInOut(duration: 0.3) : nil, value: model.weather?.location)
+        .onAppear { appeared = true }
         .onReceive(NotificationCenter.default.publisher(for: .dashboardExpandHost)) { note in
             if let host = note.userInfo?["host"] as? String {
                 expandedHost = host
@@ -210,7 +96,7 @@ struct DashboardView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .dashboardToggleInfo)) { _ in
             // Close host expansion if open, then toggle info. Avoids two overlays at once.
-            if expandedHost != nil { expandedHost = nil; expandedDetail = nil }
+            if expandedHost != nil { expandedHost = nil }
             showingInfo.toggle()
         }
         .onReceive(NotificationCenter.default.publisher(for: .dashboardCloseInfo)) { _ in
@@ -227,93 +113,9 @@ struct DashboardView: View {
 
     /// Ordered host names for the single-letter key mapping (see HostKeys).
     /// Reads from config; local entries are included so they get a key too.
-    static var allHostNames: [String] {
+    /// Nonisolated: the app delegate reads it before any view exists.
+    nonisolated static var allHostNames: [String] {
         AppConfig.current.widgets["systems"]?.hosts?.map(\.name) ?? []
-    }
-
-    /// Configured host names whose source is "local" — used to route detail
-    /// loading to the in-process stats rather than a foyer URL.
-    private static var localHostNames: Set<String> {
-        Set((AppConfig.current.widgets["systems"]?.hosts ?? [])
-            .filter { $0.source == "local" }
-            .map(\.name))
-    }
-
-    private func loadDetail(for host: String) async -> AsyncData.ServerDetail {
-        if Self.localHostNames.contains(host) {
-            return localSwiftDetail(name: host)
-        }
-        guard let cfg = Self.foyerServers.first(where: { $0.name == host }) else {
-            return AsyncData.ServerDetail(
-                name: host, ok: false,
-                cpuPercent: 0, ramPercent: 0,
-                pools: [], mounts: [],
-                rxBytesPerSec: 0, txBytesPerSec: 0,
-                dockerRunning: nil, jellyfinStreams: nil, minecraft: nil
-            )
-        }
-        return await AsyncData.getServerDetail(name: cfg.name, url: cfg.url)
-    }
-
-    private func localSwiftDetail(name: String = "swift") -> AsyncData.ServerDetail {
-        var mounts: [AsyncData.MountDetail] = []
-        if let attrs = try? FileManager.default.attributesOfFileSystem(forPath: "/"),
-           let total = attrs[.systemSize] as? Int64,
-           let free = attrs[.systemFreeSize] as? Int64 {
-            let used = total - free
-            let pct = total > 0 ? Int(Double(used) * 100 / Double(total)) : 0
-            mounts.append(AsyncData.MountDetail(
-                mountpoint: "/", usagePercent: pct,
-                totalBytes: total, usedBytes: used
-            ))
-        }
-        return AsyncData.ServerDetail(
-            name: name, ok: true,
-            cpuPercent: cpu,
-            ramPercent: memory.ramPercent,
-            memCompressed: memory.pressurePercent,
-            cpuTemp: temp,
-            uptimeSecs: Int(ProcessInfo.processInfo.systemUptime),
-            gpu: nil,
-            pools: [],
-            mounts: mounts,
-            rxBytesPerSec: network.bytesIn,
-            txBytesPerSec: network.bytesOut,
-            dockerRunning: nil,
-            jellyfinStreams: nil,
-            minecraft: nil
-        )
-    }
-
-    /// Cheap in-process reads (Mach, IOKit, CoreAudio; each well under 1ms).
-    /// Spotify goes through AppleScript and is fetched separately, off the
-    /// main thread, by the "spotify" task.
-    private func refreshFast() {
-        cpu = MacPlatform.stats.cpuPercent()
-        memory = MacPlatform.stats.memory()
-        temp = MacPlatform.stats.temperature()
-        battery = MacPlatform.stats.battery()
-        volume = MacPlatform.audio.volume()
-        uptime = Format.uptimeLong(Int(MacPlatform.stats.uptime()))
-        diskFree = Format.diskFree(MacPlatform.stats.disk())
-    }
-
-    /// Re-read the sections backed by AppRuntime sources. Runs at launch and
-    /// again whenever the runtime lands a fetch, so they don't go stale while
-    /// the dashboard stays open.
-    /// Superseded refreshes are dropped rather than cancelled: cancelling
-    /// one mid-`waitForData` would only make it return early with nothing.
-    @MainActor
-    private func refreshRuntimeSections() async {
-        runtimeGeneration += 1
-        let generation = runtimeGeneration
-        async let w = AsyncData.getWeather()
-        async let e = AsyncData.getExchange()
-        let newWeather = await w
-        let newExchange = await e
-        guard generation == runtimeGeneration else { return }
-        if let nw = newWeather { weather = nw }
-        if !newExchange.isEmpty { exchange = newExchange }
     }
 
     // MARK: - Sections
@@ -326,10 +128,10 @@ struct DashboardView: View {
 
     private var clockSection: some View {
         VStack(spacing: 4) {
-            Text(time, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).second(.twoDigits))
+            Text(model.time, format: .dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).second(.twoDigits))
                 .font(.system(size: 56, weight: .ultraLight, design: .monospaced))
                 .foregroundStyle(.white)
-            Text(time, format: .dateTime.weekday(.wide).month(.wide).day(.defaultDigits).year())
+            Text(model.time, format: .dateTime.weekday(.wide).month(.wide).day(.defaultDigits).year())
                 .font(.system(size: 15, weight: .regular, design: .rounded))
                 .foregroundStyle(Color.subtle)
             worldClockRow
@@ -346,7 +148,7 @@ struct DashboardView: View {
         let clocks = Self.worldClocks.filter { $0.tz != local }.compactMap { city -> (String, String)? in
             guard let tz = TimeZone(identifier: city.tz) else { return nil }
             Self.worldClockFmt.timeZone = tz
-            return (city.label, Self.worldClockFmt.string(from: time))
+            return (city.label, Self.worldClockFmt.string(from: model.time))
         }
         return HStack(spacing: 16) {
             ForEach(clocks, id: \.0) { city, t in
@@ -379,7 +181,7 @@ struct DashboardView: View {
                     Image(systemName: "clock")
                         .font(.system(size: 10))
                         .foregroundStyle(Color.dimmed)
-                    Text(uptime)
+                    Text(model.uptime)
                         .font(.system(size: 12))
                         .foregroundStyle(Color.subtle)
                 }
@@ -389,12 +191,12 @@ struct DashboardView: View {
                     Image(systemName: "internaldrive")
                         .font(.system(size: 10))
                         .foregroundStyle(Color.dimmed)
-                    Text(diskFree)
+                    Text(model.diskFree)
                         .font(.system(size: 12))
                         .foregroundStyle(Color.subtle)
                 }
             }
-            if show.contains("battery"), let b = battery {
+            if show.contains("battery"), let b = model.battery {
                 HStack(spacing: 5) {
                     Image(systemName: batteryIcon)
                         .font(.system(size: 10))
@@ -418,7 +220,7 @@ struct DashboardView: View {
                     Image(systemName: "hourglass")
                         .font(.system(size: 10))
                         .foregroundStyle(Color.dimmed)
-                    Text("\(claudeUsage.blockPercent)% / \(claudeUsage.weeklyPercent)%")
+                    Text("\(model.claudeUsage.blockPercent)% / \(model.claudeUsage.weeklyPercent)%")
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(Color.subtle)
                 }
@@ -428,13 +230,13 @@ struct DashboardView: View {
                     Image(systemName: "arrow.down")
                         .font(.system(size: 9))
                         .foregroundStyle(Color.dimmed)
-                    Text(formatRate(network.bytesIn))
+                    Text(formatRate(model.network.bytesIn))
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(Color.subtle)
                     Image(systemName: "arrow.up")
                         .font(.system(size: 9))
                         .foregroundStyle(Color.dimmed)
-                    Text(formatRate(network.bytesOut))
+                    Text(formatRate(model.network.bytesOut))
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(Color.subtle)
                 }
@@ -449,16 +251,15 @@ struct DashboardView: View {
 
     private var privacyIndicator: some View {
         Button(action: {
-            privacyMode.toggle()
-            MacPlatform.privacy.toggle()
+            model.togglePrivacy()
         }) {
             HStack(spacing: 6) {
-                Image(systemName: privacyMode ? "mic.slash.fill" : "mic.fill")
+                Image(systemName: model.privacyMode ? "mic.slash.fill" : "mic.fill")
                     .font(.system(size: 11))
-                Image(systemName: privacyMode ? "video.slash.fill" : "video.fill")
+                Image(systemName: model.privacyMode ? "video.slash.fill" : "video.fill")
                     .font(.system(size: 11))
             }
-            .foregroundStyle(privacyMode ? Color.green : Color.red)
+            .foregroundStyle(model.privacyMode ? Color.green : Color.red)
             .frame(width: 40, height: 20)
             .contentShape(Rectangle())
         }
@@ -468,21 +269,18 @@ struct DashboardView: View {
     private var mediaSection: some View {
         HStack(spacing: 12) {
             Button(action: {
-                MacPlatform.media.playPause()
-                spotifyGeneration += 1
-                if spotify.state == "playing" { spotify.state = "paused" }
-                else if spotify.state == "paused" { spotify.state = "playing" }
+                model.playPause()
             }) {
-                Image(systemName: spotify.state == "playing" ? "play.fill" : "pause.fill")
+                Image(systemName: model.spotify.state == "playing" ? "play.fill" : "pause.fill")
                     .font(.system(size: 13))
                     .foregroundStyle(Color.green)
             }
             .buttonStyle(.plain)
             HStack(spacing: 4) {
-                Text(spotify.title)
+                Text(model.spotify.title)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(.white)
-                Text("— \(spotify.artist)")
+                Text("— \(model.spotify.artist)")
                     .font(.system(size: 14))
                     .foregroundStyle(Color.subtle)
             }
@@ -495,15 +293,14 @@ struct DashboardView: View {
 
     private var volumeIndicator: some View {
         Button(action: {
-            volume.muted.toggle()
-            MacPlatform.audio.setMuted(volume.muted)
+            model.toggleMute()
         }) {
             HStack(spacing: 6) {
-                Image(systemName: volume.muted ? "speaker.slash.fill" : volumeIcon)
+                Image(systemName: model.volume.muted ? "speaker.slash.fill" : volumeIcon)
                     .font(.system(size: 12))
                     .foregroundStyle(Color.subtle)
-                if !volume.muted {
-                    Text("\(volume.level)%")
+                if !model.volume.muted {
+                    Text("\(model.volume.level)%")
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(Color.subtle)
                 }
@@ -513,14 +310,14 @@ struct DashboardView: View {
     }
 
     private var volumeIcon: String {
-        if volume.level == 0 { return "speaker.fill" }
-        if volume.level < 33 { return "speaker.wave.1.fill" }
-        if volume.level < 66 { return "speaker.wave.2.fill" }
+        if model.volume.level == 0 { return "speaker.fill" }
+        if model.volume.level < 33 { return "speaker.wave.1.fill" }
+        if model.volume.level < 66 { return "speaker.wave.2.fill" }
         return "speaker.wave.3.fill"
     }
 
     private var batteryIcon: String {
-        guard let b = battery else { return "battery.100percent" }
+        guard let b = model.battery else { return "battery.100percent" }
         let level: String
         if b.percent > 87 { level = "100" }
         else if b.percent > 62 { level = "75" }
@@ -531,17 +328,17 @@ struct DashboardView: View {
     }
 
     private var batteryColor: Color {
-        guard let b = battery else { return .white }
+        guard let b = model.battery else { return .white }
         if b.percent > 50 { return .green }
         if b.percent > 20 { return .yellow }
         return .red
     }
 
     private var agendaSection: some View {
-        let firstTimedIndex = agenda.firstIndex { !$0.isAllDay }
+        let firstTimedIndex = model.agenda.firstIndex { !$0.isAllDay }
         return VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: "Today")
-            ForEach(Array(agenda.enumerated()), id: \.element.id) { index, event in
+            ForEach(Array(model.agenda.enumerated()), id: \.element.id) { index, event in
                 HStack(spacing: 10) {
                     if !event.isAllDay {
                         Text(event.time)
@@ -556,7 +353,7 @@ struct DashboardView: View {
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(Color.accent)
                     } else if index == firstTimedIndex {
-                        let mins = Int(event.startDate.timeIntervalSince(time) / 60)
+                        let mins = Int(event.startDate.timeIntervalSince(model.time) / 60)
                         Text(Format.startsIn(minutes: mins))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(mins <= 15 ? Color.yellow : Color.accent)
@@ -569,23 +366,23 @@ struct DashboardView: View {
     private var allSystems: [AsyncData.ServerHealth] {
         // Walk the configured host order. Local entries (source: "local") are
         // built from the local stats. Remote entries match against the foyer
-        // fetch results by name. Hosts not yet known in `servers` are skipped
-        // until their first health snapshot arrives.
+        // health snapshots by name. Hosts not yet known in `servers` are
+        // skipped until their first health snapshot arrives.
         guard let hosts = AppConfig.current.widgets["systems"]?.hosts, !hosts.isEmpty else {
-            return servers
+            return model.servers
         }
         var result: [AsyncData.ServerHealth] = []
         for host in hosts {
             if host.source == "local" {
                 result.append(AsyncData.ServerHealth(
                     name: host.name, ok: true,
-                    cpuPercent: cpu,
-                    ramPercent: memory.ramPercent,
-                    memPressure: memory.pressurePercent,
-                    cpuTemp: temp,
+                    cpuPercent: model.cpu,
+                    ramPercent: model.memory.ramPercent,
+                    memPressure: model.memory.pressurePercent,
+                    cpuTemp: model.temp,
                     uptimeSecs: Int(ProcessInfo.processInfo.systemUptime)
                 ))
-            } else if let remote = servers.first(where: { $0.name == host.name }) {
+            } else if let remote = model.servers.first(where: { $0.name == host.name }) {
                 result.append(remote)
             }
         }
@@ -638,7 +435,7 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: 8) {
             SectionHeader(title: "Currencies")
             HStack(spacing: 24) {
-                ForEach(exchange, id: \.label) { rate in
+                ForEach(model.exchange, id: \.label) { rate in
                     VStack(alignment: .center, spacing: 3) {
                         Text(rate.label)
                             .font(.system(size: 10, weight: .semibold))
@@ -694,7 +491,7 @@ struct DashboardView: View {
                                 .foregroundStyle(Color.subtle)
                         }
                     }
-                    if let ctx = Format.sunContext(sunrise: w.sunrise, sunset: w.sunset, now: time) {
+                    if let ctx = Format.sunContext(sunrise: w.sunrise, sunset: w.sunset, now: model.time) {
                         Text(ctx)
                             .font(.system(size: 12))
                             .foregroundStyle(Color.dimmed)

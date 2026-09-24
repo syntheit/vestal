@@ -321,6 +321,15 @@ public struct WidgetConfig: Codable, Equatable, Sendable {
         if type == "keyValueList" { return key.prefix(1).uppercased() + key.dropFirst() }
         return Defaults.titles[type]
     }
+
+    /// Every source this widget reads: its own `source`, its items' and its
+    /// hosts' (`local` is not a source).
+    public var sourceNames: Set<String> {
+        var names = Set([source].compactMap { $0 })
+        names.formUnion((items ?? []).compactMap(\.source))
+        names.formUnion((hosts ?? []).compactMap(\.source).filter { $0 != HostConfig.local })
+        return names
+    }
 }
 
 public struct WorldClock: Codable, Equatable, Sendable {
@@ -472,6 +481,11 @@ public enum ConfigDuration {
         }
         let (seconds, overflow) = value.multipliedReportingOverflow(by: unitSeconds)
         return overflow ? nil : .seconds(seconds)
+    }
+
+    /// `parse`, in seconds.
+    public static func seconds(_ s: String) -> TimeInterval? {
+        parse(s).map { TimeInterval($0.components.seconds) }
     }
 }
 

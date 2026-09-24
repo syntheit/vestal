@@ -264,18 +264,20 @@ final class ConfigTests: XCTestCase {
     // MARK: Durations
 
     func testDurationUnits() {
-        XCTAssertEqual(AppRuntime.parseDuration("30s"), .seconds(30))
-        XCTAssertEqual(AppRuntime.parseDuration("5m"), .seconds(300))
-        XCTAssertEqual(AppRuntime.parseDuration("4h"), .seconds(14_400))
-        XCTAssertEqual(AppRuntime.parseDuration("1d"), .seconds(86_400))
-        XCTAssertEqual(AppRuntime.parseDuration(" 2h "), .seconds(7_200))
+        XCTAssertEqual(ConfigDuration.parse("30s"), .seconds(30))
+        XCTAssertEqual(ConfigDuration.parse("5m"), .seconds(300))
+        XCTAssertEqual(ConfigDuration.parse("4h"), .seconds(14_400))
+        XCTAssertEqual(ConfigDuration.parse("1d"), .seconds(86_400))
+        XCTAssertEqual(ConfigDuration.parse(" 2h "), .seconds(7_200))
+        XCTAssertEqual(ConfigDuration.seconds("5m"), 300)
     }
 
     func testInvalidDurations() {
         // The last one overflows an Int in seconds; it used to trap.
         for input in ["", "5", "m", "5x", "0s", "-5m", "1.5h", "5 m", "5M", "h5", "9223372036854775807d"] {
-            XCTAssertNil(AppRuntime.parseDuration(input), "\"\(input)\" should not parse")
+            XCTAssertNil(ConfigDuration.parse(input), "\"\(input)\" should not parse")
+            XCTAssertNil(ConfigDuration.seconds(input))
         }
-        XCTAssertEqual(AppRuntime.parseDuration("9223372036854775807s"), .seconds(Int.max))
+        XCTAssertEqual(ConfigDuration.parse("9223372036854775807s"), .seconds(Int.max))
     }
 }
