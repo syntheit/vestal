@@ -19,25 +19,44 @@ final class IPCTests: XCTestCase {
 
     func testDefaultSocketPathPrefersTheRuntimeDirectory() {
         XCTAssertEqual(IPC.defaultSocketPath(environment: ["XDG_RUNTIME_DIR": "/run/user/1000"],
-                                             temporaryDirectory: "/var/tmp/", uid: 1000),
+                                             temporaryDirectory: "/var/tmp/", uid: 1000, usesRuntimeDirectory: true),
                        "/run/user/1000/vestal.sock")
         XCTAssertEqual(IPC.defaultSocketPath(environment: ["XDG_RUNTIME_DIR": "/run/user/1000/"],
-                                             temporaryDirectory: "/var/tmp/", uid: 1000),
+                                             temporaryDirectory: "/var/tmp/", uid: 1000, usesRuntimeDirectory: true),
                        "/run/user/1000/vestal.sock")
     }
 
     func testDefaultSocketPathFallsBackToTheTemporaryDirectory() {
-        XCTAssertEqual(IPC.defaultSocketPath(environment: [:], temporaryDirectory: "/var/tmp/", uid: 501),
+        XCTAssertEqual(IPC.defaultSocketPath(environment: [:], temporaryDirectory: "/var/tmp/", uid: 501,
+                                             usesRuntimeDirectory: true),
                        "/var/tmp/vestal-501.sock")
-        XCTAssertEqual(IPC.defaultSocketPath(environment: [:], temporaryDirectory: "/var/tmp", uid: 501),
+        XCTAssertEqual(IPC.defaultSocketPath(environment: [:], temporaryDirectory: "/var/tmp", uid: 501,
+                                             usesRuntimeDirectory: true),
                        "/var/tmp/vestal-501.sock")
         // Empty and relative values are ignored (XDG base directory spec).
         XCTAssertEqual(IPC.defaultSocketPath(environment: ["XDG_RUNTIME_DIR": ""],
-                                             temporaryDirectory: "/var/tmp/", uid: 501),
+                                             temporaryDirectory: "/var/tmp/", uid: 501, usesRuntimeDirectory: true),
                        "/var/tmp/vestal-501.sock")
         XCTAssertEqual(IPC.defaultSocketPath(environment: ["XDG_RUNTIME_DIR": "run/user/501"],
-                                             temporaryDirectory: "/var/tmp/", uid: 501),
+                                             temporaryDirectory: "/var/tmp/", uid: 501, usesRuntimeDirectory: true),
                        "/var/tmp/vestal-501.sock")
+    }
+
+    func testMacOSIgnoresTheRuntimeDirectory() {
+        // A shell exporting XDG_RUNTIME_DIR must still find the launchd agent.
+        XCTAssertEqual(IPC.defaultSocketPath(environment: ["XDG_RUNTIME_DIR": "/run/user/501"],
+                                             temporaryDirectory: "/var/folders/x/T/", uid: 501,
+                                             usesRuntimeDirectory: false),
+                       "/var/folders/x/T/vestal-501.sock")
+        XCTAssertEqual(IPC.candidateSocketPaths(environment: ["XDG_RUNTIME_DIR": "/run/user/501"],
+                                                temporaryDirectory: "/var/folders/x/T/", uid: 501,
+                                                usesRuntimeDirectory: false),
+                       ["/var/folders/x/T/vestal-501.sock"])
+        #if os(macOS)
+        XCTAssertFalse(IPC.usesRuntimeDirectory)
+        #else
+        XCTAssertTrue(IPC.usesRuntimeDirectory)
+        #endif
     }
 
     func testDefaultSocketPathOfThisProcess() {
@@ -45,6 +64,16 @@ final class IPCTests: XCTestCase {
         XCTAssertTrue(path.hasPrefix("/"), path)
         XCTAssertTrue(path.hasSuffix(".sock"), path)
         XCTAssertFalse(path.contains("//"), path)
+        XCTAssertEqual(IPC.candidateSocketPaths().first, path)
+    }
+
+    func testCandidateSocketPaths() {
+        XCTAssertEqual(IPC.candidateSocketPaths(environment: ["XDG_RUNTIME_DIR": "/run/user/1000"],
+                                                temporaryDirectory: "/var/tmp/", uid: 1000, usesRuntimeDirectory: true),
+                       ["/run/user/1000/vestal.sock", "/var/tmp/vestal-1000.sock"])
+        XCTAssertEqual(IPC.candidateSocketPaths(environment: [:], temporaryDirectory: "/var/tmp/", uid: 1000,
+                                                usesRuntimeDirectory: true),
+                       ["/var/tmp/vestal-1000.sock"])
     }
 
     func testMaxPathLengthIsSunPathMinusTheTerminator() {
@@ -328,28 +357,49 @@ final class IPCTests: XCTestCase {
         var status = sampleStatus()
         status.sources = (0..<20_000).map { IPCSourceStatus(name: "source-\($0)", type: "command") }
         let big = status
-        let server = makeServer(path, ioTimeout: 3) { command, reply in
-            reply(command == .status ? .status(big) : .ok)
+        let handedOver = DispatchSemaphore(value: 0)
+        let server = makeServer(path, ioTimeout: 1) { command, reply in
+            guard command == .status else { return reply(.ok) }
+            // Encoded elsewhere, so the handler queue stays free for `show`.
+            DispatchQueue.global().async {
+                reply(.status(big))
+                handedOver.signal()  // the server starts writing now
+            }
         }
         try server.start()
 
         let stuck = try RawIPCSocket(connectingTo: path)
         stuck.transmit("status\n")  // and doesn't read the (large) reply for now
-        let requested = Date()
-        Thread.sleep(forTimeInterval: 0.3)
+        XCTAssertEqual(handedOver.wait(timeout: .now() + 30), .success)
 
-        // Served long before the stuck write times out (3s). Generous bound:
-        // the handler queue may still be encoding the big reply.
+        // Served well before the stuck write's deadline (1s after it began).
         let start = Date()
         XCTAssertEqual(try IPCClient.send(.show, path: path, timeout: 10), .ok)
-        XCTAssertLessThan(Date().timeIntervalSince(start), 2)
+        XCTAssertLessThan(Date().timeIntervalSince(start), 0.8)
 
-        // Past its deadline the server gives up: what fit in the socket
+        // Past that deadline the server gives up: what fit in the socket
         // buffer, then EOF.
-        Thread.sleep(forTimeInterval: max(0, 3.5 - Date().timeIntervalSince(requested)))
+        Thread.sleep(forTimeInterval: 2)
         let received = try XCTUnwrap(stuck.readToEOF(timeout: 10), "never hung up")
         XCTAssertGreaterThan(received.count, 0)
         XCTAssertLessThan(received.count, IPCResponse.status(big).jsonLine().count)
+    }
+
+    func testTooManyClientsAreToldTheServerIsBusy() throws {
+        let path = try makeSocketPath()
+        let server = makeServer(path) { _, reply in reply(.ok) }
+        try server.start()
+        let idle = try (0..<32).map { _ in try RawIPCSocket(connectingTo: path) }
+        Thread.sleep(forTimeInterval: 0.3)  // all accepted
+        XCTAssertEqual(try IPCClient.send(.show, path: path), .failure("busy: too many connections"))
+        idle.forEach { $0.hangUp() }
+        let deadline = Date().addingTimeInterval(3)
+        var response = try IPCClient.send(.show, path: path)
+        while response != .ok && Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.05)
+            response = try IPCClient.send(.show, path: path)
+        }
+        XCTAssertEqual(response, .ok, "served again once they are gone")
     }
 
     func testClientTimesOutWhenTheAppDoesNotReply() throws {
@@ -361,6 +411,11 @@ final class IPCTests: XCTestCase {
             XCTAssertEqual($0 as? IPCError, .timedOut(seconds: 0.3))
         }
         XCTAssertLessThan(Date().timeIntervalSince(start), 2)
+
+        // A negative timeout means "don't wait", and is reported as such.
+        XCTAssertThrowsError(try IPCClient.send(.status, path: path, timeout: -1)) {
+            XCTAssertEqual($0 as? IPCError, .timedOut(seconds: 0))
+        }
     }
 
     func testServerAnswersWhenTheHandlerIsTooSlow() throws {
@@ -423,6 +478,322 @@ final class IPCTests: XCTestCase {
         XCTAssertEqual(try String(contentsOfFile: path, encoding: .utf8), "precious")
     }
 
+    func testTheLockKeepsASecondInstanceOutEvenWithoutTheSocket() throws {
+        let path = try makeSocketPath()
+        let first = makeServer(path) { _, reply in reply(.failure("first")) }
+        try first.start()
+        XCTAssertTrue(FileManager.default.fileExists(atPath: path + ".lock"))
+
+        // Someone deleted the socket; the first instance still runs.
+        XCTAssertEqual(unlink(path), 0)
+        let second = makeServer(path) { _, reply in reply(.failure("second")) }
+        XCTAssertThrowsError(try second.start()) {
+            XCTAssertEqual($0 as? IPCError, .alreadyRunning(path: path))
+        }
+        first.stop()
+        try second.start()
+        XCTAssertEqual(try IPCClient.send(.show, path: path), .failure("second"))
+    }
+
+    func testAStartingInstanceIsNotMistakenForAStaleOne() throws {
+        // Another instance holds the lock and has bound but not yet listened:
+        // its socket refuses connections like a stale one, but stays.
+        let path = try makeSocketPath()
+        try makeStaleSocket(at: path)
+        let lock = open(path + ".lock", O_RDWR | O_CREAT, 0o600)
+        XCTAssertGreaterThanOrEqual(lock, 0)
+        defer { _ = close(lock) }
+        XCTAssertEqual(flock(lock, LOCK_EX | LOCK_NB), 0)
+
+        let server = makeServer(path) { _, reply in reply(.ok) }
+        XCTAssertThrowsError(try server.start()) {
+            XCTAssertEqual($0 as? IPCError, .alreadyRunning(path: path))
+        }
+        XCTAssertTrue(FileManager.default.fileExists(atPath: path), "left alone")
+    }
+
+    func testClientTriesTheOtherCandidate() throws {
+        let directory = try makeSocketDirectory()
+        let runtimePath = directory + "/runtime.sock"
+        let temporaryPath = directory + "/temporary.sock"
+        let server = makeServer(temporaryPath) { _, reply in reply(.failure("found")) }
+        try server.start()
+
+        XCTAssertEqual(try IPCClient.send(.show, paths: [runtimePath, temporaryPath]), .failure("found"))
+        XCTAssertTrue(IPCClient.isRunning(paths: [runtimePath, temporaryPath]))
+        XCTAssertFalse(IPCClient.isRunning(paths: [runtimePath]))
+        let missing = directory + "/missing.sock"
+        XCTAssertThrowsError(try IPCClient.send(.show, paths: [runtimePath, missing])) {
+            XCTAssertEqual($0 as? IPCError, .notRunning(path: runtimePath), "names the first path")
+        }
+
+        // Any failure to connect moves on; only the first path's error is reported.
+        let tooLong = directory + "/" + String(repeating: "x", count: IPC.maxPathLength)
+        XCTAssertEqual(try IPCClient.send(.show, paths: [tooLong, temporaryPath]), .failure("found"))
+        XCTAssertThrowsError(try IPCClient.send(.show, paths: [tooLong, missing])) {
+            XCTAssertEqual($0 as? IPCError, .pathTooLong(path: tooLong, limit: IPC.maxPathLength))
+        }
+        XCTAssertThrowsError(try IPCClient.send(.show, paths: [])) {
+            XCTAssertEqual($0 as? IPCError, .notRunning(path: IPC.defaultSocketPath()))
+        }
+    }
+
+    func testServerFallsBackToTheNextPath() throws {
+        let directory = try makeSocketDirectory()
+        let unusable = directory + "/missing/runtime.sock"  // e.g. a stale XDG_RUNTIME_DIR
+        let fallback = directory + "/temporary.sock"
+        let server = IPCServer(paths: [unusable, fallback], queue: handlerQueue) { _, reply in reply(.ok) }
+        addTeardownBlock { server.stop() }
+        try server.start()
+        XCTAssertEqual(server.path, fallback)
+        XCTAssertEqual(try IPCClient.send(.show, paths: [unusable, fallback]), .ok)
+
+        // Nothing usable: the first path's error.
+        let other = directory + "/gone/other.sock"
+        let stuck = IPCServer(paths: [unusable, other], queue: handlerQueue) { _, reply in reply(.ok) }
+        addTeardownBlock { stuck.stop() }
+        XCTAssertThrowsError(try stuck.start()) {
+            XCTAssertEqual($0 as? IPCError, .system(call: "open(\(unusable).lock)", errno: ENOENT))
+        }
+        XCTAssertEqual(stuck.path, unusable)
+    }
+
+    func testServerRefusesWhenAnotherCandidateAnswers() throws {
+        let directory = try makeSocketDirectory()
+        let runtimePath = directory + "/runtime.sock"
+        let temporaryPath = directory + "/temporary.sock"
+        let first = makeServer(temporaryPath) { _, reply in reply(.ok) }
+        try first.start()
+
+        let second = IPCServer(paths: [runtimePath, temporaryPath], queue: handlerQueue) { _, reply in reply(.ok) }
+        addTeardownBlock { second.stop() }
+        XCTAssertThrowsError(try second.start()) {
+            XCTAssertEqual($0 as? IPCError, .alreadyRunning(path: temporaryPath))
+        }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: runtimePath))
+
+        first.stop()
+        try second.start()
+        XCTAssertEqual(second.path, runtimePath)
+        XCTAssertEqual(try IPCClient.send(.show, path: runtimePath), .ok)
+    }
+
+    func testAnotherUsersStaleSocketIsNotOursToDelete() throws {
+        let path = try makeSocketPath()
+        try makeStaleSocket(at: path)
+        guard chown(path, Self.stranger, gid_t(Self.stranger)) == 0 else {
+            throw XCTSkip("chown needs root")
+        }
+        XCTAssertThrowsError(try IPCClient.send(.show, path: path)) {
+            XCTAssertEqual($0 as? IPCError, .notRunning(path: path))
+        }
+        XCTAssertFalse(IPCClient.isRunning(path: path))
+        let server = makeServer(path) { _, reply in reply(.ok) }
+        XCTAssertThrowsError(try server.start()) {
+            XCTAssertEqual($0 as? IPCError,
+                           .pathUnusable(path: path, reason: "the socket there belongs to uid \(Self.stranger)"))
+        }
+        XCTAssertTrue(FileManager.default.fileExists(atPath: path), "left alone")
+    }
+
+    func testAnotherUsersLockFileIsRefused() throws {
+        let path = try makeSocketPath()
+        let lockPath = path + ".lock"
+        XCTAssertTrue(FileManager.default.createFile(atPath: lockPath, contents: nil))
+        guard chown(lockPath, Self.stranger, gid_t(Self.stranger)) == 0 else {
+            throw XCTSkip("chown needs root")
+        }
+        let server = makeServer(path) { _, reply in reply(.ok) }
+        XCTAssertThrowsError(try server.start()) {
+            XCTAssertEqual($0 as? IPCError, .pathUnusable(path: lockPath, reason: "the lock file there is not ours"))
+        }
+    }
+
+    func testASymlinkedLockFileIsRefused() throws {
+        let path = try makeSocketPath()
+        let target = path + ".target"
+        XCTAssertTrue(FileManager.default.createFile(atPath: target, contents: nil))
+        try FileManager.default.createSymbolicLink(atPath: path + ".lock", withDestinationPath: target)
+        let server = makeServer(path) { _, reply in reply(.ok) }
+        XCTAssertThrowsError(try server.start()) {
+            XCTAssertEqual($0 as? IPCError, .system(call: "open(\(path).lock)", errno: ELOOP))
+        }
+    }
+
+    func testAnotherUsersServerIsNotTrusted() throws {
+        // A server of another uid sits on the path (the shared-temporary-
+        // directory fallback): the client refuses to talk to it.
+        let directory = try makeSocketDirectory()
+        let path = directory + "/s.sock"
+        guard chmod(directory, 0o777) == 0 else { return XCTFail("chmod: \(errno)") }
+        // Bound under another name and renamed, so it appears listening.
+        let process = try runAsStranger(
+            """
+            import os, socket
+            s = socket.socket(socket.AF_UNIX)
+            s.bind(\(pythonString(path + ".tmp")))
+            s.listen(8)
+            os.rename(\(pythonString(path + ".tmp")), \(pythonString(path)))
+            s.settimeout(10)
+            for _ in range(10):
+                c, _ = s.accept()
+                c.sendall(b'{"ok":true}\\n')
+                c.close()
+            """)
+        defer { process.stop() }
+        try waitForFile(path)
+
+        XCTAssertThrowsError(try IPCClient.send(.show, path: path)) {
+            XCTAssertEqual($0 as? IPCError,
+                           .pathUnusable(path: path, reason: "the server there runs as uid \(Self.stranger)"))
+        }
+        XCTAssertFalse(IPCClient.isRunning(path: path))
+    }
+
+    func testAnotherUsersClientIsHungUpOn() throws {
+        let path = try makeSocketPath()
+        let seen = IPCTestRecorder()
+        let server = makeServer(path) { command, reply in
+            seen.append(command)
+            reply(.ok)
+        }
+        try server.start()
+        // Take away the file permission check, so only the peer check is left.
+        guard chmod(path, 0o777) == 0 else { return XCTFail("chmod: \(errno)") }
+        let process = try runAsStranger(
+            """
+            import socket, sys
+            s = socket.socket(socket.AF_UNIX)
+            s.settimeout(10)
+            s.connect(\(pythonString(path)))
+            sys.stdout.write('connected;')
+            sys.stdout.flush()
+            try:
+                s.sendall(b'quit\\n')
+                data = s.recv(100)
+            except (BrokenPipeError, ConnectionResetError):
+                data = b''  # hung up before or while we wrote
+            sys.stdout.write('reply:' + repr(data))
+            """)
+        process.waitUntilExit()
+        XCTAssertEqual(process.readOutput(), "connected;reply:b''", "hung up without a reply")
+        XCTAssertEqual(seen.commands, [], "never reached the handler")
+        XCTAssertEqual(try IPCClient.send(.show, path: path), .ok, "the owner still gets in")
+    }
+
+    func testSocketFileIsOwnerOnly() throws {
+        let path = try makeSocketPath()
+        let server = makeServer(path) { _, reply in reply(.ok) }
+        try server.start()
+        var info = stat()
+        XCTAssertEqual(lstat(path, &info), 0)
+        XCTAssertEqual(info.st_mode & 0o777, 0o600)
+        XCTAssertEqual(info.st_mode & S_IFMT, S_IFSOCK)
+    }
+
+    // MARK: Maintenance
+
+    func testTheTimerBindsADeletedSocketAgain() throws {
+        let path = try makeSocketPath()
+        let server = makeServer(path, maintenanceInterval: 0.1) { _, reply in reply(.ok) }
+        try server.start()
+        XCTAssertEqual(unlink(path), 0)  // a temp cleaner, a stray rm
+        // The file appears at bind(), a moment before listen(): wait for a server.
+        let deadline = Date().addingTimeInterval(5)
+        while !IPCClient.isRunning(path: path) && Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.02)
+        }
+        XCTAssertEqual(try IPCClient.send(.show, path: path), .ok)
+    }
+
+    func testAReplacedSocketIsBoundAgain() throws {
+        let path = try makeSocketPath()
+        let server = makeServer(path) { _, reply in reply(.ok) }
+        try server.start()
+        XCTAssertEqual(unlink(path), 0)
+        try makeStaleSocket(at: path)  // left by something that died
+        server.checkSocket()
+        XCTAssertEqual(try IPCClient.send(.show, path: path), .ok)
+    }
+
+    func testADeletedLockFileIsTakenAgain() throws {
+        let path = try makeSocketPath()
+        let server = makeServer(path) { _, reply in reply(.ok) }
+        try server.start()
+        XCTAssertEqual(unlink(path + ".lock"), 0)
+        XCTAssertFalse(lockIsHeld(path))
+        server.checkSocket()
+        XCTAssertTrue(lockIsHeld(path), "the lock is held again")
+    }
+
+    func testAStartingInstanceDoesNotMakeTheLiveOneQuit() throws {
+        // Only the lock file was deleted, and another instance is starting:
+        // it holds the new lock file for a moment, until it finds the live
+        // server and gives up. The live one must not step down meanwhile.
+        let path = try makeSocketPath()
+        let lost = IPCTestRecorder()
+        let first = makeServer(path) { _, reply in reply(.failure("first")) }
+        first.onLostOwnership = { lost.note("lost") }
+        try first.start()
+        XCTAssertEqual(unlink(path + ".lock"), 0)
+        let starting = open(path + ".lock", O_RDWR | O_CREAT, 0o600)
+        XCTAssertGreaterThanOrEqual(starting, 0)
+        XCTAssertEqual(flock(starting, LOCK_EX | LOCK_NB), 0)
+
+        first.checkSocket()
+        handlerQueue.sync {}
+        XCTAssertEqual(lost.notes, [])
+        XCTAssertEqual(try IPCClient.send(.show, path: path), .failure("first"))
+
+        _ = close(starting)  // it gave up
+        XCTAssertFalse(lockIsHeld(path))
+        first.checkSocket()
+        XCTAssertTrue(lockIsHeld(path), "the live one takes the lock again")
+    }
+
+    func testAnInstanceThatLostItsFilesStepsDown() throws {
+        // Both files deleted and a second instance started: the first must
+        // not keep running as a hidden duplicate.
+        let path = try makeSocketPath()
+        let lost = expectation(description: "lost ownership")
+        let first = makeServer(path) { _, reply in reply(.failure("first")) }
+        first.onLostOwnership = { lost.fulfill() }
+        try first.start()
+        XCTAssertEqual(unlink(path), 0)
+        XCTAssertEqual(unlink(path + ".lock"), 0)
+
+        let second = makeServer(path) { _, reply in reply(.failure("second")) }
+        try second.start()
+        first.checkSocket()
+        wait(for: [lost], timeout: 5)
+
+        XCTAssertEqual(try IPCClient.send(.show, path: path), .failure("second"))
+        first.stop()
+        XCTAssertTrue(FileManager.default.fileExists(atPath: path), "the first leaves the second's socket alone")
+        XCTAssertEqual(try IPCClient.send(.show, path: path), .failure("second"))
+    }
+
+    func testTimestampsAreKeptFresh() throws {
+        let path = try makeSocketPath()
+        let server = makeServer(path) { _, reply in reply(.ok) }
+        try server.start()
+        let old = timeval(tv_sec: 1_000_000_000, tv_usec: 0)  // 2001
+        let times = [old, old]
+        XCTAssertEqual(utimes(path, times), 0)
+        XCTAssertEqual(utimes(path + ".lock", times), 0)
+        server.checkSocket()
+        for file in [path, path + ".lock"] {
+            var info = stat()
+            XCTAssertEqual(lstat(file, &info), 0)
+            #if canImport(Darwin)
+            let modified = info.st_mtimespec.tv_sec
+            #else
+            let modified = info.st_mtim.tv_sec
+            #endif
+            XCTAssertGreaterThan(modified, old.tv_sec + 100_000_000, file)
+        }
+    }
+
     // MARK: Stopping
 
     func testStopRemovesTheSocket() throws {
@@ -478,6 +849,21 @@ final class IPCTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: path))
     }
 
+    func testABigReplyThenStopStillArrivesWhole() throws {
+        let path = try makeSocketPath()
+        var status = sampleStatus()
+        status.sources = (0..<20_000).map { IPCSourceStatus(name: "source-\($0)", type: "command") }
+        let big = status
+        let box = IPCTestServerBox()
+        let server = makeServer(path) { _, reply in
+            reply(.status(big))
+            box.server?.stop()
+        }
+        box.server = server
+        try server.start()
+        XCTAssertEqual(try IPCClient.send(.status, path: path, timeout: 20), .status(big))
+    }
+
     func testStopHangsUpOnOpenConnections() throws {
         let path = try makeSocketPath()
         let server = makeServer(path) { _, reply in reply(.ok) }
@@ -523,14 +909,19 @@ final class IPCTests: XCTestCase {
     // MARK: Paths
 
     func testLongPathIsRefused() throws {
-        let long = "/" + String(repeating: "x", count: IPC.maxPathLength)
+        let directory = try makeSocketDirectory()
+        let long = directory + "/" + String(repeating: "x", count: IPC.maxPathLength - directory.utf8.count)
+        XCTAssertEqual(long.utf8.count, IPC.maxPathLength + 1)
         let expected = IPCError.pathTooLong(path: long, limit: IPC.maxPathLength)
         let server = makeServer(long) { _, reply in reply(.ok) }
         XCTAssertThrowsError(try server.start()) { XCTAssertEqual($0 as? IPCError, expected) }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: long + ".lock"), "refused before creating anything")
         XCTAssertThrowsError(try IPCClient.send(.status, path: long)) { XCTAssertEqual($0 as? IPCError, expected) }
         XCTAssertFalse(IPCClient.isRunning(path: long))
         XCTAssertTrue(expected.description.contains("over the limit of \(IPC.maxPathLength)"), expected.description)
-        XCTAssertTrue(expected.description.contains("XDG_RUNTIME_DIR"), expected.description)
+        // Only where the environment picks the directory is it worth a hint.
+        XCTAssertEqual(expected.description.contains("XDG_RUNTIME_DIR"), IPC.usesRuntimeDirectory,
+                       expected.description)
     }
 
     func testPathOfExactlyTheLimitWorks() throws {
@@ -556,14 +947,14 @@ final class IPCTests: XCTestCase {
         let path = try makeSocketDirectory() + "/missing/s.sock"
         let server = makeServer(path) { _, reply in reply(.ok) }
         XCTAssertThrowsError(try server.start()) {
-            XCTAssertEqual($0 as? IPCError, .system(call: "bind(\(path))", errno: ENOENT))
-            XCTAssertEqual("\($0)", "bind(\(path)): No such file or directory")
+            XCTAssertEqual($0 as? IPCError, .system(call: "open(\(path).lock)", errno: ENOENT))
+            XCTAssertEqual("\($0)", "open(\(path).lock): No such file or directory")
         }
     }
 
     // MARK: Descriptors
 
-    func testSocketsAreCloseOnExecAndNonBlocking() throws {
+    func testDescriptorsAreCloseOnExecAndSocketsNonBlocking() throws {
         let path = try makeSocketPath()
         let server = makeServer(path) { _, reply in reply(.ok) }
         let before = openFiles()
@@ -572,15 +963,20 @@ final class IPCTests: XCTestCase {
         XCTAssertEqual(try IPCClient.send(.show, path: path), .ok)  // the idle one is accepted by now
 
         // The server closes the finished connection just after replying.
-        func serverSockets() -> [Int32] {
-            openFiles().subtracting(before).filter { $0.isSocket && $0.fd != idle.fd }.map(\.fd)
+        func serverFiles() -> [OpenFile] {
+            openFiles().subtracting(before).filter { $0.fd != idle.fd }
         }
-        var sockets = serverSockets()
+        var files = serverFiles()
         let deadline = Date().addingTimeInterval(2)
-        while sockets.count > 2 && Date() < deadline {
+        while files.count > 3 && Date() < deadline {
             Thread.sleep(forTimeInterval: 0.02)
-            sockets = serverSockets()
+            files = serverFiles()
         }
+        XCTAssertEqual(files.count, 3, "the lock, the listener and the idle connection")
+        for file in files {
+            XCTAssertNotEqual(fcntl(file.fd, F_GETFD) & FD_CLOEXEC, 0, "fd \(file.fd) is not close-on-exec")
+        }
+        let sockets = files.filter(\.isSocket).map(\.fd)
         XCTAssertEqual(sockets.count, 2, "the listener and the idle connection")
         for fd in sockets {
             XCTAssertNotEqual(fcntl(fd, F_GETFD) & FD_CLOEXEC, 0, "fd \(fd) is not close-on-exec")
@@ -651,13 +1047,60 @@ final class IPCTests: XCTestCase {
         ioTimeout: TimeInterval = 2,
         replyTimeout: TimeInterval = 5,
         maxRequestLength: Int = 256,
+        maintenanceInterval: TimeInterval = 60,
         handler: @escaping IPCHandler
     ) -> IPCServer {
         let server = IPCServer(path: path, queue: handlerQueue, ioTimeout: ioTimeout,
                                replyTimeout: replyTimeout, maxRequestLength: maxRequestLength,
-                               handler: handler)
+                               maintenanceInterval: maintenanceInterval, handler: handler)
         addTeardownBlock { server.stop() }
         return server
+    }
+
+    /// A uid nobody here runs as.
+    private static let stranger: uid_t = geteuid() == 54321 ? 54322 : 54321
+
+    /// Whether someone holds the lock on <path>.lock (tried without waiting).
+    private func lockIsHeld(_ path: String) -> Bool {
+        let fd = open(path + ".lock", O_RDWR)
+        guard fd >= 0 else { return false }
+        defer { _ = close(fd) }  // also releases it if we got it
+        return flock(fd, LOCK_EX | LOCK_NB) != 0 && errno == EWOULDBLOCK
+    }
+
+    private func waitForFile(_ path: String, timeout: TimeInterval = 5) throws {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !FileManager.default.fileExists(atPath: path) {
+            guard Date() < deadline else { throw IPCError.notRunning(path: path) }
+            Thread.sleep(forTimeInterval: 0.02)
+        }
+    }
+
+    /// Runs a Python script as `stranger`. Needs root, setpriv and python3
+    /// (Linux); the test is skipped otherwise. Killed at teardown.
+    private func runAsStranger(_ script: String) throws -> StrangerProcess {
+        #if os(Linux)
+        guard geteuid() == 0 else { throw XCTSkip("needs root to act as another user") }
+        let setpriv = "/usr/bin/setpriv"
+        guard FileManager.default.isExecutableFile(atPath: setpriv),
+              let python = CommandRunner.resolveExecutable("python3", environment: ProcessInfo.processInfo.environment)
+        else { throw XCTSkip("needs setpriv and python3") }
+        let stranger = StrangerProcess()
+        stranger.process.executableURL = URL(fileURLWithPath: setpriv)
+        stranger.process.arguments = ["--reuid=\(Self.stranger)", "--regid=\(Self.stranger)", "--clear-groups",
+                                      python, "-c", script]
+        stranger.process.standardInput = FileHandle.nullDevice
+        stranger.process.standardOutput = stranger.pipe
+        try stranger.process.run()
+        addTeardownBlock { stranger.stop() }
+        return stranger
+        #else
+        throw XCTSkip("needs setpriv (Linux)")
+        #endif
+    }
+
+    private func pythonString(_ text: String) -> String {
+        "'" + text.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'") + "'"
     }
 
     /// A fresh, short directory: sun_path is only 104 bytes on macOS, and
@@ -770,6 +1213,25 @@ private final class IPCTestRecorder: @unchecked Sendable {
 
 private final class IPCTestServerBox: @unchecked Sendable {
     var server: IPCServer?
+}
+
+/// A helper process running as another user.
+private final class StrangerProcess {
+    let process = Process()
+    let pipe = Pipe()
+
+    func waitUntilExit() {
+        process.waitUntilExit()
+    }
+
+    func readOutput() -> String {
+        String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+    }
+
+    func stop() {
+        if process.isRunning { _ = kill(process.processIdentifier, SIGKILL) }
+        process.waitUntilExit()
+    }
 }
 
 /// A blocking client socket for sending the server arbitrary bytes.
