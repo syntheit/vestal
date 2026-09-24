@@ -153,6 +153,45 @@ public enum CommandRunner {
             execution.cancel()
         }
     }
+
+    /// The children `run` started that have not exited yet.
+    public static var runningProcessIDs: [Int32] { RunningChildren.shared.pids }
+
+    /// Sends SIGKILL to every child `run` started that is still running, at
+    /// once, for when the app quits. Cancelling a run sends SIGTERM and only
+    /// a second later SIGKILL, from a queue that is gone by then if the
+    /// process exits; and a child that inherited a blocked SIGTERM (see
+    /// `killChild`) would outlive the app. Their runs end as usual, with
+    /// the status of a killed process.
+    public static func killRunningChildren() {
+        for pid in RunningChildren.shared.pids { _ = kill(pid, SIGKILL) }
+    }
+}
+
+/// The pids of the children that are running, for `killRunningChildren`.
+private final class RunningChildren: @unchecked Sendable {
+    static let shared = RunningChildren()
+
+    private let lock = NSLock()
+    private var running = Set<Int32>()
+
+    var pids: [Int32] {
+        lock.lock()
+        defer { lock.unlock() }
+        return running.sorted()
+    }
+
+    func insert(_ pid: Int32) {
+        lock.lock()
+        running.insert(pid)
+        lock.unlock()
+    }
+
+    func remove(_ pid: Int32) {
+        lock.lock()
+        running.remove(pid)
+        lock.unlock()
+    }
 }
 
 // MARK: - One invocation
@@ -180,6 +219,8 @@ private final class CommandExecution {
     private var stdoutOpen = true
     private var stderrOpen = true
     private var exitStatus: Int32?
+    /// The child's, once it runs.
+    private var pid: Int32 = 0
     private var continuation: CheckedContinuation<CommandResult, Error>?
     private var cancelled = false
 
@@ -230,6 +271,8 @@ private final class CommandExecution {
             finish(.failure(CommandError.launchFailed(name, "\(error)")))
             return
         }
+        pid = process.processIdentifier
+        RunningChildren.shared.insert(pid)
 
         stdoutSource = makeReader(stdoutPipe.fileHandleForReading, isStdout: true)
         stderrSource = makeReader(stderrPipe.fileHandleForReading, isStdout: false)
@@ -292,6 +335,7 @@ private final class CommandExecution {
 
     private func childExited(_ status: Int32) {
         exitStatus = status
+        RunningChildren.shared.remove(pid)
         process.terminationHandler = nil
         #if !canImport(Darwin)
         // swift-corelibs-foundation 5.10 keeps the Process (and with it both
@@ -332,7 +376,7 @@ private final class CommandExecution {
     private func killChild() {
         guard exitStatus == nil, process.isRunning else { return }
         process.terminate()
-        let pid = process.processIdentifier
+        let pid = self.pid
         queue.asyncAfter(deadline: .now() + Self.killGrace) {
             if self.exitStatus == nil, self.process.isRunning { _ = kill(pid, SIGKILL) }
         }

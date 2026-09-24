@@ -229,6 +229,23 @@ final class CommandRunnerTests: XCTestCase {
         #endif
     }
 
+    // MARK: Killing at quit
+
+    @MainActor
+    func testKillRunningChildrenKillsAtOnce() async throws {
+        let before = Set(CommandRunner.runningProcessIDs)
+        let run = Task { try await CommandRunner.run(["sleep", "30"], timeout: 60) }
+        await waitUntil { !Set(CommandRunner.runningProcessIDs).subtracting(before).isEmpty }
+        let child = Set(CommandRunner.runningProcessIDs).subtracting(before)
+        let started = Date()
+        CommandRunner.killRunningChildren()
+        let result = try await run.value
+        // SIGKILL now, not SIGTERM and a SIGKILL a second later.
+        XCTAssertLessThan(Date().timeIntervalSince(started), 0.9)
+        XCTAssertEqual(result.status, SIGKILL)
+        XCTAssertTrue(Set(CommandRunner.runningProcessIDs).isDisjoint(with: child))
+    }
+
     // MARK: Helpers
 
     /// Polls until `pid` no longer exists (killed and reaped).
