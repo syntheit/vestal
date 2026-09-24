@@ -7,4 +7,8 @@ import Foundation
 public enum BuildInfo {
     public static let version = "0.3.0"
     public static let commit  = "dev"
+
+    /// "0.3.0 (abc1234)": what `vestal version` and `vestal status` print,
+    /// and how `vestal daemon` tells builds apart.
+    public static var build: String { "\(version) (\(commit))" }
 }
