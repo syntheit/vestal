@@ -154,7 +154,8 @@ final class ConfigValidatorTests: XCTestCase {
             "widgets.agenda.maxEvents", "widgets.media.hideWhenOff", "widgets.systemBar.show[1]",
         ])
         XCTAssertEqual(Set(found.map(\.kind)), [.wrongType])
-        XCTAssertEqual(found[3].message, "expected a whole number, found a string; ignored")
+        XCTAssertEqual(found[3].message,
+                       "expected a whole number, found a string; treated as absent; the built-in value is not restored")
     }
 
     func testRequiredKeys() {
@@ -199,6 +200,34 @@ final class ConfigValidatorTests: XCTestCase {
         XCTAssertEqual(found.map(\.path), ["platform.linux", "platform.windows"])
         XCTAssertEqual(found.map(\.kind), [.wrongType, .unknownKey])
         XCTAssertEqual(warnings(#"{"platform": []}"#).map(\.kind), [.wrongType])
+    }
+
+    func testCountsBelowOneAreReplacedByTheDefault() throws {
+        let text = """
+        {"sources": {"calendar": {"days": 0}},
+         "widgets": {"agenda": {"maxEvents": -1},
+                     "claude": {"type": "claudeUsage", "fiveHourLimit": 0, "weeklyLimit": -5}}}
+        """
+        let found = warnings(text)
+        XCTAssertEqual(found.map(\.path), [
+            "sources.calendar.days", "widgets.agenda.maxEvents", "widgets.claude.fiveHourLimit", "widgets.claude.weeklyLimit",
+        ])
+        XCTAssertEqual(found.map(\.message), [
+            "must be at least 1; using 1", "must be at least 1; using 5",
+            "must be at least 1; using 8000000", "must be at least 1; using 95000000",
+        ])
+        // Decoded as absent: the defaults apply, and nothing traps later.
+        let config = ConfigLoader.load(data: Data(text.utf8)).config
+        XCTAssertEqual(config.sources["calendar"]?.days, 1)
+        XCTAssertNil(config.widgets["agenda"]?.maxEvents)
+        XCTAssertNil(config.widgets["claude"]?.fiveHourLimit)
+        XCTAssertNil(config.widgets["claude"]?.weeklyLimit)
+    }
+
+    func testOverflowingDurationIsInvalid() {
+        let found = warnings(#"{"sources": {"weather": {"refresh": "999999999999999999m"}}}"#)
+        XCTAssertEqual(found.map(\.path), ["sources.weather.refresh"])
+        XCTAssertEqual(found.map(\.kind), [.invalidValue])
     }
 
     func testUnsupportedVersion() {

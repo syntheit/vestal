@@ -23,13 +23,15 @@ Merging works on the JSON:
 - An explicit `null` deletes the key. `{"widgets": {"media": null}}` removes the default media widget. The default `views.main.order` still names it, so also set `order` (a list, so it replaces the default one whole).
 - Inside an object a layer adds, `null` members are dropped. Inside lists, `null` stays (a `match` value can be `null`).
 - A value of a different kind replaces the old one, for example an object over a string.
+- Redefining a default source or widget under its own name merges too, even with another `type`: the default's other keys stay. `{"sources": {"weather": {"type": "command", "argv": ["~/bin/weather"]}}}` keeps the default `url` (and `check-config` warns about it). Use a new name, or delete the leftover with `"url": null`.
 
 Decoding happens after merging and is permissive:
 
 - Unknown keys are ignored.
-- A value of the wrong JSON type counts as absent, so the default applies.
+- A value of the wrong JSON type is treated as absent: the key's default from the tables below applies. The built-in defaults' value is not restored, because the merge has already replaced it: `"show": "uptime"` on `systemBar` shows every item, and `"order": "clock"` on `views.main` shows an empty dashboard.
+- A count or limit below 1 (`maxEvents`, `days`, `fiveHourLimit`, `weeklyLimit`) is treated as absent too.
 - An entry that cannot be used is dropped by itself: a source or widget without a `type`, a host without a `name` (only a local host may omit it), a world clock without `label` or `tz`, an item without `label`.
-- If the file is not valid JSON, or its top level is not an object, the whole file is ignored and the built-in defaults apply.
+- If the file is not valid JSON, or its top level is not an object, the whole file is ignored and the built-in defaults apply. A trailing comma (`[1, 2,]` or `{"a": 1,}`) is invalid on every platform. A UTF-8 byte order mark at the start is fine.
 
 Nothing in the config stops vestal from starting. `vestal check-config` reports all of the above.
 
@@ -48,7 +50,7 @@ Nothing in the config stops vestal from starting. `vestal check-config` reports 
 
 ## Checking a config
 
-- `vestal check-config [path]` checks `path`, or the file vestal would load. It prints `<file>: ok`, or the number of warnings and one line per warning, each with its JSON path (`widgets.agenda.maxEvents: expected a whole number, found a string; ignored`). A file that is not valid JSON gets the line and column of the error. Exit status: 0 when the file is used (with or without warnings), 1 when it cannot be read or parsed (vestal would run on the built-in defaults), 2 for bad usage. With no config file at all it says so and exits 0.
+- `vestal check-config [path]` checks `path`, or the file vestal would load. It prints `<file>: ok`, or the number of warnings and one line per warning, each with its JSON path (`widgets.agenda.maxEvents: expected a whole number, found a string; treated as absent; the built-in value is not restored`). A file that is not valid JSON gets the line and column of the error. Exit status: 0 when the file is used (with or without warnings), 1 when it cannot be read or parsed (vestal would run on the built-in defaults), 2 for bad usage. With no config file at all it says so and exits 0.
 - `vestal print-config [path]` prints the effective config: all three layers merged, as pretty JSON with sorted keys, before decoding (unknown keys still show). Warnings go to stderr. Exit status 1, with nothing on stdout, when the file cannot be read or parsed; 2 for bad usage.
 
 ## Durations
