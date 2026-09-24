@@ -219,13 +219,13 @@ public enum AsyncData {
 
         // Step 2: extract value(s). Path syntax handled by JSONPath.
         if let picks = item.picks {
-            let buyKey = picks["buy"] ?? ""
-            let sellKey = picks["sell"] ?? ""
-            return ExchangeRate(
-                label: item.label,
-                buy:  formatValue(JSONPath.resolve(buyKey,  in: element), format: item.format),
-                sell: formatValue(JSONPath.resolve(sellKey, in: element), format: item.format)
-            )
+            // A missing key is an empty value. (Resolving "" would return the
+            // whole element and render its dictionary dump.)
+            func value(_ key: String) -> String {
+                guard let path = picks[key] else { return "" }
+                return formatValue(JSONPath.resolve(path, in: element), format: item.format)
+            }
+            return ExchangeRate(label: item.label, buy: value("buy"), sell: value("sell"))
         }
         if let pick = item.pick {
             return ExchangeRate(
