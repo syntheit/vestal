@@ -51,7 +51,7 @@ struct DashboardView: View {
                 Color.black.opacity(0.65)
                     .ignoresSafeArea()
                     .onTapGesture { showingInfo = false }
-                InfoView()
+                InfoView(configVersion: model.configVersion)
                     .transition(.opacity.combined(with: .scale(scale: 0.97)))
             }
         }

@@ -6,6 +6,9 @@ import VestalCore
 // Modeled after SystemDetailView's framing — same width, padding, corner
 // radius — so the two popups feel like the same surface.
 struct InfoView: View {
+    /// The config's `version`.
+    let configVersion: Int
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .firstTextBaseline) {
@@ -25,7 +28,7 @@ struct InfoView: View {
             VStack(alignment: .leading, spacing: 8) {
                 infoRow(label: "version", value: BuildInfo.version)
                 infoRow(label: "build",   value: BuildInfo.commit)
-                infoRow(label: "config",  value: "v\(AppConfig.current.version)")
+                infoRow(label: "config",  value: "v\(configVersion)")
             }
         }
         .padding(20)

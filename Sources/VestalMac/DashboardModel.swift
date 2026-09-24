@@ -50,6 +50,8 @@ final class DashboardModel: ObservableObject {
 
     /// The main view's widgets, top to bottom.
     let layout: DashboardLayout
+    /// The config's `version`, for the info popup.
+    let configVersion: Int
     /// `theme.background`.
     let background: ThemeConfig.Background
     /// Shortcut letter → host name (see HostKeys).
@@ -59,6 +61,8 @@ final class DashboardModel: ObservableObject {
     let barClaude: ClaudeUsage.Options
 
     private let runtime: AppRuntime
+    /// This model's runtime callback, until `detach`.
+    private var observation: RuntimeObservation?
     /// Where each player's last state is kept for the next start.
     private let cache: SnapshotCache?
     /// What the cache holds for each player, so only changes are written.
@@ -91,6 +95,7 @@ final class DashboardModel: ObservableObject {
         self.cache = cache
         let layout = DashboardLayout(config: config)
         self.layout = layout
+        configVersion = config.version
         background = config.theme.backgroundStyle
         hosts = layout.hosts
         hostKeys = layout.hostKeys
@@ -144,8 +149,16 @@ final class DashboardModel: ObservableObject {
         }
         for entry in layout.entries { derive(entry) }
         deriveHosts()
-        runtime.observe { [weak self] event in self?.runtimeChanged(event) }
+        observation = runtime.observe { [weak self] event in self?.runtimeChanged(event) }
         registerTickers()
+    }
+
+    /// Stops following the runtime, for a reload, which builds a new model:
+    /// no more snapshot callbacks, and this model's tickers are gone.
+    func detach() {
+        if let observation { runtime.removeObserver(observation) }
+        observation = nil
+        for name in Self.tickerNames { runtime.removeTicker(name: name) }
     }
 
     // MARK: Reading
@@ -210,6 +223,8 @@ final class DashboardModel: ObservableObject {
     }
 
     // MARK: Tickers
+
+    private static let tickerNames = ["clock", "network", "stats", "media", "claude"]
 
     private func registerTickers() {
         // The clock and the network wait for the next whole second, and the

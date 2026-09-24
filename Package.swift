@@ -22,6 +22,7 @@ let package = Package(
             dependencies: ["VestalCore"],
             linkerSettings: [
                 .linkedFramework("AppKit", macOS),
+                .linkedFramework("Carbon", macOS),
                 .linkedFramework("SwiftUI", macOS),
                 .linkedFramework("IOKit", macOS),
                 .linkedFramework("EventKit", macOS),

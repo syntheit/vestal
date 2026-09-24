@@ -38,6 +38,14 @@ final class AuroraMTKView: MTKView {
     required init(coder: NSCoder) { fatalError() }
 
     func shutdown() { renderer = nil; delegate = nil }
+
+    /// Draws only while its window is on screen: the app pauses it on hide
+    /// and resumes it on show, and a view made while the window is hidden (a
+    /// reload) starts paused.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        isPaused = !(window?.isVisible ?? false)
+    }
 }
 
 private struct AuroraUniforms {
