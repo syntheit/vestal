@@ -117,14 +117,14 @@ Tests/VestalCoreTests/  XCTest
 
 ## Phase 4: Runtime (C3b) and live data
 
-- [ ] `AppRuntime` in `VestalCore` handles all source types: `http`, `command`, `calendar` (through `CalendarProvider`, injected by the platform layer). Unsupported source types on a platform produce a snapshot error, not a crash.
-- [ ] **Updates are pushed, not polled.** Replace `waitForData`'s 500ms polling with a subscription API (`AsyncStream<SourceSnapshot>` per source, or a callback registry). The macOS layer adapts this into an `ObservableObject` with `@Published` for SwiftUI. No `@Observable`.
-- [ ] Each snapshot has `data`, `fetchedAt`, `lastError`; `lastError` is shown by `vestal status`. Keep the disk cache (the platform cache dir: `~/Library/Caches/Vestal` on macOS, `$XDG_CACHE_HOME/vestal` on Linux). Serve the cache immediately on startup, then refresh if it's stale.
-- [ ] **Visibility-aware scheduling:** the runtime has `setVisible(Bool)`. Source refreshes (minutes to hours) keep running while hidden. Host health polling, system stats and media polling run **only while visible**. On show, anything older than its interval refreshes at once.
-- [ ] Foyer health goes through the `command` machinery: provider `foyer` builds argv `["foyer-api","--host",url,"/api/health"]`. A host can instead name any `source` whose JSON matches the foyer health schema.
-- [ ] Delete `/tmp/dashboard-cache`, `/tmp/.dashboard_cpu_ticks` and `/tmp/.dashboard_net_bytes`. CPU and network deltas are kept in memory now that the process is resident.
-- [ ] Remove unused API (`AppRuntime.stop/snapshot/data` if still unused, `SourceSnapshot.lastError` becomes used).
-- [ ] Tests with a fake clock and fake fetchers: scheduling intervals, the stale-on-show refresh, cache load on startup, error snapshots, command timeout and kill, argv execution (run `/usr/bin/env echo`-style commands), and PATH resolution.
+- [x] `AppRuntime` in `VestalCore` handles all source types: `http`, `command`, `calendar` (through `CalendarProvider`, injected by the platform layer). Unsupported source types on a platform produce a snapshot error, not a crash.
+- [x] **Updates are pushed, not polled.** Replace `waitForData`'s 500ms polling with a subscription API (`AsyncStream<SourceSnapshot>` per source, or a callback registry). The macOS layer adapts this into an `ObservableObject` with `@Published` for SwiftUI. No `@Observable`.
+- [x] Each snapshot has `data`, `fetchedAt`, `lastError`; `lastError` is shown by `vestal status`. Keep the disk cache (the platform cache dir: `~/Library/Caches/Vestal` on macOS, `$XDG_CACHE_HOME/vestal` on Linux). Serve the cache immediately on startup, then refresh if it's stale. *(`vestal status` itself comes with the socket in phase 6; the snapshots carry `lastError` already.)*
+- [x] **Visibility-aware scheduling:** the runtime has `setVisible(Bool)`. Source refreshes (minutes to hours) keep running while hidden. Host health polling, system stats and media polling run **only while visible**. On show, anything older than its interval refreshes at once.
+- [x] Foyer health goes through the `command` machinery: provider `foyer` builds argv `["foyer-api","--host",url,"/api/health"]`. A host can instead name any `source` whose JSON matches the foyer health schema.
+- [x] Delete `/tmp/dashboard-cache`, `/tmp/.dashboard_cpu_ticks` and `/tmp/.dashboard_net_bytes`. CPU and network deltas are kept in memory now that the process is resident.
+- [x] Remove unused API (`AppRuntime.stop/snapshot/data` if still unused, `SourceSnapshot.lastError` becomes used).
+- [x] Tests with a fake clock and fake fetchers: scheduling intervals, the stale-on-show refresh, cache load on startup, error snapshots, command timeout and kill, argv execution (run `/usr/bin/env echo`-style commands), and PATH resolution.
 
 ## Phase 5: Config-driven UI
 
