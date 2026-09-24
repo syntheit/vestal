@@ -7,15 +7,18 @@ import VestalCore
 //
 // VestalCore's platform protocols, implemented with the existing macOS code in
 // SystemBridge (Mach, SMC/IOKit, CoreAudio, AppleScript) and EventKit below.
-// One shared instance each; the dashboard model and the app delegate go
-// through these.
+// One shared instance each, and one media and privacy provider per widget
+// that configures them; the dashboard model goes through these.
 
 enum MacPlatform {
     static let stats: SystemStatsProvider = MacSystemStats()
-    static let media: MediaProvider = SpotifyMedia()
     static let calendar: CalendarProvider = EventKitCalendar()
     static let audio: AudioProvider = CoreAudioOutput()
-    static let privacy: PrivacyProvider = PrivacyScript(AppConfig.current.widgets["systemBar"]?.privacy)
+
+    /// A media widget's player.
+    static func media(player: String) -> MediaProvider { AppleScriptMedia(player: player) }
+    /// A system bar's privacy toggle.
+    static func privacy(_ config: PrivacyConfig?) -> PrivacyProvider { PrivacyScript(config) }
 }
 
 // MARK: - System stats (Mach, SMC/IOKit, getifaddrs)
@@ -62,11 +65,26 @@ final class MacSystemStats: SystemStatsProvider {
     func uptime() -> TimeInterval { SystemBridge.getUptime() }
 }
 
-// MARK: - Media (Spotify over AppleScript, off the main thread)
+// MARK: - Media (a player over AppleScript, off the main thread)
 
-final class SpotifyMedia: MediaProvider {
-    func nowPlaying() async -> NowPlaying { await SystemBridge.spotify() }
-    func playPause() { SystemBridge.toggleSpotify() }
+/// The widget's `player` (Spotify by default), asked with the scripts from
+/// `MediaScript`: the name only ever appears inside a quoted literal.
+final class AppleScriptMedia: MediaProvider {
+    private let player: String
+    private let nowPlayingScript: String
+    private let playPauseScript: String
+
+    init(player: String) {
+        self.player = player
+        nowPlayingScript = MediaScript.nowPlaying(player: player)
+        playPauseScript = MediaScript.playPause(player: player)
+    }
+
+    func nowPlaying() async -> NowPlaying {
+        await SystemBridge.nowPlaying(player: player, script: nowPlayingScript)
+    }
+
+    func playPause() { SystemBridge.playPause(script: playPauseScript) }
 }
 
 // MARK: - Audio (CoreAudio default output device)
