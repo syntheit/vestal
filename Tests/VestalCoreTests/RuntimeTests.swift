@@ -401,6 +401,65 @@ final class RuntimeTests: XCTestCase {
         XCTAssertNil(runtime.snapshot(.host("box")))
     }
 
+    @MainActor
+    func testACancelledFetchNeverLandsOnTheJobThatReplacedIt() async {
+        let clock = FakeClock(), fetcher = FakeFetcher()
+        fetcher.reply("https://x.example", .hold)
+        fetcher.reply("https://y.example", .hold)
+        let runtime = AppRuntime(config: runtimeConfig(sources: ["a": http("https://x.example")]),
+                                 fetcher: fetcher, cache: nil, now: { clock.now })
+        runtime.startDueJobs()
+        await waitUntil { fetcher.count("https://x.example") == 1 }
+
+        // A reload changes the source while it fetches, and the new
+        // definition starts at once, before the old run has wound down.
+        runtime.apply(runtimeConfig(sources: ["a": http("https://y.example")]))
+        runtime.startDueJobs()
+        await waitUntil { fetcher.cancelledKeys == ["https://x.example"] && fetcher.count("https://y.example") == 1 }
+        await settle()
+        XCTAssertEqual(runtime.snapshot(.source("a")), SourceSnapshot(), "the cancelled run is not the new job's result")
+
+        runtime.startDueJobs()
+        await settle()
+        XCTAssertEqual(fetcher.count("https://y.example"), 1, "the new run is still the running one")
+        fetcher.release("https://y.example")
+        await waitUntil { runtime.snapshot(.source("a"))?.data == Data("{\"released\": true}".utf8) }
+    }
+
+    @MainActor
+    func testAReplacedTickerNeverFinishesForItsReplacement() async {
+        let clock = FakeClock()
+        let runtime = AppRuntime(config: Config(), fetcher: FakeFetcher(), cache: nil, now: { clock.now })
+        var oldDone = false, newDone = false
+        var runs: [String] = []
+        runtime.addTicker(name: "t", interval: 60, visibleOnly: false) {
+            runs.append("old")
+            while !oldDone { try? await Task.sleep(nanoseconds: 2_000_000) }
+        }
+        runtime.startDueJobs()
+        await waitUntil { runs == ["old"] }
+        runtime.addTicker(name: "t", interval: 60, visibleOnly: false) {
+            runs.append("new")
+            while !newDone { try? await Task.sleep(nanoseconds: 2_000_000) }
+        }
+        runtime.startDueJobs()
+        await waitUntil { runs == ["old", "new"] }
+
+        // The old run ends while the new one is still going: the new one
+        // must still count as running, however overdue it gets.
+        oldDone = true
+        await settle()
+        clock.advance(120)
+        runtime.startDueJobs()
+        await settle()
+        XCTAssertEqual(runs, ["old", "new"])
+
+        newDone = true
+        await settle()
+        runtime.startDueJobs()
+        await waitUntil { runs == ["old", "new", "new"] }
+    }
+
     // MARK: Observers and lifetime
 
     @MainActor
