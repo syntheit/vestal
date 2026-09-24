@@ -19,51 +19,8 @@
     in
     {
       packages = forAllSystems (pkgs: rec {
-        vestal = pkgs.stdenv.mkDerivation {
-          pname = "vestal";
-          version = "0.1.0";
-          src = ./.;
-
-          nativeBuildInputs = [ pkgs.swift ];
-
-          buildPhase = ''
-            runHook preBuild
-            # Sed the placeholder in BuildInfo.swift with the actual flake
-            # rev so the info popup reports the source it came from.
-            # Replace the full literal assignment so we don't accidentally
-            # touch the word "dev" anywhere else in the file (comments etc).
-            substituteInPlace Sources/Vestal/BuildInfo.swift \
-              --replace-fail 'let commit  = "dev"' 'let commit  = "${buildCommit}"'
-            swiftc -O \
-              -framework AppKit \
-              -framework SwiftUI \
-              -framework IOKit \
-              -framework EventKit \
-              -framework CoreAudio \
-              -framework Metal \
-              -framework MetalKit \
-              -framework QuartzCore \
-              -o vestal \
-              Sources/Vestal/*.swift
-            runHook postBuild
-          '';
-
-          installPhase = ''
-            runHook preInstall
-            mkdir -p $out/bin
-            cp vestal $out/bin/
-            runHook postInstall
-          '';
-
-          meta = {
-            description = "Native macOS dashboard — press a key, see everything at a glance";
-            platforms = [
-              "aarch64-darwin"
-              "x86_64-darwin"
-            ];
-            mainProgram = "vestal";
-          };
-        };
+        # SwiftPM build of the `vestal` product; see package.nix.
+        vestal = pkgs.callPackage ./package.nix { commit = buildCommit; };
 
         default = vestal;
       });
