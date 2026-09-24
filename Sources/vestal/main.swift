@@ -50,13 +50,17 @@ func printVestalUsage(to stream: FileHandle) {
     Usage: vestal [command]
 
     Commands:
-      toggle    Show or hide the dashboard
-      show      Show the dashboard (no-op if already shown)
-      hide      Hide the dashboard (no-op if not shown)
-      version   Print version and build code
-      help      Show this message
+      toggle               Show or hide the dashboard
+      show                 Show the dashboard (no-op if already shown)
+      hide                 Hide the dashboard (no-op if not shown)
+      check-config [path]  Check a config file (default: the one vestal loads)
+      print-config [path]  Print the effective config as JSON, defaults merged in
+      version              Print version and build code
+      help                 Show this message
 
     With no command, vestal launches the dashboard directly (macOS only).
+    The config is read from $VESTAL_CONFIG, else $XDG_CONFIG_HOME/vestal/config.json
+    (default ~/.config/vestal/config.json); see docs/CONFIG.md.
     """
     stream.write(Data((text + "\n").utf8))
 }
@@ -70,6 +74,14 @@ if cliArgs.count >= 2 {
     case "help", "--help", "-h":
         printVestalUsage(to: FileHandle.standardOutput)
         exit(0)
+    case "check-config", "print-config":
+        let arguments = Array(cliArgs.dropFirst(2))
+        let output = cliArgs[1] == "check-config"
+            ? ConfigCommands.checkConfig(arguments)
+            : ConfigCommands.printConfig(arguments)
+        FileHandle.standardOutput.write(Data(output.stdout.utf8))
+        FileHandle.standardError.write(Data(output.stderr.utf8))
+        exit(output.status)
     #if os(macOS)
     case "toggle":
         if let pid = runningVestalPid() {
