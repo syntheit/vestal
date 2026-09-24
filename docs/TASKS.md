@@ -20,7 +20,7 @@ grep -rnE '/bin/bash|bash -c' Sources/
 grep -rn '"/tmp' Sources/
 grep -rlE '^import (AppKit|SwiftUI|Metal|MetalKit|IOKit|EventKit|CoreAudio|Carbon|QuartzCore)' Sources/VestalCore
 grep -rnE '@Observable|#Preview|@Test\b' Sources/ Tests/
-for f in Sources/VestalMac/*.swift; do head -5 "$f" | grep -q '#if os(macOS)' || echo "missing guard: $f"; done
+for f in $(find Sources/VestalMac -name '*.swift'); do head -5 "$f" | grep -q '#if os(macOS)' || echo "missing guard: $f"; done
 ```
 
 Also: `swift build && swift test` pass on Linux.
