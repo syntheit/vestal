@@ -21,11 +21,27 @@ import Glibc
 // keys and fills in missing ones, so a CLI and a resident app from different
 // builds still understand each other.
 //
-// The socket is $XDG_RUNTIME_DIR/vestal.sock, else vestal-<uid>.sock in
-// NSTemporaryDirectory() (a per-user directory on macOS). It also keeps the
-// app single-instance: a second server finds the first one answering and
-// fails with `.alreadyRunning`; a socket file left behind by a crash accepts
-// no connections, so it is removed and bound again. No pid files.
+// The socket is vestal-<uid>.sock in NSTemporaryDirectory(). On Linux
+// $XDG_RUNTIME_DIR/vestal.sock comes first when that is set; clients fall
+// back to the temporary-directory path and a starting server checks it too,
+// so contexts with and without the variable still find each other. macOS
+// ignores XDG_RUNTIME_DIR: its per-user temporary directory is private and
+// the same for launchd agents and every shell, whatever they export.
+//
+// The socket keeps the app single-instance: a second server finds the first
+// one answering and fails with `.alreadyRunning`, and a socket file left
+// behind by a crash accepts no connections, so it is removed and bound again.
+// To make removing safe, a server holds an advisory lock on <socket>.lock
+// from start() to stop(); only the holder may clear the path and bind, so two
+// instances starting together can't both win, and a live but unresponsive one
+// is never mistaken for a crashed one. The kernel drops the lock when the
+// process dies, so it can't go stale. No pid files. The server also rebinds
+// its socket if the file disappears (a temp cleaner, a stray rm) and touches
+// both files now and then so age-based cleaners leave them alone.
+//
+// Only the owner's processes get in: the socket file is 0600, and both ends
+// check the peer's uid (SO_PEERCRED on Linux, getpeereid on Darwin), which
+// matters for the fallback in a shared temporary directory.
 //
 // The server never waits on a client. The listening socket and every
 // connection are non-blocking and driven by Dispatch sources on one private
@@ -173,13 +189,14 @@ public struct IPCResponse: Codable, Equatable, Sendable {
 }
 
 public enum IPCError: Error, Equatable, CustomStringConvertible {
-    /// Another instance answers on the socket. The caller should say so and exit 0.
+    /// Another instance holds the socket. The caller should say so and exit 0.
     case alreadyRunning(path: String)
     /// Nothing listens on the socket: no file there, or a stale one.
     case notRunning(path: String)
     /// The path does not fit in `sockaddr_un`; `limit` is the longest that does, in bytes.
     case pathTooLong(path: String, limit: Int)
-    /// Something that is not ours is in the way (a regular file, another user's socket).
+    /// Something that is not ours is in the way: a regular file, another
+    /// user's socket, lock file or server.
     case pathUnusable(path: String, reason: String)
     /// The client got no complete reply within its timeout.
     case timedOut(seconds: TimeInterval)
@@ -195,12 +212,14 @@ public enum IPCError: Error, Equatable, CustomStringConvertible {
         case .notRunning(let path):
             return "vestal is not running (nothing listens on \(path))"
         case .pathTooLong(let path, let limit):
-            return "socket path is \(path.utf8.count) bytes, over the limit of \(limit): \(path)"
-                + " (set XDG_RUNTIME_DIR to a shorter directory)"
+            // Only Linux takes the socket's directory from the environment.
+            let hint = IPC.usesRuntimeDirectory ? " (use a shorter XDG_RUNTIME_DIR or TMPDIR)" : ""
+            return "socket path is \(path.utf8.count) bytes, over the limit of \(limit): \(path)\(hint)"
         case .pathUnusable(let path, let reason):
             return "can't use \(path): \(reason)"
         case .timedOut(let seconds):
-            return "no reply within \(seconds == seconds.rounded() ? String(Int(seconds)) : String(seconds))s"
+            let whole = seconds.isFinite && seconds == seconds.rounded() && abs(seconds) < 1e15
+            return "no reply within \(whole ? String(Int(seconds)) : String(seconds))s"
         case .badResponse(let detail):
             return "bad reply: \(detail)"
         case .system(let call, let code):
@@ -212,20 +231,43 @@ public enum IPCError: Error, Equatable, CustomStringConvertible {
 // MARK: Socket path
 
 public enum IPC {
-    /// `$XDG_RUNTIME_DIR/vestal.sock` if that variable holds an absolute path
-    /// (the XDG spec says to ignore relative ones), else `vestal-<uid>.sock`
-    /// in `NSTemporaryDirectory()`. On macOS that is the per-user temporary
-    /// directory, whatever $TMPDIR says; on Linux it is $TMPDIR or the
-    /// system default.
+    /// Whether `$XDG_RUNTIME_DIR` is honoured: on Linux, not on macOS.
+    #if os(macOS)
+    public static let usesRuntimeDirectory = false
+    #else
+    public static let usesRuntimeDirectory = true
+    #endif
+
+    /// `$XDG_RUNTIME_DIR/vestal.sock` where that is honoured and holds an
+    /// absolute path (the XDG spec says to ignore relative ones), else
+    /// `vestal-<uid>.sock` in `NSTemporaryDirectory()`. On macOS that is the
+    /// per-user temporary directory, whatever $TMPDIR says; on Linux it is
+    /// $TMPDIR or the system default.
     public static func defaultSocketPath(
         environment: [String: String] = ProcessInfo.processInfo.environment,
         temporaryDirectory: String = NSTemporaryDirectory(),
-        uid: uid_t = getuid()
+        uid: uid_t = getuid(),
+        usesRuntimeDirectory: Bool = IPC.usesRuntimeDirectory
     ) -> String {
-        if let runtime = environment["XDG_RUNTIME_DIR"], runtime.hasPrefix("/") {
+        if usesRuntimeDirectory, let runtime = environment["XDG_RUNTIME_DIR"], runtime.hasPrefix("/") {
             return join(runtime, "vestal.sock")
         }
         return join(temporaryDirectory, "vestal-\(uid).sock")
+    }
+
+    /// Where an instance may be listening: `defaultSocketPath`, then the
+    /// temporary-directory path if XDG_RUNTIME_DIR moved the default. Clients
+    /// try both, and a starting server refuses if either answers.
+    public static func candidateSocketPaths(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        temporaryDirectory: String = NSTemporaryDirectory(),
+        uid: uid_t = getuid(),
+        usesRuntimeDirectory: Bool = IPC.usesRuntimeDirectory
+    ) -> [String] {
+        let primary = defaultSocketPath(environment: environment, temporaryDirectory: temporaryDirectory,
+                                        uid: uid, usesRuntimeDirectory: usesRuntimeDirectory)
+        let fallback = join(temporaryDirectory, "vestal-\(uid).sock")
+        return primary == fallback ? [primary] : [primary, fallback]
     }
 
     /// The longest usable socket path in bytes: `sun_path` minus its NUL
@@ -234,6 +276,12 @@ public enum IPC {
 
     private static func join(_ directory: String, _ name: String) -> String {
         directory.hasSuffix("/") ? directory + name : directory + "/" + name
+    }
+
+    /// Below `minimum` becomes `minimum`, NaN becomes `fallback`, and the cap
+    /// is a day (DispatchTime arithmetic traps on infinity).
+    static func clampTimeout(_ seconds: TimeInterval, minimum: TimeInterval, fallback: TimeInterval) -> TimeInterval {
+        seconds.isNaN ? fallback : min(max(seconds, minimum), 86_400)
     }
 }
 
@@ -250,35 +298,56 @@ public typealias IPCHandler = (IPCCommand, @escaping IPCReply) -> Void
 /// the app can use `MainActor.assumeIsolated` in it. Lines that are not a
 /// command are answered by the server itself and never reach the handler.
 /// A reply is written before a later `stop()` runs (both are queued in
-/// order), so `reply(.ok)` then `stop()` still answers a `quit`.
+/// order), so `reply(.ok)` then `stop()` still answers a `quit`; a reply too
+/// big for the socket buffer finishes in the background after `stop()`, so
+/// don't exit the process right away after a big one. The reply is encoded
+/// on the thread that calls `reply`.
 ///
 /// Once started, the server keeps itself alive until `stop()`.
 public final class IPCServer: @unchecked Sendable {
-    public let path: String
+    /// Where it listens: the first usable of the `paths` it was given. Read
+    /// it after `start()`.
+    public private(set) var path: String
+    private let paths: [String]
 
     private let handlerQueue: DispatchQueue
     private let handler: IPCHandler
     private let ioTimeout: TimeInterval
     private let replyTimeout: TimeInterval
     private let maxRequestLength: Int
+    private let maintenanceInterval: TimeInterval
 
     /// Everything below is touched only on `queue`.
     private let queue = DispatchQueue(label: "vestal.ipc", qos: .userInitiated)
     private var acceptSource: DispatchSourceRead?
     private var acceptPaused = false
+    private var maintenanceTimer: DispatchSourceTimer?
     private var boundFile: FileIdentity?
+    private var lockFD: Int32 = -1
     private var connections: [Int: IPCConnection] = [:]
     private var nextConnectionID = 0
 
-    /// More than this many clients at once are hung up on straight away.
+    /// Guards the two below, which other threads read: the handler queue
+    /// (main) never waits for the server's queue.
+    private let stateLock = NSLock()
+    /// Connections whose command is on its way to the handler.
+    private var awaitingHandler: Set<Int> = []
+    private var lostOwnershipHandler: (() -> Void)?
+
+    /// More than this many clients at once are told the server is busy.
     private static let maxConnections = 32
-    /// Generous: on Darwin a full accept queue refuses connections, which
-    /// looks like a stale socket to a starting instance. The queue is
-    /// drained on `queue`, so a busy main thread doesn't fill it.
+    private static let busyLine = [UInt8](IPCResponse.failure("busy: too many connections").jsonLine())
+    /// Generous: on Darwin a full accept queue refuses connections, so
+    /// clients would think vestal isn't running. The queue is drained on
+    /// `queue`, so a busy main thread doesn't fill it.
     private static let backlog = SOMAXCONN
 
+    /// Listens on the first of `paths` it can use (the others are fallbacks)
+    /// and refuses to start if an instance of ours answers on any of them.
+    /// The default is `IPC.candidateSocketPaths()`.
+    ///
     /// - Parameters:
-    ///   - queue: where `handler` runs.
+    ///   - queue: where `handler` (and `onLostOwnership`) runs.
     ///   - ioTimeout: how long a client gets to send its request line, and
     ///     to take its reply.
     ///   - replyTimeout: how long the handler gets to reply. Past it the
@@ -286,82 +355,181 @@ public final class IPCServer: @unchecked Sendable {
     ///     default is under the client's 5s, so the client hears why. Reply
     ///     first and do slow work afterwards.
     ///   - maxRequestLength: longer request lines are refused, in bytes.
+    ///   - maintenanceInterval: how often the socket and lock files are
+    ///     checked (and restored if they went missing) and their timestamps
+    ///     refreshed.
     public init(
-        path: String = IPC.defaultSocketPath(),
+        paths: [String] = IPC.candidateSocketPaths(),
         queue: DispatchQueue = .main,
         ioTimeout: TimeInterval = 2,
         replyTimeout: TimeInterval = 4,
         maxRequestLength: Int = 256,
+        maintenanceInterval: TimeInterval = 60,
         handler: @escaping IPCHandler
     ) {
-        self.path = path
+        self.paths = paths.isEmpty ? [IPC.defaultSocketPath()] : paths
+        self.path = self.paths[0]
         self.handlerQueue = queue
-        self.ioTimeout = Self.clamp(ioTimeout)
-        self.replyTimeout = Self.clamp(replyTimeout)
+        self.ioTimeout = IPC.clampTimeout(ioTimeout, minimum: 0.01, fallback: 2)
+        self.replyTimeout = IPC.clampTimeout(replyTimeout, minimum: 0.01, fallback: 4)
         self.maxRequestLength = max(1, maxRequestLength)
+        self.maintenanceInterval = IPC.clampTimeout(maintenanceInterval, minimum: 0.05, fallback: 60)
         self.handler = handler
     }
 
-    /// Binds and starts accepting. Throws `IPCError.alreadyRunning` if
-    /// another instance answers on `path`, and removes a stale socket file
-    /// first. Calling it while running does nothing.
-    public func start() throws {
-        try queue.sync {
-            guard acceptSource == nil else { return }
-            let fd = try claimSocket()
-            boundFile = FileIdentity(path: path)
+    /// Listens on `path` only.
+    public convenience init(
+        path: String,
+        queue: DispatchQueue = .main,
+        ioTimeout: TimeInterval = 2,
+        replyTimeout: TimeInterval = 4,
+        maxRequestLength: Int = 256,
+        maintenanceInterval: TimeInterval = 60,
+        handler: @escaping IPCHandler
+    ) {
+        self.init(paths: [path], queue: queue, ioTimeout: ioTimeout, replyTimeout: replyTimeout,
+                  maxRequestLength: maxRequestLength, maintenanceInterval: maintenanceInterval,
+                  handler: handler)
+    }
 
-            let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
-            source.setEventHandler { self.acceptConnections(fd) }
-            source.setCancelHandler { _ = close(fd) }
-            acceptSource = source
-            source.resume()
+    /// Called on the handler queue if another instance of ours has taken the
+    /// socket path over (someone deleted both files and started a second
+    /// instance). The server has stopped by then; the app should quit.
+    public var onLostOwnership: (() -> Void)? {
+        get {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            return lostOwnershipHandler
+        }
+        set {
+            stateLock.lock()
+            lostOwnershipHandler = newValue
+            stateLock.unlock()
         }
     }
 
-    /// Stops accepting, hangs up on open connections, and removes the socket
-    /// file if it is still the one this server bound (a newer instance may
-    /// have replaced it). Commands not yet handed to the handler are dropped.
-    /// Idempotent; callable from any thread, the handler included.
+    /// Binds and starts accepting. Throws `IPCError.alreadyRunning` if
+    /// another instance holds the lock or answers on one of the paths, and
+    /// removes a stale socket file first. If a path can't be used (its
+    /// directory is missing, it is too long, ...), the next one is tried;
+    /// when none works, the first one's error is thrown. Calling it while
+    /// running does nothing.
+    public func start() throws {
+        try queue.sync {
+            guard acceptSource == nil else { return }
+            defer { if acceptSource == nil { path = paths[0] } }
+            var firstError: Error?
+            for candidate in paths {
+                do {
+                    try start(on: candidate, checking: paths.filter { $0 != candidate })
+                    return
+                } catch {
+                    if case .alreadyRunning? = error as? IPCError { throw error }
+                    if firstError == nil { firstError = error }
+                }
+            }
+            throw firstError ?? IPCError.notRunning(path: paths[0])
+        }
+    }
+
+    /// Stops accepting and removes the socket file if it is still the one
+    /// this server bound (a newer instance may have replaced it). Hangs up on
+    /// clients that are still sending or waiting for the handler (commands
+    /// not yet handed to it are dropped); replies already being written
+    /// finish in the background. Idempotent; callable from any thread, the
+    /// handler included.
     public func stop() {
         queue.sync {
-            guard let source = acceptSource else { return }
-            if let bound = boundFile, let current = FileIdentity(path: path), current.isSameFile(as: bound) {
-                _ = unlink(path)
-            }
-            boundFile = nil
-            if acceptPaused {
-                acceptPaused = false
-                source.resume()  // a suspended source never runs its cancel handler
-            }
-            source.cancel()  // closes the listening socket
-            acceptSource = nil
-            for connection in Array(connections.values) {
-                finish(connection)
-            }
+            guard acceptSource != nil else { return }
+            removeOwnSocketFile()
+            shutDown()
         }
+    }
+
+    /// Runs the periodic check now: restores the socket and lock files if
+    /// they went missing (see `maintenanceInterval`). Handy after the machine
+    /// wakes from sleep, when temp cleaners may have run.
+    public func checkSocket() {
+        queue.sync { maintain() }
     }
 
     // MARK: Binding (on `queue`)
 
-    private func claimSocket() throws -> Int32 {
-        let address = try SocketAddress(path)
+    private func start(on candidate: String, checking others: [String]) throws {
+        let address = try SocketAddress(candidate)  // before creating anything
+        path = candidate
+        let lock = try acquireLock()
+        let fd: Int32
+        do {
+            for other in others where IPCClient.isRunning(path: other) {
+                throw IPCError.alreadyRunning(path: other)
+            }
+            fd = try claimSocket(address)
+        } catch {
+            _ = close(lock)
+            throw error
+        }
+        lockFD = lock
+        installListener(fd)
+
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.setEventHandler { self.maintain() }
+        timer.schedule(deadline: .now() + maintenanceInterval, repeating: maintenanceInterval,
+                       leeway: .milliseconds(Int(maintenanceInterval * 100)))
+        maintenanceTimer = timer
+        timer.resume()
+    }
+
+    private var lockPath: String { path + ".lock" }
+
+    /// Locks <path>.lock (never deleted: deleting a lock file races). Fails
+    /// with `.alreadyRunning` while another instance holds it.
+    private func acquireLock() throws -> Int32 {
+        let fd = open(lockPath, O_RDWR | O_CREAT | O_CLOEXEC | O_NOFOLLOW, 0o600)
+        guard fd >= 0 else { throw IPCError.system(call: "open(\(lockPath))", errno: errno) }
+        // In a shared temporary directory someone else could have made it,
+        // or could hold it open to lock it themselves.
+        var info = stat()
+        guard fstat(fd, &info) == 0, (info.st_mode & S_IFMT) == S_IFREG, info.st_uid == geteuid(),
+              info.st_nlink == 1, fchmod(fd, 0o600) == 0
+        else {
+            _ = close(fd)
+            throw IPCError.pathUnusable(path: lockPath, reason: "the lock file there is not ours")
+        }
+        while flock(fd, LOCK_EX | LOCK_NB) != 0 {
+            let code = errno
+            if code == EINTR { continue }
+            _ = close(fd)
+            if code == EWOULDBLOCK { throw IPCError.alreadyRunning(path: path) }
+            throw IPCError.system(call: "flock(\(lockPath))", errno: code)
+        }
+        return fd
+    }
+
+    private func claimSocket(_ address: SocketAddress) throws -> Int32 {
         // Normally one round. bind() fails with EADDRINUSE only if something
-        // appeared at the path after the stale check; then look again.
+        // appeared at the path after the stale check (a server that doesn't
+        // take the lock, i.e. an older build); then look again.
         for _ in 0..<3 {
             try removeStaleSocket(address)
             let fd = Posix.makeStreamSocket()
             guard fd >= 0 else { throw IPCError.system(call: "socket", errno: errno) }
+            #if !canImport(Darwin)
+            // Linux creates the socket file with the socket's own mode (minus
+            // the umask), so it is never connectable by others, not even
+            // between bind() and the chmod below. Darwin ignores this.
+            _ = fchmod(fd, 0o600)
+            #endif
             if address.withSockaddr({ bind(fd, $0, $1) }) == 0 {
+                // Best effort: the peer check on accept is what keeps others
+                // out, and the usual directories are private anyway.
+                _ = chmod(path, 0o600)
                 guard listen(fd, Self.backlog) == 0 else {
                     let code = errno
                     _ = close(fd)
                     _ = unlink(path)
                     throw IPCError.system(call: "listen(\(path))", errno: code)
                 }
-                // Only the owner may connect. Matters for the fallback in a
-                // shared temporary directory; the other places are private.
-                _ = chmod(path, 0o600)
                 return fd
             }
             let code = errno
@@ -372,7 +540,8 @@ public final class IPCServer: @unchecked Sendable {
     }
 
     /// Returns if the path is free or held a stale socket (now removed);
-    /// throws `.alreadyRunning` if a server answers there.
+    /// throws `.alreadyRunning` if a server of ours answers there. Runs under
+    /// the lock, so no other instance can be starting up on this path.
     private func removeStaleSocket(_ address: SocketAddress) throws {
         guard let existing = FileIdentity(path: path) else { return }
         guard existing.isSocket else {
@@ -381,24 +550,116 @@ public final class IPCServer: @unchecked Sendable {
         guard existing.owner == geteuid() else {
             throw IPCError.pathUnusable(path: path, reason: "the socket there belongs to uid \(existing.owner)")
         }
-        for attempt in 0..<2 {
-            switch Posix.probe(address) {
-            case .alive:
-                throw IPCError.alreadyRunning(path: path)
-            case .absent:
-                return
-            case .failed(let code):
-                throw IPCError.system(call: "connect(\(path))", errno: code)
-            case .refused:
-                // A server that has bound but not yet called listen() refuses
-                // too. Give it a moment before calling the socket stale.
-                if attempt == 0 { usleep(50_000) }
+        switch Posix.probe(address) {
+        case .alive:
+            throw IPCError.alreadyRunning(path: path)
+        case .foreign(let uid):
+            throw IPCError.pathUnusable(path: path, reason: "a server of uid \(uid) listens there")
+        case .absent:
+            return
+        case .failed(let code):
+            throw IPCError.system(call: "connect(\(path))", errno: code)
+        case .refused:
+            // Stale: nothing listens, and a live instance would hold the lock.
+            if let current = FileIdentity(path: path), current.isSameFile(as: existing) {
+                _ = unlink(path)
             }
         }
-        // Stale. Remove it, unless another instance replaced it meanwhile.
-        if let current = FileIdentity(path: path), current.isSameFile(as: existing) {
-            _ = unlink(path)
+    }
+
+    /// Accepts on `fd` from now on, in place of any previous listener.
+    private func installListener(_ fd: Int32) {
+        cancelListener()
+        let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
+        source.setEventHandler { self.acceptConnections(fd) }
+        source.setCancelHandler { _ = close(fd) }
+        acceptSource = source
+        boundFile = FileIdentity(path: path)
+        source.resume()
+    }
+
+    private func cancelListener() {
+        guard let source = acceptSource else { return }
+        if acceptPaused {
+            acceptPaused = false
+            source.resume()  // a suspended source never runs its cancel handler
         }
+        source.cancel()  // closes the listening socket
+        acceptSource = nil
+    }
+
+    /// Everything `stop()` does except removing the socket file.
+    private func shutDown() {
+        maintenanceTimer?.cancel()
+        maintenanceTimer = nil
+        boundFile = nil
+        cancelListener()
+        for connection in Array(connections.values) where connection.phase != .writing {
+            finish(connection)
+        }
+        _ = close(lockFD)  // releases the lock
+        lockFD = -1
+    }
+
+    /// Keeps the instance reachable and the only one: takes the lock file
+    /// again and binds the socket again if either is gone or was replaced
+    /// (this server holds the lock, so the path is its to take), and
+    /// otherwise refreshes their timestamps, since temp cleaners go by age.
+    /// It steps down only when another instance of ours answers on the path.
+    /// Anything else (a contended lock, a failed bind) is retried next time.
+    private func maintain() {
+        guard acceptSource != nil else { return }
+        let socketIsOurs = ownsSocketFile()
+        if !lockFileIsOurs() {
+            if let lock = try? acquireLock() {
+                _ = close(lockFD)
+                lockFD = lock
+            } else {
+                // Someone else holds the new lock file. If our socket is still
+                // in place, that is an instance starting up that will find us
+                // and give up; if another server of ours answers, it won.
+                if !socketIsOurs && IPCClient.isRunning(path: path) { abandon() }
+                return
+            }
+        }
+        if socketIsOurs {
+            _ = utimes(path, nil)
+            _ = utimes(lockPath, nil)
+            return
+        }
+        do {
+            installListener(try claimSocket(SocketAddress(path)))
+        } catch IPCError.alreadyRunning {
+            abandon()  // a server of ours that doesn't take the lock (an older build)
+        } catch {
+            return
+        }
+    }
+
+    /// Whether the file at `path` is the socket this server bound.
+    private func ownsSocketFile() -> Bool {
+        guard let bound = boundFile, let current = FileIdentity(path: path) else { return false }
+        return current.isSameFile(as: bound)
+    }
+
+    private func removeOwnSocketFile() {
+        if ownsSocketFile() { _ = unlink(path) }
+    }
+
+    /// Whether <path>.lock is still the file this server has locked.
+    private func lockFileIsOurs() -> Bool {
+        guard let held = FileIdentity(fd: lockFD), let there = FileIdentity(path: lockPath) else { return false }
+        return held.isSameFile(as: there)
+    }
+
+    /// Another instance owns the path now: stop, and tell the app.
+    private func abandon() {
+        removeOwnSocketFile()
+        shutDown()
+        stateLock.lock()
+        let callback = lostOwnershipHandler
+        stateLock.unlock()
+        if let callback { handlerQueue.async { callback() } }
     }
 
     // MARK: Connections (on `queue`)
@@ -421,7 +682,14 @@ public final class IPCServer: @unchecked Sendable {
                 }
             }
             Posix.configure(fd)
+            // Only our own user's processes (strangers get no answer at all).
+            guard Posix.peerUID(fd) == geteuid() else {
+                _ = close(fd)
+                continue
+            }
             guard connections.count < Self.maxConnections else {
+                // Best effort: one short line always fits a fresh socket's buffer.
+                _ = Self.busyLine.withUnsafeBytes { Posix.sendBytes(fd, $0.baseAddress!, $0.count) }
                 _ = close(fd)
                 continue
             }
@@ -434,8 +702,9 @@ public final class IPCServer: @unchecked Sendable {
         acceptPaused = true
         source.suspend()
         queue.asyncAfter(deadline: .now() + 0.25) {
-            // Touches whatever source is current: stop() clears the flag,
-            // and resuming a newer paused source early is harmless.
+            // Touches whatever source is current: stop() and installListener
+            // clear the flag, and resuming a newer paused source early is
+            // harmless.
             guard self.acceptPaused else { return }
             self.acceptPaused = false
             self.acceptSource?.resume()
@@ -518,10 +787,11 @@ public final class IPCServer: @unchecked Sendable {
         connection.phase = .handling
         connection.timer?.schedule(deadline: .now() + replyTimeout)
         let id = connection.id
+        setAwaitingHandler(id, true)
         handlerQueue.async {
             // Skip commands whose client is gone: it timed out (and was told
             // so) or the server stopped. A late toggle would only surprise.
-            guard self.queue.sync(execute: { self.connections[id]?.phase == .handling }) else { return }
+            guard self.isAwaitingHandler(id) else { return }
             self.handler(command) { response in
                 // Encode on the replying thread; a big status reply must not
                 // hold up the queue that serves everyone else.
@@ -544,6 +814,7 @@ public final class IPCServer: @unchecked Sendable {
     private func respond(_ connection: IPCConnection, line: [UInt8]) {
         guard connection.phase != .closed else { return }
         stopReading(connection)
+        setAwaitingHandler(connection.id, false)
         connection.phase = .writing
         connection.output = line
         connection.written = 0
@@ -602,6 +873,7 @@ public final class IPCServer: @unchecked Sendable {
         guard connection.phase != .closed else { return }
         connection.phase = .closed
         connections[connection.id] = nil
+        setAwaitingHandler(connection.id, false)
         connection.timer?.cancel()
         connection.timer = nil
         connection.reader?.cancel()
@@ -628,8 +900,20 @@ public final class IPCServer: @unchecked Sendable {
         _ = close(connection.fd)
     }
 
-    private static func clamp(_ seconds: TimeInterval) -> TimeInterval {
-        seconds.isNaN ? 1 : min(max(seconds, 0.01), 86_400)
+    private func setAwaitingHandler(_ id: Int, _ awaiting: Bool) {
+        stateLock.lock()
+        if awaiting {
+            awaitingHandler.insert(id)
+        } else {
+            awaitingHandler.remove(id)
+        }
+        stateLock.unlock()
+    }
+
+    private func isAwaitingHandler(_ id: Int) -> Bool {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return awaitingHandler.contains(id)
     }
 }
 
@@ -661,16 +945,21 @@ public enum IPCClient {
     /// The longest reply accepted. A status reply is a few KB.
     private static let maxReplyLength = 16 * 1024 * 1024
 
-    /// Sends `command` and waits for the reply. Throws `.notRunning` if no
-    /// instance listens on `path`, `.timedOut` if the reply doesn't arrive
-    /// within `timeout` seconds (connecting included), and `.badResponse`
-    /// if it can't be decoded.
+    /// Sends `command` to the first of `paths` where an instance of ours
+    /// listens, and waits for the reply. The default is
+    /// `IPC.candidateSocketPaths()`.
+    ///
+    /// Throws `.notRunning` if none listens (when no path gets through, the
+    /// first path's error is thrown, which is `.notRunning` unless that path
+    /// itself is unusable), `.timedOut` if the reply doesn't arrive within
+    /// `timeout` seconds (connecting included), and `.badResponse` if it
+    /// can't be decoded.
     public static func send(
         _ command: IPCCommand,
-        path: String = IPC.defaultSocketPath(),
+        paths: [String] = IPC.candidateSocketPaths(),
         timeout: TimeInterval = 5
     ) throws -> IPCResponse {
-        let line = try exchange(Data((command.rawValue + "\n").utf8), path: path, timeout: timeout)
+        let line = try exchange(Data((command.rawValue + "\n").utf8), paths: paths, timeout: timeout)
         do {
             return try IPCResponse(jsonLine: line)
         } catch {
@@ -678,50 +967,47 @@ public enum IPCClient {
         }
     }
 
-    /// Whether a server accepts connections on `path`. It sees a client that
-    /// hangs up without a request, which it ignores.
-    public static func isRunning(path: String = IPC.defaultSocketPath()) -> Bool {
+    /// Sends `command` to the instance on `path` only.
+    public static func send(_ command: IPCCommand, path: String, timeout: TimeInterval = 5) throws -> IPCResponse {
+        try send(command, paths: [path], timeout: timeout)
+    }
+
+    /// Whether a server of ours accepts connections on one of `paths`. It
+    /// sees a client that hangs up without a request, which it ignores.
+    public static func isRunning(paths: [String] = IPC.candidateSocketPaths()) -> Bool {
+        paths.contains { isRunning(path: $0) }
+    }
+
+    public static func isRunning(path: String) -> Bool {
         guard let address = try? SocketAddress(path) else { return false }
         return Posix.probe(address) == .alive
     }
 
-    /// Writes `request` and returns the first reply line, without its newline.
-    static func exchange(_ request: Data, path: String, timeout: TimeInterval) throws -> Data {
-        let address = try SocketAddress(path)
-        let seconds = timeout.isNaN ? 0 : min(max(timeout, 0), 86_400)
+    /// Writes `request` to the first of `paths` that connects and returns
+    /// the first reply line, without its newline.
+    static func exchange(_ request: Data, paths: [String], timeout: TimeInterval) throws -> Data {
+        let seconds = IPC.clampTimeout(timeout, minimum: 0, fallback: 5)
         let deadline = DispatchTime.now() + seconds
 
-        let fd = Posix.makeStreamSocket()
-        guard fd >= 0 else { throw IPCError.system(call: "socket", errno: errno) }
-        defer { _ = close(fd) }
-
-        // Connect. For unix sockets this completes at once, except on Linux
-        // when the server's accept queue is full (EAGAIN): retry until the
-        // deadline.
-        connecting: while address.withSockaddr({ connect(fd, $0, $1) }) != 0 {
-            let code = errno
-            switch code {
-            case EISCONN:
-                break connecting
-            case ENOENT, ECONNREFUSED:
-                throw IPCError.notRunning(path: path)
-            case EAGAIN:
-                guard DispatchTime.now() < deadline else { throw IPCError.timedOut(seconds: timeout) }
-                usleep(10_000)
-            case EINPROGRESS, EALREADY, EINTR:
-                try Posix.waitUntilReady(fd, for: POLLOUT, until: deadline, timeout: timeout)
-                let pending = Posix.socketError(fd)
-                if pending == 0 { break connecting }
-                if pending == ECONNREFUSED || pending == ENOENT { throw IPCError.notRunning(path: path) }
-                throw IPCError.system(call: "connect(\(path))", errno: pending)
-            default:
-                throw IPCError.system(call: "connect(\(path))", errno: code)
+        var fd: Int32 = -1
+        var firstError: Error?
+        for path in paths {
+            do {
+                fd = try openConnection(to: path, until: deadline, timeout: seconds)
+                break
+            } catch {
+                if case .timedOut? = error as? IPCError { throw error }  // no time left for the rest
+                if firstError == nil { firstError = error }
             }
         }
+        guard fd >= 0 else { throw firstError ?? IPCError.notRunning(path: IPC.defaultSocketPath()) }
+        defer { _ = close(fd) }
 
-        // Send.
+        // Send. If the server hangs up first (busy, or the request is too
+        // long), its reply may still be waiting to be read: go and look.
         let bytes = [UInt8](request)
         var sent = 0
+        var sendError: Int32 = 0
         while sent < bytes.count {
             let count = bytes.withUnsafeBytes { Posix.sendBytes(fd, $0.baseAddress! + sent, $0.count - sent) }
             if count > 0 {
@@ -731,10 +1017,11 @@ public enum IPCClient {
             let code = errno
             if count < 0 && code == EINTR { continue }
             if count < 0 && (code == EAGAIN || code == EWOULDBLOCK) {
-                try Posix.waitUntilReady(fd, for: POLLOUT, until: deadline, timeout: timeout)
+                try Posix.waitUntilReady(fd, for: POLLOUT, until: deadline, timeout: seconds)
                 continue
             }
-            throw IPCError.badResponse("connection closed while sending (\(String(cString: strerror(code))))")
+            sendError = count < 0 ? code : EPIPE
+            break
         }
 
         // Receive one line.
@@ -753,15 +1040,64 @@ public enum IPCClient {
             }
             let code = errno
             if count == 0 || code == ECONNRESET {
-                guard !reply.isEmpty else { throw IPCError.badResponse("connection closed without a reply") }
+                guard !reply.isEmpty else {
+                    throw IPCError.badResponse(sendError == 0
+                        ? "connection closed without a reply"
+                        : "connection closed while sending (\(String(cString: strerror(sendError))))")
+                }
                 return Data(reply)  // no newline; let the decoder judge it
             }
             if code == EINTR { continue }
             if code == EAGAIN || code == EWOULDBLOCK {
-                try Posix.waitUntilReady(fd, for: POLLIN, until: deadline, timeout: timeout)
+                try Posix.waitUntilReady(fd, for: POLLIN, until: deadline, timeout: seconds)
                 continue
             }
             throw IPCError.system(call: "read", errno: code)
+        }
+    }
+
+    /// A connected socket to a server of ours on `path`.
+    private static func openConnection(to path: String, until deadline: DispatchTime,
+                                       timeout: TimeInterval) throws -> Int32 {
+        let address = try SocketAddress(path)
+        let fd = Posix.makeStreamSocket()
+        guard fd >= 0 else { throw IPCError.system(call: "socket", errno: errno) }
+        do {
+            // For unix sockets this completes at once, except on Linux when
+            // the server's accept queue is full (EAGAIN): retry until the
+            // deadline.
+            connecting: while address.withSockaddr({ connect(fd, $0, $1) }) != 0 {
+                let code = errno
+                switch code {
+                case EISCONN:
+                    break connecting
+                case ENOENT, ECONNREFUSED:
+                    throw IPCError.notRunning(path: path)
+                case EAGAIN:
+                    guard DispatchTime.now() < deadline else { throw IPCError.timedOut(seconds: timeout) }
+                    usleep(10_000)
+                case EINPROGRESS, EALREADY, EINTR:
+                    try Posix.waitUntilReady(fd, for: POLLOUT, until: deadline, timeout: timeout)
+                    let pending = Posix.socketError(fd)
+                    if pending == 0 { break connecting }
+                    if pending == ECONNREFUSED || pending == ENOENT { throw IPCError.notRunning(path: path) }
+                    throw IPCError.system(call: "connect(\(path))", errno: pending)
+                default:
+                    throw IPCError.system(call: "connect(\(path))", errno: code)
+                }
+            }
+            // Only talk to our own user's instance. In the shared-temporary-
+            // directory fallback, someone else could be listening there.
+            guard let peer = Posix.peerUID(fd) else {
+                throw IPCError.system(call: "peer credentials(\(path))", errno: errno)
+            }
+            guard peer == geteuid() else {
+                throw IPCError.pathUnusable(path: path, reason: "the server there runs as uid \(peer)")
+            }
+            return fd
+        } catch {
+            _ = close(fd)
+            throw error
         }
     }
 }
@@ -770,9 +1106,11 @@ public enum IPCClient {
 
 /// A filled-in `sockaddr_un`.
 private struct SocketAddress {
+    let path: String
     private var storage = sockaddr_un()
 
     init(_ path: String) throws {
+        self.path = path
         let bytes = Array(path.utf8)
         guard !bytes.isEmpty, !bytes.contains(0) else {
             throw IPCError.pathUnusable(path: path, reason: "not a valid socket path")
@@ -809,6 +1147,16 @@ private struct FileIdentity {
     init?(path: String) {
         var info = stat()
         guard lstat(path, &info) == 0 else { return nil }
+        self.init(info)
+    }
+
+    init?(fd: Int32) {
+        var info = stat()
+        guard fd >= 0, fstat(fd, &info) == 0 else { return nil }
+        self.init(info)
+    }
+
+    private init(_ info: stat) {
         device = UInt64(truncatingIfNeeded: info.st_dev)
         inode = UInt64(truncatingIfNeeded: info.st_ino)
         owner = info.st_uid
@@ -822,7 +1170,11 @@ private struct FileIdentity {
 
 private enum Posix {
     enum Probe: Equatable {
-        case alive, refused, absent
+        /// A server of ours accepted the connection.
+        case alive
+        /// Another user's server did.
+        case foreign(uid_t)
+        case refused, absent
         case failed(Int32)
     }
 
@@ -861,12 +1213,37 @@ private enum Posix {
         #endif
     }
 
+    /// The effective uid of the process at the other end of a connected
+    /// socket (as of connect() or listen()); nil if it can't be read.
+    static func peerUID(_ fd: Int32) -> uid_t? {
+        #if canImport(Darwin)
+        var uid: uid_t = 0
+        var gid: gid_t = 0
+        return getpeereid(fd, &uid, &gid) == 0 ? uid : nil
+        #else
+        // struct ucred { pid_t pid; uid_t uid; gid_t gid; }, which Glibc's
+        // Swift module doesn't import.
+        var credentials: (pid: Int32, uid: UInt32, gid: UInt32) = (0, 0, 0)
+        let size = socklen_t(MemoryLayout.size(ofValue: credentials))
+        var length = size
+        guard getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &credentials, &length) == 0 else { return nil }
+        guard length == size else {
+            errno = EINVAL
+            return nil
+        }
+        return credentials.uid
+        #endif
+    }
+
     /// Connects and hangs up at once.
     static func probe(_ address: SocketAddress) -> Probe {
         let fd = makeStreamSocket()
         guard fd >= 0 else { return .failed(errno) }
         defer { _ = close(fd) }
-        if address.withSockaddr({ connect(fd, $0, $1) }) == 0 { return .alive }
+        if address.withSockaddr({ connect(fd, $0, $1) }) == 0 {
+            guard let peer = peerUID(fd) else { return .failed(errno) }
+            return peer == geteuid() ? .alive : .foreign(peer)
+        }
         let code = errno
         switch code {
         case ECONNREFUSED:
@@ -874,7 +1251,12 @@ private enum Posix {
         case ENOENT:
             return .absent
         case EAGAIN, EINPROGRESS, EISCONN:
-            return .alive  // a listener with a full accept queue (Linux)
+            // A listener with a full accept queue (Linux). Not connected, so
+            // no peer to ask; the socket file's owner will do.
+            if let file = FileIdentity(path: address.path), file.owner != geteuid() {
+                return .foreign(file.owner)
+            }
+            return .alive
         default:
             return .failed(code)
         }
