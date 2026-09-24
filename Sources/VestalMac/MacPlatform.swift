@@ -84,7 +84,7 @@ final class AppleScriptMedia: MediaProvider {
         await SystemBridge.nowPlaying(player: player, script: nowPlayingScript)
     }
 
-    func playPause() { SystemBridge.playPause(script: playPauseScript) }
+    func playPause() { SystemBridge.playPause(player: player, script: playPauseScript) }
 }
 
 // MARK: - Audio (CoreAudio default output device)

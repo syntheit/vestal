@@ -291,6 +291,25 @@ final class RuntimeTests: XCTestCase {
     }
 
     @MainActor
+    func testAHostNameListedTwiceKeepsItsFirstEntry() async {
+        // The dashboard shows the first entry of a name (DashboardLayout.hosts),
+        // so a later url host of that name must not poll anything.
+        let config = Config(
+            widgets: [
+                "a": WidgetConfig(type: "systemHealth", hosts: [HostConfig(name: "here", source: "local"),
+                                                                 HostConfig(name: "box", url: "https://box.example")]),
+                "b": WidgetConfig(type: "systemHealth", hosts: [HostConfig(name: "here", url: "https://here.example"),
+                                                                 HostConfig(name: "box", url: "https://other.example")]),
+            ],
+            views: ["main": ViewConfig(order: ["a", "b"])])
+        let runtime = AppRuntime(config: config, fetcher: FakeFetcher(), cache: nil, now: fixedNow)
+        XCTAssertNil(runtime.snapshot(.host("here")), "the first 'here' is the local host")
+        runtime.setVisible(true)
+        runtime.startDueJobs()
+        XCTAssertNotNil(runtime.snapshot(.host("box")))
+    }
+
+    @MainActor
     func testAnUnknownProviderIsAnErrorThatNeverRuns() async {
         let fetcher = FakeFetcher()
         let runtime = AppRuntime(

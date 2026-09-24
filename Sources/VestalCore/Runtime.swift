@@ -428,7 +428,9 @@ public final class AppRuntime {
 
     /// Every source, plus the health of each foyer host in the main view's
     /// systemHealth widgets. Local hosts come from the platform's stats, and
-    /// a host with a `source` reads that source instead.
+    /// a host with a `source` reads that source instead. A name listed twice
+    /// keeps its first entry, as on the dashboard (`DashboardLayout.hosts`),
+    /// so a later `url` host of that name gets no job.
     private static func plans(for config: Config) -> [RuntimeKey: Plan] {
         var plans: [RuntimeKey: Plan] = [:]
         let defaultRefresh = ConfigDuration.seconds(SourceConfig.defaultRefresh) ?? 1800
@@ -438,11 +440,12 @@ public final class AppRuntime {
                 visibleOnly: false, cacheName: name)
         }
         let defaultInterval = ConfigDuration.seconds(HostConfig.defaultInterval) ?? 5
-        for key in config.views["main"]?.order ?? [] {
-            guard let widget = config.widgets[key], widget.type == "systemHealth" else { continue }
+        var names = Set<String>()
+        for entry in DashboardLayout(config: config).entries where entry.kind == .systemHealth {
+            let widget = entry.widget
             let provider = widget.provider ?? WidgetConfig.Defaults.provider
-            for host in widget.hosts ?? [] where host.source == nil {
-                guard let url = host.url, plans[.host(host.name)] == nil else { continue }
+            for host in widget.hosts ?? [] where names.insert(host.name).inserted {
+                guard host.source == nil, let url = host.url else { continue }
                 let command = SourceConfig(type: "command", refresh: host.interval,
                                            argv: AsyncData.foyerHealthArgv(url: url), timeout: hostTimeout)
                 plans[.host(host.name)] = Plan(
