@@ -146,7 +146,7 @@ private struct Walker {
                 duration(source["timeout"], "\(path).timeout", default: SourceConfig.defaultTimeout)
                 _ = stringMap(source["env"], "\(path).env")
             case "calendar":
-                atLeastOne(source["days"], "\(path).days")
+                atLeastOne(source["days"], "\(path).days", default: SourceConfig.defaultDays)
                 _ = strings(source["calendars"], "\(path).calendars")
             default:
                 break
@@ -182,7 +182,7 @@ private struct Walker {
                 _ = boolean(widget["hideWhenOff"], "\(path).hideWhenOff")
             case "agendaList":
                 widgetSource(widget, path, required: true, calendar: true)
-                atLeastOne(widget["maxEvents"], "\(path).maxEvents")
+                atLeastOne(widget["maxEvents"], "\(path).maxEvents", default: WidgetConfig.Defaults.maxEvents)
             case "systemHealth":
                 oneOf(widget["provider"], "\(path).provider", WidgetConfig.providers)
                 hosts(widget["hosts"], "\(path).hosts")
@@ -202,8 +202,8 @@ private struct Walker {
                 oneOf(widget["units"], "\(path).units", WidgetConfig.unitSystems)
             case "claudeUsage":
                 _ = string(widget["path"], "\(path).path")
-                atLeastOne(widget["fiveHourLimit"], "\(path).fiveHourLimit")
-                atLeastOne(widget["weeklyLimit"], "\(path).weeklyLimit")
+                atLeastOne(widget["fiveHourLimit"], "\(path).fiveHourLimit", default: WidgetConfig.Defaults.fiveHourLimit)
+                atLeastOne(widget["weeklyLimit"], "\(path).weeklyLimit", default: WidgetConfig.Defaults.weeklyLimit)
             default:
                 break
             }
@@ -403,14 +403,21 @@ private struct Walker {
         return string
     }
 
-    private mutating func wrongType(_ value: AnyJSON, _ path: String, expected: String, _ consequence: String = "ignored") {
+    /// The decoder treats a wrong-typed value as absent, so the key's own
+    /// default applies. The merge has already replaced whatever the built-in
+    /// layer had there, so that value does not come back.
+    static let treatedAsAbsent = "treated as absent; the built-in value is not restored"
+
+    private mutating func wrongType(_ value: AnyJSON, _ path: String, expected: String,
+                                    _ consequence: String = Walker.treatedAsAbsent) {
         add(.wrongType, path, "expected \(expected), found \(value.kindDescription); \(consequence)")
     }
 
     // Each reader returns nil when the value is absent or null (no warning)
     // or of the wrong type (a warning; the decoder treats it as absent).
 
-    private mutating func object(_ value: AnyJSON?, _ path: String, _ consequence: String = "ignored") -> [String: AnyJSON]? {
+    private mutating func object(_ value: AnyJSON?, _ path: String,
+                                 _ consequence: String = Walker.treatedAsAbsent) -> [String: AnyJSON]? {
         guard let value, value != .null else { return nil }
         if case .object(let o) = value { return o }
         wrongType(value, path, expected: "an object", consequence)
@@ -450,7 +457,8 @@ private struct Walker {
         var result: [String] = []
         for (i, item) in items.enumerated() {
             guard case .string(let s) = item else {
-                wrongType(item, "\(path)[\(i)]", expected: "a string", "the whole list is ignored")
+                wrongType(item, "\(path)[\(i)]", expected: "a string",
+                          "the whole list is treated as absent; the built-in value is not restored")
                 return nil
             }
             result.append(s)
@@ -463,7 +471,8 @@ private struct Walker {
         var result: [String: String] = [:]
         for (key, member) in members.sorted(by: { $0.key < $1.key }) {
             guard case .string(let s) = member else {
-                wrongType(member, "\(path).\(key)", expected: "a string", "the whole object is ignored")
+                wrongType(member, "\(path).\(key)", expected: "a string",
+                          "the whole object is treated as absent; the built-in value is not restored")
                 return nil
             }
             result[key] = s
@@ -479,8 +488,8 @@ private struct Walker {
         }
     }
 
-    private mutating func atLeastOne(_ value: AnyJSON?, _ path: String) {
-        if let n = integer(value, path), n < 1 { add(.invalidValue, path, "must be at least 1") }
+    private mutating func atLeastOne(_ value: AnyJSON?, _ path: String, default fallback: Int) {
+        if let n = integer(value, path), n < 1 { add(.invalidValue, path, "must be at least 1; using \(fallback)") }
     }
 
     /// A string from a fixed set. `shown` lists the values to suggest when

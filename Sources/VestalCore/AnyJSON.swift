@@ -122,7 +122,17 @@ public struct JSONParseError: Error, Equatable, Sendable {
 extension AnyJSON {
     /// Parse a JSON document. On failure, the error carries the 1-based line
     /// and column of the problem when Foundation reports a position.
+    ///
+    /// The same documents parse on every platform: a leading UTF-8 byte order
+    /// mark is skipped (Darwin accepts one, corelibs doesn't), and a trailing
+    /// comma is an error (corelibs accepts `[1,]`, Darwin doesn't), so a config
+    /// that checks fine on Linux also loads on the Mac.
     public static func parse(_ data: Data) -> Result<AnyJSON, JSONParseError> {
+        let data = data.starts(with: [0xEF, 0xBB, 0xBF]) ? Data(data.dropFirst(3)) : data
+        if let offset = trailingCommaOffset(in: data) {
+            let position = lineAndColumn(ofOffset: offset, in: data)
+            return .failure(JSONParseError(message: "trailing comma", line: position.line, column: position.column))
+        }
         do {
             return .success(try JSONDecoder().decode(AnyJSON.self, from: data))
         } catch {
@@ -130,11 +140,46 @@ extension AnyJSON {
         }
     }
 
+    /// The offset of the first comma followed (whitespace aside) by `}` or
+    /// `]`, outside strings; nil if there is none.
+    static func trailingCommaOffset(in data: Data) -> Int? {
+        var inString = false
+        var escaped = false
+        var comma: Int?
+        for (offset, byte) in data.enumerated() {
+            if inString {
+                if escaped {
+                    escaped = false
+                } else if byte == UInt8(ascii: "\\") {
+                    escaped = true
+                } else if byte == UInt8(ascii: "\"") {
+                    inString = false
+                }
+                continue
+            }
+            switch byte {
+            case UInt8(ascii: " "), UInt8(ascii: "\t"), UInt8(ascii: "\n"), UInt8(ascii: "\r"):
+                continue
+            case UInt8(ascii: ","):
+                comma = offset
+                continue
+            case UInt8(ascii: "}"), UInt8(ascii: "]"):
+                if let comma { return comma }
+            case UInt8(ascii: "\""):
+                inString = true
+            default:
+                break
+            }
+            comma = nil
+        }
+        return nil
+    }
+
     /// JSONDecoder's own error carries no position on Linux (an internal
     /// enum), so ask JSONSerialization, whose message has one on every
     /// platform: "Invalid value around character 30." (corelibs, a byte
-    /// offset) or "... around line 3, column 13." (Darwin, which also sets
-    /// NSJSONSerializationErrorIndex).
+    /// offset) or "... around line 3, column 12." (Darwin, a 0-based column;
+    /// it also sets NSJSONSerializationErrorIndex).
     static func diagnose(_ data: Data, decodingError: Error) -> JSONParseError {
         do {
             _ = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
@@ -161,7 +206,8 @@ extension AnyJSON {
         if let index = error.userInfo["NSJSONSerializationErrorIndex"] as? Int {
             offset = index
         } else if let line = number(after: "line ", in: text), let column = number(after: "column ", in: text) {
-            return JSONParseError(message: message, line: line, column: column)
+            // Darwin counts lines from 1 but columns from 0.
+            return JSONParseError(message: message, line: line, column: column + 1)
         } else if let index = number(after: "character ", in: text) {
             offset = index
         } else if text.lowercased().contains("end of file") || text.lowercased().contains("end of data") {

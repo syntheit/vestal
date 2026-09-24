@@ -156,7 +156,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         argv      = c.lenient([String].self, .argv)
         timeout   = c.lenient(String.self, .timeout) ?? Self.defaultTimeout
         env       = c.lenient([String: String].self, .env)
-        days      = c.lenient(Int.self, .days) ?? Self.defaultDays
+        days      = c.lenientPositive(.days) ?? Self.defaultDays
         calendars = c.lenient([String].self, .calendars)
     }
 
@@ -297,15 +297,15 @@ public struct WidgetConfig: Codable, Equatable, Sendable {
         privacy       = c.lenient(PrivacyConfig.self, .privacy)
         player        = c.lenient(String.self, .player)
         hideWhenOff   = c.lenient(Bool.self, .hideWhenOff)
-        maxEvents     = c.lenient(Int.self, .maxEvents)
+        maxEvents     = c.lenientPositive(.maxEvents)
         hosts         = c.lenientList(HostConfig.self, .hosts)
         provider      = c.lenient(String.self, .provider)
         items         = c.lenientList(PickItem.self, .items)
         fields        = c.lenient([String: String].self, .fields)
         units         = c.lenient(String.self, .units)
         path          = c.lenient(String.self, .path)
-        fiveHourLimit = c.lenient(Int.self, .fiveHourLimit)
-        weeklyLimit   = c.lenient(Int.self, .weeklyLimit)
+        fiveHourLimit = c.lenientPositive(.fiveHourLimit)
+        weeklyLimit   = c.lenientPositive(.weeklyLimit)
     }
 
     /// `type` with aliases resolved ("spotify" → "media").
@@ -455,19 +455,23 @@ public struct ViewConfig: Codable, Equatable, Sendable {
 
 public enum ConfigDuration {
     /// Parse "30s" / "5m" / "1h" / "4h" / "2d": a whole number above zero and
-    /// a unit. Nil for anything else; callers fall back to their default.
+    /// a unit. Nil for anything else, including a number of seconds too large
+    /// for an Int; callers fall back to their default.
     public static func parse(_ s: String) -> Duration? {
         let trimmed = s.trimmingCharacters(in: .whitespaces)
         guard let unit = trimmed.last else { return nil }
         let valueStr = String(trimmed.dropLast())
         guard let value = Int(valueStr), value > 0 else { return nil }
+        let unitSeconds: Int
         switch unit {
-        case "s": return .seconds(value)
-        case "m": return .seconds(value * 60)
-        case "h": return .seconds(value * 3600)
-        case "d": return .seconds(value * 86400)
+        case "s": unitSeconds = 1
+        case "m": unitSeconds = 60
+        case "h": unitSeconds = 3600
+        case "d": unitSeconds = 86400
         default:  return nil
         }
+        let (seconds, overflow) = value.multipliedReportingOverflow(by: unitSeconds)
+        return overflow ? nil : .seconds(seconds)
     }
 }
 
@@ -499,6 +503,12 @@ extension KeyedDecodingContainer {
     /// The value for `key`, or nil when it is absent, null or not a `T`.
     func lenient<T: Decodable>(_ type: T.Type, _ key: Key) -> T? {
         try? decodeIfPresent(type, forKey: key)
+    }
+
+    /// A whole number of at least 1, or nil: a count or limit below 1 counts
+    /// as absent, so the default applies (`prefix(-1)` would trap).
+    func lenientPositive(_ key: Key) -> Int? {
+        lenient(Int.self, key).flatMap { $0 >= 1 ? $0 : nil }
     }
 
     /// A map of entries (sources, widgets, views); entries that fail to

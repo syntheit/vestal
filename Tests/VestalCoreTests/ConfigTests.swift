@@ -272,8 +272,10 @@ final class ConfigTests: XCTestCase {
     }
 
     func testInvalidDurations() {
-        for input in ["", "5", "m", "5x", "0s", "-5m", "1.5h", "5 m", "5M", "h5"] {
+        // The last one overflows an Int in seconds; it used to trap.
+        for input in ["", "5", "m", "5x", "0s", "-5m", "1.5h", "5 m", "5M", "h5", "9223372036854775807d"] {
             XCTAssertNil(AppRuntime.parseDuration(input), "\"\(input)\" should not parse")
         }
+        XCTAssertEqual(AppRuntime.parseDuration("9223372036854775807s"), .seconds(Int.max))
     }
 }
