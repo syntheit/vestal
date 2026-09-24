@@ -25,7 +25,7 @@ Durable context for vestal work. Claude session history is deleted after a while
 
 ### Process model
 - One resident process per user. It shows and hides a window; it does not quit on hide.
-- The CLI (`vestal toggle|show|hide|reload|status`) talks to it over a unix domain socket: `$XDG_RUNTIME_DIR/vestal.sock` if set, else `$TMPDIR/vestal-<uid>.sock`. The socket also enforces single-instance. No pid files.
+- The CLI (`vestal toggle|show|hide|reload|status|quit`) talks to it over a unix domain socket. Linux: `$XDG_RUNTIME_DIR/vestal.sock` if set, else `/run/user/<uid>/vestal.sock` if that directory is the user's, else `$TMPDIR/vestal-<uid>.sock` (clients and a starting server also check the temp path). macOS: always `vestal-<uid>.sock` in the per-user temporary directory (`confstr(_CS_DARWIN_USER_TEMP_DIR)`), ignoring `XDG_RUNTIME_DIR` and `TMPDIR`, so the launchd agent and every shell (a `nix develop` shell sets its own `TMPDIR`) agree. The socket also enforces single-instance. No pid files.
 - `show`/`toggle` with no running instance launch one, then deliver the command.
 - The built-in hotkey is set by `hotkey` in the config (e.g. `"f3"`, `"cmd+shift+space"`). `null` means external bind only (the default, so skhd setups keep working).
 - Reload: `vestal reload`, `SIGHUP`, and a watch on the config file's directory (Nix swaps a symlink, so watching the file inode is not enough).
