@@ -66,7 +66,10 @@ public enum VestalApp {
         }
         // LaunchServices answers on a queue of its own. The launch goes on
         // if we stop waiting.
-        guard finished.wait(timeout: .now() + 10) == .success else { return }
+        guard finished.wait(timeout: .now() + 10) == .success else {
+            NSLog("%@", "[vestal] openApplication: no answer within 10s; treating as started, not as failed")
+            return
+        }
         if let error = outcome.error { throw error }
     }
 }
@@ -103,6 +106,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
     /// Bumped by every show and hide, so the end of an older fade-out
     /// doesn't take away a dashboard that was shown again meanwhile.
     private var fade = 0
+    /// True while a hide's fade-out is in flight, until its completion runs
+    /// (or a `show()` cancels it). A reload in that window must not draw
+    /// the new content at full alpha, or the stale completion's abrupt
+    /// `orderOut` would undo the fade.
+    private var isHiding = false
 
     init(loaded: LoadedConfig, hidden: Bool, server: IPCServer) {
         self.loaded = loaded
@@ -172,6 +180,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
     func show() {
         guard let window, let hosting else { return }
         fade += 1
+        isHiding = false
         if let screen = Self.screenWithMouse(), window.frame != screen.frame {
             window.setFrame(screen.frame, display: false)
         }
@@ -195,6 +204,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
         closePopups()
         guard let window, let hosting, window.isVisible else { return }
         fade += 1
+        isHiding = true
         let fade = self.fade
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration = 0.15
@@ -202,6 +212,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
             hosting.animator().alphaValue = 0
         }, completionHandler: { [weak self] in
             guard let self, fade == self.fade else { return }
+            self.isHiding = false
             window.orderOut(nil)
             self.setAuroraPaused(true)
             NSApp.hide(nil)
@@ -248,8 +259,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
         let hosting = NSHostingView(rootView: DashboardView(model: model))
         hosting.frame = background.bounds
         hosting.autoresizingMask = [.width, .height]
-        // Hidden until `show` fades it in; a reload while shown keeps it shown.
-        hosting.alphaValue = window.isVisible ? 1 : 0
+        // Hidden until `show` fades it in; a reload while shown keeps it
+        // shown. Mid-fade-out (isHiding), the window still reports visible
+        // but is on its way down, so the new view starts hidden too: the
+        // fade-out's completion still runs and takes the window away, but
+        // never has to undo a full-alpha view it never faded.
+        hosting.alphaValue = (window.isVisible && !isHiding) ? 1 : 0
         background.addSubview(hosting)
         // The new view starts without popups.
         DashboardExpansionState.shared.isOpen = false

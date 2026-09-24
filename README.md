@@ -96,6 +96,8 @@ vestal show | hide
 vestal reload          # re-read the config (also on SIGHUP and when the file changes)
 vestal status          # pid, build, config file, warnings, each source's age and error
 vestal quit            # quit (also on SIGTERM); Escape and hide only hide it
+vestal version         # print the version and the commit it was built from
+vestal help            # print this usage
 vestal check-config [path]   # check a config file
 vestal print-config [path]   # the effective config, defaults merged in
 ```
