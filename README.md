@@ -56,11 +56,15 @@ the keychain, so with `signingIdentity` set the module signs at activation
 instead:
 
 - it copies `Vestal.app` to `~/Applications/Vestal.app` and runs
-  `codesign --force --deep --sign "<identity>"` on the copy, only when the build
-  or the identity changed, and restarts the launch agent onto it;
+  `codesign --force --deep --timestamp=none --sign "<identity>"` on the copy
+  (Xcode is not needed), only when the build or the identity changed, and
+  restarts the launch agent onto it;
 - the launch agent and the `vestal` command run that copy;
-- if signing fails it prints a warning and keeps the previous copy (on the
-  first install it installs an ad-hoc signed copy), so activation carries on.
+- if signing fails it prints a warning and activation carries on: a copy that
+  was signed with an identity stays, with its permissions, even if it is an
+  older build; otherwise this build is installed signed ad hoc;
+- when `signingIdentity` is unset again, activation removes the copy it
+  installed. It never touches a `~/Applications/Vestal.app` it did not install.
 
 ### Migrating `~/nix`
 
@@ -77,6 +81,10 @@ instead:
    and delete the skhd line; do not keep both, or F3 toggles twice.
 5. If you sign another app at activation, set `signingIdentity` to the same
    identity.
+6. `bin/vestal` is now a wrapper that execs the store's
+   `Applications/Vestal.app/Contents/MacOS/vestal`: anything that copied or
+   signed `${vestal}/bin/vestal` into its own `.app` should use that path
+   instead, or switch to the module's `signingIdentity`.
 
 ## Usage
 

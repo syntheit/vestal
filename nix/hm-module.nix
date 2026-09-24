@@ -28,8 +28,9 @@ let
   storeApp = "${cfg.package}/Applications/Vestal.app";
   # Where activation installs the signed copy (signingIdentity).
   signedApp = "${home}/Applications/Vestal.app";
-  # Build and identity of the installed copy, so activation re-signs only when
-  # one of them changes.
+  # "<store app> <identity>" of the copy activation installed, "-" for the
+  # identity when it had to sign ad hoc. It marks the copy as ours, and lets
+  # activation re-sign only when the build or the identity changes.
   signedStamp = "${config.xdg.stateHome}/vestal/signed-app";
   appExecutable = "${if signing then signedApp else storeApp}/Contents/MacOS/vestal";
 
@@ -69,8 +70,11 @@ let
   );
 
   # Copies Vestal.app out of the store and signs it (Nix builds can't reach
-  # the keychain). Never fails the activation: on error it warns and keeps
-  # the previous copy, or installs an ad-hoc signed one if there is none.
+  # the keychain). Never fails the activation. If signing with the identity
+  # fails, it warns and keeps the installed copy when that one was signed with
+  # an identity (its permissions survive) or already is this build; otherwise
+  # it installs this build signed ad hoc, or as built if even that fails (the
+  # linker already signed the binary ad hoc).
   signScript = ''
     vestalSignApp() {
       local src=${lib.escapeShellArg storeApp}
@@ -78,9 +82,14 @@ let
       local identity=${lib.escapeShellArg cfg.signingIdentity}
       local stamp=${lib.escapeShellArg signedStamp}
       local agent=${lib.escapeShellArg (lib.optionalString cfg.launchAtLogin config.launchd.agents.vestal.config.Label)}
-      local want="$src $identity" tmp="$dst.nix-new" signed=1
+      # codesign needs codesign_allocate, which only Xcode or its command line
+      # tools provide otherwise.
+      local -x CODESIGN_ALLOCATE=${lib.escapeShellArg "${pkgs.cctools}/bin/${pkgs.cctools.targetPrefix}codesign_allocate"}
+      local tmp="$dst.nix-new" old="$dst.nix-old" have="" was signedWith
+      if [[ -f "$stamp" && -d "$dst" ]]; then have=$(< "$stamp"); fi
+      was=''${have#* }
 
-      if [[ -f "$stamp" && "$(< "$stamp")" == "$want" ]] \
+      if [[ "$have" == "$src $identity" ]] \
         && /usr/bin/codesign --verify --deep "$dst" >/dev/null 2>&1; then
         return 0
       fi
@@ -90,23 +99,35 @@ let
       # Store files are read-only; codesign rewrites the binary.
       cp -R "$src" "$tmp" && chmod -R u+w "$tmp" || return 1
 
-      if ! /usr/bin/codesign --force --deep --sign "$identity" "$tmp"; then
-        echo "vestal: codesign --sign '$identity' failed (see: security find-identity -v -p codesigning)" >&2
-        if [[ -d "$dst" ]]; then
-          echo "vestal: keeping the previous $dst" >&2
+      signedWith=$identity
+      if ! /usr/bin/codesign --force --deep --timestamp=none --sign "$identity" "$tmp"; then
+        echo "vestal: codesign with '$identity' failed (see: security find-identity -v -p codesigning)" >&2
+        if [[ -n "$have" && "$was" != - ]]; then
+          echo "vestal: keeping $dst, signed with '$was', until signing works" >&2
           rm -rf "$tmp"
-          return 1
+          return 0
         fi
-        echo "vestal: installing $dst ad-hoc signed; macOS permissions reset on every rebuild until signing works" >&2
-        /usr/bin/codesign --force --deep --sign - "$tmp" || { rm -rf "$tmp"; return 1; }
-        signed=
+        if [[ "$have" == "$src -" ]]; then
+          # Already this build, signed ad hoc.
+          rm -rf "$tmp"
+          return 0
+        fi
+        echo "vestal: installing this build as $dst, signed ad hoc: macOS asks for calendar and automation access again after every vestal update until signing works" >&2
+        if ! /usr/bin/codesign --force --deep --timestamp=none --sign - "$tmp"; then
+          rm -rf "$tmp" && cp -R "$src" "$tmp" && chmod -R u+w "$tmp" || return 1
+        fi
+        signedWith=-
       fi
 
       # Swap the copies by renaming, never overwrite in place: a running
       # vestal keeps its old binary until it restarts below, and a failure
       # leaves a complete app behind.
-      local old="$dst.nix-old"
-      if [[ -e "$old" ]]; then chmod -R u+w "$old" && rm -rf "$old"; fi
+      if [[ -e "$old" ]]; then chmod -R u+w "$old"; rm -rf "$old"; fi
+      if [[ -e "$old" ]]; then
+        echo "vestal: cannot remove $old" >&2
+        rm -rf "$tmp"
+        return 1
+      fi
       if [[ -e "$dst" ]] && ! mv "$dst" "$old"; then
         echo "vestal: cannot replace $dst; the terminal may need App Management access (System Settings > Privacy & Security)" >&2
         rm -rf "$tmp"
@@ -114,7 +135,7 @@ let
       fi
       mv "$tmp" "$dst" || { [[ -e "$old" ]] && mv "$old" "$dst"; return 1; }
       if [[ -e "$old" ]]; then chmod -R u+w "$old" && rm -rf "$old"; fi
-      if [[ -n "$signed" ]]; then echo "$want" > "$stamp"; else rm -f "$stamp"; fi
+      echo "$src $signedWith" > "$stamp"
 
       # The agent's plist doesn't change with the build (it points at $dst),
       # so restart the agent to run the new copy. Fails when not loaded yet.
@@ -126,7 +147,29 @@ let
     if [[ -v DRY_RUN ]]; then
       echo "Would install and sign" ${lib.escapeShellArg signedApp}
     else
-      vestalSignApp || echo "vestal: could not install the signed app" >&2
+      vestalSignApp || echo "vestal: could not update" ${lib.escapeShellArg signedApp} >&2
+    fi
+  '';
+
+  # With signingIdentity unset, removes the copy activation installed while
+  # it was set. The stamp says the copy is ours; an app without one is never
+  # touched.
+  unsignScript = ''
+    vestalRemoveSignedApp() {
+      local dst=${lib.escapeShellArg signedApp} p
+      for p in "$dst" "$dst.nix-new" "$dst.nix-old"; do
+        if [[ -e "$p" ]]; then chmod -R u+w "$p" && rm -rf "$p" || return 1; fi
+      done
+      rm -f ${lib.escapeShellArg signedStamp}
+    }
+
+    if [[ -f ${lib.escapeShellArg signedStamp} ]]; then
+      if [[ -v DRY_RUN ]]; then
+        echo "Would remove" ${lib.escapeShellArg signedApp}
+      else
+        vestalRemoveSignedApp \
+          || echo "vestal: could not remove" ${lib.escapeShellArg signedApp} "(the terminal may need App Management access)" >&2
+      fi
     fi
   '';
 in
@@ -188,7 +231,8 @@ in
         `codesign --force --deep --sign` on the copy, and the launch agent
         and the `vestal` command run that copy. A stable signature keeps the
         calendar and automation permissions across rebuilds; Nix builds cannot
-        reach the keychain, so this happens at activation.
+        reach the keychain, so this happens at activation. When it is unset
+        again, activation removes that copy (only the one it installed).
       '';
     };
   };
@@ -268,6 +312,14 @@ in
       home.activation.vestalSignApp =
         lib.hm.dag.entryBetween [ "setupLaunchAgents" ] [ "writeBoundary" ]
           signScript;
+    })
+
+    (mkIf (isDarwin && !signing) {
+      # After launchd has moved the agent off the copy.
+      home.activation.vestalRemoveSignedApp = lib.hm.dag.entryAfter [
+        "writeBoundary"
+        "setupLaunchAgents"
+      ] unsignScript;
     })
   ]);
 }
