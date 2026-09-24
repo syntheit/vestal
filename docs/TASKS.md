@@ -128,11 +128,11 @@ Tests/VestalCoreTests/  XCTest
 
 ## Phase 5: Config-driven UI
 
-- [ ] `DashboardView` renders `views.main.order`. Each key names a widget, and each widget renders by its `type` through a switch: `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`. Unknown types render nothing and log once.
-- [ ] Split the monolith into one SwiftUI view per widget type, **moving code with identical modifiers**. Parity with `examples/full.json` is the acceptance test.
-- [ ] Honour `title` (e.g. "Currencies" hardcoded at `DashboardView.swift:592`), `hideWhenOff` (hardcoded at `:68`), `units` (°C hardcoded at `AsyncData.swift:91`), `systemBar.show` **order** (not only presence), `theme.background` (`aurora` = the current Metal view, `blur` = visual effect only, `none` = solid palette background) and `theme.palette` (keep Tokyo Night as the only palette, in a `Palette` struct so more can be added; an unknown name falls back with a warning).
-- [ ] The host key map comes from config (`key` or auto-assigned, per phase 1 rules). The `SystemDetailView` popup works for local and remote hosts. The local host's detail no longer assumes the name `swift` (`DashboardView.swift:225`).
-- [ ] ClaudeUsage limits and path, privacy command and state file, and media player all come from config (phase 3 schema).
+- [x] `DashboardView` renders `views.main.order`. Each key names a widget, and each widget renders by its `type` through a switch: `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`. Unknown types render nothing and log once.
+- [~] Split the monolith into one SwiftUI view per widget type, **moving code with identical modifiers**. Parity with `examples/full.json` is the acceptance test. *(Compiled against the macOS 14.4 SDK and compared line by line with `1239beb`; parity itself needs the Mac: HANDOFF "Test on the Mac first".)*
+- [x] Honour `title` (e.g. "Currencies" hardcoded at `DashboardView.swift:592`), `hideWhenOff` (hardcoded at `:68`), `units` (°C hardcoded at `AsyncData.swift:91`), `systemBar.show` **order** (not only presence), `theme.background` (`aurora` = the current Metal view, `blur` = visual effect only, `none` = solid palette background) and `theme.palette` (keep Tokyo Night as the only palette, in a `Palette` struct so more can be added; an unknown name falls back with a warning).
+- [x] The host key map comes from config (`key` or auto-assigned, per phase 1 rules). The `SystemDetailView` popup works for local and remote hosts. The local host's detail no longer assumes the name `swift` (`DashboardView.swift:225`).
+- [x] ClaudeUsage limits and path, privacy command and state file, and media player all come from config (phase 3 schema).
 
 ## Phase 6: Resident process, IPC, hotkey, reload
 

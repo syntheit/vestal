@@ -6,7 +6,7 @@ Written by the agent executing `docs/TASKS.md`, read by the owner who pulls the 
 
 (One paragraph: which phases are done, what is unverified, and whether the branch is expected to compile on macOS.)
 
-In progress. Phases 0 to 4 done; phase 5 (config-driven UI) implemented and awaiting review; phase 7 (packaging) came from a parallel track. Every macOS file compiles and links here against the macOS 14.4 SDK (see Environment), and CI's `macos` job (macos-14, Xcode 15.4) builds the release app and runs `swift test`, so the branch is expected to compile on macOS; runtime behaviour and the darwin Nix build are unverified (see "Unverified on macOS").
+In progress. Phases 0 to 5 done; phase 6 (resident process) in progress; phase 7 (packaging) came from a parallel track. Every macOS file compiles and links here against the macOS 14.4 SDK (see Environment), and CI's `macos` job (macos-14, Xcode 15.4) builds the release app and runs `swift test`, so the branch is expected to compile on macOS; runtime behaviour and the darwin Nix build are unverified (see "Unverified on macOS").
 
 Invariants (TASKS): all pass since phase 4. The last `"/tmp` literals (dashboard cache, CPU ticks, network bytes, Spotify cache, privacy state file) are gone: caches moved to the runtime's cache directory or into memory, and the privacy state file comes from the config. Since phase 5 the `#if os(macOS)` guard check also covers `Sources/VestalMac/Widgets/` (the loop in TASKS uses `find`).
 
@@ -14,6 +14,7 @@ Invariants (TASKS): all pass since phase 4. The last `"/tmp` literals (dashboard
 
 - **macOS compile check on Linux: yes, since phase 2.** The official Swift 5.10.1 Linux toolchain can typecheck *and* compile `VestalCore`, `VestalMac` and `main.swift` for `arm64-apple-macosx14.0` (and `x86_64-…`) against the real macOS 14.4 SDK, the same `apple-sdk_14` store path nixpkgs uses for darwin (`/nix/store/c3xfmn0gi4zss7yzgh2k969xcjjyv5p0-macOS-SDK-14.4`, substituted from cache.nixos.org with `nix-store -r`). Recipe: a private resource dir with symlinks to the toolchain's `lib/swift/clang` and `lib/swift/shims` (the toolchain's Linux `dispatch` module map clashes with the SDK's) plus an `apinotes/os.apinotes` that restores the Darwin-toolchain renames the `os` overlay needs (`OS_os_log`→`OSLog`, `os_log_type_t`→`OSLogType`, `os_signpost_type_t`→`OSSignpostType`, `os_log_type_enabled`→`OSLog.isEnabled(self:type:)`, `_os_log_impl`/`_os_signpost_emit_with_name_impl` SwiftPrivate); then `swiftc -target arm64-apple-macosx14.0 -sdk $SDK -resource-dir $RES -module-name VestalCore -parse-as-library -emit-module -c -wmo Sources/VestalCore/*.swift`, the same for `VestalMac` with `-I` on the first module's output, then `main.swift`. It catches wrong API names, signatures, availability and actor isolation (checked with deliberate errors), and warnings show. It does not run anything or cover XCTest on Darwin. Phase 1 (`deefaee`) and phase 2 both compile this way with zero errors and zero warnings. Since phase 2 the three object files are also linked: `ld64.lld -arch arm64 -platform_version macos 14.0 14.4 -syslibroot $SDK -L $SDK/usr/lib/swift -L $SDK/usr/lib -F $SDK/System/Library/Frameworks -lSystem -rpath /usr/lib/swift <objs>` must report no undefined symbols.
 
+- **Test files typechecked for macOS too, since `28d4ab2`:** the same recipe with a stub `XCTest` module (the XCTest API the tests use, plus `@_exported import AppKit`, since the real XCTest brings AppKit in: inside an `XCTestCase`, NSObject members such as `bind(_:to:withKeyPath:options:)` shadow POSIX functions). It reproduces CI run #8's test compile error and the `NSLock` noasync warnings. It does not run the tests; CI does.
 - Swift version used: **5.10.1** (`swift-5.10.1-RELEASE`, x86_64 Linux). `download.swift.org` is blocked by the session's egress proxy, so the official toolchain came from the `swift:5.10.1-noble` Docker Hub image (the toolchain layer, verified against its sha256 digest) and is unpacked at `/opt/swift-official`. nixpkgs' Swift at the `flake.lock` revision is also **5.10.1**, so both toolchains match the Nix build on the Mac.
 - nixpkgs' Linux Swift lacks `libIndexStore.so`, so `swift test` (XCTest discovery) only works with the official toolchain. nixpkgs' `swift build` works if `LD_LIBRARY_PATH` includes libdispatch (nixpkgs' own `swift-format` derivation does the same).
 - `nix` available: **yes, installed by the agent** (Nix 2.24.10, single-user, `/nix`). GitHub tarball downloads are blocked, so the locked nixpkgs (`d233902…`, NAR hash `sha256-30sZ…BZE=`) was fetched with `git fetch --depth 1` and added to the store by hand; its NAR hash matches `flake.lock` exactly, so flake commands resolve it offline. Binaries come from `cache.nixos.org` (reachable).
@@ -179,6 +180,19 @@ Decisions made without the owner, and why.
 ## Phase log
 
 Per phase: commits, what changed, review findings and how they were resolved.
+
+### Phase 5: Config-driven UI
+
+- `8dc5c87` Resolve the dashboard layout, host keys and widget options from the config. `DashboardLayout` in VestalCore (tested): the entries of `views.main.order` by type, the hosts and their keys, the privacy bars and the system bar's items in `show` order; theme background and palette, weather units, media player and Claude options.
+- `68fbe0c` Render the dashboard from `views.main.order`, one view per widget type. The sections moved into `Sources/VestalMac/Widgets/` with identical modifiers; `DashboardView` switches over `WidgetKind`; `Palette` holds Tokyo Night.
+- `d9e6e2a` Document the config-driven dashboard (CONFIG.md).
+- `5b8602d` Record phase 5 notes in HANDOFF; `30328e0` Update HANDOFF line references.
+- `501fb7b` Address phase 5 review findings (below).
+- Review (1 subagent, `6fabd28..30328e0`): no parity or compile findings; 3 low, all fixed in `501fb7b`:
+  - A `url` host sharing its name with an earlier host still got a `host:<name>` health job that nothing read (a `foyer-api` every 5s). Host jobs now follow `DashboardLayout.hosts` (the first entry of a name wins); regression test.
+  - Play/pause ran its AppleScript even when the player wasn't running, so with `hideWhenOff: false` and a mistyped `player` a click brought up AppleScript's "Where is …?" chooser. It runs only while the player runs now, like the poll.
+  - HANDOFF said the media row fades in; it appears without animation, as at `9c17bfc`. Only currencies and weather fade in.
+- Verification: `swift build && swift test` on Linux (286 tests pass); `mac-typecheck` of all three modules against the macOS 14.4 SDK plus the `ld64.lld` link: no errors, no warnings, no undefined symbols. CI run #8 (`dd13e33`): the macOS release build is green; its `swift test` did not compile (`bind` inside `IPCTests` resolved to NSObject's Cocoa bindings method on macOS), fixed in `28d4ab2`, which also moved the tests' `NSLock` calls out of async functions (noasync warnings on macOS). Since then every test file is also typechecked for macOS here, against a stub XCTest that brings in AppKit as the real one does (see Environment).
 
 ### Phase 4: Runtime (C3b)
 
