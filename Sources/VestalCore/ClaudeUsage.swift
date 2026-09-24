@@ -1,35 +1,47 @@
 import Foundation
 
-enum ClaudeUsage {
+// MARK: - Claude usage
+//
+// Token totals for the last 5 hours and the last 7 days, summed from Claude
+// Code's session logs (JSONL, one file per session, under
+// ~/.claude/projects/<project>/). Plain file I/O: run it off the main thread.
+
+public enum ClaudeUsage {
     // Tunable for your plan. Calibrated against claude.ai's reported %s on
     // Max 20x: ~1.5M tokens / 5h read as 18%, ~20M tokens / week read as 21%.
     // Anthropic doesn't publish exact numbers so these will drift; adjust if
     // the displayed % no longer matches the web dashboard.
-    static let blockLimitTokens = 8_000_000
-    static let weeklyLimitTokens = 95_000_000
+    public static let blockLimitTokens = 8_000_000
+    public static let weeklyLimitTokens = 95_000_000
 
-    struct Snapshot: Equatable {
-        var blockTokens: Int
-        var weeklyTokens: Int
+    public struct Snapshot: Equatable, Sendable {
+        public var blockTokens: Int
+        public var weeklyTokens: Int
 
-        var blockPercent: Int {
+        public init(blockTokens: Int, weeklyTokens: Int) {
+            self.blockTokens = blockTokens
+            self.weeklyTokens = weeklyTokens
+        }
+
+        public var blockPercent: Int {
             min(999, blockTokens * 100 / max(1, blockLimitTokens))
         }
-        var weeklyPercent: Int {
+        public var weeklyPercent: Int {
             min(999, weeklyTokens * 100 / max(1, weeklyLimitTokens))
         }
 
-        static let zero = Snapshot(blockTokens: 0, weeklyTokens: 0)
+        public static let zero = Snapshot(blockTokens: 0, weeklyTokens: 0)
     }
 
-    static func read() -> Snapshot {
-        let projectsDir = ("~/.claude/projects" as NSString).expandingTildeInPath
+    public static let defaultProjectsDir = ("~/.claude/projects" as NSString).expandingTildeInPath
+
+    /// Sums every `.jsonl` directly in `projectsDir` or one level below it.
+    public static func read(projectsDir: String = defaultProjectsDir, now: Date = Date()) -> Snapshot {
         let fm = FileManager.default
         guard let entries = try? fm.contentsOfDirectory(atPath: projectsDir) else {
             return .zero
         }
 
-        let now = Date()
         let blockCutoff = now.addingTimeInterval(-5 * 3600)
         let weekCutoff = now.addingTimeInterval(-7 * 86400)
         var blockSum = 0

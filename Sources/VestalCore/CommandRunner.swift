@@ -24,22 +24,26 @@ import Glibc
 // Portable: Foundation + Dispatch only. Nothing here blocks a thread; all the
 // bookkeeping runs on one private serial queue per invocation.
 
-struct CommandResult {
-    var status: Int32
-    var stdout: Data
-    var stderr: Data
+public struct CommandResult: Sendable {
+    public var status: Int32
+    public var stdout: Data
+    public var stderr: Data
 
-    var stdoutString: String { String(decoding: stdout, as: UTF8.self) }
-    var stderrString: String { String(decoding: stderr, as: UTF8.self) }
+    public init(status: Int32, stdout: Data, stderr: Data) {
+        self.status = status; self.stdout = stdout; self.stderr = stderr
+    }
+
+    public var stdoutString: String { String(decoding: stdout, as: UTF8.self) }
+    public var stderrString: String { String(decoding: stderr, as: UTF8.self) }
 }
 
-enum CommandError: Error, Equatable, CustomStringConvertible {
+public enum CommandError: Error, Equatable, CustomStringConvertible {
     case emptyArgv
     case notFound(String)
     case launchFailed(String, String)
     case timedOut(String, TimeInterval)
 
-    var description: String {
+    public var description: String {
         switch self {
         case .emptyArgv:
             return "empty argv"
@@ -57,9 +61,9 @@ enum CommandError: Error, Equatable, CustomStringConvertible {
     }
 }
 
-enum CommandRunner {
+public enum CommandRunner {
     /// Searched after $PATH, in this order.
-    static func extraSearchDirectories(environment: [String: String]) -> [String] {
+    public static func extraSearchDirectories(environment: [String: String]) -> [String] {
         let home = environment["HOME"] ?? NSHomeDirectory()
         let user = environment["USER"] ?? NSUserName()
         return [
@@ -72,7 +76,7 @@ enum CommandRunner {
     }
 
     /// $PATH followed by the extra dirs, without duplicates or empty entries.
-    static func searchPath(environment: [String: String]) -> [String] {
+    public static func searchPath(environment: [String: String]) -> [String] {
         let path = (environment["PATH"] ?? "")
             .split(separator: ":", omittingEmptySubsequences: true)
             .map(String.init)
@@ -82,7 +86,7 @@ enum CommandRunner {
     }
 
     /// `~` and `~/x` expand to the home directory; anything else is unchanged.
-    static func expandTilde(_ path: String, home: String = NSHomeDirectory()) -> String {
+    public static func expandTilde(_ path: String, home: String = NSHomeDirectory()) -> String {
         if path == "~" { return home }
         if path.hasPrefix("~/") { return home + path.dropFirst(1) }
         return path
@@ -91,7 +95,7 @@ enum CommandRunner {
     /// A name containing "/" is used as a path (after `~` expansion); a bare
     /// name is looked up on `searchPath(environment:)`. Returns nil if no
     /// executable regular file is found.
-    static func resolveExecutable(_ name: String, environment: [String: String]) -> String? {
+    public static func resolveExecutable(_ name: String, environment: [String: String]) -> String? {
         let home = environment["HOME"] ?? NSHomeDirectory()
         let expanded = expandTilde(name, home: home)
         if expanded.contains("/") {
@@ -117,7 +121,7 @@ enum CommandRunner {
     /// program can't be found or started, or runs longer than `timeout`, and
     /// `CancellationError` if the calling task is cancelled (the child is
     /// killed in both cases).
-    static func run(
+    public static func run(
         _ argv: [String],
         timeout: TimeInterval = 10,
         environment overrides: [String: String] = [:]

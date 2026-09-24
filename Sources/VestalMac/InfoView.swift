@@ -1,4 +1,6 @@
+#if os(macOS)
 import SwiftUI
+import VestalCore
 
 // Small overlay shown when the user triggers the info shortcut (option+i).
 // Modeled after SystemDetailView's framing — same width, padding, corner
@@ -52,3 +54,4 @@ struct InfoView: View {
         }
     }
 }
+#endif

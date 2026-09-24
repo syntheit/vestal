@@ -10,8 +10,8 @@ import Foundation
 // constants in their Swift source get removed and these defaults become the
 // only source of truth.
 
-enum DefaultConfig {
-    static let config = Config(
+public enum DefaultConfig {
+    public static let config = Config(
         version: 1,
         hotkey: nil, // built-in hotkey comes in v0.3; external bind for now
         theme: ThemeConfig(palette: "tokyo-night", background: "aurora"),
@@ -124,7 +124,7 @@ enum DefaultConfig {
 // Convenience initializers used by DefaultConfig — WidgetConfig has many
 // optional fields and we don't want each call site to spell out 14 nils.
 extension WidgetConfig {
-    init(
+    public init(
         type: String,
         title: String? = nil,
         source: String? = nil,
@@ -157,5 +157,3 @@ extension WidgetConfig {
         self.extras = nil
     }
 }
-
-// Memberwise init auto-synthesized — defining it explicitly would conflict.

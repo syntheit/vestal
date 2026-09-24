@@ -11,17 +11,17 @@ import Foundation
 // through to the next layer rather than crashing. This means vestal always
 // has SOME config, and a typo in your config file doesn't brick the app.
 
-enum AppConfig {
+public enum AppConfig {
     /// Loaded once at process startup. Immutable for the process lifetime;
     /// hot reload (SIGHUP + FSEvents) is a later checkpoint.
-    static let current: Config = ConfigLoader.load()
+    public static let current: Config = ConfigLoader.load()
 }
 
-enum ConfigLoader {
-    static let userConfigPath =
+public enum ConfigLoader {
+    public static let userConfigPath =
         "\(NSHomeDirectory())/Library/Application Support/Vestal/config.json"
 
-    static func load() -> Config {
+    public static func load() -> Config {
         if let envPath = ProcessInfo.processInfo.environment["VESTAL_CONFIG"],
            !envPath.isEmpty
         {

@@ -10,20 +10,36 @@ import Foundation
 // breaking changes bump this. The decoder is permissive — unknown fields are
 // ignored, and missing optional fields fall back to defaults.
 
-struct Config {
-    var version: Int = 1
-    var hotkey: String?
-    var theme: ThemeConfig = ThemeConfig()
-    var sources: [String: SourceConfig] = [:]
-    var widgets: [String: WidgetConfig] = [:]
-    var views: [String: ViewConfig] = [:]
+public struct Config: Equatable, Sendable {
+    public var version: Int = 1
+    public var hotkey: String?
+    public var theme: ThemeConfig = ThemeConfig()
+    public var sources: [String: SourceConfig] = [:]
+    public var widgets: [String: WidgetConfig] = [:]
+    public var views: [String: ViewConfig] = [:]
+
+    public init(
+        version: Int = 1,
+        hotkey: String? = nil,
+        theme: ThemeConfig = ThemeConfig(),
+        sources: [String: SourceConfig] = [:],
+        widgets: [String: WidgetConfig] = [:],
+        views: [String: ViewConfig] = [:]
+    ) {
+        self.version = version
+        self.hotkey = hotkey
+        self.theme = theme
+        self.sources = sources
+        self.widgets = widgets
+        self.views = views
+    }
 }
 
 extension Config: Codable {
     enum CodingKeys: String, CodingKey {
         case version, hotkey, theme, sources, widgets, views
     }
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         version = try c.decodeIfPresent(Int.self, forKey: .version) ?? 1
         hotkey  = try c.decodeIfPresent(String.self, forKey: .hotkey)
@@ -32,21 +48,20 @@ extension Config: Codable {
         widgets = try c.decodeIfPresent([String: WidgetConfig].self, forKey: .widgets) ?? [:]
         views   = try c.decodeIfPresent([String: ViewConfig].self, forKey: .views) ?? [:]
     }
-    // Memberwise init is auto-synthesized — defining it explicitly conflicts.
 }
 
 // MARK: - Theme
 
-struct ThemeConfig: Codable {
-    var palette: String = "tokyo-night"
-    var background: String = "aurora" // "aurora" | "none"
+public struct ThemeConfig: Codable, Equatable, Sendable {
+    public var palette: String = "tokyo-night"
+    public var background: String = "aurora" // "aurora" | "none"
 
     enum CodingKeys: String, CodingKey { case palette, background }
-    init(palette: String = "tokyo-night", background: String = "aurora") {
+    public init(palette: String = "tokyo-night", background: String = "aurora") {
         self.palette = palette
         self.background = background
     }
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         palette    = try c.decodeIfPresent(String.self, forKey: .palette) ?? "tokyo-night"
         background = try c.decodeIfPresent(String.self, forKey: .background) ?? "aurora"
@@ -62,17 +77,17 @@ struct ThemeConfig: Codable {
 // v0.2 supports only `http` and `eventkit`. `command` is deferred until we
 // have a sandboxing story.
 
-struct SourceConfig: Codable {
-    var type: String                 // "http" | "eventkit"
-    var url: String?                 // http
-    var refresh: String = "30m"      // duration: "30s", "5m", "1h", "4h"
-    var parse: String = "json"       // "json" | "raw"
+public struct SourceConfig: Codable, Equatable, Sendable {
+    public var type: String                 // "http" | "eventkit"
+    public var url: String?                 // http
+    public var refresh: String = "30m"      // duration: "30s", "5m", "1h", "4h"
+    public var parse: String = "json"       // "json" | "raw"
 
     enum CodingKeys: String, CodingKey { case type, url, refresh, parse }
-    init(type: String, url: String? = nil, refresh: String = "30m", parse: String = "json") {
+    public init(type: String, url: String? = nil, refresh: String = "30m", parse: String = "json") {
         self.type = type; self.url = url; self.refresh = refresh; self.parse = parse
     }
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         type    = try c.decode(String.self, forKey: .type)
         url     = try c.decodeIfPresent(String.self, forKey: .url)
@@ -88,43 +103,43 @@ struct SourceConfig: Codable {
 // all Optional; only the appropriate widget reads them. Unknown widget types
 // are dropped with a warning at view-render time.
 
-struct WidgetConfig: Codable {
-    var type: String                            // "clock" | "weather" | "spotify" | "agenda" | "systemBar" | "systemHealth" | "keyValueList" | "weatherCard"
-    var title: String?
-    var source: String?                         // reference to sources[<name>]
+public struct WidgetConfig: Codable, Equatable, Sendable {
+    public var type: String                            // "clock" | "weather" | "spotify" | "agenda" | "systemBar" | "systemHealth" | "keyValueList" | "weatherCard"
+    public var title: String?
+    public var source: String?                         // reference to sources[<name>]
 
     // Clock
-    var worldClocks: [WorldClock]?
+    public var worldClocks: [WorldClock]?
 
     // SystemBar
-    var show: [String]?                         // ["uptime", "disk", "battery", ...]
+    public var show: [String]?                         // ["uptime", "disk", "battery", ...]
 
     // Spotify
-    var hideWhenOff: Bool?
+    public var hideWhenOff: Bool?
 
     // AgendaList
-    var maxEvents: Int?
+    public var maxEvents: Int?
 
     // SystemHealth
-    var hosts: [HostConfig]?
-    var provider: String?                       // "foyer" | "netdata" | "prometheus" | "ssh" | "json"
+    public var hosts: [HostConfig]?
+    public var provider: String?                       // "foyer" | "netdata" | "prometheus" | "ssh" | "json"
 
     // KeyValueList (e.g. exchange rates)
-    var items: [PickItem]?
+    public var items: [PickItem]?
 
     // WeatherCard / generic field mapping
-    var fields: [String: String]?               // field name → dot-path
+    public var fields: [String: String]?               // field name → dot-path
 
     // Generic single value
-    var pick: String?
+    public var pick: String?
 
     // Weather widget convenience
-    var fixedLocation: FixedLocation?
-    var units: String?                          // "metric" | "imperial"
+    public var fixedLocation: FixedLocation?
+    public var units: String?                          // "metric" | "imperial"
 
     // Keep an "extra" bag for forward-compat — unknown widget options are
     // preserved as raw JSON so v0.2 doesn't choke on a v0.3 widget config.
-    var extras: [String: AnyJSON]?
+    public var extras: [String: AnyJSON]?
 
     enum CodingKeys: String, CodingKey {
         case type, title, source, worldClocks, show, hideWhenOff, maxEvents,
@@ -132,42 +147,66 @@ struct WidgetConfig: Codable {
     }
 }
 
-struct WorldClock: Codable {
-    var label: String
-    var tz: String
+public struct WorldClock: Codable, Equatable, Sendable {
+    public var label: String
+    public var tz: String
+
+    public init(label: String, tz: String) {
+        self.label = label; self.tz = tz
+    }
 }
 
-struct HostConfig: Codable {
-    var name: String
-    var url: String?      // for remote providers (foyer, netdata, prometheus)
-    var source: String?   // for "local" — references local system bridge
+public struct HostConfig: Codable, Equatable, Sendable {
+    public var name: String
+    public var url: String?      // for remote providers (foyer, netdata, prometheus)
+    public var source: String?   // "local": this machine, read in-process
+
+    public init(name: String, url: String? = nil, source: String? = nil) {
+        self.name = name; self.url = url; self.source = source
+    }
 }
 
-struct PickItem: Codable {
-    var label: String
-    var source: String? = nil             // optional per-item source override (defaults to widget's source)
-    var match: [String: AnyJSON]? = nil   // exact-match selector for array sources
-    var pick: String? = nil               // single-value dot path within matched element
-    var picks: [String: String]? = nil    // multi-value: e.g. { buy = "compra"; sell = "venta"; }
-    var format: String? = nil             // "int" | "decimal" | nil (raw string)
+public struct PickItem: Codable, Equatable, Sendable {
+    public var label: String
+    public var source: String? = nil             // optional per-item source override (defaults to widget's source)
+    public var match: [String: AnyJSON]? = nil   // exact-match selector for array sources
+    public var pick: String? = nil               // single-value dot path within matched element
+    public var picks: [String: String]? = nil    // multi-value: e.g. { buy = "compra"; sell = "venta"; }
+    public var format: String? = nil             // "int" | "decimal" | nil (raw string)
+
+    public init(
+        label: String,
+        source: String? = nil,
+        match: [String: AnyJSON]? = nil,
+        pick: String? = nil,
+        picks: [String: String]? = nil,
+        format: String? = nil
+    ) {
+        self.label = label; self.source = source; self.match = match
+        self.pick = pick; self.picks = picks; self.format = format
+    }
 }
 
-struct FixedLocation: Codable {
-    var lat: Double
-    var lon: Double
+public struct FixedLocation: Codable, Equatable, Sendable {
+    public var lat: Double
+    public var lon: Double
+
+    public init(lat: Double, lon: Double) {
+        self.lat = lat; self.lon = lon
+    }
 }
 
 // MARK: - View
 
-struct ViewConfig: Codable {
-    var order: [String] = []
-    var layout: String = "stack"        // "stack" | (future) "grid"
+public struct ViewConfig: Codable, Equatable, Sendable {
+    public var order: [String] = []
+    public var layout: String = "stack"        // "stack" | (future) "grid"
 
     enum CodingKeys: String, CodingKey { case order, layout }
-    init(order: [String] = [], layout: String = "stack") {
+    public init(order: [String] = [], layout: String = "stack") {
         self.order = order; self.layout = layout
     }
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         order  = try c.decodeIfPresent([String].self, forKey: .order) ?? []
         layout = try c.decodeIfPresent(String.self, forKey: .layout) ?? "stack"
@@ -181,14 +220,14 @@ struct ViewConfig: Codable {
 // trips losslessly; comparison via `matches(_:)` handles cross-type numeric
 // equivalence (Int vs Double in parsed JSON).
 
-enum AnyJSON: Codable, Equatable {
+public enum AnyJSON: Codable, Equatable, Sendable {
     case string(String)
     case int(Int)
     case double(Double)
     case bool(Bool)
     case null
 
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
         if c.decodeNil() { self = .null; return }
         if let v = try? c.decode(Bool.self)   { self = .bool(v);   return }
@@ -199,7 +238,7 @@ enum AnyJSON: Codable, Equatable {
             in: c, debugDescription: "AnyJSON: unsupported value type")
     }
 
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var c = encoder.singleValueContainer()
         switch self {
         case .string(let v): try c.encode(v)
@@ -213,7 +252,7 @@ enum AnyJSON: Codable, Equatable {
     /// Exact-match comparison against a value pulled from parsed JSON.
     /// Handles Int↔Double cross-type comparison since JSON parsing can land
     /// either way depending on the source.
-    func matches(_ other: Any?) -> Bool {
+    public func matches(_ other: Any?) -> Bool {
         switch self {
         case .string(let s):
             return (other as? String) == s

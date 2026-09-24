@@ -1,94 +1,43 @@
+#if os(macOS)
 import AppKit
-import Darwin
 import Foundation
 import SwiftUI
+import VestalCore
 
-// MARK: - CLI subcommands
+// MARK: - App entry
 //
-// Vestal launches the dashboard when invoked with no arguments. With a
-// subcommand it acts as a control surface — used by toggle scripts, skhd
-// bindings, Hammerspoon, etc. The PID file lets us identify a running GUI
-// instance without relying on `pgrep` (so the binary works without /bin
-// in PATH or in sandbox environments).
+// The `vestal` executable handles CLI subcommands itself and calls
+// `VestalApp.run()` when it should show the dashboard.
 
-let vestalPidFile = "\(NSTemporaryDirectory())vestal.pid"
+public enum VestalApp {
+    /// Loads the config, opens the dashboard window and runs the AppKit event
+    /// loop. Does not return; the app ends through `NSApp.terminate`.
+    public static func run() -> Never {
+        // Touch AppConfig early so the lazy load fires (and any config-load
+        // errors land before the window appears).
+        let bootCfg = AppConfig.current
+        NSLog("[vestal] config loaded: \(bootCfg.sources.count) sources, \(bootCfg.widgets.count) widgets, \(bootCfg.views.count) views (version \(bootCfg.version))")
 
-func writeVestalPid() {
-    try? "\(getpid())".write(toFile: vestalPidFile, atomically: true, encoding: .utf8)
-}
-
-func runningVestalPid() -> pid_t? {
-    guard let raw = try? String(contentsOfFile: vestalPidFile, encoding: .utf8) else { return nil }
-    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard let pid = pid_t(trimmed) else { return nil }
-    return kill(pid, 0) == 0 ? pid : nil   // signal 0 = liveness check
-}
-
-func detachedRelaunch() {
-    // Fork+exec self via Foundation.Process and return immediately. Parent
-    // exits without waitUntilExit; macOS re-parents the orphan child to
-    // launchd so it survives. Inherits env from parent (so VESTAL_CONFIG
-    // carries through to the GUI launch). stdio routed to /dev/null so
-    // the caller's terminal doesn't stay tethered.
-    let task = Process()
-    task.executableURL = URL(fileURLWithPath: CommandLine.arguments[0])
-    task.arguments = []
-    task.standardInput  = FileHandle.nullDevice
-    task.standardOutput = FileHandle.nullDevice
-    task.standardError  = FileHandle.nullDevice
-    try? task.run()
-}
-
-func printVestalUsage(to stream: FileHandle) {
-    let text = """
-    Usage: vestal [command]
-
-    Commands:
-      toggle    Show or hide the dashboard
-      show      Show the dashboard (no-op if already shown)
-      hide      Hide the dashboard (no-op if not shown)
-      version   Print version and build code
-      help      Show this message
-
-    With no command, vestal launches the dashboard directly.
-    """
-    stream.write(Data((text + "\n").utf8))
-}
-
-let cliArgs = CommandLine.arguments
-if cliArgs.count >= 2 {
-    switch cliArgs[1] {
-    case "version", "--version", "-v":
-        print("vestal \(BuildInfo.version) (\(BuildInfo.commit))")
-        exit(0)
-    case "help", "--help", "-h":
-        printVestalUsage(to: FileHandle.standardOutput)
-        exit(0)
-    case "toggle":
-        if let pid = runningVestalPid() {
-            _ = kill(pid, SIGTERM)
-        } else {
-            detachedRelaunch()
+        // Called from main.swift's top-level code, which Swift 5.10 treats as
+        // nonisolated; it does run on the main thread, so claim the main actor.
+        MainActor.assumeIsolated {
+            let app = NSApplication.shared
+            app.setActivationPolicy(.accessory)
+            let delegate = AppDelegate()
+            app.delegate = delegate
+            // `delegate` is weak on NSApplication; this local is the only
+            // strong reference, so it has to outlive the event loop.
+            withExtendedLifetime(delegate) {
+                app.run()
+            }
         }
         exit(0)
-    case "show":
-        if runningVestalPid() == nil { detachedRelaunch() }
-        exit(0)
-    case "hide":
-        if let pid = runningVestalPid() { _ = kill(pid, SIGTERM) }
-        exit(0)
-    default:
-        FileHandle.standardError.write(Data("vestal: unknown command '\(cliArgs[1])'\n".utf8))
-        printVestalUsage(to: FileHandle.standardError)
-        exit(2)
     }
 }
 
-// MARK: - GUI launch (no subcommand)
+// MARK: - App delegate
 
-writeVestalPid()
-
-class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow!
 
     /// Single-key shortcut → host name. Built from DashboardView's host list so
@@ -179,7 +128,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 return nil
             }
             if key == "p" {
-                SystemBridge.togglePrivacy()
+                MacPlatform.privacy.toggle()
                 return nil
             }
             return event
@@ -217,14 +166,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }
 }
-
-// Entry point — touch AppConfig early so the lazy load fires (and any
-// config-load errors land before the window appears).
-let _bootCfg = AppConfig.current
-NSLog("[vestal] config loaded: \(_bootCfg.sources.count) sources, \(_bootCfg.widgets.count) widgets, \(_bootCfg.views.count) views (version \(_bootCfg.version))")
-
-let app = NSApplication.shared
-app.setActivationPolicy(.accessory)
-let delegate = AppDelegate()
-app.delegate = delegate
-app.run()
+#endif
