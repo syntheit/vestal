@@ -78,7 +78,11 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 
 ## Sources
 
-`sources` maps a name to a source. Widgets refer to sources by name, and every widget reading the same source shares one fetch. Sources keep refreshing while the dashboard is hidden, and their last result is cached on disk.
+`sources` maps a name to a source. Widgets refer to sources by name, and every widget reading the same source shares one fetch. Sources keep refreshing while the dashboard is hidden.
+
+- The last good result of each source is kept on disk: `~/Library/Caches/Vestal/<name>.json` on macOS, `$XDG_CACHE_HOME/vestal/<name>.json` (default `~/.cache/vestal`) on Linux. When vestal starts it shows that result at once, and fetches again only when it is older than `refresh`, or when the source's definition has changed since.
+- A failed fetch keeps the last good result on screen, logs the error, and tries again after `refresh` or 60 seconds, whichever is shorter. A fetch fails when HTTP answers other than 2xx, when a command exits non-zero, or when a `"json"` source's output is not valid JSON.
+- A source vestal cannot run at all (an unknown `type`, an `http` source without a usable `url`, a `command` without `argv`, a `calendar` source on Linux) reports an error and is never fetched. It does not stop vestal.
 
 Every source takes:
 
@@ -91,25 +95,25 @@ Every source takes:
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `url` | string | required | An `http://` or `https://` URL, fetched with a 10 second timeout and a `vestal/<version>` User-Agent. |
-| `parse` | string | `"json"` | `"json"` or `"raw"`. |
+| `url` | string | required | An `http://` or `https://` URL, fetched with a 10 second timeout and a `vestal/<version>` User-Agent. The answer must have a 2xx status. |
+| `parse` | string | `"json"` | `"json"`: the body must be valid JSON. `"raw"`: the body as it is. |
 
 ### `command`
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `argv` | list of strings | required | The program and its arguments. Never run through a shell. `argv[0]` is looked up on `PATH`, then `~/.nix-profile/bin`, `/etc/profiles/per-user/$USER/bin`, `/run/current-system/sw/bin`, `/opt/homebrew/bin` and `/usr/local/bin`. A leading `~/` in any element expands to your home directory. |
+| `argv` | list of strings | required | The program and its arguments. Never run through a shell. `argv[0]` is looked up on `PATH`, then `~/.nix-profile/bin`, `/etc/profiles/per-user/$USER/bin`, `/run/current-system/sw/bin`, `/opt/homebrew/bin` and `/usr/local/bin`. A leading `~` or `~/` in any element expands to your home directory (`$HOME`, which `env` may set). |
 | `timeout` | duration | `"10s"` | The command is killed after this long. |
 | `parse` | string | `"json"` | `"json"`: stdout must be valid JSON. `"raw"`: stdout as it is. The command must exit with status 0 either way. |
 | `env` | object of strings | none | Added to the command's environment. |
 
 ### `calendar`
 
-Events from the system calendar: EventKit on macOS (vestal asks for calendar access the first time). There is no Linux backend yet.
+Events from the system calendar: EventKit on macOS (vestal asks for calendar access the first time). There is no Linux backend yet, so on Linux a calendar source reports an error. The source's data is a list of events: `title`, `start` and `end` (seconds since 1970), `allDay` and `calendar` (the calendar's name).
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `days` | integer, at least 1 | `1` | How many days ahead to read, starting today. |
+| `days` | integer, at least 1 | `1` | How many days to read: from now to the end of the `days`-th day, today being the first. |
 | `calendars` | list of strings | all | Only calendars with these names. |
 
 ## Widgets
@@ -158,7 +162,7 @@ The next events from a calendar source.
 
 ### `systemHealth`
 
-CPU, memory, temperature and uptime of hosts. Press a host's key to open its details.
+CPU, memory, temperature and uptime of hosts. Press a host's key to open its details, which come from the same health data. A host whose latest poll failed shows as offline. Hosts are polled only for systemHealth widgets listed in `views.main.order`.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -174,7 +178,7 @@ A host:
 | `url` | string | none | The host's foyer base URL, such as `"https://box.example.com"`. |
 | `source` | string | none | `"local"`: this machine, read in-process. Any other value names a source whose JSON is a foyer `/api/health` payload, used instead of `url`. |
 | `key` | string | first free letter of the name | Shortcut letter. `p` and `i` are reserved. |
-| `interval` | duration | `"5s"` | How often health is polled while the dashboard is visible. |
+| `interval` | duration | `"5s"` | How often a `url` host's health is polled. Only while the dashboard is visible, and never cached on disk. A `source` host follows its source's `refresh`. |
 
 A host needs `url` or `source`.
 
