@@ -10,13 +10,17 @@ import Foundation
 //     on disk (SnapshotCache) and served at once on the next start.
 //   - a host's health (`host:<name>`), for each foyer host the main view
 //     shows: the command `foyer-api --host <url> /api/health`, every
-//     `interval`, only while the dashboard is visible, not kept on disk.
+//     `interval`, only while the dashboard is visible. Its last good result
+//     is kept on disk too, and served on the next start if it is less than
+//     30 minutes old.
 //   - a ticker the platform layer registers (clock, stats, media, ...): a
 //     callback on the main actor, usually visible-only.
 //
 // A job is due when it isn't running, it may run now (the dashboard is
 // visible, or the job doesn't care) and its interval has passed since it last
-// started; after an error it retries after min(interval, 60s). One timer
+// started (a source, so its cadence doesn't drift) or last finished (host
+// health and tickers, so a hanging foyer-api or AppleScript never runs back
+// to back); after an error it retries after min(interval, 60s). One timer
 // sleeps until the next job is due. A finished job, `setVisible` and `apply`
 // re-plan at once, so showing the dashboard refreshes everything older than
 // its interval right away, and while it is hidden only sources run.
@@ -72,6 +76,9 @@ public final class AppRuntime {
     static let maxRetryDelay: TimeInterval = 60
     /// How long one foyer health request may take.
     static let hostTimeout = "10s"
+    /// A host's health from the disk cache shows at startup only if it is
+    /// younger than this.
+    static let hostCacheMaxAge: TimeInterval = 1800
 
     public private(set) var isVisible = false
 
@@ -89,6 +96,8 @@ public final class AppRuntime {
     /// replaced run never matches the job that took its place.
     private var lastGeneration = 0
     private var started = false
+    /// Set by `shutdown()`: nothing runs any more.
+    private var stopped = false
     private var timer: Task<Void, Never>?
 
     /// Plans the config's sources and hosts and serves the disk cache at
@@ -125,9 +134,21 @@ public final class AppRuntime {
 
     /// Starts scheduling: every due job runs now, the rest on time.
     public func start() {
-        guard !started else { return }
+        guard !started, !stopped else { return }
         started = true
         startDueJobs()
+    }
+
+    /// Stops for good, when the app quits: cancels the timer and every
+    /// running job (a running command is killed) and starts nothing more,
+    /// whatever calls follow. Unlike `setVisible(false)` it never re-plans,
+    /// so no fetch or command starts on the way out.
+    public func shutdown() {
+        stopped = true
+        started = false
+        timer?.cancel()
+        timer = nil
+        for id in Array(tasks.keys) { cancel(id) }
     }
 
     /// Visible-only jobs (host health, the platform's tickers) run only while
@@ -199,8 +220,11 @@ public final class AppRuntime {
         let id = JobID.ticker(name)
         cancel(id)
         let job = Job(work: .tick(action), plan: nil, interval: max(interval, 0.01),
-                      visibleOnly: visibleOnly, aligned: aligned)
-        if !startNow { job.lastStart = now() }
+                      visibleOnly: visibleOnly, aligned: aligned, fromEnd: true)
+        if !startNow {
+            job.lastStart = now()
+            job.lastEnd = job.lastStart
+        }
         jobs[id] = job
         replan()
     }
@@ -210,6 +234,7 @@ public final class AppRuntime {
     /// Starts every job that is due and sets the timer for the next one. The
     /// timer calls this; tests with a fake clock call it too.
     public func startDueJobs() {
+        guard !stopped else { return }
         let now = self.now()
         for (id, job) in jobs {
             if let due = nextRun(id, job, now: now), due <= now { launch(id, job, at: now) }
@@ -224,11 +249,12 @@ public final class AppRuntime {
     }
 
     /// When `job` should next start; nil while it runs, can never run, or
-    /// waits for the dashboard to show.
+    /// waits for the dashboard to show. The interval counts from the last
+    /// start, or from the last end for a `fromEnd` job.
     private func nextRun(_ id: JobID, _ job: Job, now: Date) -> Date? {
         guard job.problem == nil, tasks[id] == nil, isVisible || !job.visibleOnly else { return nil }
         // Never ran, or the clock went back: due now.
-        guard let last = job.lastStart, last <= now else { return now }
+        guard let last = job.fromEnd ? job.lastEnd : job.lastStart, last <= now else { return now }
         let wait = job.failed ? min(job.interval, Self.maxRetryDelay) : job.interval
         guard job.aligned else { return last.addingTimeInterval(wait) }
         let t = last.timeIntervalSinceReferenceDate
@@ -273,7 +299,9 @@ public final class AppRuntime {
     }
 
     private func tick(_ id: JobID, _ generation: Int) async {
-        guard let job = jobs[id], case .tick(let action) = job.work else { return }
+        // A run whose ticker was replaced before it began must not run the
+        // replacement's action: the replacement runs it itself.
+        guard let job = jobs[id], job.generation == generation, case .tick(let action) = job.work else { return }
         await action()
         finish(id, generation, .ticked)
     }
@@ -299,6 +327,7 @@ public final class AppRuntime {
         // or removed since, is dropped.
         guard let job = jobs[id], job.generation == generation else { return }
         tasks[id] = nil
+        job.lastEnd = now()
         switch outcome {
         case .ticked:
             break
@@ -353,8 +382,12 @@ public final class AppRuntime {
         var source: SourceConfig
         var interval: TimeInterval
         var visibleOnly: Bool
-        /// The disk cache entry; nil for host health.
+        /// The disk cache entry.
         var cacheName: String?
+        /// A cache entry older than this is not served (host health).
+        var maxCacheAge: TimeInterval?
+        /// The interval counts from the end of the last run (host health).
+        var fromEnd = false
         /// Set when the config rules the job out (an unknown provider).
         var problem: String?
     }
@@ -376,17 +409,20 @@ public final class AppRuntime {
         let interval: TimeInterval
         let visibleOnly: Bool
         let aligned: Bool
+        /// The interval counts from `lastEnd` instead of `lastStart`.
+        let fromEnd: Bool
         /// Why the job can never run; it is never scheduled.
         var problem: String?
         var snapshot = SourceSnapshot()
         var lastStart: Date?
+        var lastEnd: Date?
         var failed = false
         /// The running start's number (`lastGeneration`); 0 when none runs.
         var generation = 0
 
-        init(work: Work, plan: Plan?, interval: TimeInterval, visibleOnly: Bool, aligned: Bool) {
+        init(work: Work, plan: Plan?, interval: TimeInterval, visibleOnly: Bool, aligned: Bool, fromEnd: Bool) {
             self.work = work; self.plan = plan; self.interval = interval
-            self.visibleOnly = visibleOnly; self.aligned = aligned
+            self.visibleOnly = visibleOnly; self.aligned = aligned; self.fromEnd = fromEnd
         }
     }
 
@@ -411,17 +447,27 @@ public final class AppRuntime {
                                            argv: AsyncData.foyerHealthArgv(url: url), timeout: hostTimeout)
                 plans[.host(host.name)] = Plan(
                     source: command, interval: ConfigDuration.seconds(host.interval) ?? defaultInterval,
-                    visibleOnly: true, cacheName: nil,
+                    visibleOnly: true, cacheName: "host:\(host.name)", maxCacheAge: hostCacheMaxAge,
+                    fromEnd: true,
                     problem: provider == "foyer" ? nil : "unknown health provider \"\(provider)\"")
             }
         }
         return plans
     }
 
+    /// A cache entry to show at startup: any for a source, one younger than
+    /// `maxCacheAge` for host health.
+    private func servable(_ entry: SnapshotCache.Entry, for plan: Plan) -> Bool {
+        guard let maxAge = plan.maxCacheAge else { return true }
+        guard let fetchedAt = entry.snapshot.fetchedAt else { return false }
+        return now().timeIntervalSince(fetchedAt) < maxAge
+    }
+
     /// A job for `plan`, with its snapshot from the disk cache if `hydrate`.
     private func makeJob(_ key: RuntimeKey, _ plan: Plan, hydrate: Bool = true) -> Job {
         let job = Job(work: .fetch(plan.source, cacheName: plan.cacheName), plan: plan,
-                      interval: plan.interval, visibleOnly: plan.visibleOnly, aligned: false)
+                      interval: plan.interval, visibleOnly: plan.visibleOnly, aligned: false,
+                      fromEnd: plan.fromEnd)
         let knownType = SourceConfig.keysByType[plan.source.type] != nil
         if let problem = plan.problem
             ?? (knownType ? fetcher.problem(with: plan.source) : "unknown source type \"\(plan.source.type)\"") {
@@ -430,7 +476,7 @@ public final class AppRuntime {
             job.snapshot.lastError = problem
             return job
         }
-        if hydrate, let cache, let name = plan.cacheName, let entry = cache.load(name) {
+        if hydrate, let cache, let name = plan.cacheName, let entry = cache.load(name), servable(entry, for: plan) {
             job.snapshot = entry.snapshot
             // Data from another definition of the source shows until the new
             // fetch lands, which runs at once.

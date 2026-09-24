@@ -59,6 +59,8 @@ final class DashboardModel: ObservableObject {
     let barClaude: ClaudeUsage.Options
 
     private let runtime: AppRuntime
+    /// Where each player's last state is kept for the next start.
+    private let cache: SnapshotCache?
     /// The hosts the layout shows, the first entry of each name.
     private let hosts: [HostConfig]
     /// The root volume, for the local host's popup.
@@ -80,10 +82,11 @@ final class DashboardModel: ObservableObject {
     private static var loggedUnknownTypes: Set<String> = []
 
     /// Reads everything once, synchronously, so the first frame is complete
-    /// (the runtime's snapshots come from its disk cache); then follows the
-    /// runtime and registers the tickers.
-    init(runtime: AppRuntime, config: Config) {
+    /// (the runtime's snapshots and each player's last state come from the
+    /// disk cache); then follows the runtime and registers the tickers.
+    init(runtime: AppRuntime, config: Config, cache: SnapshotCache?) {
         self.runtime = runtime
+        self.cache = cache
         let layout = DashboardLayout(config: config)
         self.layout = layout
         background = config.theme.backgroundStyle
@@ -123,6 +126,13 @@ final class DashboardModel: ObservableObject {
         network = stats.networkRate()
         volume = MacPlatform.audio.volume()
         privacyMode = privacy.mapValues { $0.isEnabled() }
+        // The media row as it last was, until the player answers: without it
+        // the row would appear a moment after the dashboard, shifting it.
+        if let cache {
+            for player in players {
+                if let playing = cache.loadNowPlaying(player: player) { nowPlaying[player] = playing }
+            }
+        }
 
         for skipped in layout.unknownTypes
         where Self.loggedUnknownTypes.insert("\(skipped.key)\u{0}\(skipped.type)").inserted {
@@ -230,6 +240,8 @@ final class DashboardModel: ObservableObject {
     }
 
     private func refreshStats() {
+        // CoreAudio answers at once; the media ticker waits on AppleScript.
+        if !players.isEmpty { update(\.volume, MacPlatform.audio.volume()) }
         let stats = MacPlatform.stats
         update(\.cpu, stats.cpuPercent())
         update(\.memory, stats.memory())
@@ -241,13 +253,16 @@ final class DashboardModel: ObservableObject {
     }
 
     private func refreshMedia() async {
-        update(\.volume, MacPlatform.audio.volume())
         // One player after another: AppleScript runs on one serial queue.
         for player in players.keys.sorted() {
             guard let provider = players[player] else { continue }
             let generation = mediaGeneration[player, default: 0]
             let playing = await provider.nowPlaying()
-            if generation == mediaGeneration[player, default: 0] { update(\.nowPlaying, player, playing) }
+            guard generation == mediaGeneration[player, default: 0], nowPlaying[player] != playing else { continue }
+            update(\.nowPlaying, player, playing)
+            if let cache {
+                Task.detached(priority: .utility) { cache.saveNowPlaying(playing, player: player) }
+            }
         }
     }
 
