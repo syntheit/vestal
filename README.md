@@ -89,16 +89,24 @@ instead:
 ## Usage
 
 ```sh
-vestal                 # start the dashboard and show it
+vestal                 # start the dashboard and show it (or show the running one)
 vestal daemon          # start it hidden (the launch agent does this)
 vestal toggle          # show or hide; show and toggle start vestal if needed
 vestal show | hide
-vestal reload          # re-read the config (it is also watched for changes)
-vestal status          # config path, warnings, and each source's state
-vestal quit
+vestal reload          # re-read the config (also on SIGHUP and when the file changes)
+vestal status          # pid, build, config file, warnings, each source's age and error
+vestal quit            # quit (also on SIGTERM); Escape and hide only hide it
 vestal check-config [path]   # check a config file
 vestal print-config [path]   # the effective config, defaults merged in
 ```
+
+vestal stays running while hidden and costs next to nothing then. `hide`,
+`reload`, `status` and `quit` never start it: they exit 1 when it is not
+running. Exit codes: 0 ok, 1 error or not running, 2 usage. `vestal daemon`
+exits 0 when vestal already runs, or replaces a running instance of another
+build. The built-in hotkey (`hotkey` in the config) toggles too. The Linux
+package has the command-line tool only for now: starting the dashboard there
+exits 1.
 
 ## Build
 

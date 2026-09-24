@@ -36,9 +36,44 @@ in
             echo "BuildInfo.commit was not stamped" >&2
             exit 1
           fi
-          vestal help > /dev/null
           vestal check-config ${../examples/full.json}
           vestal print-config ${../examples/full.json} | jq -e 'type == "object"' > /dev/null
+
+          # The CLI contract the launch agent and activation rely on.
+          vestal help > help
+          for command in daemon toggle show hide reload status quit check-config print-config; do
+            grep -qE "^  $command " help
+          done
+          # With no instance, hide, reload, status and quit say so and exit 1;
+          # none of them starts one.
+          for command in hide reload status quit; do
+            rc=0
+            vestal "$command" > out 2> err || rc=$?
+            if [ "$rc" != 1 ] || ! grep -qxF 'vestal: not running' err; then
+              echo "vestal $command with no instance: exit $rc, $(cat err)" >&2
+              exit 1
+            fi
+          done
+          rc=0
+          vestal status > /dev/null 2>&1 || rc=$?
+          [ "$rc" = 1 ]
+          # Usage errors exit 2.
+          rc=0
+          vestal bogus 2> /dev/null || rc=$?
+          [ "$rc" = 2 ]
+          rc=0
+          vestal toggle now 2> /dev/null || rc=$?
+          [ "$rc" = 2 ]
+        ''
+        + lib.optionalString isLinux ''
+          # No dashboard on Linux yet: starting one exits 1, and so do show
+          # and toggle, which would start one. No socket appears.
+          for command in "" daemon show toggle; do
+            rc=0
+            vestal $command 2> /dev/null || rc=$?
+            [ "$rc" = 1 ]
+          done
+          test -z "$(find "$TMPDIR" -maxdepth 1 -name 'vestal-*.sock*' -print -quit)"
         ''
         + lib.optionalString isDarwin ''
           app=${vestal}/Applications/Vestal.app
