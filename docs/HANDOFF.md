@@ -6,7 +6,7 @@ Written by the agent executing `docs/TASKS.md`, read by the owner who pulls the 
 
 (One paragraph: which phases are done, what is unverified, and whether the branch is expected to compile on macOS.)
 
-In progress. Phases 0, 1 and 2 done; phase 3 (config) implemented and awaiting review. Every macOS file compiles and links here against the macOS 14.4 SDK (see Environment), and CI's `macos` job (macos-14, Xcode 15.4) builds the release app and runs `swift test`, so the branch is expected to compile on macOS; runtime behaviour and the darwin Nix build are unverified (see "Unverified on macOS").
+In progress. Phases 0 to 3 done; phase 4 (runtime) in progress. Every macOS file compiles and links here against the macOS 14.4 SDK (see Environment), and CI's `macos` job (macos-14, Xcode 15.4) builds the release app and runs `swift test`, so the branch is expected to compile on macOS; runtime behaviour and the darwin Nix build are unverified (see "Unverified on macOS").
 
 Invariants (TASKS) that still fail, and the phase that clears each:
 - `"/tmp` literals: `Sources/VestalCore/AsyncData.swift` (`/tmp/dashboard-cache`, host health and calendar caches) and `Sources/VestalMac/SystemBridge.swift` (CPU ticks, network bytes and the Spotify cache: phase 4 deletes them; the privacy state file `/tmp/.privacy-mode`: phase 5 reads it from config).
@@ -43,7 +43,7 @@ Since phase 2 every macOS file is also compiled here against the macOS 14.4 SDK 
 - **Config file location** (`Sources/VestalCore/ConfigLoader.swift`). `~/Library/Application Support/Vestal/config.json` is no longer read (PLAN drops it). The file is `$VESTAL_CONFIG`, else `$XDG_CONFIG_HOME/vestal/config.json`, else `~/.config/vestal/config.json`. If the Mac has a file at the old path, move it.
 - **Startup log** (`Sources/VestalMac/App.swift:16-25`). `log stream --predicate 'process == "vestal"'` shows `[vestal] config <path>: 4 sources, 8 widgets, 1 views, 0 warnings` for `examples/full.json`, then one line per warning. The messages are passed as `NSLog("%@", …)` arguments because they quote config values, which may contain `%`.
 - **Local host name** (`Sources/VestalCore/Config.swift`, `LocalHost.shortName`). A local host without `name` shows `gethostname()` up to the first dot. `examples/full.json` still names it `swift`, so only the defaults (no config file) show the Mac's hostname; a long hostname is cut by the 60pt name column.
-- **Parse error positions** (`Sources/VestalCore/AnyJSON.swift`, `locate`). On macOS the line and column come from Objective-C `JSONSerialization` (its `NSJSONSerializationErrorIndex` or its "around line L, column C" text); Linux was tested. Check: `printf '{\n  "hotkey": x\n}\n' > /tmp/bad.json && vestal check-config /tmp/bad.json` should say `line 2, column 13`. A truncated file may get no position on macOS.
+- **Parse error positions** (`Sources/VestalCore/AnyJSON.swift`, `locate`). On macOS the line and column come from Objective-C `JSONSerialization` (its `NSJSONSerializationErrorIndex`, or else its "around line L, column C" text, whose column counts from 0); Linux was tested. Check: `printf '{\n  "hotkey": x\n}\n' > /tmp/bad.json && vestal check-config /tmp/bad.json` should say `line 2, column 13`. A truncated file may get no position on macOS.
 - **Dashboard unchanged.** The views still read the same widget keys (`clock`, `systemBar`, `agenda`, `systems`, `exchange`, `weather`) and ignore `views.main.order`, titles, units, `player`, host `key`, privacy and Claude options until phase 5. Until then the privacy item follows `show` alone and `p` still runs the old hardcoded script, even though check-config already describes the phase 5 rule.
 
 ### Phase 2 (package split)
@@ -81,14 +81,15 @@ Decisions made without the owner, and why.
 
 - **Phase 3: `examples/full.json` reproduces `9c17bfc`, not its old defaults' wording.** The exchange widget is titled "Currencies" (the old view ignored the config's "Exchange" and hardcoded "Currencies"). The local host keeps `"name": "swift"` for exact parity; dropping it makes the name follow the hostname, which suits one config shared by swift and mantle. The media widget keeps the key `spotify` (TASKS' order) with type `media`, and `"media": null` deletes the default `media` widget so the merged config has no stray entry. Privacy uses `["bash", "~/.local/bin/toggle-privacy"]` and `/tmp/.privacy-mode`, as phase 1 runs it today (a personal path in an example, not in `Sources/`).
 - **Phases 4/5 must expand `~/` in every argv element.** CONFIG.md promises it for command sources and the privacy command, and `examples/full.json` relies on it (`bash` gets the script path as an argument, and bash does not expand `~` there). `CommandRunner` only expands `argv[0]` today; `CommandRunner.expandTilde` is the helper.
-- **Decoding never fails as a whole.** A wrong-typed value counts as absent (its default applies), and a source, widget, host, world clock or item missing a required key is dropped alone (`Lossy`), each with a check-config warning. Before, one bad value made the whole file fall back to the defaults.
+- **Decoding never fails as a whole.** A wrong-typed value counts as absent (the key's own default applies; the built-in layer's value was already merged away, which the warning says), and a source, widget, host, world clock or item missing a required key is dropped alone (`Lossy`), each with a check-config warning. Before, one bad value made the whole file fall back to the defaults.
 - **Warnings are computed from the merged JSON, next to the decoder** (`ConfigValidator`): per-type key tables in `Config.swift` drive both. Besides TASKS' list they flag wrong JSON types, required keys, duplicate or reserved host keys, order entries listed twice, a missing `views.main`, agenda/weather sources of the wrong kind, and `privacy` listed in `show` without both options. check-config also merges and checks the other OS's `platform` block, tagged `[linux]`/`[macos]`, since the same file serves both machines.
 - **check-config exits 1 for an unreadable or missing file too**, not only for a parse error: in both cases the file is not in effect. print-config prints nothing and exits 1 then; otherwise it prints the merged tree before decoding (unknown keys stay visible) with warnings on stderr.
 - **print-config has its own pretty printer** (`AnyJSON.prettyPrinted`): two-space indent, sorted keys, `{}`/`[]` for empty containers, the same bytes on both platforms (corelibs' `JSONEncoder` prints empty containers across two lines). Scalars are still escaped by `JSONEncoder`.
 - **Removed `fixedLocation` and the widget-level `pick`** along with `extras`: nothing ever read them. They now draw an unknown-key warning.
 - **`AnyJSON.matches` compares an int selector with a decimal exactly** (`Int(exactly:)`). The old `Int(o) == i` matched 3.5 against 3 and trapped on a huge value.
 - **Parse error positions come from `JSONSerialization`.** JSONDecoder's error has no position on Linux (an internal enum), so after it fails the same bytes go through `JSONSerialization`, whose message or `NSJSONSerializationErrorIndex` gives the offset. "Unexpected end of file" points at the end of the file.
-- **Trailing commas: known gap.** corelibs Foundation accepts `{"a": 1,}`, Darwin does not, so such a file works on Linux but is a parse error on macOS; check-config on Linux cannot see it.
+- **The same JSON parses everywhere** (phase 3 review). corelibs accepts a trailing comma (`{"a": 1,}`) and rejects a UTF-8 byte order mark; Darwin does the opposite. vestal rejects trailing commas itself (a string-aware scan before decoding, with line and column) and skips a leading BOM, so check-config on Linux answers for the Mac too.
+- **Counts and limits below 1 count as absent** (phase 3 review): `maxEvents`, `days`, `fiveHourLimit` and `weeklyLimit`, with a warning that names the default used. `maxEvents: -1` used to reach `prefix(-1)`, which traps.
 - **`XDG_CONFIG_HOME` that is relative is ignored** (the XDG spec says so), and when it is set there is no fallback to `~/.config`. `$VESTAL_CONFIG` gets `~/` expansion.
 - **`systemBar.show` absent or empty still means every item**, as the current view does.
 - **The hotkey string is only type-checked until phase 6**, when the parser (track B) exists.
@@ -117,6 +118,25 @@ Decisions made without the owner, and why.
 ## Phase log
 
 Per phase: commits, what changed, review findings and how they were resolved.
+
+### Phase 3: Config
+
+- `adbbbf1` Load the config in layers over generic JSON defaults. `AnyJSON` holds the whole JSON tree and reports parse errors with line and column. `ConfigLoader` resolves `$VESTAL_CONFIG`, then `$XDG_CONFIG_HOME/vestal/config.json` or `~/.config/vestal/config.json`, and merges defaults, the file and its `platform.<os>` block (objects key by key, lists and scalars replace, `null` deletes). `DefaultConfig` is a generic JSON document. Decoding is permissive (a bad entry drops alone, a wrong type counts as absent) and `ConfigValidator` reports what it ignored. `examples/full.json` is the `9c17bfc` setup. `extras`, `fixedLocation` and the widget-level `pick` are gone.
+- `c9689c9` Add check-config and print-config. The core is `ConfigCommands` in VestalCore (tested); exit codes 0 ok, 1 unreadable or unparsable, 2 usage.
+- `44c1fb9` Document the config in docs/CONFIG.md. A test keeps its defaults block equal to `DefaultConfig` and loads its complete example with zero warnings.
+- `0cf1e28` Count only pipes and sockets in the fd leak test (it failed under another agent's stress run; see Judgment calls).
+- `825cb72` Record phase 3 notes in HANDOFF.
+- `98dcc14` Address phase 3 review findings (below).
+- Review (1 subagent, `91b72cc..825cb72`): 1 medium and 7 low findings, all fixed in `98dcc14`:
+  - medium: `maxEvents: -1` decoded as -1 and reached `prefix(-1)`, which traps. Counts and limits below 1 now decode as absent, and the warning names the default used.
+  - `ConfigDuration.parse` trapped on overflow (`"999999999999999999m"`), in check-config and at startup. Now it is an invalid duration.
+  - "A wrong-typed value counts as absent, so the default applies" only holds for a key's own default: the merge has already replaced the built-in layer's value. CONFIG.md says so, and the warnings now end "treated as absent; the built-in value is not restored".
+  - CONFIG.md now says that redefining a default source or widget under its own name keeps the default's other keys, and how to avoid that.
+  - Darwin's "around line L, column C" message counts columns from 0; the fallback now adds 1 (the test had the same off-by-one).
+  - A leading UTF-8 byte order mark is skipped (Darwin accepted one, corelibs did not).
+  - Trailing commas are rejected on every platform, with line and column (corelibs accepted them, Darwin did not); documented.
+  - The `examples/full.json` test compares the whole decoded config with a literal built from `9c17bfc`'s `DefaultConfig` plus the documented deltas, so URLs, time zones, refresh intervals and every match, pick and format are pinned.
+- Verification: `swift build && swift test` on Linux (133 tests pass); `mac-typecheck` of all three modules against the macOS 14.4 SDK plus the `ld64.lld` link: no errors, no warnings, no undefined symbols. CI run #4 (`825cb72`) is green: `linux`, and `macos` (Xcode 15.4 release build and `swift test`).
 
 ### Phase 2: Package split
 

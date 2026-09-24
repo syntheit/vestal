@@ -88,10 +88,10 @@ Tests/VestalCoreTests/  XCTest
 
 ## Phase 3: Config complete
 
-- [ ] **Loader:** `$VESTAL_CONFIG`, then `$XDG_CONFIG_HOME/vestal/config.json` (fallback `~/.config/vestal/config.json`), then none. Drop the Application Support path. Return a `LoadedConfig` with the resolved path, the merged `Config`, and a list of warnings. On a parse error, keep the defaults, record the error as a warning (with line/column if Foundation gives it), and surface it in `vestal status` and `check-config`.
-- [ ] **Merge:** implement a deep merge over `[String: Any]`/JSON values, as specified in PLAN "Layering". Order: defaults, then the user file, then the user's `platform.macos` or `platform.linux`. Decode after merging. Tests: object merge, array replace, `null` delete, platform override, and that `platform` is stripped before decoding.
-- [ ] **Defaults as JSON:** express the built-in defaults as a JSON document (a Swift string literal or a bundled resource; the string literal is simpler under Nix), so merging happens at the JSON level. Remove the Swift-struct `DefaultConfig` or derive it from the JSON.
-- [ ] **Generic defaults** (no personal data):
+- [x] **Loader:** `$VESTAL_CONFIG`, then `$XDG_CONFIG_HOME/vestal/config.json` (fallback `~/.config/vestal/config.json`), then none. Drop the Application Support path. Return a `LoadedConfig` with the resolved path, the merged `Config`, and a list of warnings. On a parse error, keep the defaults, record the error as a warning (with line/column if Foundation gives it), and surface it in `vestal status` and `check-config`.
+- [x] **Merge:** implement a deep merge over `[String: Any]`/JSON values, as specified in PLAN "Layering". Order: defaults, then the user file, then the user's `platform.macos` or `platform.linux`. Decode after merging. Tests: object merge, array replace, `null` delete, platform override, and that `platform` is stripped before decoding.
+- [x] **Defaults as JSON:** express the built-in defaults as a JSON document (a Swift string literal or a bundled resource; the string literal is simpler under Nix), so merging happens at the JSON level. Remove the Swift-struct `DefaultConfig` or derive it from the JSON.
+- [x] **Generic defaults** (no personal data):
   - `clock`: local time only, no world clocks.
   - `systemBar`: `["uptime","disk","battery","network"]`.
   - `media`: type `media`, `hideWhenOff: true`.
@@ -99,8 +99,8 @@ Tests/VestalCoreTests/  XCTest
   - `systems`: local host only.
   - `weather`: wttr.in auto-location.
   - `views.main.order` accordingly.
-- [ ] **`examples/full.json`:** the owner's exact current setup, i.e. what `DefaultConfig.swift` at `9c17bfc` expresses: BA/NYC/CHI clocks, hosts swift (local), harbor, raven and conduit (`https://<host>.matv.io`, provider foyer), dolarapi blue/oficial/bolsa and BRL from `syntheit/exchange-rates`, systemBar `["uptime","disk","battery","claudeUsage","network","privacy"]`, the weather fields, and the view order `clock, systemBar, spotify, agenda, systems, exchange, weather`. Also include every option added in phases 4 and 5 that is needed to reproduce today's hardcoded behaviour (Claude limits 8,000,000 / 95,000,000, the privacy command `~/.local/bin/toggle-privacy` with state file `/tmp/.privacy-mode`, media player Spotify). Test: `examples/full.json` loads with zero warnings and yields the expected widgets and order.
-- [ ] **Schema additions** (document every one in `docs/CONFIG.md`):
+- [x] **`examples/full.json`:** the owner's exact current setup, i.e. what `DefaultConfig.swift` at `9c17bfc` expresses: BA/NYC/CHI clocks, hosts swift (local), harbor, raven and conduit (`https://<host>.matv.io`, provider foyer), dolarapi blue/oficial/bolsa and BRL from `syntheit/exchange-rates`, systemBar `["uptime","disk","battery","claudeUsage","network","privacy"]`, the weather fields, and the view order `clock, systemBar, spotify, agenda, systems, exchange, weather`. Also include every option added in phases 4 and 5 that is needed to reproduce today's hardcoded behaviour (Claude limits 8,000,000 / 95,000,000, the privacy command `~/.local/bin/toggle-privacy` with state file `/tmp/.privacy-mode`, media player Spotify). Test: `examples/full.json` loads with zero warnings and yields the expected widgets and order.
+- [x] **Schema additions** (document every one in `docs/CONFIG.md`):
   - Source `command`: `argv: [String]`, `timeout` (duration, default `10s`), `refresh`, `parse` (`json`|`raw`), `env: {String:String}` (optional).
   - Source `calendar` (alias `eventkit`): `refresh`, `days` (lookahead, default 1), `calendars: [String]?` (name filter).
   - Host: `name` optional for `source: "local"` (defaults to the short hostname), `key` (optional shortcut letter), `interval` (health poll interval, default `5s`).
@@ -110,10 +110,10 @@ Tests/VestalCoreTests/  XCTest
   - `theme.background`: `aurora` | `blur` | `none`.
   - Weather `units`: `metric` | `imperial`.
   - Top-level `platform: { macos: {...}, linux: {...} }`.
-- [ ] **Unknown-key warnings:** `check-config` reports unknown top-level, source, widget and view keys, unknown widget/source `type`s, view `order` entries that name missing widgets, widgets whose `source` names a missing source, and invalid durations. Decoding stays permissive; warnings never stop the app.
-- [ ] Remove the `extras` field (it never worked; see Config.swift:125-127) or make it actually capture unknown keys. Removal is preferred.
-- [ ] **CLI:** `vestal check-config [path]` (exit code 0 means ok even with warnings, 1 means parse error) and `vestal print-config [path]` (effective merged JSON, pretty and sorted). Both run on Linux. Tests cover their core functions.
-- [ ] Write `docs/CONFIG.md`: resolution order, layering and merge rules, the `platform` block, every source and widget type with every key, type and default, and one complete example. It must match the decoder exactly; the final review checks this.
+- [x] **Unknown-key warnings:** `check-config` reports unknown top-level, source, widget and view keys, unknown widget/source `type`s, view `order` entries that name missing widgets, widgets whose `source` names a missing source, and invalid durations. Decoding stays permissive; warnings never stop the app.
+- [x] Remove the `extras` field (it never worked; see Config.swift:125-127) or make it actually capture unknown keys. Removal is preferred.
+- [x] **CLI:** `vestal check-config [path]` (exit code 0 means ok even with warnings, 1 means parse error) and `vestal print-config [path]` (effective merged JSON, pretty and sorted). Both run on Linux. Tests cover their core functions.
+- [x] Write `docs/CONFIG.md`: resolution order, layering and merge rules, the `platform` block, every source and widget type with every key, type and default, and one complete example. It must match the decoder exactly; the final review checks this.
 
 ## Phase 4: Runtime (C3b) and live data
 
