@@ -107,6 +107,16 @@ public enum ConfigLoader {
         return "\(base)/vestal/config.json"
     }
 
+    /// The file vestal reads, whether or not it exists yet: what the
+    /// resident app watches for changes.
+    public static func watchedPath(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        home: String = NSHomeDirectory()
+    ) -> String {
+        resolvePath(environment: environment, home: home, fileExists: { _ in true })
+            ?? searchPath(environment: environment, home: home)
+    }
+
     /// The config file to read, or nil for the defaults alone.
     public static func resolvePath(
         environment: [String: String] = ProcessInfo.processInfo.environment,

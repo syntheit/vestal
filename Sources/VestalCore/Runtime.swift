@@ -130,6 +130,19 @@ public final class AppRuntime {
         jobs[.snapshot(key)]?.snapshot
     }
 
+    /// Every source and host health job, sources first, each sorted by name.
+    public var keys: [RuntimeKey] {
+        var sources: [String] = [], hosts: [String] = []
+        for id in jobs.keys {
+            switch id {
+            case .snapshot(.source(let name)): sources.append(name)
+            case .snapshot(.host(let name)): hosts.append(name)
+            case .ticker: break
+            }
+        }
+        return sources.sorted().map { .source($0) } + hosts.sorted().map { .host($0) }
+    }
+
     // MARK: Lifecycle
 
     /// Starts scheduling: every due job runs now, the rest on time.
@@ -140,15 +153,18 @@ public final class AppRuntime {
     }
 
     /// Stops for good, when the app quits: cancels the timer and every
-    /// running job (a running command is killed) and starts nothing more,
-    /// whatever calls follow. Unlike `setVisible(false)` it never re-plans,
-    /// so no fetch or command starts on the way out.
+    /// running job and starts nothing more, whatever calls follow. Unlike
+    /// `setVisible(false)` it never re-plans, so no fetch or command starts
+    /// on the way out. Every command still running in this process, the
+    /// runtime's or not, is killed at once (`killRunningChildren`), so none
+    /// outlives the app.
     public func shutdown() {
         stopped = true
         started = false
         timer?.cancel()
         timer = nil
         for id in Array(tasks.keys) { cancel(id) }
+        CommandRunner.killRunningChildren()
     }
 
     /// Visible-only jobs (host health, the platform's tickers) run only while
@@ -227,6 +243,13 @@ public final class AppRuntime {
         }
         jobs[id] = job
         replan()
+    }
+
+    /// Stops and forgets the ticker called `name`, if there is one.
+    public func removeTicker(name: String) {
+        let id = JobID.ticker(name)
+        cancel(id)
+        jobs[id] = nil
     }
 
     // MARK: Scheduling

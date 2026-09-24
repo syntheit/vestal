@@ -652,4 +652,40 @@ final class RuntimeTests: XCTestCase {
         runtime = nil
         await waitUntil { fetcher.cancelledKeys == ["https://a.example"] }
     }
+
+    @MainActor
+    func testShutdownKillsRunningCommandsAtOnce() async {
+        let before = Set(CommandRunner.runningProcessIDs)
+        let slow = SourceConfig(type: "command", argv: ["sleep", "30"], timeout: "60s")
+        let runtime = AppRuntime(config: runtimeConfig(sources: ["slow": slow]), fetcher: LiveFetcher(), cache: nil)
+        runtime.start()
+        await waitUntil { !Set(CommandRunner.runningProcessIDs).subtracting(before).isEmpty }
+        let child = Set(CommandRunner.runningProcessIDs).subtracting(before)
+        let started = Date()
+        runtime.shutdown()
+        // Gone well before the SIGKILL that follows a cancelled run's SIGTERM
+        // (on Linux the child may block SIGTERM; see CommandRunner).
+        await waitUntil { Set(CommandRunner.runningProcessIDs).isDisjoint(with: child) }
+        XCTAssertLessThan(Date().timeIntervalSince(started), 0.9)
+    }
+
+    @MainActor
+    func testKeysAndRemovingATicker() async {
+        let clock = FakeClock()
+        let runtime = AppRuntime(
+            config: runtimeConfig(sources: ["b": http("https://b.example"), "a": http("https://a.example")],
+                                  hosts: [HostConfig(name: "box", url: "https://box.example")]),
+            fetcher: FakeFetcher(), cache: nil, now: { clock.now })
+        XCTAssertEqual(runtime.keys, [.source("a"), .source("b"), .host("box")])
+
+        var ticks = 0
+        runtime.addTicker(name: "t", interval: 1, visibleOnly: false) { ticks += 1 }
+        runtime.startDueJobs()
+        await waitUntil { ticks == 1 }
+        runtime.removeTicker(name: "t")
+        clock.advance(5)
+        runtime.startDueJobs()
+        await settle()
+        XCTAssertEqual(ticks, 1, "a removed ticker never runs again")
+    }
 }
