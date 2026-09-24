@@ -6,9 +6,11 @@ Written by the agent executing `docs/TASKS.md`, read by the owner who pulls the 
 
 (One paragraph: which phases are done, what is unverified, and whether the branch is expected to compile on macOS.)
 
-In progress. Phases 0 and 1 done. The phase 1 fixes to macOS-only code are unverified here (see "Unverified on macOS"); the branch is expected to compile on macOS, and the CI `macos` job is the check.
+In progress. Phases 0 and 1 done; phase 2 (package split) implemented and awaiting review. Every macOS file compiles here against the macOS 14.4 SDK (see Environment), so the branch is expected to compile on macOS; runtime behaviour and the darwin Nix build are unverified (see "Unverified on macOS"). The CI `macos` job is the independent check.
 
 ## Environment
+
+- **macOS compile check on Linux: yes, since phase 2.** The official Swift 5.10.1 Linux toolchain can typecheck *and* compile `VestalCore`, `VestalMac` and `main.swift` for `arm64-apple-macosx14.0` (and `x86_64-…`) against the real macOS 14.4 SDK, the same `apple-sdk_14` store path nixpkgs uses for darwin (`/nix/store/c3xfmn0gi4zss7yzgh2k969xcjjyv5p0-macOS-SDK-14.4`, substituted from cache.nixos.org with `nix-store -r`). Recipe: a private resource dir with symlinks to the toolchain's `lib/swift/clang` and `lib/swift/shims` (the toolchain's Linux `dispatch` module map clashes with the SDK's) plus an `apinotes/os.apinotes` that restores the Darwin-toolchain renames the `os` overlay needs (`OS_os_log`→`OSLog`, `os_log_type_t`→`OSLogType`, `os_signpost_type_t`→`OSSignpostType`, `os_log_type_enabled`→`OSLog.isEnabled(self:type:)`, `_os_log_impl`/`_os_signpost_emit_with_name_impl` SwiftPrivate); then `swiftc -target arm64-apple-macosx14.0 -sdk $SDK -resource-dir $RES -module-name VestalCore -parse-as-library -emit-module -c -wmo Sources/VestalCore/*.swift`, the same for `VestalMac` with `-I` on the first module's output, then `main.swift`. It catches wrong API names, signatures, availability and actor isolation (checked with deliberate errors), and warnings show. It does not link, run, or cover XCTest on Darwin. Phase 1 (`deefaee`) and phase 2 both compile this way with zero errors and zero warnings.
 
 - Swift version used: **5.10.1** (`swift-5.10.1-RELEASE`, x86_64 Linux). `download.swift.org` is blocked by the session's egress proxy, so the official toolchain came from the `swift:5.10.1-noble` Docker Hub image (the toolchain layer, verified against its sha256 digest) and is unpacked at `/opt/swift-official`. nixpkgs' Swift at the `flake.lock` revision is also **5.10.1**, so both toolchains match the Nix build on the Mac.
 - nixpkgs' Linux Swift lacks `libIndexStore.so`, so `swift test` (XCTest discovery) only works with the official toolchain. nixpkgs' `swift build` works if `LD_LIBRARY_PATH` includes libdispatch (nixpkgs' own `swift-format` derivation does the same).
@@ -20,7 +22,7 @@ In progress. Phases 0 and 1 done. The phase 1 fixes to macOS-only code are unver
 Ordered checklist for the owner. Each item is a command plus the expected result. Always include:
 
 0. Get the branch: `git fetch origin macos-v0.3 && git checkout macos-v0.3`.
-1. `nix build .#default` or `swift build -c release`: builds.
+1. `nix build .#default` or `swift build -c release`: builds. Run `rm -rf .build` first: phase 2 renamed the targets (`Vestal` became `VestalCore`, `VestalMac` and `vestal`), and on a case-insensitive disk a stale `Vestal.build` shadows `vestal.build`.
 2. `VESTAL_CONFIG=$PWD/examples/full.json .build/release/vestal`: looks identical to the old dashboard.
 3. `vestal toggle` twice: shows then hides; the process stays alive.
 4. While hidden, `top -pid $(pgrep -x vestal)` shows ~0% CPU.
@@ -30,9 +32,21 @@ Ordered checklist for the owner. Each item is a command plus the expected result
 
 Every change that could not be compiled or run here, with file:line and what to look for.
 
+Since phase 2 every macOS file is also compiled here against the macOS 14.4 SDK (see Environment), so API names, signatures and actor isolation are checked. What remains unverified is runtime behaviour and the Nix build on the Mac.
+
+### Phase 2 (package split)
+
+- **Nix build with SwiftPM** (`package.nix`, `flake.nix`). `nix build .#default` on swift. The same `package.nix` builds the CLI on Linux with the pinned nixpkgs (SwiftPM, `--product vestal`, BuildInfo stamped), but darwin differs: the frameworks come from nixpkgs' `apple-sdk` 14.4, and SwiftPM passes its own `-target arm64-apple-macosx14.0` after the one the nixpkgs Swift wrapper adds (the later flag should win; the SDK minimum is 14.0 either way). If it fails, the raw-`swiftc` fallback from TASKS (one invocation per module) is the plan B. Then `./result/bin/vestal version` shows the short commit.
+- **App entry** (`Sources/VestalMac/App.swift:15-35`). `VestalApp.run()` now owns the `NSApplication` setup that was top-level code in `main.swift`. It enters the main actor with `MainActor.assumeIsolated` (Swift 5.10 treats synchronous top-level code as nonisolated) and keeps the weakly held delegate alive with `withExtendedLifetime`. Look for: the window appears at launch (a released delegate would mean no window and no error).
+- **Platform adapters** (`Sources/VestalMac/MacPlatform.swift:13-52`). Thin classes over the moved `SystemBridge` functions. The dashboard should look exactly as before: CPU/RAM/temperature bars, battery, volume, now playing, privacy icons.
+- **System bar strings** (`Sources/VestalMac/SystemBridge.swift:183-196`, `Sources/VestalCore/Formatters.swift`). Uptime (`3d 4h`/`4h 12m`), disk (`245/494GB`), battery time left, the agenda's "in 25m" and the weather's "sets in 2h 5m" are now produced by `Format` (tested byte for byte on Linux). They should read exactly as before.
+- **Calendar through `CalendarProvider`** (`MacPlatform.swift:55-94`, `Sources/VestalCore/AsyncData.swift` `getTodayEvents(from:)`). Access request and query now use one `EKEventStore` each, created off the main thread; the request's store is kept alive until the answer arrives. If calendar access was never granted, the prompt still appears and the agenda fills after granting; with access already granted, today's events show as before.
+- **HTTP fetches without async URLSession** (`Sources/VestalCore/Runtime.swift:127`, `:247-293`). corelibs Foundation has no `data(for:)`, so every platform now uses `dataTask` plus a continuation (cancelling the task cancels the request). Weather and exchange must still load; `log stream --predicate 'process == "vestal"'` must not show `[vestal] source … fetch failed`.
+- **CLI** (`Sources/vestal/main.swift`). `vestal version`, `vestal help`, `vestal toggle|show|hide` behave as before on macOS.
+
 ### Phase 1 (bug fixes)
 
-Line numbers are at `deefaee`, before phase 2 moved the files.
+Line numbers are at `deefaee`, before phase 2 moved the files: `CommandRunner.swift`, `AsyncData.swift` and `Runtime.swift` are now in `Sources/VestalCore/`; the views and `SystemBridge.swift` are in `Sources/VestalMac/`; the app-delegate half of `main.swift` is `Sources/VestalMac/App.swift`. All of these compile for macOS now; the checks below are about behaviour.
 
 - **Fd leak check for the command runner** (`Sources/Vestal/CommandRunner.swift`, the whole file on Darwin). Leave the dashboard open for a few minutes (host health spawns `foyer-api` every 5s): `lsof -p $(pgrep -x vestal) | grep -c PIPE` must stay flat. On Linux the equivalent leak (2 fds per run in corelibs Foundation) is fixed and measured flat over 200 runs; Darwin Foundation is a different implementation.
 - **Host popup cancellation** (`Sources/Vestal/DashboardView.swift:184-199`). Open a remote host (its letter), press Esc before it loads, open it again: no "offline" flash. With one host open, press another host's letter: the popup shows "loading…", never the previous host's numbers.
@@ -51,6 +65,17 @@ Line numbers are at `deefaee`, before phase 2 moved the files.
 ## Judgment calls
 
 Decisions made without the owner, and why.
+
+- **Platform protocols are thin adapters over the moved `SystemBridge` code.** TASKS says to move the Mach/SMC/IOKit/CoreAudio/AppleScript code, not rewrite it. `SystemBridge` moved to `VestalMac` nearly unchanged (it returns the portable value types now); `MacPlatform` wraps it in `SystemStatsProvider`, `MediaProvider`, `AudioProvider` and `PrivacyProvider` classes, and the EventKit code from `AsyncData` became `EventKitCalendar`. Phase 4 moves the CPU/network deltas into the stats instance, which is when the code itself should move into the class.
+- **More display strings moved to `Format` than the minimum.** Besides uptime, disk and rates, the battery time left, the agenda's "in 25m" and the weather's sun context are pure functions of numbers and times, so they moved too and are covered by tests. Output is byte-identical.
+- **A missing exchange pick key renders as empty.** Writing the tests showed that an item whose `picks` lacked `buy` or `sell` resolved an empty path, i.e. the whole matched object, and rendered its dictionary dump. A missing key now gives "". An explicit `""` path still means "the element itself". Configs with both keys (all real ones) are unaffected.
+- **Executable target `vestal` in `Sources/vestal/`, as TASKS lays out.** On a case-insensitive disk that directory name only differs in case from the old `Sources/Vestal/`; git handles the checkout, and a stale `.build` should be removed once (see "Test on the Mac first").
+- **`VestalApp.run()` claims the main actor with `MainActor.assumeIsolated`.** Verified on Linux with Swift 5.10.1: synchronous top-level code is nonisolated, so calling a `@MainActor` entry point from `main.swift` is a compile error. The old code only compiled because AppKit's isolation is imported as preconcurrency.
+- **Linux `vestal`.** `version` and `help` work. Bare `vestal` and `toggle|show|hide` print that the dashboard is macOS-only and exit 1, rather than relaunching a binary that can't show anything.
+- **Linux cache dir now, not in phase 4.** `SourceCache` used `~/Library/Caches/Vestal` everywhere; on Linux it is now `$XDG_CACHE_HOME/vestal` (default `~/.cache/vestal`), as PLAN specifies. macOS is unchanged.
+- **`CalendarProvider.events(from:to:calendars:)` already takes the name filter** that phase 3's `calendars` option needs. The app passes `nil` (all calendars, as before).
+- **Tests use only public API** (no `@testable import`), so `swift test -c release` works too, which nixpkgs' `swiftpm` check phase uses if phase 7 enables it. Fixtures are written from the fields the code reads, with neutral values (a Lisbon weather report, a made-up foyer host); nothing was fetched.
+- **The flake calls a `package.nix`** (`pkgs.callPackage ./package.nix { commit = …; }`) instead of an inline derivation, so the Linux proof built the exact committed file, and phase 7's Linux outputs can reuse it. Its source is a `lib.fileset` of `Package.swift`, `Sources` and `Tests`, so docs edits don't rebuild. `meta.platforms` stays darwin until phase 7.
 
 - **Phase 1 regression tests landed in phase 2.** TASKS wants a regression test per Linux-testable fix, but in phase 1 the only target imported AppKit, so nothing could be built or tested on Linux. The tests for `HostKeys` and `CommandRunner` were written with `VestalCoreTests` in phase 2. Until then each fix carries a comment stating its invariant.
 - **Privacy toggle runs `bash <script>`.** Parity with the old `/bin/bash script` call: the script needs neither a shebang nor the executable bit. `bash` is resolved on PATH plus the Nix/Homebrew dirs (the invariant only forbids a hardcoded `/bin/bash` and `bash -c`). The script path is an argument, not argv[0], so its `~` is expanded before the call.
