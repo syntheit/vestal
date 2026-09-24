@@ -118,7 +118,7 @@ Events from the system calendar: EventKit on macOS (vestal asks for calendar acc
 
 ## Widgets
 
-`widgets` maps a key to a widget. `type` picks what it is; several widgets may share a type. A widget shows only if its key is listed in a view's `order`.
+`widgets` maps a key to a widget. `type` picks what it is; several widgets may share a type, and each shows its own options and data. A widget shows only if its key is listed in a view's `order`.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -138,8 +138,8 @@ A row of system stats.
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `show` | list of strings | every item | Items, in display order: `"uptime"`, `"disk"` (free and total space of the root volume), `"battery"`, `"claudeUsage"` (see [claudeUsage](#claudeusage)), `"network"` (download and upload rates), `"privacy"` (drawn at the right end). Absent or empty shows every item. |
-| `privacy` | object | none | `command` (list of strings): run to toggle privacy mode, with the same rules as a [command source](#command)'s `argv`. `stateFile` (string): the file that exists while privacy mode is on; a leading `~/` expands. The privacy item, and its `p` key, only work when both are set. |
+| `show` | list of strings | every item | Items, left to right in this order: `"uptime"`, `"disk"` (free and total space of the root volume), `"battery"`, `"claudeUsage"` (see [claudeUsage](#claudeusage)), `"network"` (download and upload rates). `"privacy"` is always drawn at the right end, wherever it is in the list. Unknown and repeated items are skipped. Absent or empty shows every item. |
+| `privacy` | object | none | `command` (list of strings): run to toggle privacy mode, with the same rules as a [command source](#command)'s `argv`. `stateFile` (string): the file that exists while privacy mode is on; a leading `~/` expands. The privacy item, and its `p` key, only work when both are set. `p` toggles the first system bar in `views.main.order` that shows the item. |
 
 ### `media`
 
@@ -147,8 +147,8 @@ What a music player is playing, with play/pause and the output volume.
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `player` | string | `"Spotify"` | The player application. |
-| `hideWhenOff` | boolean | `true` | Hide the row while the player is not running. |
+| `player` | string | `"Spotify"` | The player application, by name. On macOS vestal asks it over AppleScript (`player state`, `current track`), which Spotify and Music understand. |
+| `hideWhenOff` | boolean | `true` | Hide the row while the player is not running or has nothing loaded. With `false` the row stays and shows the player's name. |
 
 ### `agendaList`
 
@@ -177,10 +177,10 @@ A host:
 | `name` | string | required, except for a local host | Display name. A local host without one is named after the machine's short hostname (`swift` for `swift.local`), so one config serves every machine. |
 | `url` | string | none | The host's foyer base URL, such as `"https://box.example.com"`. |
 | `source` | string | none | `"local"`: this machine, read in-process. Any other value names a source whose JSON is a foyer `/api/health` payload, used instead of `url`. |
-| `key` | string | first free letter of the name | Shortcut letter. `p` and `i` are reserved. |
+| `key` | string | first free letter of the name | Shortcut letter, `a` to `z`. `p` and `i` are reserved. Hosts with a usable `key` get it first (the first host naming a letter keeps it); then every other host, in dashboard order, gets the first free letter of its name. One keyboard serves every systemHealth widget in `views.main.order`. |
 | `interval` | duration | `"5s"` | How often a `url` host's health is polled. Only while the dashboard is visible, and never cached on disk. A `source` host follows its source's `refresh`. |
 
-A host needs `url` or `source`.
+A host needs `url` or `source`. A host name listed twice, in one widget or two, shows the first entry's data and opens the first entry's popup.
 
 ### `keyValueList`
 
@@ -218,7 +218,7 @@ Current weather from a JSON source. The fields are paths, so any weather API wor
 
 ### `claudeUsage`
 
-Claude Code usage: tokens in the last 5 hours and the last 7 days, read from the session logs, as percentages of two limits. A `systemBar` showing `"claudeUsage"` takes its options from the first widget of this type (by key), or uses the defaults.
+Claude Code usage: tokens in the last 5 hours and the last 7 days, read from the session logs, as percentages of two limits. A `systemBar` showing `"claudeUsage"` takes its options from the first widget of this type (by key), or uses the defaults. Listed in a view's `order`, the widget is a row of its own, like a system bar with that one item, and uses its own options.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -234,7 +234,7 @@ The limits are calibration constants, not published numbers: adjust them until t
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `order` | list of strings | `[]` | Widget keys, top to bottom. Each key may appear once. |
+| `order` | list of strings | `[]` | Widget keys, top to bottom. Each key may appear once; a repeat, a key that names no widget, and a widget of an unknown type show nothing. |
 | `layout` | string | `"stack"` | The only layout so far. |
 
 ## Built-in defaults
