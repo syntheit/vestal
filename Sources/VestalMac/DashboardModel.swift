@@ -10,13 +10,17 @@ import VestalCore
 // and the tickers registered here (clock, network, stats, media, Claude
 // usage) run only while the dashboard is visible. The view keeps nothing but
 // its own UI state (popups, animations).
+//
+// What depends on a widget's options is kept per widget key (weather, lists,
+// agendas, privacy), per player (media) or per projects directory (Claude
+// usage), so several widgets of one type each show their own.
 
 @MainActor
 final class DashboardModel: ObservableObject {
     // Clock
     @Published private(set) var time = Date()
 
-    // System bar, and the local host's row and popup
+    // System bars, and the local host's row and popup
     @Published private(set) var cpu: Int
     @Published private(set) var memory: MemoryInfo
     @Published private(set) var temp: Int
@@ -24,38 +28,88 @@ final class DashboardModel: ObservableObject {
     @Published private(set) var uptime: String
     @Published private(set) var diskFree: String
     @Published private(set) var network: NetworkRate
-    @Published private(set) var privacyMode: Bool
-    @Published private(set) var claudeUsage = ClaudeUsage.Snapshot.zero
+    /// By system bar key, for the bars that show the privacy item.
+    @Published private(set) var privacyMode: [String: Bool] = [:]
+    /// By projects directory (see `usage(_:)`).
+    @Published private(set) var claudeUsage: [String: ClaudeUsage.Snapshot] = [:]
 
-    // Media row
+    // Media rows
     @Published private(set) var volume: VolumeInfo
-    @Published private(set) var spotify = NowPlaying.off
+    /// By player name (see `playing(_:)`).
+    @Published private(set) var nowPlaying: [String: NowPlaying] = [:]
 
-    // From the runtime's snapshots
-    @Published private(set) var weather: AsyncData.WeatherInfo? = nil
-    @Published private(set) var exchange: [AsyncData.ExchangeRate] = []
-    @Published private(set) var agenda: [AsyncData.CalendarEvent] = []
-    /// Remote hosts that have reported, in config order. The local host's
-    /// row is drawn from the stats above.
-    @Published private(set) var servers: [AsyncData.ServerHealth] = []
-    /// Remote hosts' popups, from the same health snapshots.
+    // From the runtime's snapshots, by widget key
+    @Published private(set) var weather: [String: AsyncData.WeatherInfo] = [:]
+    @Published private(set) var keyValues: [String: [AsyncData.ExchangeRate]] = [:]
+    @Published private(set) var agenda: [String: [AsyncData.CalendarEvent]] = [:]
+    /// Remote hosts that have reported, by name. Local hosts' rows are
+    /// drawn from the stats above.
+    @Published private(set) var servers: [String: AsyncData.ServerHealth] = [:]
+    /// Remote hosts' popups, from the same health snapshots, by name.
     @Published private(set) var details: [String: AsyncData.ServerDetail] = [:]
 
+    /// The main view's widgets, top to bottom.
+    let layout: DashboardLayout
+    /// `theme.background`.
+    let background: ThemeConfig.Background
+    /// Shortcut letter → host name (see HostKeys).
+    let hostKeys: [Character: String]
+    /// A system bar's "claudeUsage" item: the options of the first
+    /// claudeUsage widget by key, or the defaults.
+    let barClaude: ClaudeUsage.Options
+
     private let runtime: AppRuntime
-    private let config: Config
+    /// The hosts the layout shows, the first entry of each name.
+    private let hosts: [HostConfig]
     /// The root volume, for the local host's popup.
     private var disk: DiskUsage?
-    /// Bumped on every play/pause click. A poll that started before the
-    /// latest click may have read the old state, so it must not overwrite
-    /// the optimistic icon.
-    private var mediaGeneration = 0
+    /// One provider per player that a media widget names.
+    private let players: [String: MediaProvider]
+    /// Bumped on every play/pause click, per player. A poll that started
+    /// before the latest click may have read the old state, so it must not
+    /// overwrite the optimistic icon.
+    private var mediaGeneration: [String: Int] = [:]
+    /// The toggles of the bars that show the privacy item, by bar key.
+    private let privacy: [String: PrivacyProvider]
+    /// The bar the `p` key toggles: the first one that shows privacy.
+    private let privacyShortcut: String?
+    /// The projects directories that Claude usage items read.
+    private let claudeDirs: [String]
+
+    /// Widgets of an unknown type render nothing; each is logged once.
+    private static var loggedUnknownTypes: Set<String> = []
 
     /// Reads everything once, synchronously, so the first frame is complete
     /// (the runtime's snapshots come from its disk cache); then follows the
     /// runtime and registers the tickers.
     init(runtime: AppRuntime, config: Config) {
         self.runtime = runtime
-        self.config = config
+        let layout = DashboardLayout(config: config)
+        self.layout = layout
+        background = config.theme.backgroundStyle
+        hosts = layout.hosts
+        hostKeys = layout.hostKeys
+
+        let players = Set(layout.entries.filter { $0.kind == .media }.map(\.widget.mediaPlayer))
+        self.players = Dictionary(uniqueKeysWithValues: players.map { ($0, MacPlatform.media(player: $0)) })
+        let privacyBars = layout.privacyBars
+        privacy = Dictionary(uniqueKeysWithValues: privacyBars.map { ($0.key, MacPlatform.privacy($0.widget.privacy)) })
+        privacyShortcut = privacyBars.first?.key
+
+        let barClaude = ClaudeUsage.Options(widget: config.claudeUsageWidget)
+        self.barClaude = barClaude
+        var claudeDirs: [String] = []
+        for entry in layout.entries {
+            let options: ClaudeUsage.Options
+            switch entry.kind {
+            case .systemBar where SystemBarLayout(entry.widget).leading.contains("claudeUsage"): options = barClaude
+            case .claudeUsage: options = ClaudeUsage.Options(widget: entry.widget)
+            default: continue
+            }
+            if !claudeDirs.contains(options.projectsDir) { claudeDirs.append(options.projectsDir) }
+        }
+        self.claudeDirs = claudeDirs
+
         // Mach, IOKit and CoreAudio reads take well under 1ms each.
         let stats = MacPlatform.stats
         cpu = stats.cpuPercent()
@@ -67,34 +121,40 @@ final class DashboardModel: ObservableObject {
         self.disk = disk
         diskFree = Format.diskFree(disk)
         network = stats.networkRate()
-        privacyMode = MacPlatform.privacy.isEnabled()
         volume = MacPlatform.audio.volume()
+        privacyMode = privacy.mapValues { $0.isEnabled() }
 
-        deriveWeather()
-        deriveExchange()
-        deriveAgenda()
+        for skipped in layout.unknownTypes
+        where Self.loggedUnknownTypes.insert("\(skipped.key)\u{0}\(skipped.type)").inserted {
+            NSLog("%@", "[vestal] widget \(skipped.key): unknown type \"\(skipped.type)\"; not shown")
+        }
+        for entry in layout.entries { derive(entry) }
         deriveHosts()
         runtime.observe { [weak self] event in self?.runtimeChanged(event) }
         registerTickers()
     }
 
-    // MARK: Actions
+    // MARK: Reading
 
-    func playPause() {
-        MacPlatform.media.playPause()
-        mediaGeneration += 1
-        if spotify.state == "playing" { spotify.state = "paused" }
-        else if spotify.state == "paused" { spotify.state = "playing" }
+    /// What `player` is playing; off until its first answer.
+    func playing(_ player: String) -> NowPlaying {
+        nowPlaying[player] ?? .off
     }
 
-    func toggleMute() {
-        volume.muted.toggle()
-        MacPlatform.audio.setMuted(volume.muted)
+    /// The token totals behind `options`; zero until the first read.
+    func usage(_ options: ClaudeUsage.Options) -> ClaudeUsage.Snapshot {
+        claudeUsage[options.projectsDir] ?? .zero
     }
 
-    func togglePrivacy() {
-        privacyMode.toggle()
-        MacPlatform.privacy.toggle()
+    /// Rows of every list, for the dashboard's entry animation.
+    var keyValueCount: Int {
+        keyValues.values.reduce(0) { $0 + $1.count }
+    }
+
+    /// Every weather widget's location, in order, for the dashboard's entry
+    /// animation.
+    var weatherLocations: [String] {
+        layout.entries.compactMap { weather[$0.key]?.location }
     }
 
     /// A host's popup: nil until its first health result ("loading…").
@@ -103,6 +163,36 @@ final class DashboardModel: ObservableObject {
         if config.isLocal { return localDetail(name: host) }
         if config.url == nil && config.source == nil { return .offline(name: host) }
         return details[host]
+    }
+
+    // MARK: Actions
+
+    func playPause(player: String) {
+        players[player]?.playPause()
+        mediaGeneration[player, default: 0] += 1
+        guard var playing = nowPlaying[player] else { return }
+        if playing.state == "playing" { playing.state = "paused" }
+        else if playing.state == "paused" { playing.state = "playing" }
+        update(\.nowPlaying, player, playing)
+    }
+
+    func toggleMute() {
+        volume.muted.toggle()
+        MacPlatform.audio.setMuted(volume.muted)
+    }
+
+    /// A click on a bar's privacy item: the icon flips at once.
+    func togglePrivacy(bar: String) {
+        guard let provider = privacy[bar] else { return }
+        update(\.privacyMode, bar, !(privacyMode[bar] ?? false))
+        provider.toggle()
+    }
+
+    /// The `p` key: the first privacy bar's toggle. Its icon follows on the
+    /// next network tick. Without a privacy item on screen it does nothing.
+    func togglePrivacyShortcut() {
+        guard let bar = privacyShortcut else { return }
+        privacy[bar]?.toggle()
     }
 
     // MARK: Tickers
@@ -121,18 +211,22 @@ final class DashboardModel: ObservableObject {
             self?.refreshStats()
         }
         // Its own ticker: an AppleScript round trip can take seconds, and the
-        // stats must not wait for it.
-        runtime.addTicker(name: "media", interval: 3) { [weak self] in
-            await self?.refreshMedia()
+        // stats must not wait for it. Only with a media widget on screen.
+        if !players.isEmpty {
+            runtime.addTicker(name: "media", interval: 3) { [weak self] in
+                await self?.refreshMedia()
+            }
         }
-        runtime.addTicker(name: "claude", interval: 30) { [weak self] in
-            await self?.refreshClaude()
+        if !claudeDirs.isEmpty {
+            runtime.addTicker(name: "claude", interval: 30) { [weak self] in
+                await self?.refreshClaude()
+            }
         }
     }
 
     private func refreshNetwork() {
         update(\.network, MacPlatform.stats.networkRate())
-        update(\.privacyMode, MacPlatform.privacy.isEnabled())
+        for (bar, provider) in privacy { update(\.privacyMode, bar, provider.isEnabled()) }
     }
 
     private func refreshStats() {
@@ -148,14 +242,20 @@ final class DashboardModel: ObservableObject {
 
     private func refreshMedia() async {
         update(\.volume, MacPlatform.audio.volume())
-        let generation = mediaGeneration
-        let playing = await MacPlatform.media.nowPlaying()
-        if generation == mediaGeneration { update(\.spotify, playing) }
+        // One player after another: AppleScript runs on one serial queue.
+        for player in players.keys.sorted() {
+            guard let provider = players[player] else { continue }
+            let generation = mediaGeneration[player, default: 0]
+            let playing = await provider.nowPlaying()
+            if generation == mediaGeneration[player, default: 0] { update(\.nowPlaying, player, playing) }
+        }
     }
 
     private func refreshClaude() async {
-        let usage = await Task.detached(priority: .utility) { ClaudeUsage.read() }.value
-        update(\.claudeUsage, usage)
+        for dir in claudeDirs {
+            let usage = await Task.detached(priority: .utility) { ClaudeUsage.read(projectsDir: dir) }.value
+            update(\.claudeUsage, dir, usage)
+        }
     }
 
     // MARK: Runtime snapshots
@@ -165,9 +265,7 @@ final class DashboardModel: ObservableObject {
         case .snapshot(.host):
             deriveHosts()
         case .snapshot(.source(let name)):
-            if config.widgets["weather"]?.source == name { deriveWeather() }
-            if config.widgets["exchange"]?.sourceNames.contains(name) == true { deriveExchange() }
-            if config.widgets["agenda"]?.source == name { deriveAgenda() }
+            for entry in layout.entries where entry.widget.sourceNames.contains(name) { derive(entry) }
             if hosts.contains(where: { $0.source == name }) { deriveHosts() }
         }
     }
@@ -176,38 +274,35 @@ final class DashboardModel: ObservableObject {
         source.flatMap { runtime.snapshot(.source($0))?.data }
     }
 
-    private func deriveWeather() {
-        guard let widget = config.widgets["weather"], let data = data(widget.source) else {
-            return update(\.weather, nil)
+    /// An entry's data from its sources' latest snapshots.
+    private func derive(_ entry: DashboardLayout.Entry) {
+        let widget = entry.widget
+        switch entry.kind {
+        case .weatherCard:
+            let info = data(widget.source).flatMap {
+                AsyncData.parseWeather($0, fields: widget.fields ?? [:],
+                                       units: widget.units ?? WidgetConfig.Defaults.units)
+            }
+            update(\.weather, entry.key, info)
+        case .keyValueList:
+            update(\.keyValues, entry.key, AsyncData.exchangeRates(for: widget) { self.data($0) })
+        case .agendaList:
+            let maxEvents = widget.maxEvents ?? WidgetConfig.Defaults.maxEvents
+            update(\.agenda, entry.key, AsyncData.agenda(from: data(widget.source), maxEvents: maxEvents, now: Date()))
+        case .clock, .systemBar, .media, .systemHealth, .claudeUsage:
+            break
         }
-        update(\.weather, AsyncData.parseWeather(data, fields: widget.fields ?? [:]))
-    }
-
-    private func deriveExchange() {
-        guard let widget = config.widgets["exchange"] else { return update(\.exchange, []) }
-        update(\.exchange, AsyncData.exchangeRates(for: widget) { self.data($0) })
-    }
-
-    private func deriveAgenda() {
-        let widget = config.widgets["agenda"]
-        let maxEvents = widget?.maxEvents ?? WidgetConfig.Defaults.maxEvents
-        update(\.agenda, AsyncData.agenda(from: data(widget?.source), maxEvents: maxEvents, now: Date()))
-    }
-
-    /// The systems widget's hosts, in order.
-    private var hosts: [HostConfig] {
-        config.widgets["systems"]?.hosts ?? []
     }
 
     private func deriveHosts() {
-        var servers: [AsyncData.ServerHealth] = []
+        var servers: [String: AsyncData.ServerHealth] = [:]
         var details: [String: AsyncData.ServerDetail] = [:]
         for host in hosts where !host.isLocal {
             // A host with a `source` reads that source; a foyer host has
             // its own health job.
             let key: RuntimeKey = host.source.map { .source($0) } ?? .host(host.name)
             let snapshot = runtime.snapshot(key)
-            if let health = AsyncData.health(name: host.name, snapshot: snapshot) { servers.append(health) }
+            if let health = AsyncData.health(name: host.name, snapshot: snapshot) { servers[host.name] = health }
             if let detail = AsyncData.detail(name: host.name, snapshot: snapshot) { details[host.name] = detail }
         }
         update(\.servers, servers)
@@ -247,6 +342,13 @@ final class DashboardModel: ObservableObject {
     /// re-renders the dashboard.
     private func update<Value: Equatable>(_ keyPath: ReferenceWritableKeyPath<DashboardModel, Value>, _ value: Value) {
         if self[keyPath: keyPath] != value { self[keyPath: keyPath] = value }
+    }
+
+    /// The same for one entry of a keyed property; nil removes it.
+    private func update<Value: Equatable>(
+        _ keyPath: ReferenceWritableKeyPath<DashboardModel, [String: Value]>, _ key: String, _ value: Value?
+    ) {
+        if self[keyPath: keyPath][key] != value { self[keyPath: keyPath][key] = value }
     }
 }
 #endif

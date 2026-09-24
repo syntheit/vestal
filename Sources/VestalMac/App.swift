@@ -50,11 +50,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// What the dashboard shows, kept current by the runtime.
     private var model: DashboardModel?
 
-    /// Single-key shortcut → host name. Built from DashboardView's host list so
-    /// adding a new foyer host doesn't silently break the keymap. Hosts that
-    /// share an initial fall back to their next free letter (see HostKeys).
-    private static let hostKeyMap: [Character: String] = HostKeys.assign(DashboardView.allHostNames)
-
     /// Keeps the SIGTERM dispatch source alive for the life of the app.
     private var sigtermSource: DispatchSourceSignal?
 
@@ -64,6 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The runtime serves its disk cache at once, so the model's first
         // values, and with them the first frame, already have data.
         let config = AppConfig.current
+        Palette.current = Palette.named(config.theme.paletteName)
         let runtime = AppRuntime(config: config, fetcher: LiveFetcher(calendar: MacPlatform.calendar))
         let model = DashboardModel(runtime: runtime, config: config)
         self.runtime = runtime
@@ -82,23 +78,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.ignoresMouseEvents = false
 
-        let visual = NSVisualEffectView(frame: screen.frame)
-        visual.material = .hudWindow
-        visual.blendingMode = .behindWindow
-        visual.state = .active
-        visual.appearance = NSAppearance(named: .darkAqua)
-        visual.autoresizingMask = [.width, .height]
+        // theme.background: the desktop blurred behind the dashboard
+        // (under the aurora, which the view draws), or the palette's solid
+        // color for "none".
+        let background: NSView
+        if model.background == .solid {
+            background = NSView(frame: screen.frame)
+            background.appearance = NSAppearance(named: .darkAqua)
+            background.autoresizingMask = [.width, .height]
+            window.backgroundColor = NSColor(Palette.current.background)
+        } else {
+            let visual = NSVisualEffectView(frame: screen.frame)
+            visual.material = .hudWindow
+            visual.blendingMode = .behindWindow
+            visual.state = .active
+            visual.appearance = NSAppearance(named: .darkAqua)
+            visual.autoresizingMask = [.width, .height]
+            background = visual
+        }
 
         let hosting = NSHostingView(rootView: DashboardView(model: model))
-        hosting.frame = visual.bounds
+        hosting.frame = background.bounds
         hosting.autoresizingMask = [.width, .height]
         hosting.alphaValue = 0
-        visual.addSubview(hosting)
+        background.addSubview(hosting)
 
-        window.contentView = visual
+        window.contentView = background
         self.window = window
 
-        // Show window with blur instantly, fade content in separately
+        // Show window with blur (or color) instantly, fade content in separately
         window.alphaValue = 1
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -138,7 +146,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard held.subtracting([.shift, .capsLock]).isEmpty,
                   let key = event.charactersIgnoringModifiers?.lowercased().first
             else { return event }
-            if let host = Self.hostKeyMap[key] {
+            // Letters from the config's host `key`s, or assigned (HostKeys).
+            if let host = self?.model?.hostKeys[key] {
                 NotificationCenter.default.post(
                     name: .dashboardExpandHost, object: nil,
                     userInfo: ["host": host]
@@ -146,7 +155,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return nil
             }
             if key == "p" {
-                MacPlatform.privacy.toggle()
+                self?.model?.togglePrivacyShortcut()
                 return nil
             }
             return event

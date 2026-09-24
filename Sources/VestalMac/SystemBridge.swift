@@ -1,4 +1,5 @@
 #if os(macOS)
+import AppKit
 import Foundation
 import IOKit
 import IOKit.ps
@@ -199,7 +200,7 @@ enum SystemBridge {
         return (totalIn, totalOut)
     }
 
-    // MARK: - Volume & Spotify (via AppleScript, in-process)
+    // MARK: - Media player (via AppleScript, in-process)
 
     static func runAppleScript(_ source: String) -> String? {
         let script = NSAppleScript(source: source)
@@ -275,44 +276,39 @@ enum SystemBridge {
     /// executes at a time.
     private static let appleScriptQueue = DispatchQueue(label: "vestal.applescript", qos: .utility)
 
-    static func toggleSpotify() {
+    static func playPause(script: String) {
         appleScriptQueue.async {
-            _ = runAppleScript("tell application \"Spotify\" to playpause")
+            _ = runAppleScript(script)
         }
     }
 
     /// Now-playing state, fetched on `appleScriptQueue`. The caller resumes
     /// on its own executor (the main actor for the dashboard's tasks).
-    static func spotify() async -> NowPlaying {
+    static func nowPlaying(player: String, script: String) async -> NowPlaying {
         await withCheckedContinuation { continuation in
-            appleScriptQueue.async { continuation.resume(returning: getSpotify()) }
+            appleScriptQueue.async { continuation.resume(returning: getNowPlaying(player: player, script: script)) }
         }
     }
 
-    private static let spotifyOff = NowPlaying.off
-
-    /// Single AppleScript call that checks running state, player state, and track metadata
-    static func getSpotify() -> NowPlaying {
-        guard let raw = runAppleScript("""
-            if application "Spotify" is not running then return "off||"
-            tell application "Spotify"
-                set s to player state as string
-                if s is "playing" or s is "paused" then
-                    return s & "|" & name of current track & "|" & artist of current track
-                end if
-            end tell
-            return "off||"
-            """)
-        else { return spotifyOff }
-        return parseSpotifyState(raw)
+    /// Single AppleScript call that checks running state, player state, and
+    /// track metadata (`MediaScript.nowPlaying`). A player that isn't running
+    /// is off without running the script: compiling `tell application` for
+    /// an app that isn't installed (a typo in `player`) would ask the user
+    /// where it is, on every poll.
+    static func getNowPlaying(player: String, script: String) -> NowPlaying {
+        guard isRunning(player), let raw = runAppleScript(script) else { return .off }
+        return MediaScript.parse(raw)
     }
 
-    /// "state|title|artist", as the script above returns it.
-    private static func parseSpotifyState(_ raw: String) -> NowPlaying {
-        let parts = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            .split(separator: "|", omittingEmptySubsequences: false)
-        guard parts.count >= 3, parts[0] != "off" else { return spotifyOff }
-        return NowPlaying(title: String(parts[1]), artist: String(parts[2]), state: String(parts[0]))
+    /// Whether an app by this name runs, the way AppleScript finds it: by the
+    /// name it shows or its bundle's file name, ignoring case.
+    /// NSRunningApplication's properties are safe to read off the main thread.
+    private static func isRunning(_ name: String) -> Bool {
+        NSWorkspace.shared.runningApplications.contains { app in
+            app.localizedName?.caseInsensitiveCompare(name) == .orderedSame
+                || app.bundleURL?.deletingPathExtension().lastPathComponent
+                    .caseInsensitiveCompare(name) == .orderedSame
+        }
     }
 }
 #endif
