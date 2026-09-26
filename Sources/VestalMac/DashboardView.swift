@@ -8,14 +8,21 @@ import VestalCore
 // by the view for its type (Widgets/), and the host and info popups over
 // them.
 
+/// SwiftUI's `State` property wrapper under another name. The macOS 27 SDK
+/// also declares a `State` macro, which `@State` resolves to; its plugin
+/// (SwiftUIMacros) ships only with Xcode, so `@State` fails to build with
+/// the Command Line Tools alone. The alias names the wrapper directly and
+/// builds the same with every SDK.
+private typealias ViewState = SwiftUI.State
+
 struct DashboardView: View {
     /// Everything shown; the runtime keeps it current (see DashboardModel).
     @ObservedObject var model: DashboardModel
-    @State private var expandedHost: String?
-    @State private var showingInfo: Bool = false
+    @ViewState private var expandedHost: String?
+    @ViewState private var showingInfo: Bool = false
 
     // Tracks whether initial render is done (suppresses entry animations)
-    @State private var appeared = false
+    @ViewState private var appeared = false
 
     var body: some View {
         ZStack {

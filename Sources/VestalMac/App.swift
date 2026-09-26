@@ -211,11 +211,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
             ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
             hosting.animator().alphaValue = 0
         }, completionHandler: { [weak self] in
-            guard let self, fade == self.fade else { return }
-            self.isHiding = false
-            window.orderOut(nil)
-            self.setAuroraPaused(true)
-            NSApp.hide(nil)
+            // AppKit calls this on the main thread; newer compilers import
+            // the handler as @Sendable, so say so.
+            MainActor.assumeIsolated {
+                guard let self, fade == self.fade else { return }
+                self.isHiding = false
+                window.orderOut(nil)
+                self.setAuroraPaused(true)
+                NSApp.hide(nil)
+            }
         })
     }
 
