@@ -31,11 +31,13 @@ final class SchemaTests: XCTestCase {
             "claudeUsage": ["path", "fiveHourLimit", "weeklyLimit"],
         ])
         XCTAssertEqual(WidgetConfig.aliases, ["spotify": "media"])
-        XCTAssertEqual(SchemaRegistry.topLevel.keyNames, ["version", "hotkey", "theme", "sources", "widgets", "views", "secrets", "platform"])
+        XCTAssertEqual(SchemaRegistry.topLevel.keyNames, ["version", "hotkey", "theme", "sources", "widgets", "views", "secrets",
+                                                         "defaultView", "keys", "templates", "functions", "platform"])
         XCTAssertEqual(SchemaRegistry.shape("history").keyNames, ["value", "size", "every"])
         XCTAssertEqual(SchemaRegistry.shape("secret").keyNames, ["file", "env", "command"])
-        XCTAssertEqual(SchemaRegistry.shape("theme").keyNames, ["palette", "background"])
-        XCTAssertEqual(SchemaRegistry.shape("view").keyNames, ["order", "layout"])
+        XCTAssertEqual(SchemaRegistry.shape("theme").keyNames, ["palette", "background", "palettes", "colors", "fonts", "font", "scale", "icons"])
+        XCTAssertEqual(SchemaRegistry.shape("view").keyNames, ["order", "layout", "children", "title", "key", "columns", "gap",
+                                                               "align", "padding", "maxWidth", "keys"])
         XCTAssertEqual(SchemaRegistry.shape("worldClock").keyNames, ["label", "tz"])
         XCTAssertEqual(SchemaRegistry.shape("privacy").keyNames, ["command", "stateFile"])
         XCTAssertEqual(SchemaRegistry.shape("host").keyNames, ["name", "url", "source", "key", "interval"])
@@ -62,8 +64,13 @@ final class SchemaTests: XCTestCase {
             hideWhenOff: true, maxEvents: 1, hosts: [], provider: "foyer", items: [], fields: [:], units: "metric",
             path: "p", fiveHourLimit: 1, weeklyLimit: 1)
         XCTAssertEqual(try keys(widget), Set(SchemaRegistry.widgetTypes.flatMap(\.keyNames)).union(["type"]))
-        XCTAssertEqual(try keys(ThemeConfig()), Set(SchemaRegistry.shape("theme").keyNames))
-        XCTAssertEqual(try keys(ViewConfig()), Set(SchemaRegistry.shape("view").keyNames))
+        // Theme and view keys added in v0.4 are read by the render engine
+        // from the expanded tree, not by these decoders.
+        func v03(_ shape: String) -> Set<String> {
+            Set(SchemaRegistry.shape(shape).keys.filter { $0.since == "0.3" }.map(\.name))
+        }
+        XCTAssertEqual(try keys(ThemeConfig()), v03("theme"))
+        XCTAssertEqual(try keys(ViewConfig()), v03("view"))
         XCTAssertEqual(try keys(WorldClock(label: "a", tz: "UTC")), Set(SchemaRegistry.shape("worldClock").keyNames))
         XCTAssertEqual(try keys(PrivacyConfig(command: [], stateFile: "s")), Set(SchemaRegistry.shape("privacy").keyNames))
         XCTAssertEqual(try keys(HostConfig(name: "n", url: "u", source: "s", key: "k")), Set(SchemaRegistry.shape("host").keyNames))
@@ -121,12 +128,22 @@ final class SchemaTests: XCTestCase {
         let defs = try XCTUnwrap(schema["$defs"]?.objectValue)
         let widget = try XCTUnwrap(defs["widget"]?.objectValue?["oneOf"]?.arrayValue)
         let refs = widget.compactMap { $0.objectValue?["$ref"]?.stringValue }
-        XCTAssertEqual(refs, (SchemaRegistry.widgetTypes.map(\.name).sorted() + ["template", "override"]).map { "#/$defs/widget.\($0)" })
+        XCTAssertEqual(refs, (SchemaRegistry.allWidgetTypes.map(\.name).sorted() + ["template", "override"]).map { "#/$defs/widget.\($0)" })
+        for type in ["stack", "row", "grid", "list", "table", "switch", "text", "icon", "progress", "gauge", "sparkline",
+                     "keyValue", "divider", "spacer", "section", "stat", "badge", "claudeItem", "hostDetail"] {
+            XCTAssertNotNil(defs["widget.\(type)"], type)
+        }
+        // Common fields on every type, v0.3 presets included; computed literals take {"expr"}.
+        XCTAssertNotNil(defs["widget.clock"]?.objectValue?["properties"]?.objectValue?["when"])
+        XCTAssertEqual(defs["widget.text"]?.objectValue?["properties"]?.objectValue?["value"]?.objectValue?["x-vestal-kind"], .string("expr"))
+        XCTAssertEqual(defs["widget.text"]?.objectValue?["properties"]?.objectValue?["text"]?.objectValue?["x-vestal-kind"], .string("text"))
+        XCTAssertNotNil(defs["computed"])
+        XCTAssertNotNil(defs["source.foyer"])
         let media = try XCTUnwrap(defs["widget.media"]?.objectValue)
         XCTAssertEqual(media["required"], .array([.string("type")]))
         XCTAssertEqual(media["properties"]?.objectValue?["type"]?.objectValue?["enum"], .array([.string("media"), .string("spotify")]))
         let sources = try XCTUnwrap(defs["source"]?.objectValue?["oneOf"]?.arrayValue)
-        XCTAssertEqual(sources.count, SchemaRegistry.sourceTypes.count + 1, "no templates for sources yet")
+        XCTAssertEqual(sources.count, SchemaRegistry.allSourceTypes.count + 1, "every source type and foyer, and the override")
         // A list element replaces the lower layer's list, so it can require its keys.
         XCTAssertEqual(defs["worldClock"]?.objectValue?["required"], .array([.string("label"), .string("tz")]))
         XCTAssertNil(defs["theme"]?.objectValue?["required"])
@@ -138,7 +155,7 @@ final class SchemaTests: XCTestCase {
         XCTAssertEqual(type("theme", "palette"), .array([.string("string"), .string("null")]))
         XCTAssertEqual(type("worldClock", "label"), .string("string"))
         XCTAssertEqual(type("picks", "buy"), .string("string"), "inside an item, inside a list")
-        XCTAssertEqual(ConfigSchema.listElementShapes, ["worldClock", "host", "item", "picks"])
+        XCTAssertTrue(ConfigSchema.listElementShapes.isSuperset(of: ["worldClock", "host", "item", "picks", "tableColumn", "keyValueItem"]))
         let version = try XCTUnwrap(schema["properties"]?.objectValue?["version"]?.objectValue)
         XCTAssertEqual(version["minimum"], .int(1))
         XCTAssertEqual(version["maximum"], .int(1))
@@ -170,6 +187,7 @@ final class SchemaTests: XCTestCase {
         XCTAssertEqual(ConfigCommands.schema(["extra"]).status, 2)
         XCTAssertEqual(ConfigCommands.schema(["--bogus"]).status, 2)
         XCTAssertEqual(ConfigCommands.schema(["--config", dir.appendingPathComponent("missing.json").path]).status, 1)
-        XCTAssertEqual(ConfigCommands.schema(["--config", Fixture.example("full.json").path]).stdout, ConfigSchema.text)
+        XCTAssertEqual(ConfigCommands.schema(["--config", Fixture.example("full.json").path]).stdout, ConfigSchema.text,
+                       "a config without templates adds none")
     }
 }

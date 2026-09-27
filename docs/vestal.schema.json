@@ -3212,6 +3212,18 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "font": {
+          "description": "Shorthand for fonts.sans (§16.1).",
+          "examples": [
+            "Inter"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "fonts": {
           "anyOf": [
             {

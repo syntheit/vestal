@@ -37,7 +37,7 @@ final class ConfigValidatorTests: XCTestCase {
         let found = pairs("""
         {
           "extra": 1,
-          "theme": {"font": "x"},
+          "theme": {"typeface": "x"},
           "sources": {
             "h": {"type": "http", "url": "https://x.example", "cookies": {}},
             "c": {"type": "command", "argv": ["x"], "url": "https://x.example"},
@@ -45,38 +45,40 @@ final class ConfigValidatorTests: XCTestCase {
           },
           "widgets": {
             "clock": {"type": "clock", "title": "Now", "worldClocks": [{"label": "U", "tz": "UTC", "city": "x"}]},
-            "media": {"type": "media", "source": "h"},
+            "media": {"type": "media", "sauce": "h"},
             "systems": {"type": "systemHealth", "hosts": [{"source": "local", "port": 1}]},
             "fx": {"type": "keyValueList", "source": "h", "items": [{"label": "A", "pick": "a", "unit": "x"}]},
             "systemBar": {"type": "systemBar", "privacy": {"script": "x"}},
             "weather": {"type": "weatherCard", "fields": {"humidity": ".h"}}
           },
-          "views": {"main": {"columns": 2}}
+          "views": {"main": {"colums": 2}}
         }
         """)
         XCTAssertEqual(found, [
             "extra": .unknownKey,
-            "theme.font": .unknownKey,
+            "theme.typeface": .unknownKey,
             "sources.h.cookies": .unknownKey,
             "sources.c.url": .unknownKey,
             "sources.k.parse": .unknownKey,
             "widgets.clock.title": .unknownKey,
             "widgets.clock.worldClocks[0].city": .unknownKey,
-            "widgets.media.source": .unknownKey,
+            "widgets.media.sauce": .unknownKey,
             "widgets.systems.hosts[0].port": .unknownKey,
             "widgets.fx.items[0].unit": .unknownKey,
             "widgets.systemBar.privacy.script": .unknownKey,
             "widgets.weather.fields.humidity": .unknownKey,
-            "views.main.columns": .unknownKey,
+            "views.main.colums": .unknownKey,
         ])
     }
 
     func testUnknownTypes() {
-        let found = warnings(#"{"sources": {"f": {"type": "ftp"}}, "widgets": {"g": {"type": "gauge", "anything": 1}}}"#)
+        // v0.4: an unknown widget type is an error from the template
+        // expansion (gauge is a type now), with a did-you-mean.
+        let found = warnings(#"{"sources": {"f": {"type": "ftp"}}, "widgets": {"g": {"type": "meter", "anything": 1}}}"#)
         XCTAssertEqual(found.map(\.path), ["sources.f.type", "widgets.g.type"])
         XCTAssertEqual(found.map(\.kind), [.unknownType, .unknownType])
-        XCTAssertEqual(found[1].message,
-                       "unknown widget type \"gauge\" (expected agendaList, claudeUsage, clock, keyValueList, media, systemBar, systemHealth or weatherCard)")
+        XCTAssertEqual(found[1].message, "unknown widget type \"meter\"; the widget is not shown")
+        XCTAssertEqual(found[1].severity, .error)
     }
 
     func testAliasesAreKnownTypes() {
@@ -151,7 +153,7 @@ final class ConfigValidatorTests: XCTestCase {
          "widgets": {"weather": {"units": "kelvin"}, "systems": {"provider": "netdata"},
                      "systemBar": {"show": ["uptime", "cpu"]},
                      "fx": {"type": "keyValueList", "source": "weather", "items": [{"label": "A", "pick": "a", "format": "hex"}]}},
-         "views": {"main": {"layout": "grid"}}}
+         "views": {"main": {"layout": "masonry"}}}
         """)
         XCTAssertEqual(found.map(\.path), [
             "sources.weather.parse", "theme.palette", "theme.background", "views.main.layout",

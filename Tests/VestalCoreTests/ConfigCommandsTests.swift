@@ -61,7 +61,7 @@ final class ConfigCommandsTests: XCTestCase {
         // The unknown key stays in the output and is reported on stderr.
         XCTAssertEqual(output.stderr, """
         vestal: \(path): views.main.order[2]: no widget named "media"
-        vestal: \(path): zzz: unknown key (known: version, hotkey, theme, sources, widgets, views, secrets, platform)
+        vestal: \(path): zzz: unknown key (known: version, hotkey, theme, sources, widgets, views, secrets, defaultView, keys, templates, functions, platform)
 
         """)
 

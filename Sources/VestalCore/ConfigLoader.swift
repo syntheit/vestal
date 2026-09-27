@@ -248,7 +248,22 @@ public enum ConfigLoader {
         let expanded = ConfigExpansion.expand(merged)
         var config = decode(merged)
         config.adopt(expanded)
-        return LoadedConfig(path: path, config: config, merged: merged, warnings: warnings + expanded.warnings,
+        // A top-level widget of a v0.3 type is checked by the validator, with
+        // v0.3's messages and severities; the expansion's findings about the
+        // same instance would repeat them.
+        let v03 = Set(SchemaRegistry.widgetTypes.flatMap { [$0.name] + $0.aliases })
+        // So is one without a type (the validator reports the missing type).
+        let legacyWidgets = (merged.objectValue?["widgets"]?.objectValue ?? [:]).compactMap { key, value -> String? in
+            guard let type = value.objectValue?["type"]?.stringValue else { return key }
+            return v03.contains(type) ? key : nil
+        }
+        let expansionWarnings = expanded.warnings.filter { warning in
+            !legacyWidgets.contains { key in
+                let base = "widgets.\(key)"
+                return warning.path == base || warning.path.hasPrefix(base + ".") || warning.path.hasPrefix(base + "[")
+            }
+        }
+        return LoadedConfig(path: path, config: config, merged: merged, warnings: warnings + expansionWarnings,
                             notes: expanded.notes, expanded: expanded)
     }
 

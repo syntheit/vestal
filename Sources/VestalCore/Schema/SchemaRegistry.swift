@@ -202,6 +202,8 @@ public enum SchemaRegistry {
                       "Colours added to or overriding the chosen palette: name → colour (hex, a palette name, or name@alpha)."),
             SchemaKey("fonts", .shape("fonts"), since: "0.4", examples: [.object(["sans": .string("Inter")])],
                       "A font family per role; null means the platform default."),
+            SchemaKey("font", .string, since: "0.4", examples: [.string("Inter")],
+                      "Shorthand for fonts.sans (§16.1)."),
             SchemaKey("scale", .number, default: .int(1), since: "0.4", examples: [.double(1.25)],
                       "Multiplies every text, icon and fixed size (not gaps)."),
             SchemaKey("icons", .oneOf(["native", "phosphor"]), since: "0.4", examples: [.string("phosphor")],

@@ -161,7 +161,7 @@ final class CheckConfigTests: XCTestCase {
         XCTAssertEqual(find("/widgets/systems/hosts/1/key")?.code, "key-conflict")
         XCTAssertEqual(find("/views/main/order/1")?.code, "unknown-widget")
         XCTAssertEqual(find("/views/main/order/1")?.suggestions, ["agenda"])
-        XCTAssertTrue(found.allSatisfy { $0.severity == .warning }, "a v0.3 config has no errors")
+        XCTAssertTrue(found.allSatisfy { $0.severity != .error }, "a v0.3 config has no errors (the legacy adapter's notes are info)")
 
         let json = find("/views/main/order/1")!.json.objectValue!
         XCTAssertEqual(json["suggestion"], .string("agenda"))
@@ -177,7 +177,7 @@ final class CheckConfigTests: XCTestCase {
         let (output, path) = try check(["PATH"], "{\n  \"hotkeys\": \"f3\"\n}")
         XCTAssertEqual(output, ConfigCommands.Output(status: 0, stdout: """
             \(path): 1 warning
-              hotkeys: unknown key (known: version, hotkey, theme, sources, widgets, views, secrets, platform)
+              hotkeys: unknown key (known: version, hotkey, theme, sources, widgets, views, secrets, defaultView, keys, templates, functions, platform)
                 at /hotkeys, line 2, column 3; did you mean "hotkey"?
 
             """))
@@ -194,7 +194,7 @@ final class CheckConfigTests: XCTestCase {
         let diagnostics = try XCTUnwrap(report["diagnostics"]?.arrayValue)
         XCTAssertEqual(diagnostics.first, .object([
             "severity": .string("warning"), "code": .string("unknown-key"), "pointer": .string("/hotkeys"),
-            "layer": .string("user"), "message": .string("unknown key (known: version, hotkey, theme, sources, widgets, views, secrets, platform)"),
+            "layer": .string("user"), "message": .string("unknown key (known: version, hotkey, theme, sources, widgets, views, secrets, defaultView, keys, templates, functions, platform)"),
             "suggestion": .string("hotkey"), "suggestions": .array([.string("hotkey")]), "line": .int(1), "column": .int(2),
         ]))
         XCTAssertEqual(diagnostics.last?.objectValue?["expected"], .string("string"))
