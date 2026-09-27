@@ -24,7 +24,8 @@ struct LegacyDashboardData {
     var disk: String
     var network: NetworkRate
     var privacy: [String: Bool]
-    var claude: ClaudeUsage.Snapshot
+    var claude: AIUsage.Reading?
+    var codex: AIUsage.Reading?
     var volume: VolumeInfo
     var nowPlaying: [String: NowPlaying]
     var weather: [String: AsyncData.WeatherInfo]
@@ -60,14 +61,19 @@ extension LegacyDashboardData {
         func string(_ v: Any?) -> String { v as? String ?? "" }
         func object(_ v: Any?) -> [String: Any] { v as? [String: Any] ?? [:] }
         func list(_ v: Any?) -> [[String: Any]] { v as? [[String: Any]] ?? [] }
+        /// A `claude` or `codex` source's data (AIUsage.Reading's shape).
+        func usage(_ v: Any?) -> AIUsage.Reading? {
+            guard let v, JSONSerialization.isValidJSONObject(v), let raw = try? JSONSerialization.data(withJSONObject: v)
+            else { return nil }
+            return AnyJSON.decode(raw).flatMap(AIUsage.Reading.init)
+        }
 
         var data = LegacyDashboardData(
             time: try date(o["time"]), cpu: int(o["cpu"]), ram: int(o["ram"]), pressure: int(o["pressure"]),
             temp: int(o["temp"]), battery: nil, uptime: string(o["uptime"]), disk: string(o["disk"]),
             network: NetworkRate(bytesIn: Int64(int(object(o["network"])["in"])), bytesOut: Int64(int(object(o["network"])["out"]))),
             privacy: object(o["privacy"]).mapValues { ($0 as? Bool) ?? false },
-            claude: ClaudeUsage.Snapshot(blockTokens: int(object(o["claude"])["blockTokens"]),
-                                         weeklyTokens: int(object(o["claude"])["weeklyTokens"])),
+            claude: usage(o["claude"]), codex: usage(o["codex"]),
             volume: VolumeInfo(level: int(object(o["volume"])["level"]), muted: object(o["volume"])["muted"] as? Bool ?? false),
             nowPlaying: [:], weather: [:], keyValues: [:], agenda: [:], servers: [:], details: [:],
             popup: o["popup"] as? String, timeZone: (o["timeZone"] as? String).flatMap(TimeZone.init(identifier:)))
@@ -132,7 +138,8 @@ extension LegacyDashboardData {
     /// `now`: the same data the render engine draws, for the parity check.
     /// Sources are `<name>.json` (`<name>.error` for a failed one); the
     /// v0.3 widgets' inline sources are named by type (`media.json`,
-    /// `claude.json`, `file.json` for the privacy state).
+    /// `file.json` for the privacy state), and plan usage is `claude.json`
+    /// and `codex.json`.
     static func fromFixtures(_ dir: String, config: Config, now: Date) throws -> LegacyDashboardData {
         func data(_ name: String) -> Data? { FileManager.default.contents(atPath: "\(dir)/\(name).json") }
         func json(_ name: String) -> AnyJSON? { data(name).flatMap(AnyJSON.decode) }
@@ -148,7 +155,7 @@ extension LegacyDashboardData {
             time: now, cpu: system.cpuPercent, ram: system.memory.ramPercent, pressure: system.memory.pressurePercent,
             temp: system.temperature, battery: system.battery, uptime: Format.uptimeLong(Int(system.uptime)),
             disk: Format.diskFree(system.disk), network: system.network, privacy: [:],
-            claude: json("claude").flatMap(ClaudeSource.usage) ?? .zero,
+            claude: json("claude").flatMap(AIUsage.Reading.init), codex: json("codex").flatMap(AIUsage.Reading.init),
             volume: system.volume ?? VolumeInfo(level: 0, muted: false),
             nowPlaying: [:], weather: [:], keyValues: [:], agenda: [:], servers: [:], details: [:],
             popup: nil, timeZone: nil, localUptime: Int(system.uptime))

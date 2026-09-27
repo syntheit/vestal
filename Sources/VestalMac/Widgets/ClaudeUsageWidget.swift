@@ -4,37 +4,42 @@ import VestalCore
 
 // MARK: - Claude usage
 //
-// Claude Code tokens over the last 5 hours and the last 7 days, as
-// percentages of the widget's limits. On its own the widget is a status row
-// like the system bar; a system bar's "claudeUsage" item is the same view.
+// The Claude plan's 5-hour and weekly usage, from the `claude` source. On its
+// own the widget is a status row like the system bar; a system bar's
+// "claudeUsage" item is the same view, and its "codexUsage" item the same
+// with the `codex` source's numbers.
 
 struct ClaudeUsageWidget: View {
     @ObservedObject var model: DashboardModel
     let widget: WidgetConfig
 
     var body: some View {
-        let options = ClaudeUsage.Options(widget: widget)
-        return HStack(alignment: .center, spacing: 16) {
-            ClaudeUsageItem(usage: model.usage(options), options: options)
+        HStack(alignment: .center, spacing: 16) {
+            AIUsageItem(usage: model.claudeUsage)
             Spacer()
         }
         .frame(height: 24)
     }
 }
 
-struct ClaudeUsageItem: View {
-    let usage: ClaudeUsage.Snapshot
-    let options: ClaudeUsage.Options
+struct AIUsageItem: View {
+    let usage: AIUsage.Reading?
+    var symbol = "hourglass"
 
     var body: some View {
         HStack(spacing: 5) {
-            Image(systemName: "hourglass")
+            Image(systemName: symbol)
                 .font(.system(size: 10))
                 .foregroundStyle(Color.dimmed)
-            Text("\(usage.blockPercent(limit: options.fiveHourLimit))% / \(usage.weeklyPercent(limit: options.weeklyLimit))%")
+            Text("\(Self.text(usage?.session)) / \(Self.text(usage?.weekly))")
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(Color.subtle)
         }
+    }
+
+    /// "35%", or "–" for a window the source doesn't report.
+    private static func text(_ window: AIUsage.Window?) -> String {
+        window.map { "\($0.percent)%" } ?? "–"
     }
 }
 #endif

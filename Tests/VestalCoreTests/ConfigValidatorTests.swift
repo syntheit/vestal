@@ -226,23 +226,31 @@ final class ConfigValidatorTests: XCTestCase {
     func testCountsBelowOneAreReplacedByTheDefault() throws {
         let text = """
         {"sources": {"calendar": {"days": 0}},
-         "widgets": {"agenda": {"maxEvents": -1},
-                     "claude": {"type": "claudeUsage", "fiveHourLimit": 0, "weeklyLimit": -5}}}
+         "widgets": {"agenda": {"maxEvents": -1}}}
         """
         let found = warnings(text)
-        XCTAssertEqual(found.map(\.path), [
-            "sources.calendar.days", "widgets.agenda.maxEvents", "widgets.claude.fiveHourLimit", "widgets.claude.weeklyLimit",
-        ])
-        XCTAssertEqual(found.map(\.message), [
-            "must be at least 1; using 1", "must be at least 1; using 5",
-            "must be at least 1; using 8000000", "must be at least 1; using 95000000",
-        ])
+        XCTAssertEqual(found.map(\.path), ["sources.calendar.days", "widgets.agenda.maxEvents"])
+        XCTAssertEqual(found.map(\.message), ["must be at least 1; using 1", "must be at least 1; using 5"])
         // Decoded as absent: the defaults apply, and nothing traps later.
         let config = ConfigLoader.load(data: Data(text.utf8)).config
         XCTAssertEqual(config.sources["calendar"]?.days, 1)
         XCTAssertNil(config.widgets["agenda"]?.maxEvents)
-        XCTAssertNil(config.widgets["claude"]?.fiveHourLimit)
-        XCTAssertNil(config.widgets["claude"]?.weeklyLimit)
+    }
+
+    /// The v0.3 token-estimate options still load, and say they do nothing.
+    func testOldClaudeOptionsAreIgnoredWithAnInfo() throws {
+        let text = """
+        {"sources": {"claude": {"type": "claude", "path": "~/.claude/projects", "weeklyLimit": 5}},
+         "widgets": {"claude": {"type": "claudeUsage", "fiveHourLimit": 0, "weeklyLimit": 95000000}}}
+        """
+        let loaded = ConfigLoader.load(data: Data(text.utf8))
+        let found = loaded.notes.filter { $0.code == "ignored" }
+        XCTAssertEqual(found.map(\.path).sorted(), [
+            "sources.claude.path", "sources.claude.weeklyLimit", "widgets.claude.fiveHourLimit", "widgets.claude.weeklyLimit",
+        ])
+        XCTAssertTrue(found.allSatisfy { $0.severity == .info && $0.message.contains("vestal docs ai-usage") })
+        XCTAssertEqual(loaded.warnings, [], "infos are notes, never warnings")
+        XCTAssertEqual(loaded.config.sources["claude"], SourceConfig(type: "claude"))
     }
 
     func testOverflowingDurationIsInvalid() {

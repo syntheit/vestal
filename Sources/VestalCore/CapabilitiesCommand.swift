@@ -7,7 +7,8 @@ import Foundation
 // What works on this machine, for an agent deciding what to put on a
 // dashboard: the OS and UI; for each built-in source type its backend and
 // whether it works here (`system` fields this machine can't read, `media`
-// players seen, `calendar` EventKit or `ics`, `audio`, `claude` logs); the
+// players seen, `calendar` EventKit or `ics`, `audio`, `claude`'s stored
+// rate limits, the `codex` program); the
 // icon fonts found; screenshot and global-hotkey support; and every program
 // the config runs (command sources, secrets, `run` actions, adapter-made
 // hosts), found on PATH or missing. Media is asked of the running instance
@@ -168,14 +169,15 @@ public enum CapabilitiesCommand {
         }
         sources["audio"] = entry(backend: linux ? "wpctl" : "CoreAudio", audioCheck)
 
-        // claude: the logs.
-        let claudeDirs = Set(loaded.config.sources.values
-            .filter { SourceConfig.canonicalType($0.type) == "claude" }
-            .map { $0.path ?? "~/.claude/projects" })
-        let claudeDir = CommandRunner.expandTilde(claudeDirs.sorted().first ?? "~/.claude/projects", home: home)
-        var isDirectory: ObjCBool = false
-        let hasLogs = FileManager.default.fileExists(atPath: claudeDir, isDirectory: &isDirectory) && isDirectory.boolValue
-        sources["claude"] = entry(backend: "Claude Code logs", Check(hasLogs, hasLogs ? claudeDir : "no Claude Code logs at \(claudeDir)"))
+        // claude: what `vestal claude-statusline` keeps; codex: the app server.
+        let claudeFile = ClaudeRateLimits.path(home: home, environment: environment)
+        let hasLimits = FileManager.default.fileExists(atPath: claudeFile)
+        sources["claude"] = entry(backend: "Claude Code statusLine",
+                                  Check(hasLimits, hasLimits ? claudeFile : "no \(claudeFile) yet: \(ClaudeRateLimits.hint)"))
+        let codexArgv = loaded.config.sources.values.first { $0.type == "codex" }?.argv ?? CodexRateLimits.defaultArgv
+        let codex = codexArgv.first.flatMap { found(CommandRunner.expandTilde($0, home: home)) }
+        sources["codex"] = entry(backend: "codex app-server",
+                                 Check(codex != nil, codex ?? "\(codexArgv.first ?? "codex") not found on PATH"))
 
         // Icon fonts.
         let fonts = iconFonts(environment: environment, executable: executable)
@@ -283,7 +285,7 @@ public enum CapabilitiesCommand {
         lines.append("sources:")
         let sources = top["sources"]?.objectValue ?? [:]
         let width = sources.keys.map(\.count).max() ?? 0
-        for name in ["system", "media", "calendar", "audio", "claude"] {
+        for name in ["system", "media", "calendar", "audio", "claude", "codex"] {
             guard let source = sources[name]?.objectValue else { continue }
             let ok = source["ok"] == .bool(true)
             lines.append("  " + name.padding(toLength: width, withPad: " ", startingAt: 0) + "  " + mark(ok)

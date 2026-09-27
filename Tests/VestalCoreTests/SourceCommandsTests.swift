@@ -284,7 +284,8 @@ final class SourceValidationTests: XCTestCase {
           "f": {"type": "file", "path": "~/x", "parse": "exists"},
           "s": {"type": "system", "disks": ["/", "/home"], "interfaces": ["en0"]},
           "m": {"type": "media", "player": ["Spotify", "spotifyd"]},
-          "c": {"type": "claude", "path": "~/.claude/projects", "fiveHourLimit": 1, "weeklyLimit": 2},
+          "c": {"type": "claude"},
+          "x": {"type": "codex", "argv": ["~/bin/codex", "app-server"], "refresh": "10m"},
           "k": {"type": "calendar", "ics": ["~/cal"], "calendars": ["Work"]},
           "u": {"type": "http", "url": "https://x.example/?k={{ $secrets.k }}"}
         },

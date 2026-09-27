@@ -159,9 +159,14 @@ final class DashboardLayoutTests: XCTestCase {
     func testAbsentOrEmptyShowMeansEveryItem() {
         for show in [nil, [String]()] {
             let bar = SystemBarLayout(WidgetConfig(type: "systemBar", show: show))
-            XCTAssertEqual(bar.leading, ["uptime", "disk", "battery", "claudeUsage", "network"])
+            XCTAssertEqual(bar.leading, ["uptime", "disk", "battery", "claudeUsage", "network"], "codexUsage is opt-in")
             XCTAssertFalse(bar.privacy, "no privacy options")
         }
+    }
+
+    func testCodexUsageShowsWhenListed() {
+        let bar = SystemBarLayout(WidgetConfig(type: "systemBar", show: ["claudeUsage", "codexUsage", "network"]))
+        XCTAssertEqual(bar.leading, ["claudeUsage", "codexUsage", "network"])
     }
 
     func testUnknownAndRepeatedItemsAreDropped() {

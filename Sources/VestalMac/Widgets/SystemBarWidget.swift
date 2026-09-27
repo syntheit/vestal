@@ -68,8 +68,9 @@ struct SystemBarWidget: View {
                 }
             }
         case "claudeUsage":
-            // Options from the first claudeUsage widget by key, or the defaults.
-            ClaudeUsageItem(usage: model.usage(model.barClaude), options: model.barClaude)
+            AIUsageItem(usage: model.claudeUsage)
+        case "codexUsage":
+            AIUsageItem(usage: model.codexUsage, symbol: "terminal")
         case "network":
             HStack(spacing: 5) {
                 Image(systemName: "arrow.down")

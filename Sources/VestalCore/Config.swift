@@ -59,12 +59,6 @@ extension Config {
         expanded = expansion.tree
         for (name, source) in expansion.sources { sources[name] = source }
     }
-
-    /// Where a system bar's "claudeUsage" item takes its options: the first
-    /// widget of type claudeUsage, by key. Nil means the defaults.
-    public var claudeUsageWidget: WidgetConfig? {
-        widgets.sorted { $0.key < $1.key }.first { $0.value.type == "claudeUsage" }?.value
-    }
 }
 
 extension Config: Codable {
@@ -120,7 +114,8 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 //   file      path, parse
 //   system    disks, interfaces
 //   media     player
-//   claude    path, fiveHourLimit, weeklyLimit
+//   claude    (none; path, fiveHourLimit and weeklyLimit are accepted and ignored)
+//   codex     argv
 // docs/EXTENSIBILITY.md section 5 is the reference.
 
 public struct SourceConfig: Codable, Equatable, Sendable {
@@ -140,13 +135,13 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public static let defaultDays = 1
     public static let defaultPlayer = "auto"
     public static let defaultDisks = ["/"]
-    public static let defaultClaudePath = "~/.claude/projects"
 
     /// `refresh` when the source doesn't set it (EXTENSIBILITY.md 5.1).
     public static func defaultRefresh(for type: String) -> String {
         switch canonicalType(type) {
         case "system", "media": return "3s"
         case "file", "claude": return "30s"
+        case "codex": return "5m"
         default: return defaultRefresh
         }
     }
@@ -155,16 +150,24 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     /// while the dashboard is shown, everything else always.
     public static func defaultWhen(for type: String) -> String {
         switch canonicalType(type) {
-        case "system", "media", "claude": return "visible"
+        case "system", "media", "claude", "codex": return "visible"
         default: return "always"
         }
+    }
+
+    /// A visible-only source whose data is older than this when the
+    /// dashboard is shown fetches at once, though its `refresh` hasn't
+    /// passed: `codex`, whose refresh is long, after a minute. Nil: only
+    /// `refresh` counts.
+    public var showRefreshSeconds: TimeInterval? {
+        type == "codex" ? min(60, refreshSeconds) : nil
     }
 
     public var type: String                 // a key of `keysByType` (aliases resolved)
     public var url: String?                 // http
     public var refresh: String              // duration: "30s", "5m", "1h", "4h"; per type by default
     public var parse: String = "json"       // http, command, file: see `parseModes`
-    public var argv: [String]?              // command
+    public var argv: [String]?              // command; codex (default codex app-server)
     public var timeout: String = SourceConfig.defaultTimeout // command, http, calendar (ics URLs)
     public var env: [String: String]?       // command: extra environment
     public var days: Int = SourceConfig.defaultDays          // calendar: lookahead in days
@@ -179,18 +182,16 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public var method: String = "GET"       // http: "GET" | "POST"
     public var headers: [String: String]?   // http
     public var body: AnyJSON?               // http POST: text, or JSON sent as application/json
-    public var path: String?                // file (required); claude (default ~/.claude/projects)
+    public var path: String?                // file (required)
     public var disks: [String]?             // system: mount points (default ["/"])
     public var interfaces: [String]?        // system: interfaces to sum (nil: all but loopback)
     public var player: [String]?            // media: names in order, or ["auto"] (a string decodes as one)
-    public var fiveHourLimit: Int?          // claude
-    public var weeklyLimit: Int?            // claude
     public var ics: [String]?               // calendar: .ics files, directories or http(s) URLs
 
     enum CodingKeys: String, CodingKey {
         case type, url, refresh, parse, argv, timeout, env, days, calendars
         case when, transform, history, maxAge, cache, method, headers, body, path
-        case disks, interfaces, player, fiveHourLimit, weeklyLimit, ics
+        case disks, interfaces, player, ics
     }
 
     public init(
@@ -215,8 +216,6 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         disks: [String]? = nil,
         interfaces: [String]? = nil,
         player: [String]? = nil,
-        fiveHourLimit: Int? = nil,
-        weeklyLimit: Int? = nil,
         ics: [String]? = nil
     ) {
         let type = Self.canonicalType(type)
@@ -228,7 +227,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         self.transform = transform; self.history = history; self.maxAge = maxAge; self.cache = cache
         self.method = method; self.headers = headers; self.body = body; self.path = path
         self.disks = disks; self.interfaces = interfaces; self.player = player
-        self.fiveHourLimit = fiveHourLimit; self.weeklyLimit = weeklyLimit; self.ics = ics
+        self.ics = ics
         fillDefaults()
     }
 
@@ -262,8 +261,6 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         disks     = c.lenient([String].self, .disks)
         interfaces = c.lenient([String].self, .interfaces)
         player    = c.lenient([String].self, .player) ?? c.lenient(String.self, .player).map { [$0] }
-        fiveHourLimit = c.lenientPositive(.fiveHourLimit)
-        weeklyLimit = c.lenientPositive(.weeklyLimit)
         ics       = c.lenient([String].self, .ics) ?? c.lenient(String.self, .ics).map { [$0] }
         fillDefaults()
     }
@@ -277,9 +274,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         case "system":
             if disks?.isEmpty ?? true { disks = Self.defaultDisks }
         case "claude":
-            if path == nil { path = Self.defaultClaudePath }
-            if fiveHourLimit == nil { fiveHourLimit = ClaudeUsage.blockLimitTokens }
-            if weeklyLimit == nil { weeklyLimit = ClaudeUsage.weeklyLimitTokens }
+            // `path` is ignored (it was the v0.3 log directory).
+            path = nil
         default:
             break
         }
@@ -392,7 +388,10 @@ public struct WidgetConfig: Codable, Equatable, Sendable {
     public static let keysByType = SchemaRegistry.keysByType(SchemaRegistry.widgetTypes)
     public static let aliases = SchemaRegistry.aliases(SchemaRegistry.widgetTypes)
 
-    public static let systemBarItems = ["uptime", "disk", "battery", "claudeUsage", "network", "privacy"]
+    public static let systemBarItems = ["uptime", "disk", "battery", "claudeUsage", "codexUsage", "network", "privacy"]
+    /// What an absent or empty `show` shows: every item but codexUsage,
+    /// which runs a program (`codex app-server`) and is opt-in.
+    public static let systemBarDefaultItems = systemBarItems.filter { $0 != "codexUsage" }
     public static let weatherFields = ["location", "region", "condition", "temp", "sunrise", "sunset"]
     public static let unitSystems = ["metric", "imperial"]
     public static let providers = ["foyer"]
@@ -403,9 +402,6 @@ public struct WidgetConfig: Codable, Equatable, Sendable {
         public static let hideWhenOff = true
         public static let provider = "foyer"
         public static let units = "metric"
-        public static let claudePath = "~/.claude/projects"
-        public static let fiveHourLimit = ClaudeUsage.blockLimitTokens
-        public static let weeklyLimit = ClaudeUsage.weeklyLimitTokens
         /// Section titles of the widget types that have one; a keyValueList
         /// is titled after its key (see `title(forKey:)`).
         public static let titles = ["agendaList": "Today", "systemHealth": "Systems", "weatherCard": "Weather"]
@@ -440,14 +436,12 @@ public struct WidgetConfig: Codable, Equatable, Sendable {
     public var fields: [String: String]?
     public var units: String?                          // "metric" | "imperial"
 
-    // ClaudeUsage
-    public var path: String?
-    public var fiveHourLimit: Int?
-    public var weeklyLimit: Int?
+    // ClaudeUsage: `path`, `fiveHourLimit` and `weeklyLimit` are accepted and
+    // ignored (the claude source reads what Claude Code reports).
 
     enum CodingKeys: String, CodingKey {
         case type, title, source, worldClocks, show, privacy, player, hideWhenOff, maxEvents,
-             hosts, provider, items, fields, units, path, fiveHourLimit, weeklyLimit
+             hosts, provider, items, fields, units
     }
 
     public init(
@@ -464,10 +458,7 @@ public struct WidgetConfig: Codable, Equatable, Sendable {
         provider: String? = nil,
         items: [PickItem]? = nil,
         fields: [String: String]? = nil,
-        units: String? = nil,
-        path: String? = nil,
-        fiveHourLimit: Int? = nil,
-        weeklyLimit: Int? = nil
+        units: String? = nil
     ) {
         self.type = Self.canonicalType(type)
         self.title = title
@@ -483,9 +474,6 @@ public struct WidgetConfig: Codable, Equatable, Sendable {
         self.items = items
         self.fields = fields
         self.units = units
-        self.path = path
-        self.fiveHourLimit = fiveHourLimit
-        self.weeklyLimit = weeklyLimit
     }
 
     public init(from decoder: Decoder) throws {
@@ -508,9 +496,6 @@ public struct WidgetConfig: Codable, Equatable, Sendable {
         items         = c.lenientList(PickItem.self, .items)
         fields        = c.lenient([String: String].self, .fields)
         units         = c.lenient(String.self, .units)
-        path          = c.lenient(String.self, .path)
-        fiveHourLimit = c.lenientPositive(.fiveHourLimit)
-        weeklyLimit   = c.lenientPositive(.weeklyLimit)
     }
 
     /// `type` with aliases resolved ("spotify" → "media").

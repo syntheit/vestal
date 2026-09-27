@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Config expansion (EXTENSIBILITY.md §7.2, §7.4, §7.5)
 //
 // After the layers are merged, and before the render engine reads the
-// config: the legacy adapter applies the three v0.3 couplings, templates
+// config: the legacy adapter applies the two v0.3 couplings, templates
 // are expanded (widget templates in `widgets` and views, source templates in
 // `sources` and inline), and inline source objects become sources named
 // `inline:<sha8>`. The result is what `vestal print-config --expanded`
@@ -598,7 +598,7 @@ struct Expander {
 // MARK: - The legacy adapter (§7.5)
 
 public enum LegacyAdapter {
-    /// Applies the three v0.3 couplings to the merged config and returns a
+    /// Applies the two v0.3 couplings to the merged config and returns a
     /// `legacy` note for each. A config with none of the v0.3 types it reads
     /// is left alone. Local hosts without a name get this machine's short
     /// name, as v0.3's decoder gave them.
@@ -612,30 +612,11 @@ public enum LegacyAdapter {
             widget.objectValue?["type"]?.stringValue.map(WidgetConfig.canonicalType)
         }
         let keys = widgets.keys.sorted()
+        // (v0.3's third coupling, a system bar taking its Claude options from
+        // the first claudeUsage widget, is gone: those options are ignored
+        // now, and both read the `claude` source.)
 
-        // 1. The system bar's Claude options come from the first claudeUsage
-        //    widget, by key.
-        if let claudeKey = keys.first(where: { type(widgets[$0]!) == "claudeUsage" }) {
-            let options = widgets[claudeKey]!.objectValue ?? [:]
-            func positive(_ key: String, _ fallback: Int) -> AnyJSON {
-                if case .int(let n)? = options[key], n >= 1 { return .int(n) }
-                return .int(fallback)
-            }
-            let source: AnyJSON = .object([
-                "type": .string("claude"),
-                "path": .string(options["path"]?.stringValue ?? WidgetConfig.Defaults.claudePath),
-                "fiveHourLimit": positive("fiveHourLimit", WidgetConfig.Defaults.fiveHourLimit),
-                "weeklyLimit": positive("weeklyLimit", WidgetConfig.Defaults.weeklyLimit),
-            ])
-            for key in keys where type(widgets[key]!) == "systemBar" {
-                guard case .object(var bar) = widgets[key]!, bar["claudeSource"] == nil else { continue }
-                bar["claudeSource"] = source
-                widgets[key] = .object(bar)
-                note("widgets.\(key)", "systemBar '\(key)' takes its Claude options from widget '\(claudeKey)' (first claudeUsage by key)")
-            }
-        }
-
-        // 2. The `p` key: the first system bar of the default view whose
+        // 1. The `p` key: the first system bar of the default view whose
         //    privacy item shows.
         let defaultView = top["defaultView"]?.stringValue ?? "main"
         let view = top["views"]?.objectValue?[defaultView]?.objectValue ?? [:]
@@ -651,7 +632,7 @@ public enum LegacyAdapter {
             break
         }
 
-        // 3. Remote hosts become the sources `host:<name>`.
+        // 2. Remote hosts become the sources `host:<name>`.
         var sources = top["sources"]?.objectValue ?? [:]
         for key in keys where type(widgets[key]!) == "systemHealth" {
             guard case .object(var health) = widgets[key]!, case .array(var hosts)? = health["hosts"] else { continue }

@@ -11,7 +11,7 @@
   "battery": { "percent": 82, "charging": false, "timeRemaining": 312 },
   "network": { "in": 1258291, "out": 86016 },
   "privacy": { "systemBar": false },
-  "claude": { "blockTokens": 1440000, "weeklyTokens": 19950000 },
+  "claude": { "session": { "percent": 18, "resetsAt": 1790540000 }, "weekly": { "percent": 21, "resetsAt": 1790900000 }, "updatedAt": 1790528000, "source": "claude", "plan": null },
   "volume": { "level": 64, "muted": false },
   "nowPlaying": {
     "Spotify": { "title": "Clair de Lune", "artist": "Claude Debussy", "state": "playing" }

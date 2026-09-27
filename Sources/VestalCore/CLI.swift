@@ -24,6 +24,7 @@ import Foundation
 //                           local; no instance needed
 //   vestal sources | fetch   the instance if one runs, else local
 //                           (SourceCommands)
+//   vestal claude-statusline Claude Code's statusLine command (ClaudeStatusLine)
 //   vestal subscribe        stream the running instance's render model
 //                           (SubscribeCommand)
 //   vestal capabilities     what this machine supports (CapabilitiesCommand)
@@ -54,6 +55,8 @@ public enum CLI {
         case sources([String])
         /// `vestal fetch ...` (SourceCommands).
         case fetch([String])
+        /// `vestal claude-statusline ...` (ClaudeStatusLine).
+        case claudeStatusLine([String])
         case schema([String])
         case docs([String])
         /// `vestal icons ...` (IconsCommand).
@@ -101,6 +104,7 @@ public enum CLI {
         case "print-config": return .command(.printConfig(rest))
         case "sources": return .command(.sources(rest))
         case "fetch": return .command(.fetch(rest))
+        case "claude-statusline": return .command(.claudeStatusLine(rest))
         case "schema": return .command(.schema(rest))
         case "docs": return .command(.docs(rest))
         case "icons": return .command(.icons(rest))
@@ -206,7 +210,12 @@ public enum CLI {
                                --raw the data before transform, --cached the last
                                data without fetching, --local fetches in this
                                process, --timeout <duration>. See docs/CONFIG.md
-          version              Print the version and build
+          claude-statusline [--then <command...>]
+                               Claude Code's statusLine command: keeps the plan's
+                               rate limits from its input for the claude source and
+                               prints "5h 35% · wk 50%"; --then chains another
+                               statusLine command (vestal docs ai-usage)
+          version             Print the version and build
           help                 Show this message
 
         hide, reload, status and quit never start vestal: they exit 1 when it is

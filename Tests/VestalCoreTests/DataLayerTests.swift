@@ -45,9 +45,15 @@ final class SourceDefinitionTests: XCTestCase {
         XCTAssertEqual(try decode(#"{"type": "media"}"#).player, ["auto"])
         let claude = try decode(#"{"type": "claude"}"#)
         XCTAssertEqual(claude.refresh, "30s")
-        XCTAssertEqual(claude.path, "~/.claude/projects")
-        XCTAssertEqual(claude.fiveHourLimit, 8_000_000)
-        XCTAssertEqual(claude.weeklyLimit, 95_000_000)
+        XCTAssertNil(claude.path)
+        XCTAssertEqual(claude.when, "visible")
+        XCTAssertNil(claude.showRefreshSeconds)
+        XCTAssertNil(try decode(#"{"type": "claude", "path": "~/.claude/projects"}"#).path, "ignored")
+        let codex = try decode(#"{"type": "codex"}"#)
+        XCTAssertEqual(codex.refresh, "5m")
+        XCTAssertEqual(codex.when, "visible")
+        XCTAssertEqual(codex.showRefreshSeconds, 60)
+        XCTAssertEqual(try decode(#"{"type": "codex", "refresh": "30s"}"#).showRefreshSeconds, 30)
         let file = try decode(#"{"type": "file", "path": "~/x.json"}"#)
         XCTAssertEqual(file.refresh, "30s")
         XCTAssertEqual(file.when, "always")
@@ -99,8 +105,6 @@ final class SourceDefinitionTests: XCTestCase {
         let spotify = LegacySources.media(player: "Spotify")
         let all = config.runtimeSources
         XCTAssertEqual(all[spotify.inlineName], spotify)
-        let claude = LegacySources.claude(config.claudeUsageWidget)
-        XCTAssertEqual(all[claude.inlineName], claude)
         XCTAssertEqual(config.origin(ofSource: spotify.inlineName), "adapter")
         XCTAssertEqual(config.origin(ofSource: "system"), "builtin")
         XCTAssertEqual(config.origin(ofSource: "dolares"), "config")
@@ -108,10 +112,9 @@ final class SourceDefinitionTests: XCTestCase {
         let readers = SourceReaders.readers(of: config)
         XCTAssertEqual(readers["system"], ["main/systemBar", "main/spotify", "main/systems"])
         XCTAssertEqual(readers[spotify.inlineName], ["main/spotify"])
-        XCTAssertEqual(readers[claude.inlineName], ["main/systemBar"])
+        XCTAssertEqual(readers["claude"], ["main/systemBar"], "the claudeUsage item reads the named source")
         XCTAssertEqual(readers["dolares"], ["main/exchange"])
         XCTAssertNil(readers["media"], "the built-in media source has no reader in a v0.3 layout")
-        XCTAssertNil(readers["claude"])
     }
 
     func testDefaultsDefineTheBuiltInSources() {
@@ -119,6 +122,7 @@ final class SourceDefinitionTests: XCTestCase {
         XCTAssertEqual(sources["system"], SourceConfig(type: "system"))
         XCTAssertEqual(sources["media"], SourceConfig(type: "media", player: ["auto"]))
         XCTAssertEqual(sources["claude"], SourceConfig(type: "claude"))
+        XCTAssertEqual(sources["codex"], SourceConfig(type: "codex"))
     }
 }
 
@@ -402,16 +406,6 @@ final class BuiltinShapeTests: XCTestCase {
             "album": .null, "position": .null, "duration": .null, "players": .array([]),
         ]))
         XCTAssertEqual(MediaSource.nowPlaying(off), .off)
-    }
-
-    func testClaudeShape() {
-        let shape = ClaudeSource.shape(ClaudeUsage.Snapshot(blockTokens: 1_500_000, weeklyTokens: 20_000_000),
-                                       fiveHourLimit: 8_000_000, weeklyLimit: 95_000_000)
-        XCTAssertEqual(shape, .object([
-            "fiveHour": .object(["tokens": .int(1_500_000), "limit": .int(8_000_000), "percent": .int(18)]),
-            "week": .object(["tokens": .int(20_000_000), "limit": .int(95_000_000), "percent": .int(21)]),
-        ]))
-        XCTAssertEqual(ClaudeSource.usage(shape), ClaudeUsage.Snapshot(blockTokens: 1_500_000, weeklyTokens: 20_000_000))
     }
 
     func testMediaScriptTrackParsing() {

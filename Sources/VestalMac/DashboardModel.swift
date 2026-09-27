@@ -7,17 +7,18 @@ import VestalCore
 // Everything the dashboard shows, as @Published properties for SwiftUI (an
 // ObservableObject: the Nix toolchain can't load macro plugins). The runtime keeps
 // it current: source and host snapshots arrive through `AppRuntime.observe`.
-// Since v0.4 the stats, the players and Claude usage are sources too
-// (`system`, and the inline `media` and `claude` sources of the v0.3 widgets,
-// LegacySources), fetched only while the dashboard is visible; this model
+// Since v0.4 the stats, the players and plan usage are sources too
+// (`system`, the inline `media` sources of the v0.3 widgets, and the named
+// `claude` and `codex`: LegacySources), fetched only while the dashboard is
+// visible; this model
 // reads their data back into the v0.3 values, so the views show exactly what
 // they did. Two tickers stay here, also visible-only: the clock, and the
 // network rate with the privacy state, both every second as before. The view
 // keeps nothing but its own UI state (popups, animations).
 //
 // What depends on a widget's options is kept per widget key (weather, lists,
-// agendas, privacy), per player (media) or per projects directory (Claude
-// usage), so several widgets of one type each show their own.
+// agendas, privacy) or per player (media), so several widgets of one type
+// each show their own.
 
 @MainActor
 final class DashboardModel: ObservableObject {
@@ -34,8 +35,9 @@ final class DashboardModel: ObservableObject {
     @Published private(set) var network: NetworkRate
     /// By system bar key, for the bars that show the privacy item.
     @Published private(set) var privacyMode: [String: Bool] = [:]
-    /// By projects directory (see `usage(_:)`).
-    @Published private(set) var claudeUsage: [String: ClaudeUsage.Snapshot] = [:]
+    /// The `claude` and `codex` sources' plan usage; nil until they have data.
+    @Published private(set) var claudeUsage: AIUsage.Reading?
+    @Published private(set) var codexUsage: AIUsage.Reading?
 
     // Media rows
     @Published private(set) var volume: VolumeInfo
@@ -60,9 +62,6 @@ final class DashboardModel: ObservableObject {
     let background: ThemeConfig.Background
     /// Shortcut letter → host name (see HostKeys).
     let hostKeys: [Character: String]
-    /// A system bar's "claudeUsage" item: the options of the first
-    /// claudeUsage widget by key, or the defaults.
-    let barClaude: ClaudeUsage.Options
 
     private let runtime: AppRuntime
     /// This model's runtime callback, until `detach`.
@@ -85,8 +84,6 @@ final class DashboardModel: ObservableObject {
     /// it may have read the old state, so it must not overwrite the
     /// optimistic icon.
     private var mediaClicked: [String: Date] = [:]
-    /// Each Claude projects directory's `claude` source (its inline name).
-    private let claudeSources: [String: String]
     /// Whether the `system` source exists and is of type `system` (a config
     /// may remove or replace it); without it the stats are read by a ticker
     /// here, as in v0.3.
@@ -119,25 +116,6 @@ final class DashboardModel: ObservableObject {
         privacy = Dictionary(uniqueKeysWithValues: privacyBars.map { ($0.key, MacPlatform.privacy($0.widget.privacy)) })
         privacyShortcut = privacyBars.first?.key
 
-        let barClaude = ClaudeUsage.Options(widget: config.claudeUsageWidget)
-        self.barClaude = barClaude
-        var claudeSources: [String: String] = [:]
-        for entry in layout.entries {
-            let options: ClaudeUsage.Options
-            let source: SourceConfig
-            switch entry.kind {
-            case .systemBar where SystemBarLayout(entry.widget).leading.contains("claudeUsage"):
-                options = barClaude
-                source = LegacySources.claude(config.claudeUsageWidget)
-            case .claudeUsage:
-                options = ClaudeUsage.Options(widget: entry.widget)
-                source = LegacySources.claude(entry.widget)
-            default: continue
-            }
-            if claudeSources[options.projectsDir] == nil { claudeSources[options.projectsDir] = source.inlineName }
-        }
-        self.claudeSources = claudeSources
-
         // The `system` source, read now if its data is older than its
         // refresh (Mach, IOKit and CoreAudio reads take well under 1ms each),
         // so the first frame is complete.
@@ -158,11 +136,8 @@ final class DashboardModel: ObservableObject {
         network = stats.networkRate()
         volume = reading?.volume ?? MacPlatform.audio.volume()
         privacyMode = privacy.mapValues { $0.isEnabled() }
-        for (dir, source) in claudeSources {
-            if let usage = runtime.snapshot(.source(source))?.data.flatMap(AnyJSON.decode).flatMap(ClaudeSource.usage) {
-                claudeUsage[dir] = usage
-            }
-        }
+        claudeUsage = Self.usage(runtime, LegacySources.claude)
+        codexUsage = Self.usage(runtime, LegacySources.codex)
         // The media row as it last was (the runtime serves the source's disk
         // cache; v0.3's own file for the first start after an upgrade), until
         // the player answers: without it the row would appear a moment after
@@ -200,9 +175,9 @@ final class DashboardModel: ObservableObject {
         nowPlaying[player] ?? .off
     }
 
-    /// The token totals behind `options`; zero until the first read.
-    func usage(_ options: ClaudeUsage.Options) -> ClaudeUsage.Snapshot {
-        claudeUsage[options.projectsDir] ?? .zero
+    /// A `claude` or `codex` source's plan usage, if it has data.
+    private static func usage(_ runtime: AppRuntime, _ source: String) -> AIUsage.Reading? {
+        runtime.snapshot(.source(source))?.data.flatMap(AnyJSON.decode).flatMap(AIUsage.Reading.init)
     }
 
     /// Rows of every list, for the dashboard's entry animation.
@@ -313,7 +288,8 @@ final class DashboardModel: ObservableObject {
         case .snapshot(.source(let name)):
             if name == SourceReaders.system { deriveSystem() }
             for (player, source) in mediaSources where source == name { deriveMedia(player) }
-            for (dir, source) in claudeSources where source == name { deriveClaude(dir) }
+            if name == LegacySources.claude, let usage = Self.usage(runtime, name) { update(\.claudeUsage, usage) }
+            if name == LegacySources.codex, let usage = Self.usage(runtime, name) { update(\.codexUsage, usage) }
             for entry in layout.entries where entry.widget.sourceNames.contains(name) { derive(entry) }
             if hosts.contains(where: { $0.source == name }) { deriveHosts() }
         }
@@ -344,11 +320,6 @@ final class DashboardModel: ObservableObject {
         update(\.nowPlaying, player, MediaSource.nowPlaying(json))
     }
 
-    private func deriveClaude(_ dir: String) {
-        guard let source = claudeSources[dir],
-              let usage = data(source).flatMap(AnyJSON.decode).flatMap(ClaudeSource.usage) else { return }
-        update(\.claudeUsage, dir, usage)
-    }
 
 
     private func data(_ source: String?) -> Data? {
@@ -433,7 +404,8 @@ extension DashboardModel {
         diskFree = data.disk
         network = data.network
         privacyMode = data.privacy
-        claudeUsage = Dictionary(uniqueKeysWithValues: claudeSources.keys.map { ($0, data.claude) })
+        claudeUsage = data.claude
+        codexUsage = data.codex
         volume = data.volume
         nowPlaying = data.nowPlaying
         weather = data.weather
