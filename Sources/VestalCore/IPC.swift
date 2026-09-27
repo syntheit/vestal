@@ -10,8 +10,10 @@ import Glibc
 //
 // The resident app and the `vestal` CLI talk over a unix domain socket, one
 // request per connection. The client writes a command and a newline
-// (`toggle`, `show`, `hide`, `reload`, `status` or `quit`); the server answers
-// with one line of JSON and closes the connection:
+// (`toggle`, `show`, `hide`, `reload`, `status` or `quit`), or, when the
+// request has arguments, one line of JSON: `{"cmd":"show","view":"focus"}`
+// (a line that starts with `{`). The server answers with one line of JSON and
+// closes the connection:
 //
 //     {"ok":true}
 //     {"error":"unknown command 'x' ...","ok":false}
@@ -64,6 +66,73 @@ import Glibc
 /// A request. The raw value is the line sent over the socket.
 public enum IPCCommand: String, CaseIterable, Sendable {
     case toggle, show, hide, reload, status, quit
+}
+
+/// A command with its arguments. On the wire it is the bare command word
+/// when there are none, which every server understands, and a JSON object
+/// otherwise: `{"cmd":"show","view":"focus"}`. A server ignores JSON keys it
+/// doesn't know, so later arguments stay compatible.
+public struct IPCRequest: Equatable, Sendable {
+    public var command: IPCCommand
+    /// The view `show` and `toggle` open. Ignored until views exist
+    /// (docs/TASKS-v0.4.md phase 7).
+    public var view: String?
+
+    public init(_ command: IPCCommand, view: String? = nil) {
+        self.command = command
+        self.view = view
+    }
+
+    /// The commands that take a `view`.
+    public static let viewCommands: Set<IPCCommand> = [.show, .toggle]
+
+    /// The request line, without its newline.
+    public var wireLine: String {
+        guard let view else { return command.rawValue }
+        return AnyJSON.object(["cmd": .string(command.rawValue), "view": .string(view)]).compactPrinted()
+    }
+
+    /// Parses a request line (surrounding whitespace ignored). The error is
+    /// the message to send back.
+    public static func parse(_ line: String) -> Result<IPCRequest, IPCRequestError> {
+        let text = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        let known = IPCCommand.allCases.map(\.rawValue).joined(separator: ", ")
+        guard text.hasPrefix("{") else {
+            guard let command = IPCCommand(rawValue: text) else {
+                return .failure(IPCRequestError(text.isEmpty
+                    ? "empty request (expected one of \(known))"
+                    : "unknown command '\(text)' (expected one of \(known))"))
+            }
+            return .success(IPCRequest(command))
+        }
+        guard case .success(let json) = AnyJSON.parse(Data(text.utf8)), let object = json.objectValue else {
+            return .failure(IPCRequestError("invalid request: not a JSON object"))
+        }
+        guard let name = object["cmd"]?.stringValue else {
+            return .failure(IPCRequestError("invalid request: \"cmd\" must be a string (one of \(known))"))
+        }
+        guard let command = IPCCommand(rawValue: name) else {
+            return .failure(IPCRequestError("unknown command '\(name)' (expected one of \(known))"))
+        }
+        var request = IPCRequest(command)
+        switch object["view"] {
+        case nil, .null?:
+            break
+        case .string(let view)?:
+            guard viewCommands.contains(command) else {
+                return .failure(IPCRequestError("'\(name)' takes no view"))
+            }
+            request.view = view
+        case let other?:
+            return .failure(IPCRequestError("invalid request: \"view\" must be a string, not \(other.kindDescription)"))
+        }
+        return .success(request)
+    }
+}
+
+public struct IPCRequestError: Error, Equatable, Sendable {
+    public var message: String
+    public init(_ message: String) { self.message = message }
 }
 
 /// One source as `vestal status` reports it.
@@ -335,6 +404,8 @@ public enum IPC {
 /// from any thread, later than the handler returns; only the first call counts.
 public typealias IPCReply = @Sendable (IPCResponse) -> Void
 public typealias IPCHandler = (IPCCommand, @escaping IPCReply) -> Void
+/// Like `IPCHandler`, with the request's arguments.
+public typealias IPCRequestHandler = (IPCRequest, @escaping IPCReply) -> Void
 
 /// Listens on the socket and hands each command to `handler` on `queue`.
 ///
@@ -355,7 +426,7 @@ public final class IPCServer: @unchecked Sendable {
     private let paths: [String]
 
     private let handlerQueue: DispatchQueue
-    private let handler: IPCHandler
+    private let handler: IPCRequestHandler
     private let ioTimeout: TimeInterval
     private let replyTimeout: TimeInterval
     private let maxRequestLength: Int
@@ -402,7 +473,7 @@ public final class IPCServer: @unchecked Sendable {
     ///   - maintenanceInterval: how often the socket and lock files are
     ///     checked (and restored if they went missing) and their timestamps
     ///     refreshed.
-    public init(
+    public convenience init(
         paths: [String] = IPC.candidateSocketPaths(),
         queue: DispatchQueue = .main,
         ioTimeout: TimeInterval = 2,
@@ -410,6 +481,23 @@ public final class IPCServer: @unchecked Sendable {
         maxRequestLength: Int = 256,
         maintenanceInterval: TimeInterval = 60,
         handler: @escaping IPCHandler
+    ) {
+        self.init(paths: paths, queue: queue, ioTimeout: ioTimeout, replyTimeout: replyTimeout,
+                  maxRequestLength: maxRequestLength, maintenanceInterval: maintenanceInterval,
+                  requestHandler: { request, reply in handler(request.command, reply) })
+    }
+
+    /// The same, with a handler that sees the request's arguments. Every
+    /// parameter is spelled out, so a trailing closure never makes a call
+    /// to the initializer above ambiguous.
+    public init(
+        paths: [String],
+        queue: DispatchQueue,
+        ioTimeout: TimeInterval,
+        replyTimeout: TimeInterval,
+        maxRequestLength: Int,
+        maintenanceInterval: TimeInterval,
+        requestHandler handler: @escaping IPCRequestHandler
     ) {
         self.paths = paths.isEmpty ? [IPC.defaultSocketPath()] : paths
         self.path = self.paths[0]
@@ -820,12 +908,12 @@ public final class IPCServer: @unchecked Sendable {
 
     private func received(_ connection: IPCConnection, line: ArraySlice<UInt8>) {
         stopReading(connection)
-        let text = String(decoding: line, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let command = IPCCommand(rawValue: text) else {
-            let known = IPCCommand.allCases.map(\.rawValue).joined(separator: ", ")
-            respond(connection, .failure(text.isEmpty
-                ? "empty request (expected one of \(known))"
-                : "unknown command '\(text)' (expected one of \(known))"))
+        let request: IPCRequest
+        switch IPCRequest.parse(String(decoding: line, as: UTF8.self)) {
+        case .success(let parsed):
+            request = parsed
+        case .failure(let error):
+            respond(connection, .failure(error.message))
             return
         }
         connection.phase = .handling
@@ -836,7 +924,7 @@ public final class IPCServer: @unchecked Sendable {
             // Skip commands whose client is gone: it timed out (and was told
             // so) or the server stopped. A late toggle would only surprise.
             guard self.isAwaitingHandler(id) else { return }
-            self.handler(command) { response in
+            self.handler(request) { response in
                 // Encode on the replying thread; a big status reply must not
                 // hold up the queue that serves everyone else.
                 let line = [UInt8](response.jsonLine())
@@ -1003,12 +1091,43 @@ public enum IPCClient {
         paths: [String] = IPC.candidateSocketPaths(),
         timeout: TimeInterval = 5
     ) throws -> IPCResponse {
-        let line = try exchange(Data((command.rawValue + "\n").utf8), paths: paths, timeout: timeout)
-        do {
-            return try IPCResponse(jsonLine: line)
-        } catch {
-            throw IPCError.badResponse(String(decoding: line.prefix(200), as: UTF8.self))
+        try send(IPCRequest(command), paths: paths, timeout: timeout)
+    }
+
+    /// Sends `request`; see `send(_:paths:timeout:)` for a command.
+    public static func send(
+        _ request: IPCRequest,
+        paths: [String] = IPC.candidateSocketPaths(),
+        timeout: TimeInterval = 5
+    ) throws -> IPCResponse {
+        try send(request, through: { try exchange($0, paths: paths, timeout: timeout) })
+    }
+
+    /// Sends `request` with `exchange`, which writes one request line and
+    /// returns the reply line. An instance from before JSON requests (v0.3)
+    /// answers a JSON line with "unknown command '{...'"; then the bare
+    /// command goes again, and the reply's message says the arguments were
+    /// ignored.
+    public static func send(_ request: IPCRequest, through exchange: (Data) throws -> Data) throws -> IPCResponse {
+        func ask(_ line: String) throws -> IPCResponse {
+            let reply = try exchange(Data((line + "\n").utf8))
+            do {
+                return try IPCResponse(jsonLine: reply)
+            } catch {
+                throw IPCError.badResponse(String(decoding: reply.prefix(200), as: UTF8.self))
+            }
         }
+        let line = request.wireLine
+        let response = try ask(line)
+        guard line.hasPrefix("{"), !response.ok, response.error?.hasPrefix("unknown command '{") == true else {
+            return response
+        }
+        var retried = try ask(request.command.rawValue)
+        if retried.ok {
+            let note = "the running instance is an older build; it ignored the view"
+            retried.message = retried.message.map { "\($0); \(note)" } ?? note
+        }
+        return retried
     }
 
     /// Sends `command` to the instance on `path` only.

@@ -1,0 +1,2164 @@
+{
+  "$defs": {
+    "duration": {
+      "description": "A whole number above zero and a unit: s, m, h or d.",
+      "examples": [
+        "30s",
+        "5m",
+        "4h",
+        "1d"
+      ],
+      "pattern": "^[ \\t]*\\+?0*[1-9][0-9]*[smhd][ \\t]*$",
+      "type": "string"
+    },
+    "host": {
+      "additionalProperties": false,
+      "description": "A host of a systemHealth widget. It needs url or source.",
+      "properties": {
+        "interval": {
+          "$ref": "#/$defs/duration",
+          "default": "5s",
+          "description": "How often a url host is polled while the dashboard is shown.",
+          "examples": [
+            "10s"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "key": {
+          "description": "Shortcut letter, a to z; p and i are reserved. Default: the first free letter of the name.",
+          "examples": [
+            "w"
+          ],
+          "type": "string",
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "name": {
+          "description": "Display name. Required, except for a local host, which is named after this machine.",
+          "examples": [
+            "web"
+          ],
+          "type": "string",
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        },
+        "source": {
+          "description": "local: this machine, read in-process. Any other value names a source whose JSON is a foyer /api/health payload.",
+          "examples": [
+            "local",
+            "health"
+          ],
+          "type": "string",
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "url": {
+          "description": "The host's foyer base URL.",
+          "examples": [
+            "https://web.example.com"
+          ],
+          "type": "string",
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "type": "object"
+    },
+    "item": {
+      "additionalProperties": false,
+      "description": "A labelled value of a keyValueList. It needs pick or picks.",
+      "properties": {
+        "format": {
+          "description": "int (alias integer): a whole number. decimal (alias %.2f): two decimals. Absent: as is.",
+          "enum": [
+            "int",
+            "integer",
+            "decimal",
+            "%.2f"
+          ],
+          "examples": [
+            "int",
+            "decimal"
+          ],
+          "type": "string",
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "label": {
+          "description": "Shown above the value.",
+          "examples": [
+            "EUR"
+          ],
+          "type": "string",
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        },
+        "match": {
+          "additionalProperties": {},
+          "description": "When the source's JSON is a list, use the first element whose fields equal all of these values.",
+          "examples": [
+            {
+              "casa": "blue"
+            }
+          ],
+          "type": "object",
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "pick": {
+          "description": "Path of the one value to show: field names separated by dots (the leading dot is optional) and [N] indexes. A legacy path, never jq.",
+          "examples": [
+            "rates.EUR"
+          ],
+          "type": "string",
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "picks": {
+          "$ref": "#/$defs/picks",
+          "description": "Paths of two values, shown as buy / sell.",
+          "examples": [
+            {
+              "buy": "compra",
+              "sell": "venta"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "source": {
+          "description": "Where to pick from. Default: the widget's source.",
+          "examples": [
+            "rates"
+          ],
+          "type": "string",
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "type": "object"
+    },
+    "layer": {
+      "additionalProperties": false,
+      "description": "A platform block: any top-level key except platform.",
+      "properties": {
+        "hotkey": {
+          "default": null,
+          "description": "Built-in toggle hotkey: f1-f20, letters, digits, space, escape, home or end, with cmd, ctrl, alt (opt) and shift, joined with +. Letters, digits, space and escape need cmd, ctrl or alt. null registers nothing; bind `vestal toggle` in the window manager instead.",
+          "examples": [
+            "f3",
+            "cmd+shift+space",
+            null
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "sources": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/source"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "default": {
+            "calendar": {
+              "days": 1,
+              "refresh": "5m",
+              "type": "calendar"
+            },
+            "weather": {
+              "parse": "json",
+              "refresh": "30m",
+              "type": "http",
+              "url": "https://wttr.in/?m&format=j1"
+            }
+          },
+          "description": "Named data sources. Widgets refer to them by name; every widget reading one shares its fetch. null deletes a built-in one.",
+          "examples": [
+            {
+              "rates": {
+                "refresh": "4h",
+                "type": "http",
+                "url": "https://api.example.com/rates.json"
+              }
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "theme": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/theme"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": {
+            "background": "aurora",
+            "palette": "tokyo-night"
+          },
+          "description": "Palette and background.",
+          "examples": [
+            {
+              "background": "blur"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "version": {
+          "default": 1,
+          "description": "Schema version. Only 1 exists.",
+          "examples": [
+            1
+          ],
+          "maximum": 1,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "views": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/view"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "default": {
+            "main": {
+              "layout": "stack",
+              "order": [
+                "clock",
+                "systemBar",
+                "media",
+                "agenda",
+                "systems",
+                "weather"
+              ]
+            }
+          },
+          "description": "Named views. The dashboard shows main.",
+          "examples": [
+            {
+              "main": {
+                "order": [
+                  "clock",
+                  "agenda"
+                ]
+              }
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "widgets": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/widget"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "default": {
+            "agenda": {
+              "maxEvents": 5,
+              "source": "calendar",
+              "type": "agendaList"
+            },
+            "clock": {
+              "type": "clock"
+            },
+            "media": {
+              "hideWhenOff": true,
+              "type": "media"
+            },
+            "systemBar": {
+              "show": [
+                "uptime",
+                "disk",
+                "battery",
+                "network"
+              ],
+              "type": "systemBar"
+            },
+            "systems": {
+              "hosts": [
+                {
+                  "source": "local"
+                }
+              ],
+              "type": "systemHealth"
+            },
+            "weather": {
+              "fields": {
+                "condition": ".current_condition[0].weatherDesc[0].value",
+                "location": ".nearest_area[0].areaName[0].value",
+                "region": ".nearest_area[0].region[0].value",
+                "sunrise": ".weather[0].astronomy[0].sunrise",
+                "sunset": ".weather[0].astronomy[0].sunset",
+                "temp": ".current_condition[0].temp_C"
+              },
+              "source": "weather",
+              "type": "weatherCard"
+            }
+          },
+          "description": "Named widgets. A widget shows when a view's order lists its key. null deletes a built-in one.",
+          "examples": [
+            {
+              "agenda": {
+                "maxEvents": 3
+              }
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "type": "object"
+    },
+    "picks": {
+      "additionalProperties": false,
+      "description": "Paths of a buy and a sell value (legacy paths, never jq).",
+      "properties": {
+        "buy": {
+          "description": "Path of the buy value.",
+          "examples": [
+            "compra"
+          ],
+          "type": "string",
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "sell": {
+          "description": "Path of the sell value.",
+          "examples": [
+            "venta"
+          ],
+          "type": "string",
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "type": "object"
+    },
+    "platform": {
+      "additionalProperties": false,
+      "description": "Per-OS blocks. Each takes any top-level key except platform.",
+      "properties": {
+        "linux": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/layer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Merged over the rest of the file on Linux.",
+          "examples": [
+            {
+              "hotkey": "home"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "macos": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/layer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Merged over the rest of the file on macOS.",
+          "examples": [
+            {
+              "hotkey": "f3"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "type": "object"
+    },
+    "privacy": {
+      "additionalProperties": false,
+      "description": "The system bar's privacy toggle. It shows, and its p key works, only when both keys are set.",
+      "properties": {
+        "command": {
+          "description": "Run to toggle privacy mode, with the rules of a command source's argv.",
+          "examples": [
+            [
+              "~/bin/toggle-privacy"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        },
+        "stateFile": {
+          "description": "The file that exists while privacy mode is on. A leading ~/ expands.",
+          "examples": [
+            "~/.cache/privacy-mode"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "type": "object"
+    },
+    "source": {
+      "description": "A source: an object whose type picks the keys it takes.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/source.calendar"
+        },
+        {
+          "$ref": "#/$defs/source.command"
+        },
+        {
+          "$ref": "#/$defs/source.http"
+        },
+        {
+          "$ref": "#/$defs/source.override"
+        }
+      ]
+    },
+    "source.calendar": {
+      "additionalProperties": false,
+      "description": "Events from the system calendar (EventKit on macOS; no Linux backend yet).",
+      "properties": {
+        "calendars": {
+          "description": "Only calendars with these names. Default: all.",
+          "examples": [
+            [
+              "Work",
+              "Home"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "days": {
+          "default": 1,
+          "description": "How many days to read, today being the first.",
+          "examples": [
+            2
+          ],
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "refresh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "30m",
+          "description": "How often to fetch.",
+          "examples": [
+            "5m",
+            "4h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "type": {
+          "description": "The source type; eventkit is an alias.",
+          "enum": [
+            "calendar",
+            "eventkit"
+          ],
+          "examples": [
+            "calendar"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.3"
+    },
+    "source.command": {
+      "additionalProperties": false,
+      "description": "Runs a program, never through a shell.",
+      "properties": {
+        "argv": {
+          "description": "The program and its arguments. argv[0] is looked up on PATH and the usual Nix and Homebrew directories. A leading ~ or ~/ in any element expands to the home directory.",
+          "examples": [
+            [
+              "~/bin/health-json",
+              "--host",
+              "nas"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        },
+        "env": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Added to the command's environment.",
+          "examples": [
+            {
+              "TOKEN_FILE": "/run/secrets/token"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        },
+        "parse": {
+          "default": "json",
+          "description": "json: stdout must be valid JSON. raw: stdout as it is.",
+          "enum": [
+            "json",
+            "raw",
+            null
+          ],
+          "examples": [
+            "raw"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "refresh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "30m",
+          "description": "How often to fetch.",
+          "examples": [
+            "5m",
+            "4h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "10s",
+          "description": "The command is killed after this long.",
+          "examples": [
+            "5s"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "type": {
+          "description": "The source type.",
+          "enum": [
+            "command"
+          ],
+          "examples": [
+            "command"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.3"
+    },
+    "source.http": {
+      "additionalProperties": false,
+      "description": "Fetches a URL with a 10 second timeout.",
+      "properties": {
+        "parse": {
+          "default": "json",
+          "description": "json: the body must be valid JSON. raw: the body as it is.",
+          "enum": [
+            "json",
+            "raw",
+            null
+          ],
+          "examples": [
+            "raw"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "refresh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "30m",
+          "description": "How often to fetch.",
+          "examples": [
+            "5m",
+            "4h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "type": {
+          "description": "The source type.",
+          "enum": [
+            "http"
+          ],
+          "examples": [
+            "http"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "url": {
+          "description": "An http:// or https:// URL. The answer must have a 2xx status.",
+          "examples": [
+            "https://wttr.in/?m&format=j1"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.3"
+    },
+    "source.override": {
+      "additionalProperties": false,
+      "description": "Changes to a source of the same name in a lower layer (the built-in defaults): any of its keys, without type.",
+      "not": {
+        "required": [
+          "type"
+        ]
+      },
+      "properties": {
+        "argv": {
+          "description": "The program and its arguments. argv[0] is looked up on PATH and the usual Nix and Homebrew directories. A leading ~ or ~/ in any element expands to the home directory.",
+          "examples": [
+            [
+              "~/bin/health-json",
+              "--host",
+              "nas"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        },
+        "calendars": {
+          "description": "Only calendars with these names. Default: all.",
+          "examples": [
+            [
+              "Work",
+              "Home"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "days": {
+          "description": "How many days to read, today being the first.",
+          "examples": [
+            2
+          ],
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "env": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Added to the command's environment.",
+          "examples": [
+            {
+              "TOKEN_FILE": "/run/secrets/token"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        },
+        "parse": {
+          "description": "json: stdout must be valid JSON. raw: stdout as it is.",
+          "enum": [
+            "json",
+            "raw",
+            null
+          ],
+          "examples": [
+            "raw"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "refresh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How often to fetch.",
+          "examples": [
+            "5m",
+            "4h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The command is killed after this long.",
+          "examples": [
+            "5s"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "url": {
+          "description": "An http:// or https:// URL. The answer must have a 2xx status.",
+          "examples": [
+            "https://wttr.in/?m&format=j1"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "type": "object"
+    },
+    "theme": {
+      "additionalProperties": false,
+      "description": "Palette and background.",
+      "properties": {
+        "background": {
+          "default": "aurora",
+          "description": "aurora: the animated aurora over the blurred desktop. blur: the blurred desktop only. none: the palette's solid background.",
+          "enum": [
+            "aurora",
+            "blur",
+            "none",
+            null
+          ],
+          "examples": [
+            "blur"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "palette": {
+          "default": "tokyo-night",
+          "description": "The colour palette. An unknown name falls back to tokyo-night.",
+          "enum": [
+            "tokyo-night",
+            null
+          ],
+          "examples": [
+            "tokyo-night"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "type": "object"
+    },
+    "view": {
+      "additionalProperties": false,
+      "description": "A view: the widgets it shows, top to bottom.",
+      "properties": {
+        "layout": {
+          "default": "stack",
+          "description": "How the widgets are arranged. stack is the only layout so far.",
+          "enum": [
+            "stack",
+            null
+          ],
+          "examples": [
+            "stack"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "order": {
+          "default": [],
+          "description": "Widget keys, top to bottom. Each key may appear once.",
+          "examples": [
+            [
+              "clock",
+              "systemBar",
+              "agenda"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "type": "object"
+    },
+    "weatherFields": {
+      "additionalProperties": false,
+      "description": "Paths into the weather source (legacy paths, never jq).",
+      "properties": {
+        "condition": {
+          "description": "The current condition, such as Partly cloudy.",
+          "examples": [
+            ".current_condition[0].weatherDesc[0].value"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "location": {
+          "description": "The place name, shown as location, region.",
+          "examples": [
+            ".nearest_area[0].areaName[0].value"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "region": {
+          "description": "The region, shown after the location.",
+          "examples": [
+            ".nearest_area[0].region[0].value"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "sunrise": {
+          "description": "Sunrise, as 06:15 AM or 06:15.",
+          "examples": [
+            ".weather[0].astronomy[0].sunrise"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "sunset": {
+          "description": "Sunset, as 06:15 PM or 18:15.",
+          "examples": [
+            ".weather[0].astronomy[0].sunset"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "temp": {
+          "description": "The temperature, in the units named by units.",
+          "examples": [
+            ".current_condition[0].temp_C"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "type": "object"
+    },
+    "widget": {
+      "description": "A widget: an object whose type picks the keys it takes.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/widget.agendaList"
+        },
+        {
+          "$ref": "#/$defs/widget.claudeUsage"
+        },
+        {
+          "$ref": "#/$defs/widget.clock"
+        },
+        {
+          "$ref": "#/$defs/widget.keyValueList"
+        },
+        {
+          "$ref": "#/$defs/widget.media"
+        },
+        {
+          "$ref": "#/$defs/widget.systemBar"
+        },
+        {
+          "$ref": "#/$defs/widget.systemHealth"
+        },
+        {
+          "$ref": "#/$defs/widget.weatherCard"
+        },
+        {
+          "$ref": "#/$defs/widget.template"
+        },
+        {
+          "$ref": "#/$defs/widget.override"
+        }
+      ]
+    },
+    "widget.agendaList": {
+      "additionalProperties": false,
+      "description": "The next events from a calendar source.",
+      "properties": {
+        "maxEvents": {
+          "default": 5,
+          "description": "At most this many events.",
+          "examples": [
+            3
+          ],
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "source": {
+          "description": "A calendar source, or a command or http source whose JSON is the same list of events.",
+          "examples": [
+            "calendar"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "title": {
+          "default": "Today",
+          "description": "Section title.",
+          "examples": [
+            "Today"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "agendaList"
+          ],
+          "examples": [
+            "agendaList"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.3"
+    },
+    "widget.claudeUsage": {
+      "additionalProperties": false,
+      "description": "Claude Code token usage over 5 hours and 7 days, as percentages of two limits.",
+      "properties": {
+        "fiveHourLimit": {
+          "default": 8000000,
+          "description": "Tokens that count as 100% over 5 hours.",
+          "examples": [
+            8000000
+          ],
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "path": {
+          "default": "~/.claude/projects",
+          "description": "Claude Code's projects directory. A leading ~/ expands.",
+          "examples": [
+            "~/.claude/projects"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "claudeUsage"
+          ],
+          "examples": [
+            "claudeUsage"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "weeklyLimit": {
+          "default": 95000000,
+          "description": "Tokens that count as 100% over 7 days.",
+          "examples": [
+            95000000
+          ],
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.3"
+    },
+    "widget.clock": {
+      "additionalProperties": false,
+      "description": "The local time and date.",
+      "properties": {
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "clock"
+          ],
+          "examples": [
+            "clock"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "worldClocks": {
+          "description": "Extra clocks under the date. A clock in the local time zone is skipped.",
+          "examples": [
+            [
+              {
+                "label": "NYC",
+                "tz": "America/New_York"
+              }
+            ]
+          ],
+          "items": {
+            "$ref": "#/$defs/worldClock"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.3"
+    },
+    "widget.keyValueList": {
+      "additionalProperties": false,
+      "description": "Labelled values picked out of JSON sources, such as exchange rates.",
+      "properties": {
+        "items": {
+          "description": "The values, in display order.",
+          "examples": [
+            [
+              {
+                "format": "decimal",
+                "label": "EUR",
+                "pick": "rates.EUR"
+              }
+            ]
+          ],
+          "items": {
+            "$ref": "#/$defs/item"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "source": {
+          "description": "The source items read, unless they name their own.",
+          "examples": [
+            "rates"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "title": {
+          "description": "Section title. Default: the widget key, first letter capitalized.",
+          "examples": [
+            "Rates"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "keyValueList"
+          ],
+          "examples": [
+            "keyValueList"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.3"
+    },
+    "widget.media": {
+      "additionalProperties": false,
+      "description": "What a music player is playing, with play/pause and the output volume.",
+      "properties": {
+        "hideWhenOff": {
+          "default": true,
+          "description": "Hide the row while the player is not running or has nothing loaded.",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "player": {
+          "default": "Spotify",
+          "description": "The player application: over AppleScript on macOS, the MPRIS player (playerctl, lowercased) on Linux.",
+          "examples": [
+            "Music"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "type": {
+          "description": "The widget type; spotify is an alias.",
+          "enum": [
+            "media",
+            "spotify"
+          ],
+          "examples": [
+            "media"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.3"
+    },
+    "widget.override": {
+      "additionalProperties": false,
+      "description": "Changes to a widget of the same name in a lower layer (the built-in defaults): any of its keys, without type.",
+      "not": {
+        "required": [
+          "type"
+        ]
+      },
+      "properties": {
+        "fields": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/weatherFields"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Paths of the values to show.",
+          "examples": [
+            {
+              "temp": ".current_condition[0].temp_C"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "fiveHourLimit": {
+          "description": "Tokens that count as 100% over 5 hours.",
+          "examples": [
+            8000000
+          ],
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "hideWhenOff": {
+          "description": "Hide the row while the player is not running or has nothing loaded.",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "hosts": {
+          "description": "The hosts, in display order.",
+          "examples": [
+            [
+              {
+                "source": "local"
+              },
+              {
+                "name": "web",
+                "url": "https://web.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "$ref": "#/$defs/host"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "items": {
+          "description": "The values, in display order.",
+          "examples": [
+            [
+              {
+                "format": "decimal",
+                "label": "EUR",
+                "pick": "rates.EUR"
+              }
+            ]
+          ],
+          "items": {
+            "$ref": "#/$defs/item"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "maxEvents": {
+          "description": "At most this many events.",
+          "examples": [
+            3
+          ],
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "path": {
+          "description": "Claude Code's projects directory. A leading ~/ expands.",
+          "examples": [
+            "~/.claude/projects"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "player": {
+          "description": "The player application: over AppleScript on macOS, the MPRIS player (playerctl, lowercased) on Linux.",
+          "examples": [
+            "Music"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "privacy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/privacy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The privacy toggle: a command to run and the file that exists while privacy mode is on.",
+          "examples": [
+            {
+              "command": [
+                "~/bin/toggle-privacy"
+              ],
+              "stateFile": "~/.cache/privacy-mode"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "provider": {
+          "description": "Where remote health comes from: foyer runs `foyer-api --host <url> /api/health`.",
+          "enum": [
+            "foyer",
+            null
+          ],
+          "examples": [
+            "foyer"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "show": {
+          "description": "Items, left to right. privacy is always drawn at the right end. Absent or empty shows every item.",
+          "examples": [
+            [
+              "uptime",
+              "battery",
+              "network"
+            ]
+          ],
+          "items": {
+            "enum": [
+              "uptime",
+              "disk",
+              "battery",
+              "claudeUsage",
+              "network",
+              "privacy"
+            ],
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "source": {
+          "description": "A calendar source, or a command or http source whose JSON is the same list of events.",
+          "examples": [
+            "calendar"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "title": {
+          "description": "Section title.",
+          "examples": [
+            "Today"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        },
+        "units": {
+          "description": "Only picks the °C or °F suffix: point fields.temp at the matching value yourself.",
+          "enum": [
+            "metric",
+            "imperial",
+            null
+          ],
+          "examples": [
+            "imperial"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "weeklyLimit": {
+          "description": "Tokens that count as 100% over 7 days.",
+          "examples": [
+            95000000
+          ],
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "worldClocks": {
+          "description": "Extra clocks under the date. A clock in the local time zone is skipped.",
+          "examples": [
+            [
+              {
+                "label": "NYC",
+                "tz": "America/New_York"
+              }
+            ]
+          ],
+          "items": {
+            "$ref": "#/$defs/worldClock"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "type": "object"
+    },
+    "widget.systemBar": {
+      "additionalProperties": false,
+      "description": "A row of system stats.",
+      "properties": {
+        "privacy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/privacy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The privacy toggle: a command to run and the file that exists while privacy mode is on.",
+          "examples": [
+            {
+              "command": [
+                "~/bin/toggle-privacy"
+              ],
+              "stateFile": "~/.cache/privacy-mode"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "show": {
+          "default": [
+            "uptime",
+            "disk",
+            "battery",
+            "claudeUsage",
+            "network",
+            "privacy"
+          ],
+          "description": "Items, left to right. privacy is always drawn at the right end. Absent or empty shows every item.",
+          "examples": [
+            [
+              "uptime",
+              "battery",
+              "network"
+            ]
+          ],
+          "items": {
+            "enum": [
+              "uptime",
+              "disk",
+              "battery",
+              "claudeUsage",
+              "network",
+              "privacy"
+            ],
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "systemBar"
+          ],
+          "examples": [
+            "systemBar"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.3"
+    },
+    "widget.systemHealth": {
+      "additionalProperties": false,
+      "description": "CPU, memory, temperature and uptime of hosts.",
+      "properties": {
+        "hosts": {
+          "description": "The hosts, in display order.",
+          "examples": [
+            [
+              {
+                "source": "local"
+              },
+              {
+                "name": "web",
+                "url": "https://web.example.com"
+              }
+            ]
+          ],
+          "items": {
+            "$ref": "#/$defs/host"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "provider": {
+          "default": "foyer",
+          "description": "Where remote health comes from: foyer runs `foyer-api --host <url> /api/health`.",
+          "enum": [
+            "foyer",
+            null
+          ],
+          "examples": [
+            "foyer"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "title": {
+          "default": "Systems",
+          "description": "Section title.",
+          "examples": [
+            "Systems"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "systemHealth"
+          ],
+          "examples": [
+            "systemHealth"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.3"
+    },
+    "widget.template": {
+      "description": "A widget of a type defined by a template (v0.4); its keys are the template's parameters. check-config reports a type that is neither built in nor defined.",
+      "properties": {
+        "type": {
+          "description": "A template's name.",
+          "examples": [
+            "metric"
+          ],
+          "not": {
+            "enum": [
+              "agendaList",
+              "claudeUsage",
+              "clock",
+              "keyValueList",
+              "media",
+              "spotify",
+              "systemBar",
+              "systemHealth",
+              "weatherCard"
+            ]
+          },
+          "type": "string",
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    },
+    "widget.weatherCard": {
+      "additionalProperties": false,
+      "description": "Current weather from a JSON source; the fields are paths, so any weather API works.",
+      "properties": {
+        "fields": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/weatherFields"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Paths of the values to show.",
+          "examples": [
+            {
+              "temp": ".current_condition[0].temp_C"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "source": {
+          "description": "A JSON source (http or command).",
+          "examples": [
+            "weather"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "title": {
+          "default": "Weather",
+          "description": "Section title.",
+          "examples": [
+            "Weather"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "weatherCard"
+          ],
+          "examples": [
+            "weatherCard"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "units": {
+          "default": "metric",
+          "description": "Only picks the °C or °F suffix: point fields.temp at the matching value yourself.",
+          "enum": [
+            "metric",
+            "imperial",
+            null
+          ],
+          "examples": [
+            "imperial"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.3"
+    },
+    "worldClock": {
+      "additionalProperties": false,
+      "description": "An extra clock under the date.",
+      "properties": {
+        "label": {
+          "description": "Shown next to the time.",
+          "examples": [
+            "NYC"
+          ],
+          "type": "string",
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.3"
+        },
+        "tz": {
+          "description": "An IANA time zone.",
+          "examples": [
+            "America/New_York"
+          ],
+          "type": "string",
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        }
+      },
+      "required": [
+        "label",
+        "tz"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "urn:vestal:config:1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A vestal config file. Every key is optional: the file is merged over the built-in defaults.",
+  "properties": {
+    "hotkey": {
+      "default": null,
+      "description": "Built-in toggle hotkey: f1-f20, letters, digits, space, escape, home or end, with cmd, ctrl, alt (opt) and shift, joined with +. Letters, digits, space and escape need cmd, ctrl or alt. null registers nothing; bind `vestal toggle` in the window manager instead.",
+      "examples": [
+        "f3",
+        "cmd+shift+space",
+        null
+      ],
+      "type": [
+        "string",
+        "null"
+      ],
+      "x-vestal-kind": "literal",
+      "x-vestal-since": "0.3"
+    },
+    "platform": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/platform"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Per-OS overrides: a macos and a linux block, each merged over the rest of the file on that OS only.",
+      "examples": [
+        {
+          "linux": {
+            "hotkey": "home"
+          }
+        }
+      ],
+      "x-vestal-kind": "literal",
+      "x-vestal-since": "0.3"
+    },
+    "sources": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/source"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "default": {
+        "calendar": {
+          "days": 1,
+          "refresh": "5m",
+          "type": "calendar"
+        },
+        "weather": {
+          "parse": "json",
+          "refresh": "30m",
+          "type": "http",
+          "url": "https://wttr.in/?m&format=j1"
+        }
+      },
+      "description": "Named data sources. Widgets refer to them by name; every widget reading one shares its fetch. null deletes a built-in one.",
+      "examples": [
+        {
+          "rates": {
+            "refresh": "4h",
+            "type": "http",
+            "url": "https://api.example.com/rates.json"
+          }
+        }
+      ],
+      "type": [
+        "object",
+        "null"
+      ],
+      "x-vestal-kind": "literal",
+      "x-vestal-since": "0.3"
+    },
+    "theme": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/theme"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": {
+        "background": "aurora",
+        "palette": "tokyo-night"
+      },
+      "description": "Palette and background.",
+      "examples": [
+        {
+          "background": "blur"
+        }
+      ],
+      "x-vestal-kind": "literal",
+      "x-vestal-since": "0.3"
+    },
+    "version": {
+      "default": 1,
+      "description": "Schema version. Only 1 exists.",
+      "examples": [
+        1
+      ],
+      "maximum": 1,
+      "minimum": 1,
+      "type": [
+        "integer",
+        "null"
+      ],
+      "x-vestal-kind": "literal",
+      "x-vestal-since": "0.3"
+    },
+    "views": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/view"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "default": {
+        "main": {
+          "layout": "stack",
+          "order": [
+            "clock",
+            "systemBar",
+            "media",
+            "agenda",
+            "systems",
+            "weather"
+          ]
+        }
+      },
+      "description": "Named views. The dashboard shows main.",
+      "examples": [
+        {
+          "main": {
+            "order": [
+              "clock",
+              "agenda"
+            ]
+          }
+        }
+      ],
+      "type": [
+        "object",
+        "null"
+      ],
+      "x-vestal-kind": "literal",
+      "x-vestal-since": "0.3"
+    },
+    "widgets": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/widget"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "default": {
+        "agenda": {
+          "maxEvents": 5,
+          "source": "calendar",
+          "type": "agendaList"
+        },
+        "clock": {
+          "type": "clock"
+        },
+        "media": {
+          "hideWhenOff": true,
+          "type": "media"
+        },
+        "systemBar": {
+          "show": [
+            "uptime",
+            "disk",
+            "battery",
+            "network"
+          ],
+          "type": "systemBar"
+        },
+        "systems": {
+          "hosts": [
+            {
+              "source": "local"
+            }
+          ],
+          "type": "systemHealth"
+        },
+        "weather": {
+          "fields": {
+            "condition": ".current_condition[0].weatherDesc[0].value",
+            "location": ".nearest_area[0].areaName[0].value",
+            "region": ".nearest_area[0].region[0].value",
+            "sunrise": ".weather[0].astronomy[0].sunrise",
+            "sunset": ".weather[0].astronomy[0].sunset",
+            "temp": ".current_condition[0].temp_C"
+          },
+          "source": "weather",
+          "type": "weatherCard"
+        }
+      },
+      "description": "Named widgets. A widget shows when a view's order lists its key. null deletes a built-in one.",
+      "examples": [
+        {
+          "agenda": {
+            "maxEvents": 3
+          }
+        }
+      ],
+      "type": [
+        "object",
+        "null"
+      ],
+      "x-vestal-kind": "literal",
+      "x-vestal-since": "0.3"
+    }
+  },
+  "title": "Vestal config",
+  "type": "object"
+}

@@ -22,7 +22,8 @@ enum ConfigValidator {
         guard let block, block != .null else { return [] }
         guard case .object(let platforms) = block else {
             return [ConfigWarning(kind: .wrongType, path: "platform",
-                                  message: "expected an object, found \(block.kindDescription); ignored")]
+                                  message: "expected an object, found \(block.kindDescription); ignored",
+                                  expected: "object", found: block.jsonTypeName)]
         }
         var warnings: [ConfigWarning] = []
         let known = ConfigPlatform.allCases.map(\.rawValue)
@@ -30,14 +31,16 @@ enum ConfigValidator {
             let path = "platform.\(key)"
             guard ConfigPlatform(rawValue: key) != nil else {
                 warnings.append(ConfigWarning(kind: .unknownKey, path: path,
-                                              message: "unknown platform (expected \(alternatives(known)))"))
+                                              message: "unknown platform (expected \(alternatives(known)))",
+                                              suggestions: DidYouMean.suggestions(for: key, among: known)))
                 continue
             }
             let value = platforms[key]!
             if value == .null { continue }
             guard case .object(let overlay) = value else {
                 warnings.append(ConfigWarning(kind: .wrongType, path: path,
-                                              message: "expected an object, found \(value.kindDescription); ignored"))
+                                              message: "expected an object, found \(value.kindDescription); ignored",
+                                              expected: "object", found: value.jsonTypeName))
                 continue
             }
             if overlay["platform"] != nil {
@@ -72,7 +75,8 @@ private struct Walker {
     /// serves every systemHealth widget.
     private var hostKeys: [String: String] = [:]
 
-    static let topLevelKeys = ["version", "hotkey", "theme", "sources", "widgets", "views"]
+    /// The top-level keys besides `platform`, which never reaches the merged tree.
+    static let topLevelKeys = SchemaRegistry.topLevel.keyNames.filter { $0 != "platform" }
 
     init(top: [String: AnyJSON]) {
         self.top = top
@@ -100,7 +104,8 @@ private struct Walker {
             case "widgets": widgets(value)
             case "views": views(value)
             default:
-                add(.unknownKey, key, "unknown key (known: \(Self.topLevelKeys.joined(separator: ", ")), platform)")
+                add(.unknownKey, key, "unknown key (known: \(Self.topLevelKeys.joined(separator: ", ")), platform)",
+                    suggestions: DidYouMean.suggestions(for: key, among: Self.topLevelKeys + ["platform"]))
             }
         }
         if top["views"] == nil || top["views"]?.objectValue.map({ $0["main"]?.objectValue == nil }) == true {
@@ -114,9 +119,9 @@ private struct Walker {
         do {
             _ = try HotkeySpec(parsing: text)
         } catch let error as HotkeyParseError {
-            add(.invalidValue, "hotkey", "'\(text)': \(error.detail); no hotkey is registered")
+            add(.invalidValue, "hotkey", "'\(text)': \(error.detail); no hotkey is registered", code: "invalid-key", found: text)
         } catch {
-            add(.invalidValue, "hotkey", "'\(text)': \(error); no hotkey is registered")
+            add(.invalidValue, "hotkey", "'\(text)': \(error); no hotkey is registered", code: "invalid-key", found: text)
         }
     }
 
@@ -124,7 +129,7 @@ private struct Walker {
 
     private mutating func theme(_ value: AnyJSON) {
         guard let theme = object(value, "theme") else { return }
-        checkKeys(theme, ["palette", "background"], "theme", for: "theme")
+        checkKeys(theme, keys("theme"), "theme", for: "theme")
         oneOf(theme["palette"], "theme.palette", ThemeConfig.palettes)
         oneOf(theme["background"], "theme.background", ThemeConfig.backgrounds)
     }
@@ -141,7 +146,8 @@ private struct Walker {
             let canonical = SourceConfig.canonicalType(type)
             guard let keys = SourceConfig.keysByType[canonical] else {
                 add(.unknownType, "\(path).type",
-                    "unknown source type \"\(type)\" (expected \(ConfigValidator.alternatives(Self.names(SourceConfig.keysByType))))")
+                    "unknown source type \"\(type)\" (expected \(ConfigValidator.alternatives(Self.names(SourceConfig.keysByType))))",
+                    suggestions: DidYouMean.suggestions(for: type, among: Self.names(SourceConfig.keysByType)), found: type)
                 continue
             }
             checkKeys(source, keys, path, for: "\(canonical) sources")
@@ -184,7 +190,8 @@ private struct Walker {
             let canonical = WidgetConfig.canonicalType(type)
             guard let keys = WidgetConfig.keysByType[canonical] else {
                 add(.unknownType, "\(path).type",
-                    "unknown widget type \"\(type)\" (expected \(ConfigValidator.alternatives(Self.names(WidgetConfig.keysByType))))")
+                    "unknown widget type \"\(type)\" (expected \(ConfigValidator.alternatives(Self.names(WidgetConfig.keysByType))))",
+                    suggestions: DidYouMean.suggestions(for: type, among: Self.names(WidgetConfig.keysByType)), found: type)
                 continue
             }
             checkKeys(widget, keys, path, for: "\(canonical) widgets")
@@ -210,9 +217,11 @@ private struct Walker {
             case "weatherCard":
                 widgetSource(widget, path, required: true, calendar: false)
                 if let fields = stringMap(widget["fields"], "\(path).fields") {
-                    for key in fields.keys.sorted() where !WidgetConfig.weatherFields.contains(key) {
+                    let known = SchemaRegistry.shape("weatherFields").keyNames
+                    for key in fields.keys.sorted() where !known.contains(key) {
                         add(.unknownKey, "\(path).fields.\(key)",
-                            "unknown field (known: \(WidgetConfig.weatherFields.joined(separator: ", ")))")
+                            "unknown field (known: \(known.joined(separator: ", ")))",
+                            suggestions: DidYouMean.suggestions(for: key, among: known))
                     }
                 } else if isAbsent(widget["fields"]) {
                     add(.missingKey, path, "missing \"fields\"; the card stays empty")
@@ -238,7 +247,8 @@ private struct Walker {
             return
         }
         guard let type = sourceTypes[source] else {
-            add(.missingReference, "\(path).source", "no source named \"\(source)\"")
+            add(.missingReference, "\(path).source", "no source named \"\(source)\"",
+                code: "unknown-source", suggestions: DidYouMean.suggestions(for: source, among: Array(sourceTypes.keys)))
             return
         }
         if calendar && !["calendar", "command", "http"].contains(type) {
@@ -253,7 +263,7 @@ private struct Walker {
         for (i, entry) in clocks.enumerated() {
             let clockPath = "\(path)[\(i)]"
             guard let clock = object(entry, clockPath, "clock ignored") else { continue }
-            checkKeys(clock, ["label", "tz"], clockPath, for: "world clocks")
+            checkKeys(clock, keys("worldClock"), clockPath, for: "world clocks")
             _ = requiredString(clock, "label", clockPath, dropped: "clock ignored")
             _ = requiredString(clock, "tz", clockPath, dropped: "clock ignored")
         }
@@ -263,12 +273,14 @@ private struct Walker {
         let show = strings(widget["show"], "\(path).show")
         for (i, item) in (show ?? []).enumerated() where !WidgetConfig.systemBarItems.contains(item) {
             add(.invalidValue, "\(path).show[\(i)]",
-                "unknown item \"\(item)\" (expected \(ConfigValidator.alternatives(WidgetConfig.systemBarItems)))")
+                "unknown item \"\(item)\" (expected \(ConfigValidator.alternatives(WidgetConfig.systemBarItems)))",
+                suggestions: DidYouMean.suggestions(for: item, among: WidgetConfig.systemBarItems),
+                expected: "one of " + WidgetConfig.systemBarItems.joined(separator: ", "), found: item)
         }
         let privacyPath = "\(path).privacy"
         var configured = false
         if let privacy = object(widget["privacy"], privacyPath) {
-            checkKeys(privacy, ["command", "stateFile"], privacyPath, for: "privacy")
+            checkKeys(privacy, keys("privacy"), privacyPath, for: "privacy")
             let command = strings(privacy["command"], "\(privacyPath).command")
             if command?.isEmpty == true { add(.invalidValue, "\(privacyPath).command", "must not be empty") }
             let stateFile = string(privacy["stateFile"], "\(privacyPath).stateFile")
@@ -288,7 +300,7 @@ private struct Walker {
         for (i, entry) in hosts.enumerated() {
             let hostPath = "\(path)[\(i)]"
             guard let host = object(entry, hostPath, "host ignored") else { continue }
-            checkKeys(host, ["name", "url", "source", "key", "interval"], hostPath, for: "hosts")
+            checkKeys(host, keys("host"), hostPath, for: "hosts")
             let source = string(host["source"], "\(hostPath).source")
             let isLocal = source == HostConfig.local
             if isLocal {
@@ -300,7 +312,8 @@ private struct Walker {
             let url = string(host["url"], "\(hostPath).url")
             if let url, !ConfigValidator.isHTTPURL(url) { add(.invalidValue, "\(hostPath).url", "not an http(s) URL") }
             if let source, !isLocal, sourceTypes[source] == nil {
-                add(.missingReference, "\(hostPath).source", "no source named \"\(source)\"")
+                add(.missingReference, "\(hostPath).source", "no source named \"\(source)\"",
+                    code: "unknown-source", suggestions: DidYouMean.suggestions(for: source, among: Array(sourceTypes.keys) + [HostConfig.local]))
             }
             if url == nil && source == nil && isAbsent(host["url"]) && isAbsent(host["source"]) {
                 add(.missingKey, hostPath, "needs \"url\" or \"source\"")
@@ -313,13 +326,14 @@ private struct Walker {
     private mutating func hostKey(_ key: String, _ path: String) {
         let letter = key.lowercased()
         guard letter.count == 1, let ch = letter.first, ch.isASCII, ch.isLetter else {
-            add(.invalidValue, path, "\"\(key)\" is not a single letter; a key is assigned instead")
+            add(.invalidValue, path, "\"\(key)\" is not a single letter; a key is assigned instead", code: "invalid-key", found: key)
             return
         }
         if HostKeys.reserved.contains(ch) {
-            add(.invalidValue, path, "\"\(letter)\" is reserved (p: privacy, i: info); a key is assigned instead")
+            add(.invalidValue, path, "\"\(letter)\" is reserved (p: privacy, i: info); a key is assigned instead",
+                code: "key-conflict", found: key)
         } else if let other = hostKeys[letter] {
-            add(.invalidValue, path, "\"\(letter)\" is already the key of \(other)")
+            add(.invalidValue, path, "\"\(letter)\" is already the key of \(other)", code: "key-conflict", found: key)
         } else {
             hostKeys[letter] = String(path.dropLast(".key".count))
         }
@@ -333,11 +347,12 @@ private struct Walker {
         for (i, entry) in items.enumerated() {
             let itemPath = "\(path)[\(i)]"
             guard let item = object(entry, itemPath, "item ignored") else { continue }
-            checkKeys(item, ["label", "source", "match", "pick", "picks", "format"], itemPath, for: "items")
+            checkKeys(item, keys("item"), itemPath, for: "items")
             guard requiredString(item, "label", itemPath, dropped: "item ignored") != nil else { continue }
             if let source = string(item["source"], "\(itemPath).source") {
                 if sourceTypes[source] == nil {
-                    add(.missingReference, "\(itemPath).source", "no source named \"\(source)\"")
+                    add(.missingReference, "\(itemPath).source", "no source named \"\(source)\"",
+                        code: "unknown-source", suggestions: DidYouMean.suggestions(for: source, among: Array(sourceTypes.keys)))
                 }
             } else if widgetSource == nil && isAbsent(item["source"]) {
                 add(.missingKey, itemPath, "no \"source\" here or on the widget")
@@ -345,8 +360,9 @@ private struct Walker {
             _ = object(item["match"], "\(itemPath).match")
             let pick = string(item["pick"], "\(itemPath).pick")
             let picks = stringMap(item["picks"], "\(itemPath).picks")
-            for key in (picks ?? [:]).keys.sorted() where key != "buy" && key != "sell" {
-                add(.unknownKey, "\(itemPath).picks.\(key)", "unknown key (known: buy, sell)")
+            for key in (picks ?? [:]).keys.sorted() where !keys("picks").contains(key) {
+                add(.unknownKey, "\(itemPath).picks.\(key)", "unknown key (known: buy, sell)",
+                    suggestions: DidYouMean.suggestions(for: key, among: Array(keys("picks"))))
             }
             if pick == nil && picks == nil && isAbsent(item["pick"]) && isAbsent(item["picks"]) {
                 add(.missingKey, itemPath, "needs \"pick\" or \"picks\"; item ignored")
@@ -362,12 +378,13 @@ private struct Walker {
         for (name, entry) in views.sorted(by: { $0.key < $1.key }) {
             let path = "views.\(name)"
             guard let view = object(entry, path, "view ignored") else { continue }
-            checkKeys(view, ["order", "layout"], path, for: "views")
+            checkKeys(view, keys("view"), path, for: "views")
             if let order = strings(view["order"], "\(path).order") {
                 var seen = Set<String>()
                 for (i, key) in order.enumerated() {
                     if !widgetNames.contains(key) {
-                        add(.missingReference, "\(path).order[\(i)]", "no widget named \"\(key)\"")
+                        add(.missingReference, "\(path).order[\(i)]", "no widget named \"\(key)\"",
+                            code: "unknown-widget", suggestions: DidYouMean.suggestions(for: key, among: Array(widgetNames)))
                     } else if !seen.insert(key).inserted {
                         add(.invalidValue, "\(path).order[\(i)]", "\"\(key)\" is listed twice")
                     }
@@ -379,8 +396,15 @@ private struct Walker {
 
     // MARK: Helpers
 
-    private mutating func add(_ kind: ConfigWarning.Kind, _ path: String, _ message: String) {
-        warnings.append(ConfigWarning(kind: kind, path: path, message: message))
+    private mutating func add(_ kind: ConfigWarning.Kind, _ path: String, _ message: String, code: String? = nil,
+                              suggestions: [String] = [], expected: String? = nil, found: String? = nil) {
+        warnings.append(ConfigWarning(kind: kind, path: path, message: message, code: code,
+                                      suggestions: suggestions, expected: expected, found: found))
+    }
+
+    /// A registry shape's keys.
+    private func keys(_ shape: String) -> Set<String> {
+        Set(SchemaRegistry.shape(shape).keyNames)
     }
 
     private static func names(_ table: [String: Set<String>]) -> [String] {
@@ -394,7 +418,8 @@ private struct Walker {
     private mutating func checkKeys(_ object: [String: AnyJSON], _ allowed: Set<String>, _ path: String, for what: String) {
         let known = allowed.subtracting(["type"]).sorted()
         for key in object.keys.sorted() where key != "type" && !allowed.contains(key) {
-            add(.unknownKey, "\(path).\(key)", "unknown key for \(what) (known: \(known.joined(separator: ", ")))")
+            add(.unknownKey, "\(path).\(key)", "unknown key for \(what) (known: \(known.joined(separator: ", ")))",
+                suggestions: DidYouMean.suggestions(for: key, among: known))
         }
     }
 
@@ -412,7 +437,8 @@ private struct Walker {
             return nil
         }
         guard let string = value.stringValue else {
-            add(.wrongType, "\(path).\(key)", "expected a string, found \(value.kindDescription); \(dropped)")
+            add(.wrongType, "\(path).\(key)", "expected a string, found \(value.kindDescription); \(dropped)",
+                expected: "string", found: value.jsonTypeName)
             return nil
         }
         return string
@@ -423,9 +449,14 @@ private struct Walker {
     /// layer had there, so that value does not come back.
     static let treatedAsAbsent = "treated as absent; the built-in value is not restored"
 
+    /// The JSON Schema type names of the `expected` texts below.
+    static let jsonTypeNames = ["an object": "object", "a list": "array", "a string": "string",
+                                "a whole number": "integer", "true or false": "boolean"]
+
     private mutating func wrongType(_ value: AnyJSON, _ path: String, expected: String,
                                     _ consequence: String = Walker.treatedAsAbsent) {
-        add(.wrongType, path, "expected \(expected), found \(value.kindDescription); \(consequence)")
+        add(.wrongType, path, "expected \(expected), found \(value.kindDescription); \(consequence)",
+            expected: Self.jsonTypeNames[expected] ?? expected, found: value.jsonTypeName)
     }
 
     // Each reader returns nil when the value is absent or null (no warning)
@@ -499,12 +530,15 @@ private struct Walker {
         guard let text = string(value, path) else { return }
         if ConfigDuration.parse(text) == nil {
             add(.invalidValue, path,
-                "invalid duration \"\(text)\" (a whole number and s, m, h or d, such as \"30s\"); using \(fallback)")
+                "invalid duration \"\(text)\" (a whole number and s, m, h or d, such as \"30s\"); using \(fallback)",
+                code: "invalid-duration", expected: "a duration such as \"30s\"", found: text)
         }
     }
 
     private mutating func atLeastOne(_ value: AnyJSON?, _ path: String, default fallback: Int) {
-        if let n = integer(value, path), n < 1 { add(.invalidValue, path, "must be at least 1; using \(fallback)") }
+        if let n = integer(value, path), n < 1 {
+            add(.invalidValue, path, "must be at least 1; using \(fallback)", expected: "at least 1", found: String(n))
+        }
     }
 
     /// A string from a fixed set. `shown` lists the values to suggest when
@@ -512,6 +546,8 @@ private struct Walker {
     private mutating func oneOf(_ value: AnyJSON?, _ path: String, _ allowed: [String], shown: [String]? = nil) {
         guard let text = string(value, path), !allowed.contains(text) else { return }
         add(.invalidValue, path,
-            "unknown value \"\(text)\" (expected \(ConfigValidator.alternatives(shown ?? allowed)))")
+            "unknown value \"\(text)\" (expected \(ConfigValidator.alternatives(shown ?? allowed)))",
+            suggestions: DidYouMean.suggestions(for: text, among: shown ?? allowed),
+            expected: "one of " + (shown ?? allowed).joined(separator: ", "), found: text)
     }
 }

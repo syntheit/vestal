@@ -99,13 +99,9 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 //   calendar  refresh, days, calendars   ("eventkit" is an alias)
 
 public struct SourceConfig: Codable, Equatable, Sendable {
-    /// Keys each type accepts besides `type`.
-    public static let keysByType: [String: Set<String>] = [
-        "http": ["url", "refresh", "parse"],
-        "command": ["argv", "timeout", "refresh", "parse", "env"],
-        "calendar": ["refresh", "days", "calendars"],
-    ]
-    public static let aliases = ["eventkit": "calendar"]
+    /// Keys each type accepts besides `type` (from SchemaRegistry).
+    public static let keysByType = SchemaRegistry.keysByType(SchemaRegistry.sourceTypes)
+    public static let aliases = SchemaRegistry.aliases(SchemaRegistry.sourceTypes)
     public static let parseModes = ["json", "raw"]
 
     public static let defaultRefresh = "30m"
@@ -174,18 +170,9 @@ public struct SourceConfig: Codable, Equatable, Sendable {
 // absent keys are in `WidgetConfig.Defaults`.
 
 public struct WidgetConfig: Codable, Equatable, Sendable {
-    /// Keys each type accepts besides `type`.
-    public static let keysByType: [String: Set<String>] = [
-        "clock": ["worldClocks"],
-        "systemBar": ["show", "privacy"],
-        "media": ["player", "hideWhenOff"],
-        "agendaList": ["source", "maxEvents", "title"],
-        "systemHealth": ["hosts", "provider", "title"],
-        "keyValueList": ["source", "items", "title"],
-        "weatherCard": ["source", "fields", "units", "title"],
-        "claudeUsage": ["path", "fiveHourLimit", "weeklyLimit"],
-    ]
-    public static let aliases = ["spotify": "media"]
+    /// Keys each type accepts besides `type` (from SchemaRegistry).
+    public static let keysByType = SchemaRegistry.keysByType(SchemaRegistry.widgetTypes)
+    public static let aliases = SchemaRegistry.aliases(SchemaRegistry.widgetTypes)
 
     public static let systemBarItems = ["uptime", "disk", "battery", "claudeUsage", "network", "privacy"]
     public static let weatherFields = ["location", "region", "condition", "temp", "sunrise", "sunset"]

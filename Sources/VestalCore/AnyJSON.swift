@@ -93,6 +93,20 @@ extension AnyJSON {
         return nil
     }
 
+    /// The JSON Schema name of this value's type: "string", "integer",
+    /// "number", "boolean", "null", "array" or "object".
+    public var jsonTypeName: String {
+        switch self {
+        case .string: return "string"
+        case .int: return "integer"
+        case .double: return "number"
+        case .bool: return "boolean"
+        case .null: return "null"
+        case .array: return "array"
+        case .object: return "object"
+        }
+    }
+
     /// What kind of JSON value this is, for messages: "a string", "an object".
     public var kindDescription: String {
         switch self {
@@ -248,6 +262,21 @@ extension AnyJSON {
         var out = ""
         write(to: &out, indent: "")
         return out
+    }
+
+    /// Compact JSON on one line, keys sorted: `{"a":[1,2],"b":"x"}`.
+    public func compactPrinted() -> String {
+        switch self {
+        case .array(let items):
+            return "[" + items.map { $0.compactPrinted() }.joined(separator: ",") + "]"
+        case .object(let members):
+            return "{" + members.keys.sorted().map { Self.quoted($0) + ":" + members[$0]!.compactPrinted() }
+                .joined(separator: ",") + "}"
+        default:
+            var out = ""
+            write(to: &out, indent: "")
+            return out
+        }
     }
 
     private func write(to out: inout String, indent: String) {

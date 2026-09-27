@@ -57,6 +57,16 @@ case .command(.checkConfig(let arguments)):
 case .command(.printConfig(let arguments)):
     emit(ConfigCommands.printConfig(arguments))
 
+case .command(.schema(let arguments)):
+    emit(ConfigCommands.schema(arguments))
+
+case .command(.docs(let arguments)):
+    emit(DocsCommand.run(arguments))
+
+case .command(.sendRequest(let request)):
+    if let view = request.view, let failure = CLI.checkView(view) { emit(failure) }
+    emit(CLI.send(request, client: { try IPCClient.send($0) }, launch: launchInstance))
+
 case .command(.send(let command)):
     emit(CLI.send(command, client: { try IPCClient.send($0) }, launch: launchInstance))
 
