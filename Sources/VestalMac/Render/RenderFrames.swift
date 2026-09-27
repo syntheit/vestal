@@ -43,7 +43,10 @@ final class FrameCollector: @unchecked Sendable {
             for child in handle.children { visit(child, clip: inner) }
         }
         if let root = store.root { visit(root, clip: window) }
-        if let popup = store.popup { visit(popup.handle, clip: window) }
+        if let popup = store.popup, let card = frames[ObjectIdentifier(popup.handle)] {
+            // The card clips its content (RenderStageView).
+            visit(popup.handle, clip: window.intersection(card))
+        }
         return result
     }
 

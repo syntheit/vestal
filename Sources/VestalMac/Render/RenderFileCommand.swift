@@ -95,6 +95,10 @@ public enum MacRenderFileCommand {
             i += 1
         }
         if o.legacy == nil && o.model.isEmpty { return nil }
+        // v0.3's views have no node ids to report frames for.
+        if o.legacy != nil && o.frames != nil { return nil }
+        // At most 16384 pixels a side (ImageRenderer allocates the bitmap).
+        if o.width * o.scale > 16_384 || o.height * o.scale > 16_384 { return nil }
         return o
     }
 
