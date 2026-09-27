@@ -178,6 +178,10 @@ public final class Resident {
             render(request, reply: reply)
         case .eval:
             evaluate(request, reply: reply)
+        case .subscribe:
+            // The server hands subscriptions to SubscriptionHub; this is a
+            // server without a subscription handler.
+            reply(.failure("subscribe needs a streaming connection"))
         }
     }
 

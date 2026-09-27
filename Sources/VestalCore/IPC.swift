@@ -56,6 +56,13 @@ import Glibc
 // runs on the caller's queue (default: main). The client is synchronous (the
 // CLI has nothing else to do) and bounded by a timeout.
 //
+// `subscribe` (v0.4, EXTENSIBILITY.md §10.8) is the one long-lived request:
+// the connection stays open, has no deadline, and becomes a two-way stream
+// of JSON lines handed to `subscriptionHandler` as an `IPCSubscription`.
+// Its output is queued per connection and written as the client reads; a
+// client that falls more than `streamBacklogLimit` bytes (4 MiB) behind is
+// dropped rather than waited for, and should reconnect.
+//
 // Every descriptor is close-on-exec, and writes never raise SIGPIPE
 // (SO_NOSIGPIPE on Darwin, MSG_NOSIGNAL on Linux).
 //
@@ -77,6 +84,12 @@ public enum IPCCommand: String, CaseIterable, Sendable {
     /// v0.4: an expression's outputs with the instance's data (`vestal
     /// eval`); needs `expr`, takes `source`, `template` and `at`.
     case eval
+    /// v0.4: a long-lived connection that streams the render model
+    /// (EXTENSIBILITY.md §10.7, §10.8); takes `role`, `protocol`, `minor`,
+    /// `client`, `capabilities`, `whileHidden`, `control` and `view`. The
+    /// server hands it to its `subscriptionHandler`, never to the request
+    /// handler.
+    case subscribe
 }
 
 /// A command with its arguments. On the wire it is the bare command word
@@ -105,6 +118,21 @@ public struct IPCRequest: Equatable, Sendable {
     public var template: Bool?
     /// `render`, `eval`: the time `now` gives, in epoch seconds.
     public var at: Double?
+    /// `subscribe`: `ui`, `observer` or `control` (an observer with control).
+    public var role: String?
+    /// `subscribe`: the protocol major versions the client speaks.
+    public var protocols: [Int]?
+    /// `subscribe`: the `minor` the client understands.
+    public var minor: Int?
+    /// `subscribe`: the client's name and version, for logs.
+    public var client: String?
+    /// `subscribe`: what a UI can do: `copy`, `notify`, `screenshot`.
+    public var capabilities: [String]?
+    /// `subscribe`: keep evaluating while the dashboard is hidden.
+    public var whileHidden: Bool?
+    /// `subscribe`: an observer whose `invoke`, `key`, `hide` and `view`
+    /// count.
+    public var control: Bool?
 
     public init(_ command: IPCCommand, view: String? = nil, source: String? = nil, raw: Bool? = nil,
                 cached: Bool? = nil, timeout: Double? = nil) {
@@ -117,7 +145,7 @@ public struct IPCRequest: Equatable, Sendable {
     }
 
     /// The commands that take a `view`.
-    public static let viewCommands: Set<IPCCommand> = [.show, .toggle, .render]
+    public static let viewCommands: Set<IPCCommand> = [.show, .toggle, .render, .subscribe]
 
     /// The request line, without its newline.
     public var wireLine: String {
@@ -131,6 +159,13 @@ public struct IPCRequest: Equatable, Sendable {
         if let expression { object["expr"] = .string(expression) }
         if let template { object["template"] = .bool(template) }
         if let at { object["at"] = .double(at) }
+        if let role { object["role"] = .string(role) }
+        if let protocols { object["protocol"] = .array(protocols.map(AnyJSON.int)) }
+        if let minor { object["minor"] = .int(minor) }
+        if let client { object["client"] = .string(client) }
+        if let capabilities { object["capabilities"] = .array(capabilities.map(AnyJSON.string)) }
+        if let whileHidden { object["whileHidden"] = .bool(whileHidden) }
+        if let control { object["control"] = .bool(control) }
         guard object.count > 1 else { return command.rawValue }
         return AnyJSON.object(object).canonicalText()
     }
@@ -200,6 +235,26 @@ public struct IPCRequest: Equatable, Sendable {
         case .double(let seconds)?: request.at = seconds
         default: break
         }
+        // `subscribe`'s arguments.
+        guard command == .subscribe else { return .success(request) }
+        switch object["role"] {
+        case nil, .null?: break
+        case .string(let role)?: request.role = role
+        case let other?:
+            return .failure(IPCRequestError("invalid request: \"role\" must be a string, not \(other.kindDescription)"))
+        }
+        switch object["protocol"] {
+        case nil, .null?: break
+        case .int(let version)?: request.protocols = [version]
+        case .array(let versions)?: request.protocols = versions.compactMap { if case .int(let v) = $0 { return v } else { return nil } }
+        case let other?:
+            return .failure(IPCRequestError("invalid request: \"protocol\" must be a list of integers, not \(other.kindDescription)"))
+        }
+        if case .int(let minor)? = object["minor"] { request.minor = minor }
+        if case .string(let client)? = object["client"] { request.client = client }
+        if case .array(let names)? = object["capabilities"] { request.capabilities = names.compactMap(\.stringValue) }
+        if case .bool(let flag)? = object["whileHidden"] { request.whileHidden = flag }
+        if case .bool(let flag)? = object["control"] { request.control = flag }
         return .success(request)
     }
 }
@@ -576,6 +631,11 @@ public final class IPCServer: @unchecked Sendable {
     /// Connections whose command is on its way to the handler.
     private var awaitingHandler: Set<Int> = []
     private var lostOwnershipHandler: (() -> Void)?
+    private var subscribeHandler: ((IPCRequest, IPCSubscription) -> Void)?
+
+    /// A subscriber this far behind (unsent bytes) is dropped (§10.8). Set
+    /// it before `start()`.
+    public var streamBacklogLimit = 4 * 1024 * 1024
 
     /// More than this many clients at once are told the server is busy.
     private static let maxConnections = 32
@@ -680,6 +740,23 @@ public final class IPCServer: @unchecked Sendable {
         set {
             stateLock.lock()
             lostOwnershipHandler = newValue
+            stateLock.unlock()
+        }
+    }
+
+    /// Called on the handler queue with each `subscribe` request and its
+    /// open stream. Without one, `subscribe` is answered with an error. The
+    /// handler queue must be serial (main is): the stream's client lines are
+    /// delivered on it after this call.
+    public var subscriptionHandler: ((IPCRequest, IPCSubscription) -> Void)? {
+        get {
+            stateLock.lock()
+            defer { stateLock.unlock() }
+            return subscribeHandler
+        }
+        set {
+            stateLock.lock()
+            subscribeHandler = newValue
             stateLock.unlock()
         }
     }
@@ -1007,6 +1084,7 @@ public final class IPCServer: @unchecked Sendable {
     }
 
     private func readRequest(_ connection: IPCConnection) {
+        if connection.phase == .streaming { return readStream(connection) }
         guard connection.phase == .reading else { return }
         var chunk = [UInt8](repeating: 0, count: 1024)
         while true {
@@ -1017,7 +1095,8 @@ public final class IPCServer: @unchecked Sendable {
                     if newline > maxRequestLength {
                         respond(connection, .failure("request too long (limit \(maxRequestLength) bytes)"))
                     } else {
-                        received(connection, line: connection.input[..<newline])
+                        received(connection, line: connection.input[..<newline],
+                                 rest: Array(connection.input[(newline + 1)...]))
                     }
                     return
                 }
@@ -1034,7 +1113,7 @@ public final class IPCServer: @unchecked Sendable {
                 if connection.input.isEmpty {
                     finish(connection)
                 } else {
-                    received(connection, line: connection.input[...])
+                    received(connection, line: connection.input[...], rest: [])
                 }
                 return
             }
@@ -1050,8 +1129,7 @@ public final class IPCServer: @unchecked Sendable {
         }
     }
 
-    private func received(_ connection: IPCConnection, line: ArraySlice<UInt8>) {
-        stopReading(connection)
+    private func received(_ connection: IPCConnection, line: ArraySlice<UInt8>, rest: [UInt8]) {
         let request: IPCRequest
         switch IPCRequest.parse(String(decoding: line, as: UTF8.self)) {
         case .success(let parsed):
@@ -1060,6 +1138,14 @@ public final class IPCServer: @unchecked Sendable {
             respond(connection, .failure(error.message))
             return
         }
+        if request.command == .subscribe {
+            guard let handler = subscriptionHandler else {
+                respond(connection, .failure("this instance can't stream the render model (subscribe)"))
+                return
+            }
+            return startStreaming(connection, request: request, rest: rest, handler: handler)
+        }
+        stopReading(connection)
         connection.phase = .handling
         // A fetch may take as long as it asks for (a slow source), and a
         // little more to reply.
@@ -1141,6 +1227,8 @@ public final class IPCServer: @unchecked Sendable {
             respond(connection, .failure("timed out waiting for vestal to reply"))
         case .writing, .closed:
             finish(connection)
+        case .streaming:
+            break  // no deadline once subscribed
         }
     }
 
@@ -1152,6 +1240,7 @@ public final class IPCServer: @unchecked Sendable {
     /// Hangs up. The descriptor is closed once no source watches it any more.
     private func finish(_ connection: IPCConnection) {
         guard connection.phase != .closed else { return }
+        let wasStreaming = connection.phase == .streaming
         connection.phase = .closed
         connections[connection.id] = nil
         setAwaitingHandler(connection.id, false)
@@ -1162,6 +1251,139 @@ public final class IPCServer: @unchecked Sendable {
         connection.writer?.cancel()
         connection.writer = nil
         closeIfDone(connection)
+        if wasStreaming, let subscription = connection.subscription {
+            connection.subscription = nil
+            connection.output = []
+            subscription.markClosed()
+            handlerQueue.async { subscription.closed() }
+        }
+    }
+
+    // MARK: Streams (on `queue`)
+
+    /// `subscribe`: the connection stays open with no deadline. Lines the
+    /// client sends (after the request) go to the subscription's `onMessage`
+    /// on the handler queue; `send` queues output.
+    private func startStreaming(_ connection: IPCConnection, request: IPCRequest, rest: [UInt8],
+                                handler: @escaping (IPCRequest, IPCSubscription) -> Void) {
+        connection.phase = .streaming
+        connection.timer?.cancel()
+        connection.timer = nil
+        connection.input = rest
+        let id = connection.id
+        let subscription = IPCSubscription(
+            send: { [weak self] bytes in self?.queue.async { self?.enqueue(bytes, to: id) } },
+            close: { [weak self] in self?.queue.async { self?.closeStream(id) } })
+        connection.subscription = subscription
+        handlerQueue.async { handler(request, subscription) }
+        deliverLines(connection)
+    }
+
+    private func readStream(_ connection: IPCConnection) {
+        var chunk = [UInt8](repeating: 0, count: 4096)
+        while connection.phase == .streaming {
+            let count = chunk.withUnsafeMutableBytes { read(connection.fd, $0.baseAddress, $0.count) }
+            if count > 0 {
+                connection.input.append(contentsOf: chunk[0..<count])
+                deliverLines(connection)
+                continue
+            }
+            if count == 0 {
+                // The client hung up; a last line without its newline counts.
+                if !connection.input.isEmpty {
+                    deliver(connection.input[...], of: connection)
+                    connection.input = []
+                }
+                finish(connection)
+                return
+            }
+            switch errno {
+            case EINTR: continue
+            case EAGAIN, EWOULDBLOCK: return
+            default:
+                finish(connection)
+                return
+            }
+        }
+    }
+
+    /// Hands every complete line in the input to the subscription.
+    private func deliverLines(_ connection: IPCConnection) {
+        while connection.phase == .streaming,
+              let newline = connection.input.firstIndex(of: UInt8(ascii: "\n")) {
+            deliver(connection.input[..<newline], of: connection)
+            connection.input.removeSubrange(...newline)
+        }
+        if connection.phase == .streaming, connection.input.count > maxRequestLength {
+            // A runaway line: nothing sensible can follow it.
+            finish(connection)
+        }
+    }
+
+    private func deliver(_ line: ArraySlice<UInt8>, of connection: IPCConnection) {
+        guard line.count <= maxRequestLength, let subscription = connection.subscription else { return }
+        let text = String(decoding: line, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        handlerQueue.async { subscription.received(text) }
+    }
+
+    /// Queues `bytes` (one or more whole lines) for the client. A client
+    /// more than `streamBacklogLimit` behind is dropped.
+    private func enqueue(_ bytes: [UInt8], to id: Int) {
+        guard let connection = connections[id], connection.phase == .streaming, !connection.closeWhenFlushed else { return }
+        if connection.written > 0 {
+            connection.output.removeFirst(connection.written)
+            connection.written = 0
+        }
+        guard connection.output.count + bytes.count <= streamBacklogLimit else {
+            vestalLog("subscriber \(id) is more than \(streamBacklogLimit) bytes behind: dropped")
+            finish(connection)
+            return
+        }
+        connection.output += bytes
+        flushStream(connection)
+    }
+
+    /// The subscription asked to close: after what is queued is written.
+    private func closeStream(_ id: Int) {
+        guard let connection = connections[id], connection.phase == .streaming else { return }
+        connection.closeWhenFlushed = true
+        flushStream(connection)
+    }
+
+    private func flushStream(_ connection: IPCConnection) {
+        guard connection.phase == .streaming else { return }
+        while connection.written < connection.output.count {
+            let count = connection.output.withUnsafeBytes { bytes in
+                Posix.sendBytes(connection.fd, bytes.baseAddress! + connection.written,
+                                bytes.count - connection.written)
+            }
+            if count > 0 {
+                connection.written += count
+                continue
+            }
+            let code = errno
+            if count < 0 && code == EINTR { continue }
+            if count < 0 && (code == EAGAIN || code == EWOULDBLOCK) {
+                // Wait until the client reads; the reader keeps running.
+                if connection.writer == nil {
+                    let writer = DispatchSource.makeWriteSource(fileDescriptor: connection.fd, queue: queue)
+                    track(writer, of: connection)
+                    writer.setEventHandler { self.flushStream(connection) }
+                    connection.writer = writer
+                    writer.resume()
+                }
+                return
+            }
+            finish(connection)  // EPIPE, ECONNRESET: the client left
+            return
+        }
+        // Drained: stop watching for writability (it would fire constantly).
+        connection.output = []
+        connection.written = 0
+        connection.writer?.cancel()
+        connection.writer = nil
+        if connection.closeWhenFlushed { finish(connection) }
     }
 
     /// Counts the sources watching a connection's descriptor. A descriptor
@@ -1200,7 +1422,8 @@ public final class IPCServer: @unchecked Sendable {
 
 /// One client connection's state. Touched only on the server's queue.
 private final class IPCConnection: @unchecked Sendable {
-    enum Phase { case reading, handling, writing, closed }
+    /// `streaming`: a `subscribe` connection (reads and writes at once).
+    enum Phase { case reading, handling, writing, streaming, closed }
 
     let id: Int
     let fd: Int32
@@ -1213,10 +1436,96 @@ private final class IPCConnection: @unchecked Sendable {
     var timer: DispatchSourceTimer?
     var openSources = 0
     var fdClosed = false
+    var subscription: IPCSubscription?
+    var closeWhenFlushed = false
 
     init(id: Int, fd: Int32) {
         self.id = id
         self.fd = fd
+    }
+}
+
+/// One `subscribe` connection, as the subscription handler sees it (§10.8).
+/// `send` queues lines for the client and never blocks; `close` hangs up
+/// once they are written. `onMessage` gets each line the client sends and
+/// `onClosed` runs once when the connection ends (either side, or dropped
+/// for falling behind). Both run on the server's handler queue; set them in
+/// the subscription handler, before it returns.
+public final class IPCSubscription: @unchecked Sendable {
+    private let sendBytes: ([UInt8]) -> Void
+    private let closeStream: () -> Void
+    private let lock = NSLock()
+    private var isClosedValue = false
+    private var messageHandler: ((String) -> Void)?
+    private var closeHandler: (() -> Void)?
+
+    init(send: @escaping ([UInt8]) -> Void, close: @escaping () -> Void) {
+        sendBytes = send
+        closeStream = close
+    }
+
+    /// A subscription not attached to a socket, for tests of what uses one:
+    /// `send` hands each line (without its newline) to `sent`, and `close`
+    /// calls `closed`.
+    public convenience init(sent: @escaping (String) -> Void, closed: @escaping () -> Void = {}) {
+        self.init(send: { bytes in
+            for line in String(decoding: bytes, as: UTF8.self).split(separator: "\n") { sent(String(line)) }
+        }, close: closed)
+    }
+
+    public var onMessage: ((String) -> Void)? {
+        get { lock.lock(); defer { lock.unlock() }; return messageHandler }
+        set { lock.lock(); messageHandler = newValue; lock.unlock() }
+    }
+
+    public var onClosed: (() -> Void)? {
+        get { lock.lock(); defer { lock.unlock() }; return closeHandler }
+        set { lock.lock(); closeHandler = newValue; lock.unlock() }
+    }
+
+    /// Whether the connection has ended.
+    public var isClosed: Bool {
+        lock.lock(); defer { lock.unlock() }
+        return isClosedValue
+    }
+
+    /// Queues one line; the newline is added.
+    public func send(line: String) {
+        var bytes = [UInt8](line.utf8)
+        bytes.append(UInt8(ascii: "\n"))
+        send(bytes)
+    }
+
+    /// Queues raw bytes: whole lines, each ending in a newline.
+    public func send(_ bytes: [UInt8]) {
+        guard !isClosed else { return }
+        sendBytes(bytes)
+    }
+
+    /// Hangs up after the queued lines are written.
+    public func close() {
+        guard !isClosed else { return }
+        closeStream()
+    }
+
+    func markClosed() {
+        lock.lock(); isClosedValue = true; lock.unlock()
+    }
+
+    /// For the server (and tests): a line from the client.
+    public func received(_ line: String) {
+        onMessage?(line)
+    }
+
+    /// For the server (and tests): the connection ended.
+    public func closed() {
+        markClosed()
+        lock.lock()
+        let handler = closeHandler
+        closeHandler = nil
+        messageHandler = nil
+        lock.unlock()
+        handler?()
     }
 }
 
@@ -1369,7 +1678,7 @@ public enum IPCClient {
     }
 
     /// A connected socket to a server of ours on `path`.
-    private static func openConnection(to path: String, until deadline: DispatchTime,
+    static func openConnection(to path: String, until deadline: DispatchTime,
                                        timeout: TimeInterval) throws -> Int32 {
         let address = try SocketAddress(path)
         let fd = Posix.makeStreamSocket()
@@ -1417,7 +1726,7 @@ public enum IPCClient {
 // MARK: - POSIX helpers
 
 /// A filled-in `sockaddr_un`.
-private struct SocketAddress {
+struct SocketAddress {
     let path: String
     private var storage = sockaddr_un()
 
@@ -1480,7 +1789,7 @@ private struct FileIdentity {
     }
 }
 
-private enum Posix {
+enum Posix {
     enum Probe: Equatable {
         /// A server of ours accepted the connection.
         case alive
