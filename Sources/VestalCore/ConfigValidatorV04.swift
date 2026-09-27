@@ -459,8 +459,12 @@ struct V04Checker {
                 add(.unknownKey, "\(path).\(key)", "unknown action key", severity: .warning,
                     suggestions: DidYouMean.suggestions(for: key, among: Self.actionKeys + Array(Self.actionSiblings)))
             }
-            if case .array(let argv)? = members["run"] {
+            if case .array(let argv)? = members["run"], !argv.isEmpty {
                 for (i, arg) in argv.enumerated() { text(arg, path: "\(path).run[\(i)]", scope: scope, inTemplate: inTemplate) }
+            } else if let run = members["run"], run != .null, !(inTemplate && Expander.parameterReference(run) != nil) {
+                // The engine runs only an argv list; anything else would do nothing.
+                add(.wrongType, "\(path).run", "expected the program and its arguments as a non-empty list of text, e.g. [\"playerctl\", \"next\"]",
+                    severity: .error, expected: "array", found: run.jsonTypeName)
             }
             for key in ["open", "copy", "view"] { text(members[key], path: "\(path).\(key)", scope: scope, inTemplate: inTemplate) }
             if case .object(let env)? = members["env"] {

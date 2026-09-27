@@ -1776,7 +1776,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 
 **Inline sources.** Wherever a widget takes `source`, it may give a definition instead of a name: `"source": {"type": "file", "path": "~/notes/today.md", "parse": "lines"}`. Identical definitions share one fetch. Its name in `vestal sources` and the cache is `inline:<8 hex digits>`.
 
-**Load-time text.** `url`, `argv`, `env`, `headers`, `path` and `ics` are text fields evaluated once when the config loads, with only `$env` (the environment), `$secrets` and template parameters in scope: `"url": "https://api.example.com/v1?key={{ $secrets.apiKey }}"`. There is no data and no `now` there, so one source can't depend on another's data: to chain fetches, write a `command` source. In `argv` and `path`, a leading `~/` expands to the home directory.
+**Load-time text.** `url`, `argv`, `env`, `headers`, `path`, `ics` and a text `body` are text fields evaluated once when the config loads, with only `$env` (the environment), `$secrets` and template parameters in scope: `"url": "https://api.example.com/v1?key={{ $secrets.apiKey }}"`. There is no data and no `now` there, so one source can't depend on another's data: to chain fetches, write a `command` source. In `argv` and `path`, a leading `~/` expands to the home directory.
 
 **Failures.** A failed fetch keeps the last good data on screen and retries after `refresh` or 60 seconds, whichever is shorter. `$meta` (`vestal docs expressions`) tells a widget whether its data is current: `{{ if $meta.stale then "(old)" else "" end }}`.
 
@@ -1798,7 +1798,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 }
 ```
 
-A secret is read once when the config loads (a `command` secret has 10 seconds), trimmed, and usable only in source-definition text as `{{ $secrets.<name> }}`. Never write a secret's value into the config: under Nix the config is in the world-readable store. `print-config`, `render`, `status` and the logs never show secret values, and fetch errors are scrubbed of them. check-config warns about a literal-looking token in a URL or header.
+A secret is read once when the config loads (a `command` secret has 10 seconds), trimmed, and usable only in source-definition text as `{{ $secrets.<name> }}`. Never write a secret's value into the config: under Nix the config is in the world-readable store. `print-config`, `render`, `status` and the logs never show secret values, and fetch errors are scrubbed of them. check-config warns about a literal-looking token in a URL, header, body, command argv or env.
 
 ## History
 
@@ -1839,7 +1839,7 @@ Fetches a URL; the answer must have a 2xx status.
 | `url` | required | `http://` or `https://`. Text: may use `{{ $secrets.x }}` and `{{ $env.X }}`. |
 | `method` | `GET` | `GET` or `POST`. |
 | `headers` | none | Object of text: `{"Authorization": "Bearer {{ $secrets.token }}"}`. |
-| `body` | none | The POST body: text, or a JSON value sent as `application/json`. |
+| `body` | none | The POST body: text (may use `{{ $secrets.x }}`), or a JSON value sent as `application/json` as written. |
 | `timeout` | `10s` | |
 | `parse` | `json` | `json`, `raw` (the body as a string), `lines` (a list of lines, the final newline dropped), `feed` (below). |
 

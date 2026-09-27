@@ -164,8 +164,9 @@ public enum MacRenderFileCommand {
     /// options ask for. Returns the frames when `options.frames` is set
     /// (nil on failure; `status` says why).
     @MainActor
-    static func draw(_ store: RenderStore, options: Options, status: inout Int32) -> [RenderedFrame]? {
-        let collector = options.frames != nil ? FrameCollector() : nil
+    /// `collect`: return the frames even without `options.frames` (for a report).
+    static func draw(_ store: RenderStore, options: Options, collect: Bool = false, status: inout Int32) -> [RenderedFrame]? {
+        let collector = options.frames != nil || collect ? FrameCollector() : nil
         let background = options.transparent ? Color.clear : store.style.rgba("bg").withAlpha(1).color
         let content = RenderStageView(store: store)
             .environment(\.renderFrames, collector)
@@ -173,9 +174,9 @@ public enum MacRenderFileCommand {
             .background(background)
             .environment(\.colorScheme, .dark)
         if !render(content, options: options, status: &status) { return nil }
-        guard let path = options.frames, let collector else { return nil }
+        guard let collector else { return nil }
         let frames = collector.frames(of: store, window: CGRect(x: 0, y: 0, width: options.width, height: options.height))
-        if path != "-" {
+        if let path = options.frames, path != "-" {
             do {
                 let encoder = RenderJSON.encoder
                 encoder.outputFormatting.insert(.prettyPrinted)

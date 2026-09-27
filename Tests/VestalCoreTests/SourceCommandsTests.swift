@@ -320,9 +320,11 @@ final class SourceValidationTests: XCTestCase {
         {"sources": {"a": {"type": "http", "url": "https://x.example/?api_key=abcdefghijklmnopqrstuvwxyz",
                            "headers": {"Authorization": "Bearer abcdefghij0123456789ABCDEF"}},
                      "b": {"type": "http", "url": "https://x.example/?key={{ $secrets.k }}",
-                           "headers": {"Authorization": "Bearer {{ $secrets.t }}"}}}}
+                           "headers": {"Authorization": "Bearer {{ $secrets.t }}"}},
+                     "c": {"type": "command", "argv": ["curl", "-H", "Authorization: Bearer abcdefghij0123456789ABCDEF"],
+                           "env": {"AUTH": "token=abcdefghijklmnopqrstuvwxyz", "OK": "{{ $secrets.t }}"}}}}
         """)
-        XCTAssertEqual(found.filter { $0.contains("secret-literal") }.count, 2, "\(found)")
+        XCTAssertEqual(found.filter { $0.contains("secret-literal") }.count, 4, "\(found)")
         XCTAssertTrue(found.allSatisfy { !$0.hasPrefix("sources.b") }, "\(found)")
     }
 

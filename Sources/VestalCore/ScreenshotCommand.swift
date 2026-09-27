@@ -213,7 +213,7 @@ public enum ScreenshotCommand {
         return Output(status: 0, stdout: (png ?? frames) + "\n", stderr: notes)
     }
 
-    static func absolute(_ path: String) -> String {
+    public static func absolute(_ path: String) -> String {
         path.hasPrefix("/") ? path : FileManager.default.currentDirectoryPath + "/" + path
     }
 

@@ -347,6 +347,29 @@ final class CheckConfigTests: XCTestCase {
         XCTAssertEqual(try check(["--commands", "PATH"], #"{"widgets": {"systems": null}}"#).0.stdout.hasSuffix(": runs no commands\n"), true)
     }
 
+    func testARunActionMustBeAnArgvList() {
+        let text = """
+        {"widgets": {"t": {"type": "text", "text": "x",
+          "action": [{"run": "make deploy"}, {"run": []}, {"run": ["make", "deploy"]}]}}}
+        """
+        let errors = diagnose(text, platform: .linux).filter { $0.severity == .error }
+        XCTAssertEqual(errors.map(\.pointer), ["/widgets/t/action/0/run", "/widgets/t/action/1/run"])
+        XCTAssertEqual(errors.first?.found, "string")
+    }
+
+    func testASourceTemplateWithoutItsRequiredKeyIsFlagged() {
+        let text = """
+        {"templates": {"api": {"params": {"q": {"type": "string"}}, "source": {"type": "http", "method": "POST"}},
+                       "ok": {"params": {"u": {"type": "string"}}, "source": {"type": "http", "url": {"param": "u"}}}},
+         "sources": {"x": {"type": "api", "q": "a"}, "y": {"type": "ok", "u": "https://a.example"},
+                     "z": {"type": "foyer", "url": "https://nas.example"}}}
+        """
+        // A warning, like a plain http source without a url.
+        let found = diagnose(text, platform: .linux).filter { $0.message.contains("never fetches") }
+        XCTAssertEqual(found.map(\.pointer), ["/sources/x"])
+        XCTAssertEqual(found.first?.message.hasPrefix("missing \"url\""), true)
+    }
+
     func testCommandsListsV04SecretsActionsAndInlineSources() throws {
         let text = """
         {

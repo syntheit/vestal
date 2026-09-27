@@ -180,7 +180,14 @@ private struct Walker {
         if SourceConfig.keysByType[canonical] == nil, let template = v04.registry.lookup(type), template.isSource {
             // A source template (§7.4): the expansion checks its parameters.
             v04.sourceFields(source, path: path, params: [])
-            return template.source?.objectValue?["type"]?.stringValue.map(SourceConfig.canonicalType)
+            let body = template.source?.objectValue ?? [:]
+            let concrete = body["type"]?.stringValue.map(SourceConfig.canonicalType)
+            // The key without which the expanded source can't run at all.
+            if let concrete, let key = ["http": "url", "command": "argv", "file": "path"][concrete],
+               isAbsent(body[key]), isAbsent(source[key]) {
+                add(.missingKey, path, "missing \"\(key)\": the \(concrete) source that template \"\(type)\" makes has none; it never fetches")
+            }
+            return concrete
         }
         guard let keys = SourceConfig.keysByType[canonical] else {
             add(.unknownType, "\(path).type",
@@ -228,10 +235,13 @@ private struct Walker {
         case "command":
             if let argv = strings(source["argv"], "\(path).argv") {
                 if argv.isEmpty { add(.invalidValue, "\(path).argv", "must not be empty") }
+                for (i, arg) in argv.enumerated() { secretLiteral(arg, "\(path).argv[\(i)]") }
             } else if isAbsent(source["argv"]) {
                 add(.missingKey, path, "missing \"argv\"; the source never runs")
             }
-            _ = stringMap(source["env"], "\(path).env")
+            for (name, value) in (stringMap(source["env"], "\(path).env") ?? [:]).sorted(by: { $0.key < $1.key }) {
+                secretLiteral(value, "\(path).env.\(name)")
+            }
         case "calendar":
             atLeastOne(source["days"], "\(path).days", default: SourceConfig.defaultDays)
             _ = strings(source["calendars"], "\(path).calendars")

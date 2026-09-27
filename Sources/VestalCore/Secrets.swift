@@ -219,6 +219,7 @@ public final class SecretStore: @unchecked Sendable {
         resolved.headers = try await map(source.headers)
         resolved.path = try await text(source.path)
         resolved.ics = try await texts(source.ics)
+        if case .string(let body)? = source.body { resolved.body = .string(try await LoadTimeText.evaluate(body, lookup: lookup)) }
         return resolved
     }
 

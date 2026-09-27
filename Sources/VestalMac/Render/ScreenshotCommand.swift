@@ -114,17 +114,18 @@ public enum MacScreenshotCommand {
             var status: Int32 = 0
             let store = RenderStore { _ in }
             store.apply(prepared.snapshot)
-            let frames = MacRenderFileCommand.draw(store, options: draw, status: &status)
+            let frames = MacRenderFileCommand.draw(store, options: draw, collect: json, status: &status)
             guard status == 0 else { return status }
             if json {
-                var object: [String: AnyJSON] = [
+                // The same report as on Linux (ScreenshotCommand) and in AGENTS.md.
+                let object: [String: AnyJSON] = [
                     "path": output == "-" ? .null : .string(output),
                     "width": .double(draw.width), "height": .double(draw.height), "scale": .double(draw.scale),
+                    "clipped": .int(frames?.filter(\.clipped).count ?? 0),
+                    "truncated": .int(frames?.filter(\.truncated).count ?? 0),
+                    "diagnostics": .int(prepared.snapshot.diagnostics.count),
+                    "frames": draw.frames.map { .string(ScreenshotCommand.absolute($0)) } ?? .null,
                 ]
-                if let frames {
-                    object["clipped"] = .int(frames.filter(\.clipped).count)
-                    object["truncated"] = .int(frames.filter(\.truncated).count)
-                }
                 FileHandle.standardOutput.write(Data((AnyJSON.object(object).canonicalText() + "\n").utf8))
             } else if output != "-" {
                 FileHandle.standardOutput.write(Data((output + "\n").utf8))

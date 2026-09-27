@@ -234,7 +234,7 @@ Every source takes:
 
 **Histories** keep past values for sparklines: `"history": {"price": {"value": ".bitcoin.usd", "size": 288, "every": "5m"}}`. Each successful fetch evaluates `value` (jq, against the transformed data) and appends the number, at most one sample per `every` (default: `refresh`), keeping the last `size` (default 120, at most 10000); a non-number is skipped. Widgets read them as `$history.<source>.<name>`. They are kept in the cache's `history/` directory across restarts, and start over when `value` changes. A visible-only source samples only while the dashboard is shown; to keep a CPU history while hidden, define a named copy of `system` with `"when": "always"`. A `sparkline` with `value` and `history` sets one up by itself.
 
-**Text in a source definition** (`url`, `argv`, `env`, `headers`, `path`, `ics`) may use `{{ $secrets.<name> }}` (see [secrets](#secrets)) and `{{ $env.<NAME> }}`, and a source template's parameters. It is filled in before the source is fetched; there is no data and no `now` in scope, so a source can't depend on another source's data (use a `command` source to chain fetches). `{{{{` writes a literal `{{`.
+**Text in a source definition** (`url`, `argv`, `env`, `headers`, `path`, `ics`, and `body` when it is text) may use `{{ $secrets.<name> }}` (see [secrets](#secrets)) and `{{ $env.<NAME> }}`, and a source template's parameters. It is filled in before the source is fetched; there is no data and no `now` in scope, so a source can't depend on another source's data (use a `command` source to chain fetches). `{{{{` writes a literal `{{`.
 
 ```json
 {
