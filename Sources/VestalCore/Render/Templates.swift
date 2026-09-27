@@ -209,7 +209,9 @@ public struct TemplateRegistry: Equatable, Sendable {
                                               severity: .error,
                                               suggestions: DidYouMean.suggestions(for: spec.type, among: Array(TemplateParam.types))))
             }
-            for param in definition.params.keys.sorted() where ExprEnvironment.reservedVariables.contains(param) {
+            // Only data parameters are bound as variables (§7.2 rule 4).
+            for param in definition.params.keys.sorted()
+            where ExprEnvironment.reservedVariables.contains(param) && definition.params[param]!.isData {
                 problems.append(ConfigWarning(kind: .invalidValue, path: "\(path).params.\(param)",
                                               message: "\"\(param)\" is a reserved variable name (§4.2); rename the parameter",
                                               severity: .error))
