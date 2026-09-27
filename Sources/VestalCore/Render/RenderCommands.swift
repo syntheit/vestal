@@ -134,9 +134,22 @@ public enum RenderCommands {
                 + (close.isEmpty ? "" : "; did you mean \(close.map { "\"\($0)\"" }.joined(separator: " or "))?") + "\n")
         }
         let session = RenderSession(model: model, view: options.view)
+        // For reproducible output: TZ picks the zone, VESTAL_LOCALE the locale.
+        if let locale = environment["VESTAL_LOCALE"], !locale.isEmpty { session.locale = Locale(identifier: locale) }
         let now = options.at ?? Date()
         let draft = options.configPath != nil
             && !SourceCommands.isRunningConfig(options.configPath, environment: environment, home: home, client: client)
+        // The running instance's live data, when this is its config (§11.1).
+        if !draft, options.mode == .auto {
+            var request = IPCRequest(.render, view: options.view)
+            request.press = options.press.isEmpty ? nil : options.press
+            request.at = options.at?.timeIntervalSince1970
+            if let response = try? client(request, 15), response.ok, let json = response.data,
+               let bytes = try? JSONEncoder().encode(json),
+               let snapshot = try? RenderJSON.decoder.decode(RenderSnapshot.self, from: bytes) {
+                return output(snapshot, options: options)
+            }
+        }
         let data = RenderSources.load(
             model: model, view: session.view, mode: options.mode, platform: platform, cache: cache,
             allowCommands: !draft || options.allowCommands, allowNetwork: !options.noNetwork,
@@ -146,6 +159,10 @@ public enum RenderCommands {
             let effects = session.key(key, data: data, now: now)
             if effects.contains(.changed) { snapshot = session.render(data: data, now: now) }
         }
+        return output(snapshot, options: options)
+    }
+
+    static func output(_ snapshot: RenderSnapshot, options: Options) -> Output {
         let output: String
         switch options.format {
         case "json": output = jsonText(snapshot) + "\n"
@@ -180,10 +197,16 @@ public enum RenderSources {
         case .fixtures(let dir):
             for name in names.sorted() {
                 let definition = model.sources[name]
-                let raw = definition?.parse == "raw"
-                let path = "\(dir)/\(name).\(raw ? "txt" : "json")"
-                let data = FileManager.default.contents(atPath: path)
-                let snapshot = SourceSnapshot(data: data, fetchedAt: data == nil ? nil : now)
+                let ext = definition?.parse == "raw" ? "txt" : "json"
+                // An inline source's fixture may be named after its type.
+                var data = FileManager.default.contents(atPath: "\(dir)/\(name).\(ext)")
+                if data == nil, name.hasPrefix("inline:"), let type = definition?.type {
+                    data = FileManager.default.contents(atPath: "\(dir)/\(type).\(ext)")
+                }
+                // `<name>.error`: the last fetch failed with this message.
+                let failure = FileManager.default.contents(atPath: "\(dir)/\(name).error")
+                    .map { String(decoding: $0, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines) }
+                let snapshot = SourceSnapshot(data: data, fetchedAt: data == nil ? nil : now, lastError: failure)
                 let meta = SourceMeta(name: name, snapshot: snapshot, refresh: definition?.refreshSeconds ?? 60, now: now)
                 inputs.append(RenderSourceInput(name: name, definition: definition, data: data, meta: meta.json))
             }

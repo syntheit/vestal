@@ -484,12 +484,37 @@ public enum VestalFunctions {
             formatter.locale = locale
             formatter.timeZone = zone
             formatter.dateFormat = template
-                ? (DateFormatter.dateFormat(fromTemplate: pattern, options: 0, locale: locale) ?? pattern)
+                ? widenedHours(DateFormatter.dateFormat(fromTemplate: pattern, options: 0, locale: locale) ?? pattern,
+                               skeleton: pattern)
                 : pattern
             if formatters.count > 256 { formatters.removeAll() }
             formatters[key] = formatter
         }
         return formatter.string(from: Date(timeIntervalSince1970: epoch))
+    }
+
+    /// A skeleton that asks for a two-digit hour (`JJ`, `HH`, `hh`, `jj`)
+    /// gets one: the locale's pattern can come back as `h:mm:ss`. SwiftUI's
+    /// `.hour(.twoDigits(amPM: .omitted))`, which v0.3's clock used, pads.
+    static func widenedHours(_ format: String, skeleton: String) -> String {
+        let hourLetters: Set<Character> = ["J", "j", "H", "h", "K", "k"]
+        guard skeleton.filter({ hourLetters.contains($0) }).count >= 2 else { return format }
+        var out = ""
+        var inQuote = false
+        let chars = Array(format)
+        var i = 0
+        while i < chars.count {
+            let c = chars[i]
+            if c == "'" { inQuote.toggle() }
+            if !inQuote, hourLetters.contains(c), (i + 1 >= chars.count || chars[i + 1] != c), (i == 0 || chars[i - 1] != c) {
+                out.append(c)
+                out.append(c)
+            } else {
+                out.append(c)
+            }
+            i += 1
+        }
+        return out
     }
 
     // MARK: ISO 8601

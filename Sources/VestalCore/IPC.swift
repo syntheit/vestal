@@ -71,6 +71,12 @@ public enum IPCCommand: String, CaseIterable, Sendable {
     /// v0.4: one source's data, fetched now or cached (`vestal fetch`);
     /// needs `IPCRequest.source`.
     case fetch
+    /// v0.4: the render model of a view with the instance's data (`vestal
+    /// render`); takes `view` and `press`.
+    case render
+    /// v0.4: an expression's outputs with the instance's data (`vestal
+    /// eval`); needs `expr`, takes `source`, `template` and `at`.
+    case eval
 }
 
 /// A command with its arguments. On the wire it is the bare command word
@@ -91,6 +97,14 @@ public struct IPCRequest: Equatable, Sendable {
     public var cached: Bool?
     /// `fetch`: seconds the fetch may take.
     public var timeout: Double?
+    /// `render`: keys to press first, in order.
+    public var press: [String]?
+    /// `eval`: the expression (or text, with `template`).
+    public var expression: String?
+    /// `eval`: read `expression` as a text field.
+    public var template: Bool?
+    /// `render`, `eval`: the time `now` gives, in epoch seconds.
+    public var at: Double?
 
     public init(_ command: IPCCommand, view: String? = nil, source: String? = nil, raw: Bool? = nil,
                 cached: Bool? = nil, timeout: Double? = nil) {
@@ -103,7 +117,7 @@ public struct IPCRequest: Equatable, Sendable {
     }
 
     /// The commands that take a `view`.
-    public static let viewCommands: Set<IPCCommand> = [.show, .toggle]
+    public static let viewCommands: Set<IPCCommand> = [.show, .toggle, .render]
 
     /// The request line, without its newline.
     public var wireLine: String {
@@ -113,6 +127,10 @@ public struct IPCRequest: Equatable, Sendable {
         if let raw { object["raw"] = .bool(raw) }
         if let cached { object["cached"] = .bool(cached) }
         if let timeout { object["timeout"] = .double(timeout) }
+        if let press { object["press"] = .array(press.map(AnyJSON.string)) }
+        if let expression { object["expr"] = .string(expression) }
+        if let template { object["template"] = .bool(template) }
+        if let at { object["at"] = .double(at) }
         guard object.count > 1 else { return command.rawValue }
         return AnyJSON.object(object).canonicalText()
     }
@@ -172,6 +190,15 @@ public struct IPCRequest: Equatable, Sendable {
         case .double(let seconds)?: request.timeout = seconds
         case let other?:
             return .failure(IPCRequestError("invalid request: \"timeout\" must be a number, not \(other.kindDescription)"))
+        }
+        // `render`'s and `eval`'s arguments.
+        if case .array(let keys)? = object["press"] { request.press = keys.compactMap(\.stringValue) }
+        if case .string(let expression)? = object["expr"] { request.expression = expression }
+        if case .bool(let flag)? = object["template"] { request.template = flag }
+        switch object["at"] {
+        case .int(let seconds)?: request.at = Double(seconds)
+        case .double(let seconds)?: request.at = seconds
+        default: break
         }
         return .success(request)
     }
@@ -579,7 +606,7 @@ public final class IPCServer: @unchecked Sendable {
         queue: DispatchQueue = .main,
         ioTimeout: TimeInterval = 2,
         replyTimeout: TimeInterval = 4,
-        maxRequestLength: Int = 256,
+        maxRequestLength: Int = 16_384,
         maintenanceInterval: TimeInterval = 60,
         handler: @escaping IPCHandler
     ) {
@@ -617,7 +644,7 @@ public final class IPCServer: @unchecked Sendable {
         queue: DispatchQueue = .main,
         ioTimeout: TimeInterval = 2,
         replyTimeout: TimeInterval = 4,
-        maxRequestLength: Int = 256,
+        maxRequestLength: Int = 16_384,
         maintenanceInterval: TimeInterval = 60,
         handler: @escaping IPCRequestHandler
     ) -> IPCServer {
@@ -632,7 +659,7 @@ public final class IPCServer: @unchecked Sendable {
         queue: DispatchQueue = .main,
         ioTimeout: TimeInterval = 2,
         replyTimeout: TimeInterval = 4,
-        maxRequestLength: Int = 256,
+        maxRequestLength: Int = 16_384,
         maintenanceInterval: TimeInterval = 60,
         handler: @escaping IPCHandler
     ) {

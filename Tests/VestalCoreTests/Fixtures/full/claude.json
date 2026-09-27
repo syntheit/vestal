@@ -1,0 +1,12 @@
+{
+  "fiveHour": {
+    "limit": 8000000,
+    "percent": 18,
+    "tokens": 1440000
+  },
+  "week": {
+    "limit": 95000000,
+    "percent": 21,
+    "tokens": 19950000
+  }
+}

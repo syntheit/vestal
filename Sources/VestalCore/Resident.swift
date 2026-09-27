@@ -174,6 +174,52 @@ public final class Resident {
             reply(IPCResponse(ok: true, sources: SourceListing.live(config: loaded.config, runtime: runtime)))
         case .fetch:
             fetch(request, reply: reply)
+        case .render:
+            render(request, reply: reply)
+        case .eval:
+            evaluate(request, reply: reply)
+        }
+    }
+
+    /// `vestal render` against this instance: the view rendered with the
+    /// runtime's current data, off the main actor. The reply's `data` is the
+    /// snapshot (§10.2).
+    private func render(_ request: IPCRequest, reply: @escaping IPCReply) {
+        let model = RenderConfigModel(loaded: loaded)
+        if let view = request.view, model.views[view] == nil {
+            return reply(IPCResponse(ok: false, error: "no view named \"\(view)\"", code: IPCResponse.notFound))
+        }
+        let inputs = RenderSources.inputs(runtime: runtime, names: model.sourceNames, definitions: model.sources)
+        let now = request.at.map { Date(timeIntervalSince1970: $0) } ?? Date()
+        let view = request.view, press = request.press ?? []
+        Task.detached {
+            let data = RenderTransformCache().data(for: inputs, environment: model.environment, names: model.sourceNames)
+            let session = RenderSession(model: model, view: view)
+            var snapshot = session.render(data: data, now: now)
+            for key in press where session.key(key, data: data, now: now).contains(.changed) {
+                snapshot = session.render(data: data, now: now)
+            }
+            let json = (try? RenderJSON.encoder.encode(snapshot)).flatMap(AnyJSON.decode)
+            reply(IPCResponse(ok: json != nil, error: json == nil ? "render failed" : nil, data: json))
+        }
+    }
+
+    /// `vestal eval` against this instance: the outputs, with every source's
+    /// current data (`data` is `{ok, outputs}` or `{ok, error}`).
+    private func evaluate(_ request: IPCRequest, reply: @escaping IPCReply) {
+        guard let expression = request.expression else { return reply(.failure("eval needs \"expr\"")) }
+        let model = RenderConfigModel(loaded: loaded)
+        if let source = request.source, !model.sourceNames.contains(source) {
+            return reply(IPCResponse(ok: false, error: SourceCommands.unknownSourceMessage(source, among: Array(model.sourceNames)),
+                                     code: IPCResponse.notFound))
+        }
+        let inputs = RenderSources.inputs(runtime: runtime, names: model.sourceNames, definitions: model.sources)
+        let now = request.at.map { Date(timeIntervalSince1970: $0) } ?? Date()
+        let source = request.source, template = request.template ?? false
+        Task.detached {
+            let data = RenderTransformCache().data(for: inputs, environment: model.environment, names: model.sourceNames)
+            let result = EvalCommand.evaluate(expression, template: template, source: source, model: model, data: data, now: now)
+            reply(IPCResponse(ok: true, data: result))
         }
     }
 

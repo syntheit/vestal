@@ -390,11 +390,11 @@ public enum DefaultPresets {
             { "type": "text", "text": "Unable to reach {{ $host.name }}.", "when": "$h.seen and ($h.ok | not)", "style": { "size": 12, "color": "subtle" } },
             { "type": "stack", "gap": 16, "width": "fill", "input": "$h.data", "when": "$h.ok and . != null", "children": [
               { "type": "stack", "gap": 6, "width": "fill", "children": [
-                @METRIC(CPU|.cpu.percent|cyan|null|if .temperature.cpu != null then "\(.temperature.cpu)°" else null end)@,
-                @METRIC(RAM|.memory.percent|purple|.memory.pressure|if .uptime != null then "up \(.uptime | fmt_uptime)" else null end)@
+                @METRIC(CPU§.cpu.percent§cyan§null§if .temperature.cpu != null then "\(.temperature.cpu)°" else null end)@,
+                @METRIC(RAM§.memory.percent§purple§.memory.pressure§if .uptime != null then "up \(.uptime | fmt_uptime)" else null end)@
               ] },
               { "type": "stack", "gap": 6, "width": "fill", "when": ".gpu != null", "children": [
-                @METRIC(GPU|.gpu.percent|teal|null|"\(.gpu.temperature // 0)° · \(.gpu.power // 0 | floor)W")@,
+                @METRIC(GPU§.gpu.percent§teal§null§"\(.gpu.temperature // 0)° · \(.gpu.power // 0 | floor)W")@,
                 { "type": "row", "width": "fill", "padding": [0, 0, 0, 94], "children": [
                   { "type": "text", "text": "{{ .gpu.name }}", "style": { "size": 11, "font": "mono", "color": "dim" } },
                   { "type": "spacer" },
@@ -403,12 +403,12 @@ public enum DefaultPresets {
               ] },
               { "type": "list", "gap": 6, "width": "fill", "items": "(.disks // []) | map(select(.pool == true))", "rowId": ".mount",
                 "row": { "type": "row", "gap": 6, "width": "fill", "children": [
-                  @METRIC({{ .mount }}|.percent|cyan|null|"\(.used // 0 | @GB@) / \(.total // 0 | @GB@)")@,
+                  @METRIC({{ .mount }}§.percent§cyan§null§"\(.used // 0 | @GB@) / \(.total // 0 | @GB@)")@,
                   { "type": "text", "text": "{{ .health }}", "when": ".health != \"ONLINE\"", "style": { "size": 11, "weight": "medium", "color": "warn" } }
                 ] } },
               { "type": "list", "gap": 6, "width": "fill", "when": "(.disks // []) | map(select(.pool == true)) | length == 0",
                 "items": "(.disks // []) | map(select(.pool != true))", "rowId": ".mount",
-                "row": @METRIC({{ .mount }}|.percent|cyan|null|"\(.used // 0 | @GB@) / \(.total // 0 | @GB@)")@ },
+                "row": @METRIC({{ .mount }}§.percent§cyan§null§"\(.used // 0 | @GB@) / \(.total // 0 | @GB@)")@ },
               { "type": "row", "gap": 12, "width": "fill", "children": [
                 { "type": "text", "text": "net", "width": 84, "style": { "size": 11, "weight": "semibold", "font": "mono", "color": "dim" } },
                 { "type": "icon", "name": "arrow-down", "size": 9, "color": "dim" },
@@ -417,10 +417,10 @@ public enum DefaultPresets {
                 { "type": "text", "text": "{{ .network.tx // 0 | fmt_rate }}", "style": { "size": 12, "font": "mono", "color": "subtle" } },
                 { "type": "spacer" }
               ] },
-              @LABELED(docker|(.services.docker.running // 0) > 0|{{ .services.docker.running }} running)@,
+              @LABELED(docker§(.services.docker.running // 0) > 0§{{ .services.docker.running }} running)@,
               { "type": "stack", "gap": 6, "width": "fill", "when": ".services.jellyfin != null or .services.minecraft != null", "children": [
-                @LABELED(jellyfin|.services.jellyfin != null|{{ if .services.jellyfin.streams == 0 then \"idle\" else \"\\(.services.jellyfin.streams) streaming\" end }})@,
-                @LABELED(minecraft|.services.minecraft != null|{{ .services.minecraft | if .online then \"\\(.players)/\\(.max) players\" else \"offline\" end }})@
+                @LABELED(jellyfin§.services.jellyfin != null§{{ if .services.jellyfin.streams == 0 then \"idle\" else \"\\(.services.jellyfin.streams) streaming\" end }})@,
+                @LABELED(minecraft§.services.minecraft != null§{{ .services.minecraft | if .online then \"\\(.players)/\\(.max) players\" else \"offline\" end }})@
               ] }
             ] }
           ]
@@ -445,8 +445,8 @@ public enum DefaultPresets {
 
     /// A row of the host popup: label, a bar with the pressure under it, the
     /// percentage and a trailing note (v0.3 SystemDetailView.metricRow).
-    /// Arguments: label text | value expr | colour | overlay expr or null |
-    /// trailing expr (null hides it).
+    /// Arguments, separated by `§`: label text, value expr, colour, overlay
+    /// expr or null, trailing expr (null hides it).
     static func metricRow(_ label: String, _ value: String, _ color: String, _ overlay: String, _ trailing: String) -> String {
         let overlayField = overlay == "null" ? "" : #", "overlay": "\#(overlay)""#
         return #"""
@@ -507,7 +507,7 @@ public enum DefaultPresets {
             out += rest[..<start.lowerBound]
             let after = rest[start.upperBound...]
             guard let end = after.range(of: ")@") else { break }
-            let args = after[..<end.lowerBound].split(separator: "|", omittingEmptySubsequences: false).map(String.init)
+            let args = after[..<end.lowerBound].split(separator: "§", omittingEmptySubsequences: false).map(String.init)
             out += body(args)
             rest = after[end.upperBound...]
         }

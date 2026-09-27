@@ -123,6 +123,10 @@ public enum EvalCommand {
         }
         let draft = options.configPath != nil
             && !SourceCommands.isRunningConfig(options.configPath, environment: environment, home: home, client: client)
+        if !draft, options.mode == .auto, options.input == nil, options.variables.isEmpty,
+           let result = remote(options, client: client) {
+            return present(result, expression: expression, options: options)
+        }
         let data = loadData(model: model, names: names, options: options, platform: platform, cache: cache,
                             allowCommands: !draft || options.allowCommands, now: now,
                             secrets: loaded.config.secrets, environment: environment, home: home)
@@ -136,64 +140,109 @@ public enum EvalCommand {
             guard let value = try? JQValue.parse(bytes) else { return Output(status: 1, stderr: "vestal: \(path) is not JSON\n") }
             input = value
         }
+        let result = evaluate(expression, template: options.template, input: input, meta: options.source.flatMap { data.meta($0) },
+                              extra: options.variables, model: model, data: data, now: now)
+        return present(result, expression: expression, options: options)
+    }
+
+    /// Asks the running instance (its data, its permissions); nil when none
+    /// answers or it predates `eval`.
+    static func remote(_ options: Options, client: SourceCommands.Client) -> AnyJSON? {
+        var request = IPCRequest(.eval, source: options.source)
+        request.expression = options.expression
+        request.template = options.template ? true : nil
+        request.at = options.at?.timeIntervalSince1970
+        guard let response = try? client(request, 15) else { return nil }
+        if response.ok, let data = response.data { return data }
+        if response.code == IPCResponse.notFound {
+            return .object(["ok": .bool(false), "error": .object([
+                "kind": .string("not-found"), "message": .string(response.error ?? "not found")])])
+        }
+        return nil
+    }
+
+    /// The outputs as `{"ok": true, "outputs": [...]}`, or `{"ok": false,
+    /// "error": {"kind", "code", "message", "offset", "suggestion"}}`
+    /// (§11.5). With `template`, the text's one output is the string.
+    public static func evaluate(_ expression: String, template: Bool, source: String?, model: RenderConfigModel,
+                                data: RenderData, now: Date) -> AnyJSON {
+        evaluate(expression, template: template, input: source.flatMap { data.data($0) } ?? .null,
+                 meta: source.flatMap { data.meta($0) }, extra: [:], model: model, data: data, now: now)
+    }
+
+    static func evaluate(_ expression: String, template: Bool, input: JQValue, meta: JQValue?, extra: [String: JQValue],
+                         model: RenderConfigModel, data: RenderData, now: Date) -> AnyJSON {
         var variables: [String: JQValue] = [
             "sources": data.sourcesValue, "history": data.historyValue, "tz": .string(TimeZone.current.identifier),
             "os": .string(RenderPass.currentOS), "view": .string(model.defaultView), "widget": .string(""),
-            "params": .object(JQObject()), "data": input,
-            "meta": options.source.flatMap { data.meta($0) } ?? .null,
+            "params": .object(JQObject()), "data": input, "meta": meta ?? .null,
         ]
-        variables.merge(options.variables) { _, new in new }
-        let context = { JQEvalContext(now: now, userInfo: [
-            VestalFunctions.dataKey: data, VestalFunctions.localeKey: Locale.current,
-            VestalFunctions.paletteKey: model.palette.colors,
-        ]) }
-
-        if options.template {
+        variables.merge(extra) { _, new in new }
+        func context() -> JQEvalContext {
+            JQEvalContext(now: now, userInfo: [
+                VestalFunctions.dataKey: data, VestalFunctions.localeKey: Locale.current,
+                VestalFunctions.paletteKey: model.palette.colors,
+            ])
+        }
+        func failure(_ error: ExprError) -> AnyJSON {
+            var object: [String: AnyJSON] = ["kind": .string(error.kind.rawValue), "code": .string(error.code),
+                                             "message": .string(error.message)]
+            if let offset = error.offset { object["offset"] = .int(offset) }
+            if let suggestion = error.suggestion { object["suggestion"] = .string(suggestion) }
+            return .object(["ok": .bool(false), "error": .object(object)])
+        }
+        func run(_ text: String) -> Result<[JQValue], ExprError> {
+            switch model.environment.compile(text) {
+            case .failure(let error): return .failure(error)
+            case .success(let compiled): return model.environment.run(compiled, input: input, variables: variables, context: context())
+            }
+        }
+        if template {
             switch TextTemplate.parse(expression) {
             case .failure(let error):
-                return compileFailure(error, source: expression, options: options)
-            case .success(let template):
+                return failure(error)
+            case .success(let parsed):
                 var out = ""
-                for part in template.parts {
+                for part in parsed.parts {
                     switch part {
-                    case .literal(let text):
-                        out += text
+                    case .literal(let text): out += text
                     case .hole(let hole, let offset):
-                        switch evaluate(hole, model: model, input: input, variables: variables, context: context()) {
-                        case .failure(let error):
-                            return error.kind == .compile
-                                ? compileFailure(error.shifted(by: offset), source: expression, options: options)
-                                : failure(error.message, kind: error.kind.rawValue, status: 3, options: options)
-                        case .success(let outputs):
-                            out += TextTemplate.stringify(outputs.first)
+                        switch run(hole) {
+                        case .failure(let error): return failure(error.kind == .compile ? error.shifted(by: offset) : error)
+                        case .success(let outputs): out += TextTemplate.stringify(outputs.first)
                         }
                     }
                 }
-                if options.json {
-                    return Output(status: 0, stdout: AnyJSON.object(["ok": .bool(true), "outputs": .array([.string(out)])]).canonicalText() + "\n")
-                }
-                return Output(status: 0, stdout: out + "\n")
+                return .object(["ok": .bool(true), "outputs": .array([.string(out)])])
             }
         }
-        switch evaluate(expression, model: model, input: input, variables: variables, context: context()) {
-        case .failure(let error):
-            if error.kind == .compile { return compileFailure(error, source: expression, options: options) }
-            return failure(error.message, kind: error.kind.rawValue, status: 3, options: options)
-        case .success(let outputs):
-            if options.json {
-                return Output(status: 0, stdout: AnyJSON.object(["ok": .bool(true), "outputs": .array(outputs.map(\.anyJSON))])
-                    .canonicalText() + "\n")
-            }
-            return Output(status: 0, stdout: outputs.map { $0.jsonText() + "\n" }.joined())
+        switch run(expression) {
+        case .failure(let error): return failure(error)
+        case .success(let outputs): return .object(["ok": .bool(true), "outputs": .array(outputs.map(\.anyJSON))])
         }
     }
 
-    static func evaluate(_ expression: String, model: RenderConfigModel, input: JQValue,
-                         variables: [String: JQValue], context: JQEvalContext) -> Result<[JQValue], ExprError> {
-        switch model.environment.compile(expression) {
-        case .failure(let error): return .failure(error)
-        case .success(let compiled): return model.environment.run(compiled, input: input, variables: variables, context: context)
+    /// Prints an `evaluate` result.
+    static func present(_ result: AnyJSON, expression: String, options: Options) -> Output {
+        let object = result.objectValue ?? [:]
+        if object["ok"] == .bool(true) {
+            let outputs = object["outputs"]?.arrayValue ?? []
+            if options.json { return Output(status: 0, stdout: result.canonicalText() + "\n") }
+            if options.template, case .string(let text)? = outputs.first { return Output(status: 0, stdout: text + "\n") }
+            return Output(status: 0, stdout: outputs.map { JQValue($0).jsonText() + "\n" }.joined())
         }
+        let error = object["error"]?.objectValue ?? [:]
+        let kind = error["kind"]?.stringValue ?? "runtime"
+        let message = error["message"]?.stringValue ?? "error"
+        if kind == "not-found" { return failure(message, kind: kind, status: 4, options: options) }
+        if kind == "compile" {
+            let offset: Int?
+            if case .int(let n)? = error["offset"] { offset = n } else { offset = nil }
+            let e = ExprError(kind: .compile, code: error["code"]?.stringValue ?? "expr-syntax", message: message,
+                              offset: offset, suggestion: error["suggestion"]?.stringValue)
+            return compileFailure(e, source: expression, options: options)
+        }
+        return failure(message, kind: kind, status: 3, options: options)
     }
 
     static func loadData(model: RenderConfigModel, names: Set<String>, options: Options, platform: SourcePlatform,
