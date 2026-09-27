@@ -87,6 +87,13 @@ final class ThemeState {
         }
     }
 
+    /// The weight a text node draws with: one step heavier below bold
+    /// (`FontRendering.weightOffset`), within Pango's 100...1000.
+    func weight(_ weight: Int) -> Int {
+        let heavier = weight < 700 ? min(700, weight + FontRendering.weightOffset) : weight
+        return min(1000, max(100, heavier))
+    }
+
     /// The icon font family for a weight (`regular` or `fill`).
     func iconFamily(weight: String) -> String {
         theme.icons.fonts[weight] ?? (weight == "fill" ? "Phosphor-Fill" : "Phosphor")
@@ -105,6 +112,58 @@ final class ThemeState {
     /// The same colour over a self-blurred backdrop, which the aurora's GL
     /// area lays itself (the window is clear then).
     var backdropTint: RGBA { windowBackground }
+}
+
+// MARK: - Font rendering
+
+/// How this process draws text, closer to macOS's heavier glyphs (compared
+/// in docs/screenshots/linux/fonts): FreeType's stem darkening, which
+/// thickens stems at text sizes (for CFF fonts, and for TrueType ones
+/// through the autofitter GTK's slight hinting uses), and one weight step
+/// up for text below bold (`ThemeState.weight`). GTK's own automatic
+/// options stay: grayscale antialiasing, slight hinting, subpixel
+/// positioning, unhinted metrics (none or full hinting and hinted metrics
+/// looked no better).
+///
+/// GTK's glyphs go through cairo's FreeType library, which reads
+/// `FREETYPE_PROPERTIES` once, when it is created. The variable is set
+/// for that moment only (a value the user set wins and stays), so the
+/// programs vestal starts (actions, terminals) don't inherit it.
+enum FontRendering {
+    static let freetypeProperties = "cff:no-stem-darkening=0 autofitter:no-stem-darkening=0"
+    private static var setByUs = false
+
+    /// Before GTK starts.
+    static func prepare() {
+        guard getenv("FREETYPE_PROPERTIES") == nil else { return }
+        setenv("FREETYPE_PROPERTIES", freetypeProperties, 1)
+        setByUs = true
+    }
+
+    /// After GTK started: draws one glyph through cairo, which creates its
+    /// FreeType library with the properties, then unsets the variable.
+    static func apply() {
+        guard setByUs else { return }
+        setByUs = false
+        if let surface = cairo_image_surface_create(CAIRO_FORMAT_A8, 8, 8) {
+            let cr = cairo_create(surface)
+            let layout = pango_cairo_create_layout(cr)
+            pango_layout_set_text(layout, "x", -1)
+            pango_cairo_show_layout(cr, layout)
+            g_object_unref(UnsafeMutableRawPointer(layout))
+            cairo_destroy(cr)
+            cairo_surface_destroy(surface)
+        }
+        unsetenv("FREETYPE_PROPERTIES")
+    }
+
+    /// Added to every text weight below bold (700): 400 draws as 500, 600
+    /// as 700. `VESTAL_FONT_WEIGHT_OFFSET` (0 to 300) changes it; 0 draws
+    /// the weights as given.
+    static let weightOffset: Int = {
+        guard let value = ProcessInfo.processInfo.environment["VESTAL_FONT_WEIGHT_OFFSET"], let offset = Int(value) else { return 100 }
+        return min(300, max(0, offset))
+    }()
 }
 
 // MARK: - Bundled fonts

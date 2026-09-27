@@ -45,7 +45,9 @@ public final class LinuxDashboard {
         // the alpha, and the aurora is GL already (no GL-to-Vulkan texture
         // import each frame). A GSK_RENDERER the user set wins.
         setenv("GSK_RENDERER", "gl", 0)
+        FontRendering.prepare()
         guard gtk_init_check() != 0 else { throw InitError.noDisplay }
+        FontRendering.apply()
         // gtk_init ran setlocale(LC_ALL, ""). Numbers stay American ('.'
         // decimals) whatever LC_NUMERIC says: with es_AR the window's CSS
         // alpha became "0,620", GTK dropped the rule, and the GTK theme's

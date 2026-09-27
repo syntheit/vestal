@@ -140,7 +140,7 @@ class NodeView {
         let desc = pango_font_description_new()
         pango_font_description_set_family(desc, context.theme.family(role: text.font))
         pango_font_description_set_absolute_size(desc, text.size * Double(PANGO_SCALE))
-        pango_font_description_set_weight(desc, PangoWeight(rawValue: .init(clamping: min(1000, max(100, text.weight)))))
+        pango_font_description_set_weight(desc, PangoWeight(rawValue: .init(clamping: context.theme.weight(text.weight))))
         pango_attr_list_insert(attrs, pango_attr_font_desc_new(desc))
         pango_font_description_free(desc)
         let c = context.theme.color(text.color)
