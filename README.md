@@ -10,8 +10,9 @@ version (NixOS + Hyprland) comes next and will run from the same config file.
 
 Pre-release, extracted from a personal nix-darwin setup. The macOS app is
 configured by one JSON file ([docs/CONFIG.md](./docs/CONFIG.md)) and ships as a
-Nix flake with a Home Manager module. On Linux the package builds the `vestal`
-command-line tool only; the Linux UI does not exist yet.
+Nix flake with a Home Manager module. On Linux the Linux UI does not exist
+yet: `vestal daemon` runs headless (sources, the socket, config reload, system
+stats in `vestal status`), groundwork for a UI that comes later.
 
 ## Install with Home Manager
 
@@ -41,7 +42,7 @@ inputs.vestal.url = "github:syntheit/vestal";
 | `enable` | `false` | Install `vestal` and set it up. |
 | `package` | this flake's package | The vestal package to use. |
 | `settings` | `{ }` | The config ([docs/CONFIG.md](./docs/CONFIG.md)), written to `$XDG_CONFIG_HOME/vestal/config.json` (usually `~/.config/vestal/config.json`) with `version = 1` added unless set. It is layered over the built-in defaults. The default `{ }` writes no file: vestal then runs on its built-in defaults, or on a file you manage yourself. |
-| `launchAtLogin` | `true` | macOS: a launchd agent starts `vestal daemon` (hidden) at login and restarts it if it crashes, but not after `vestal quit`. Its output goes to `~/Library/Logs/vestal.log`. Linux: nothing yet; a systemd user service comes with the Linux daemon. |
+| `launchAtLogin` | `true` | macOS: a launchd agent starts `vestal daemon` (hidden) at login and restarts it if it crashes, but not after `vestal quit`. Its output goes to `~/Library/Logs/vestal.log`. Linux: a systemd user service runs `vestal daemon`, headless until the Linux UI exists; `vestal status` shows its sources and this machine's stats. |
 | `signingIdentity` | `null` | macOS: a code signing identity from your keychain (`security find-identity -v -p codesigning`). See below. |
 
 Every activation also runs `vestal reload`, so a running dashboard picks up the
@@ -94,7 +95,8 @@ vestal daemon          # start it hidden (the launch agent does this)
 vestal toggle          # show or hide; show and toggle start vestal if needed
 vestal show | hide
 vestal reload          # re-read the config (also on SIGHUP and when the file changes)
-vestal status          # pid, build, config file, warnings, each source's age and error
+vestal status          # pid, build, config file, warnings, each source's age and error,
+                       # and this machine's stats (--json for the same as JSON)
 vestal quit            # quit (also on SIGTERM); Escape and hide only hide it
 vestal version         # print the version and the commit it was built from
 vestal help            # print this usage
@@ -106,9 +108,9 @@ vestal stays running while hidden and costs next to nothing then. `hide`,
 `reload`, `status` and `quit` never start it: they exit 1 when it is not
 running. Exit codes: 0 ok, 1 error or not running, 2 usage. `vestal daemon`
 exits 0 when vestal already runs, or replaces a running instance of another
-build. The built-in hotkey (`hotkey` in the config) toggles too. The Linux
-package has the command-line tool only for now: starting the dashboard there
-exits 1.
+build. The built-in hotkey (`hotkey` in the config) toggles too. On Linux
+there is no UI yet: vestal runs headless, and `show`, `hide` and `toggle` only
+change the visibility it reports (and say so).
 
 ## Build
 
@@ -116,7 +118,7 @@ Requires macOS 14+ and Swift 5.10 (Xcode 15.3 or later) for the app.
 
 ```sh
 nix build          # macOS: result/Applications/Vestal.app and result/bin/vestal
-                   # Linux: result/bin/vestal, the command-line tool only
+                   # Linux: result/bin/vestal, the CLI and the headless daemon
 nix flake check    # builds, smoke-tests the CLI, checks Info.plist and the
                    # Home Manager module; on Linux also runs the test suite
 nix develop        # a shell with the Swift toolchain the package uses
