@@ -17,7 +17,10 @@ import Foundation
 // (`solid`) or transparent. `--frames` writes every node's frame, with
 // `clipped` (cut off by the window or a `clip` ancestor) and `truncated`
 // (a text cut by `lines`). It prints the path, or with `--json`
-// `{"path", "width", "height", "scale", "clipped", "truncated"}`.
+// `{"path", "width", "height", "scale", "clipped", "truncated"}`. The GTK
+// renderer draws the screen as it is: `--size`, `--scale` and
+// `--background` are macOS-only (`fixedSize: false` refuses them), and the
+// reported size is the PNG's, in pixels at scale 1.
 // Exit: 0; 1 the render failed; 2 usage; 4 unknown view; 5 no renderer here.
 
 public enum ScreenshotCommand {
@@ -116,12 +119,17 @@ public enum ScreenshotCommand {
         platform: SourcePlatform,
         client: RenderCommands.Client,
         renderer: Renderer?,
-        unsupported: String? = nil
+        unsupported: String? = nil,
+        fixedSize: Bool = true
     ) -> Output {
         let options: Options
         switch parse(arguments) {
         case .failure(let error): return Output(status: 2, stderr: "vestal: \(error.description)\n\(usage)\n")
         case .success(let parsed): options = parsed
+        }
+        if !fixedSize, options.size != nil || options.scale != nil || options.transparent {
+            return Output(status: 2, stderr: "vestal: --size, --scale and --background are macOS-only: "
+                          + "on Linux the screenshot is the screen as the GTK UI draws it\n")
         }
         guard let renderer, unsupported == nil else {
             return Output(status: 5, stderr: "vestal: screenshot is not supported here: \(unsupported ?? "this build has no renderer")\n")
@@ -136,7 +144,9 @@ public enum ScreenshotCommand {
         let scratch = FileManager.default.temporaryDirectory
             .appendingPathComponent("vestal-screenshot-\(ProcessInfo.processInfo.processIdentifier)-\(UUID().uuidString.prefix(8))")
         do {
-            try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
+            // Private: the model holds whatever the dashboard shows.
+            try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true,
+                                                    attributes: [.posixPermissions: 0o700])
         } catch {
             return Output(status: 1, stderr: "vestal: \(error.localizedDescription)\n")
         }
@@ -164,8 +174,11 @@ public enum ScreenshotCommand {
             truncated = list.filter { $0.objectValue?["truncated"] == .bool(true) }.count
         }
         var width = options.size?.0, height = options.size?.1
-        var scale = options.scale ?? 2
-        if let png, let pixels = pngSize(png) {
+        var scale = fixedSize ? options.scale ?? 2 : 1
+        if !fixedSize {
+            width = png.flatMap(pngSize)?.0
+            height = png.flatMap(pngSize)?.1
+        } else if let png, let pixels = pngSize(png) {
             // What was drawn: the screen's size on Linux.
             if width == nil || options.scale == nil {
                 width = pixels.0 / scale

@@ -98,7 +98,7 @@ public final class SubscriptionHub {
     public func add(_ request: IPCRequest, _ stream: IPCSubscription) {
         guard let engine else {
             stream.send(line: Self.message(["type": .string("error"), "code": .string("unavailable"),
-                                            "message": .string("this instance has no render engine")]))
+                                            "message": .string("this instance has no render engine yet (the macOS app streams once it draws the render model, phase 6b)")]))
             return stream.close()
         }
         let versions = request.protocols ?? [RenderProtocol.version]

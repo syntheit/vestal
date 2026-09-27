@@ -94,6 +94,14 @@ final class AgentCommandsTests: XCTestCase {
         XCTAssertNil(try? ScreenshotCommand.parse(["a.png", "--format", "json"]).get())
     }
 
+    func testScreenshotOnLinuxRefusesSizeOptions() {
+        let output = ScreenshotCommand.run(["a.png", "--size", "800x600"], platform: SourcePlatform(),
+                                           client: { _, _ in throw IPCError.notRunning(path: "/x") },
+                                           renderer: { _ in 0 }, fixedSize: false)
+        XCTAssertEqual(output.status, 2)
+        XCTAssertTrue(output.stderr.contains("macOS-only"), output.stderr)
+    }
+
     func testScreenshotWithoutARendererExitsFive() {
         let output = ScreenshotCommand.run(["a.png"], platform: SourcePlatform(), client: { _, _ in throw IPCError.notRunning(path: "/x") },
                                            renderer: nil, unsupported: "needs a Wayland session")

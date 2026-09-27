@@ -68,26 +68,18 @@ var capabilitiesHost: CapabilitiesCommand.Host {
 }
 
 /// `vestal screenshot`'s offscreen renderer: the render-file command of this
-/// build's UI, and why there is none when it can't run.
-var screenshotRenderer: (ScreenshotCommand.Renderer?, String?) {
+/// build's UI, why there is none when it can't run, and whether it takes
+/// `--size`, `--scale` and `--background` (the GTK window is the screen).
+var screenshotRenderer: (renderer: ScreenshotCommand.Renderer?, unsupported: String?, fixedSize: Bool) {
     #if os(macOS)
-    return ({ MacRenderFileCommand.run($0) }, nil)
+    return ({ MacRenderFileCommand.run($0) }, nil, true)
     #elseif os(Linux)
     guard let display = ProcessInfo.processInfo.environment["WAYLAND_DISPLAY"], !display.isEmpty else {
-        return (nil, "the GTK renderer needs a Wayland session (WAYLAND_DISPLAY is not set)")
+        return (nil, "the GTK renderer needs a Wayland session (WAYLAND_DISPLAY is not set)", false)
     }
-    // The GTK window takes the screen's size and scale.
-    return ({ arguments in
-        var kept: [String] = []
-        var rest = arguments[...]
-        while let argument = rest.popFirst() {
-            if ["--size", "--scale", "--background"].contains(argument) { _ = rest.popFirst(); continue }
-            kept.append(argument)
-        }
-        return RenderFileCommand.run(kept)
-    }, nil)
+    return ({ RenderFileCommand.run($0) }, nil, false)
     #else
-    return (nil, "this build has no renderer")
+    return (nil, "this build has no renderer", true)
     #endif
 }
 
@@ -154,9 +146,9 @@ case .command(.capabilities(let arguments)):
     emit(CapabilitiesCommand.run(arguments, host: capabilitiesHost, client: { try IPCClient.send($0, timeout: $1) }))
 
 case .command(.screenshot(let arguments)):
-    let (renderer, unsupported) = screenshotRenderer
+    let (renderer, unsupported, fixedSize) = screenshotRenderer
     emit(ScreenshotCommand.run(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) },
-                               renderer: renderer, unsupported: unsupported))
+                               renderer: renderer, unsupported: unsupported, fixedSize: fixedSize))
 
 case .command(.sendRequest(let request)):
     if let view = request.view, let failure = CLI.checkView(view) { emit(failure) }

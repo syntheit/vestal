@@ -240,7 +240,7 @@ $ vestal screenshot /tmp/vestal.png --config /tmp/vestal-draft.json --json
 {"clipped":0,"diagnostics":0,"frames":null,"height":982,"path":"/tmp/vestal.png","scale":2,"truncated":0,"width":1512}
 ```
 
-Then open `/tmp/vestal.png` with your image-viewing tool and look: alignment, crowding, colours, anything cut off. `--frames` writes every node's frame, with `clipped: true` on nodes cut off at the bottom of the screen (vestal never scrolls) and `truncated: true` on texts cut by `lines`: check those without reading pixels. It takes the same `--view`, `--press`, `--data` and `--at` as `render`, plus `--size <w>x<h>` and `--scale`. The desktop blur and the aurora aren't captured; the background is the palette's `bg`. It draws with the real UI code: SwiftUI on macOS, GTK on Linux (which needs a Wayland session; exit 5 without one: rely on `render` then).
+Then open `/tmp/vestal.png` with your image-viewing tool and look: alignment, crowding, colours, anything cut off. `--frames` writes every node's frame, with `clipped: true` on nodes cut off at the bottom of the screen (vestal never scrolls) and `truncated: true` on texts cut by `lines`: check those without reading pixels. It takes the same `--view`, `--press`, `--data` and `--at` as `render`, plus `--size <w>x<h>`, `--scale` and `--background` on macOS (on Linux the PNG is the screen as the GTK UI draws it, in pixels). The desktop blur and the aurora aren't captured; the background is the palette's `bg`. It draws with the real UI code: SwiftUI on macOS, GTK on Linux (which needs a Wayland session; exit 5 without one: rely on `render` then).
 
 ### Step 8: iterate and deploy
 

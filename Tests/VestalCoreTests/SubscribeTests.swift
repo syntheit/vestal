@@ -120,6 +120,26 @@ final class SubscribeTests: XCTestCase {
         XCTAssertEqual(try IPCClient.send(.status, paths: [path]).ok, true)
     }
 
+    func testAClientFloodingInputIsDropped() throws {
+        let path = try makeSocketPath()
+        let busy = DispatchQueue(label: "vestal.tests.busy-handler")
+        let server = IPCServer(path: path, queue: busy) { _, reply in reply(.ok) }
+        addTeardownBlock { server.stop() }
+        let opened = expectation(description: "subscribed")
+        server.subscriptionHandler = { _, stream in
+            stream.onMessage = { _ in }
+            opened.fulfill()
+        }
+        try server.start()
+        let stream = try IPCClient.openStream(IPCRequest(.subscribe), paths: [path])
+        wait(for: [opened], timeout: 5)
+        // The handler is stuck: the lines pile up until the client is dropped.
+        busy.suspend()
+        defer { busy.resume() }
+        for _ in 0..<400 { try? stream.send(line: #"{"cmd":"snapshot"}"#) }
+        XCTAssertNil(stream.readLine(timeout: 5), "hung up on")
+    }
+
     func testManySubscribers() throws {
         let path = try makeSocketPath()
         let server = makeServer(path)

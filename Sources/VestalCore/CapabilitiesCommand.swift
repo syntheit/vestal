@@ -245,7 +245,7 @@ public enum CapabilitiesCommand {
     /// secrets, and `run` actions anywhere in the expanded config.
     static func programsRun(by loaded: LoadedConfig) -> [String: Set<String>] {
         var programs: [String: Set<String>] = [:]
-        for (name, source) in loaded.config.sources where SourceConfig.canonicalType(source.type) == "command" {
+        for (name, source) in loaded.expanded.sources where SourceConfig.canonicalType(source.type) == "command" {
             if let program = source.argv?.first, !program.isEmpty { programs[program, default: []].insert("source \(name)") }
         }
         for (name, secret) in loaded.config.secrets {

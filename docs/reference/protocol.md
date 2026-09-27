@@ -78,4 +78,4 @@ A conforming UI:
 3. draws every node type and field of `vestal docs render-model`, with the icon fonts of `vestal docs icons`;
 4. sends `invoke` for clicks on `action` nodes and `key` for key presses, and carries out `copy` effects.
 
-The GTK UI inside vestal on Linux, and the SwiftUI UI on macOS, draw the same model in-process.
+vestal's own UIs draw the same model in-process, through the same `RenderEngine` the hub serves: SwiftUI on macOS and GTK on Linux (both being switched over to it in v0.4; until then a Linux `vestal daemon` is headless and serves only subscribers).

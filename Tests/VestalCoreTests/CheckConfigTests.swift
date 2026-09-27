@@ -352,6 +352,7 @@ final class CheckConfigTests: XCTestCase {
         {
           "secrets": {"gh": {"command": ["gh", "auth", "token"]}, "f": {"file": "~/x"}},
           "keys": {"r": {"run": ["make", "deploy"], "env": {"X": "1"}}},
+          "sources": {"nas": {"type": "foyer", "url": "https://nas.example"}},
           "widgets": {
             "systems": null,
             "t": {"type": "text", "text": "x", "source": {"type": "command", "argv": ["date"], "refresh": "1m"},
@@ -364,13 +365,16 @@ final class CheckConfigTests: XCTestCase {
         let (output, _) = try check(["--commands", "--json", "--platform", "macos", "PATH"], text)
         let commands = try XCTUnwrap(try json(output.stdout)["commands"]?.arrayValue).map { $0.objectValue ?? [:] }
         XCTAssertEqual(commands.map { $0["pointer"] }, [
-            .string("/keys/r/run"), .string("/secrets/gh/command"), .string("/templates/ping/source/argv"),
+            .string("/keys/r/run"), .string("/secrets/gh/command"), .string("/sources/nas/type"),
+            .string("/templates/ping/source/argv"),
             .string("/widgets/t/action/0/run"), .string("/widgets/t/source/argv"),
         ])
         XCTAssertEqual(commands[0]["env"], .array([.string("X")]))
         XCTAssertEqual(commands[0]["trigger"], .string("an action of key \"r\" (a click or its key)"))
         XCTAssertEqual(commands[1]["trigger"], .string("secret \"gh\", once when the config loads"))
-        XCTAssertEqual(commands[4]["trigger"], .string("an inline source of widget \"t\", every 1m"))
+        XCTAssertEqual(commands[2]["argv"], .array([.string("foyer-api"), .string("--host"), .string("https://nas.example"), .string("/api/health")]))
+        XCTAssertEqual(commands[2]["trigger"], .string("source \"nas\" (template \"foyer\"), every 5s, while the dashboard is shown"))
+        XCTAssertEqual(commands[5]["trigger"], .string("an inline source of widget \"t\", every 1m"))
     }
 
     // MARK: print-config --origins

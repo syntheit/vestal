@@ -188,6 +188,20 @@ public enum ConfigCommands {
                 break
             }
         }
+        // v0.4: named sources whose type is a source template (`foyer`, the
+        // user's own) run what their expanded body says.
+        let expandedSources = ConfigExpansion.expand(merged).top["sources"]?.objectValue ?? [:]
+        for (name, value) in expandedSources.sorted(by: { $0.key < $1.key })
+        where !name.hasPrefix("inline:") && !name.hasPrefix("host:") {
+            guard let source = value.objectValue, source["type"]?.stringValue.map(SourceConfig.canonicalType) == "command",
+                  let argv = strings(source["argv"]), !argv.isEmpty,
+                  let raw = top["sources"]?.objectValue?[name]?.objectValue, let template = raw["type"]?.stringValue,
+                  SourceConfig.canonicalType(template) != "command" else { continue }
+            let refresh = source["refresh"]?.stringValue ?? SourceConfig.defaultRefresh
+            let shown = source["when"]?.stringValue == "visible" ? "while the dashboard is shown" : "shown or hidden"
+            let env = (source["env"]?.objectValue ?? [:]).keys.sorted()
+            add(["sources", name, "type"], "source \"\(name)\" (template \"\(template)\"), every \(refresh), \(shown)", argv, env: env)
+        }
         // v0.4: command secrets, `run` actions and inline command sources
         // anywhere in widgets, views, keys and templates.
         for (name, value) in (top["secrets"]?.objectValue ?? [:]).sorted(by: { $0.key < $1.key }) {

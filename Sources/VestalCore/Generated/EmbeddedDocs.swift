@@ -297,7 +297,7 @@ $ vestal screenshot /tmp/vestal.png --config /tmp/vestal-draft.json --json
 {"clipped":0,"diagnostics":0,"frames":null,"height":982,"path":"/tmp/vestal.png","scale":2,"truncated":0,"width":1512}
 ```
 
-Then open `/tmp/vestal.png` with your image-viewing tool and look: alignment, crowding, colours, anything cut off. `--frames` writes every node's frame, with `clipped: true` on nodes cut off at the bottom of the screen (vestal never scrolls) and `truncated: true` on texts cut by `lines`: check those without reading pixels. It takes the same `--view`, `--press`, `--data` and `--at` as `render`, plus `--size <w>x<h>` and `--scale`. The desktop blur and the aurora aren't captured; the background is the palette's `bg`. It draws with the real UI code: SwiftUI on macOS, GTK on Linux (which needs a Wayland session; exit 5 without one: rely on `render` then).
+Then open `/tmp/vestal.png` with your image-viewing tool and look: alignment, crowding, colours, anything cut off. `--frames` writes every node's frame, with `clipped: true` on nodes cut off at the bottom of the screen (vestal never scrolls) and `truncated: true` on texts cut by `lines`: check those without reading pixels. It takes the same `--view`, `--press`, `--data` and `--at` as `render`, plus `--size <w>x<h>`, `--scale` and `--background` on macOS (on Linux the PNG is the screen as the GTK UI draws it, in pixels). The desktop blur and the aurora aren't captured; the background is the palette's `bg`. It draws with the real UI code: SwiftUI on macOS, GTK on Linux (which needs a Wayland session; exit 5 without one: rely on `render` then).
 
 ### Step 8: iterate and deploy
 
@@ -1022,7 +1022,7 @@ Builds the render model once and prints it. `tree` (the default): an indented ou
 
 `vestal screenshot <out.png> [--view <name>] [--config <path>|-] [--cached|--fetch|--data <dir>] [--at <time>] [--press <key>]... [--size <w>x<h>] [--scale <n>] [--background solid|transparent] [--frames <file.json>] [--allow-commands] [--no-network] [--json]`
 
-The same render, drawn offscreen by the platform's UI into a PNG you can look at: SwiftUI on macOS (no window, no running instance, no screen-recording permission), GTK on Linux (needs a Wayland session; without a way to draw, exit 5). The desktop blur and the aurora can't be captured: the background is the palette's `bg` (`solid`) or `transparent`. `--frames` also writes every node's frame, with `clipped: true` on nodes cut off by the window or a `clip` ancestor and `truncated: true` on texts cut by `lines`: check layout without looking. It prints the path, or `{"path", "width", "height", "scale", "clipped", "truncated"}` with `--json`.
+The same render, drawn offscreen by the platform's UI into a PNG you can look at: SwiftUI on macOS (no window, no running instance, no screen-recording permission), GTK on Linux (needs a Wayland session; without a way to draw, exit 5; the PNG is the screen as drawn, so `--size`, `--scale` and `--background` are macOS-only and exit 2 there). The desktop blur and the aurora can't be captured: the background is the palette's `bg` (`solid`) or `transparent`. `--frames` also writes every node's frame, with `clipped: true` on nodes cut off by the window or a `clip` ancestor and `truncated: true` on texts cut by `lines`: check layout without looking. It prints the path, or `{"path", "width", "height", "scale", "clipped", "truncated"}` with `--json`.
 
 `vestal explain <node id or widget key> [--view <name>] [--json] [--config <path>] [--cached|--fetch|--data <dir>] [--at <time>]`
 
@@ -1549,7 +1549,7 @@ A conforming UI:
 3. draws every node type and field of `vestal docs render-model`, with the icon fonts of `vestal docs icons`;
 4. sends `invoke` for clicks on `action` nodes and `key` for key presses, and carries out `copy` effects.
 
-The GTK UI inside vestal on Linux, and the SwiftUI UI on macOS, draw the same model in-process.
+vestal's own UIs draw the same model in-process, through the same `RenderEngine` the hub serves: SwiftUI on macOS and GTK on Linux (both being switched over to it in v0.4; until then a Linux `vestal daemon` is headless and serves only subscribers).
 
 """#,
         "recipes": #"""

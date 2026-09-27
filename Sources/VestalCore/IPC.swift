@@ -1320,11 +1320,23 @@ public final class IPCServer: @unchecked Sendable {
         }
     }
 
+    /// A subscriber with this many lines not yet handled is dropped: input
+    /// is bounded like output, so a client can't queue unlimited work.
+    static let maxPendingLines = 256
+
     private func deliver(_ line: ArraySlice<UInt8>, of connection: IPCConnection) {
         guard line.count <= maxRequestLength, let subscription = connection.subscription else { return }
         let text = String(decoding: line, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        handlerQueue.async { subscription.received(text) }
+        guard connection.pendingLines < Self.maxPendingLines else {
+            vestalLog("subscriber \(connection.id) sent more than \(Self.maxPendingLines) lines ahead of vestal: dropped")
+            return finish(connection)
+        }
+        connection.pendingLines += 1
+        handlerQueue.async {
+            subscription.received(text)
+            self.queue.async { connection.pendingLines -= 1 }
+        }
     }
 
     /// Queues `bytes` (one or more whole lines) for the client. A client
@@ -1438,6 +1450,8 @@ private final class IPCConnection: @unchecked Sendable {
     var fdClosed = false
     var subscription: IPCSubscription?
     var closeWhenFlushed = false
+    /// Client lines handed to the handler queue and not yet handled.
+    var pendingLines = 0
 
     init(id: Int, fd: Int32) {
         self.id = id
