@@ -55,8 +55,11 @@ enum NativeIcons {
         "speaker-high": Symbol("speaker.wave.3", "speaker.wave.3.fill"),
         "speaker-x": Symbol("speaker.slash", "speaker.slash.fill"),
         "speaker-slash": Symbol("speaker.slash", "speaker.slash.fill"),
-        // Sunrise and sunset are both sun-horizon in Phosphor.
+        // Sunrise and sunset are both sun-horizon in Phosphor; the presets
+        // use vestal's aliases (IconMap.aliases) so they draw apart here.
         "sun-horizon": Symbol("sunrise", "sunrise.fill"),
+        "sunrise": Symbol("sunrise", "sunrise.fill"),
+        "sunset": Symbol("sunset", "sunset.fill"),
         // `circle` fill is v0.3's offline dot, drawn as a Circle (below).
         "circle": Symbol("circle", "circle.fill"),
 

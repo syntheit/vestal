@@ -9,7 +9,7 @@ final class IconMapTests: XCTestCase {
     /// Every icon a built-in preset draws exists in both weights, as one
     /// Private Use Area character.
     func testPresetIconsExistInBothWeights() {
-        XCTAssertEqual(IconMap.presetIcons.count, 23)
+        XCTAssertEqual(IconMap.presetIcons.count, 24)
         for name in IconMap.presetIcons {
             XCTAssertTrue(IconMap.contains(name), name)
             XCTAssertEqual(IconMap.weights(name), ["regular", "fill"], name)

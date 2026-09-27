@@ -253,11 +253,11 @@ public enum DefaultPresets {
             ] },
             { "type": "row", "gap": 16, "when": ".sunrise != null or .sunset != null", "children": [
               { "type": "row", "gap": 4, "when": ".sunrise != null", "children": [
-                { "type": "icon", "name": "sun-horizon", "weight": "fill", "size": 10, "color": "warn" },
+                { "type": "icon", "name": "sunrise", "weight": "fill", "size": 10, "color": "warn" },
                 { "type": "text", "text": "{{ .sunrise }}", "style": { "size": 12, "font": "mono", "color": "subtle" } }
               ] },
               { "type": "row", "gap": 4, "when": ".sunset != null", "children": [
-                { "type": "icon", "name": "sun-horizon", "weight": "fill", "size": 10, "color": "warn" },
+                { "type": "icon", "name": "sunset", "weight": "fill", "size": 10, "color": "warn" },
                 { "type": "text", "text": "{{ .sunset }}", "style": { "size": 12, "font": "mono", "color": "subtle" } }
               ] },
               { "type": "text", "vars": { "ctx": "sun_context(.sunrise; .sunset)" }, "when": "$ctx != null",
