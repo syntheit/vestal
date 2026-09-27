@@ -343,6 +343,11 @@ public final class LinuxDashboard {
         let offscreen = !isVisible
         if offscreen {
             guard let model else { return completion(.failure(CaptureError(description: "nothing to draw"))) }
+            // A hide's fade may still be running: its end would unmap the
+            // window mid-capture. The capture unmaps instead.
+            fadeGeneration += 1
+            if fadeTick != 0 { gtk_widget_remove_tick_callback(stage.widget, fadeTick); fadeTick = 0 }
+            aurora.stop()
             apply(model)
             gtk_widget_set_opacity(window, 0)
             gtk_widget_set_opacity(stage.widget, 1)
@@ -377,10 +382,14 @@ public final class LinuxDashboard {
                                           frames: self.frames()))
             }
             if offscreen, !self.isVisible {
+                self.aurora.stop()
                 gtk_widget_set_visible(self.window, 0)
                 gtk_widget_set_opacity(self.stage.widget, 0)
                 gtk_widget_set_opacity(self.window, 1)
                 self.setInputRegion(empty: false)
+                if self.usesLayerShell {
+                    gtk_layer_set_keyboard_mode(self.gtkWindow, GTK_LAYER_SHELL_KEYBOARD_MODE_NONE)
+                }
             }
             self.capturing = false
             completion(result)

@@ -306,6 +306,8 @@ final class ScreenshotCommandTests: XCTestCase {
         XCTAssertNil(ScreenshotCommand.parse(["-"], cwd: cwd), "- needs --frames")
         XCTAssertNil(ScreenshotCommand.parse(["a.png", "b.png"], cwd: cwd))
         XCTAssertNil(ScreenshotCommand.parse(["a.png", "--view"], cwd: cwd))
+        XCTAssertNil(ScreenshotCommand.parse(["a.png", "--view", "--json"], cwd: cwd))
+        XCTAssertNil(ScreenshotCommand.parse(["a.png", "--frames", "--json"], cwd: cwd))
         XCTAssertNil(ScreenshotCommand.parse(["--bogus"], cwd: cwd))
     }
 

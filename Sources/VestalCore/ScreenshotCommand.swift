@@ -42,7 +42,8 @@ public enum ScreenshotCommand {
             switch argument {
             case "--view", "--frames":
                 i += 1
-                guard i < arguments.count, !arguments[i].isEmpty else { return nil }
+                // A missing value, not the next option.
+                guard i < arguments.count, !arguments[i].isEmpty, !arguments[i].hasPrefix("-") else { return nil }
                 if argument == "--view" { options.view = arguments[i] } else { options.frames = absolute(arguments[i], cwd: cwd) }
             case "--json":
                 options.json = true

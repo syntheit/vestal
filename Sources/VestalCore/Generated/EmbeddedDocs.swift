@@ -425,7 +425,7 @@ User: *"Give me a 'reading' screen on key 2 with Hacker News headlines; keep the
         "cli": #"""
 # The vestal command
 
-Every command below runs headlessly. The dashboard UI is macOS-only for now; on Linux `vestal daemon` runs without one.
+Every command below except `vestal screenshot` runs headlessly. The dashboard is SwiftUI on macOS and GTK 4 on Linux (a layer-shell surface on Wayland); `--headless` runs the daemon without one.
 
 ## Exit codes
 
@@ -438,6 +438,7 @@ The same for every command:
 | 2 | Usage error. |
 | 3 | The config has errors (`check-config`; with `--strict`, warnings too). |
 | 4 | Not found: an unknown docs topic, view or icon. A did-you-mean goes to stderr. |
+| 5 | Not supported here: `vestal screenshot` with no running dashboard to draw it. |
 
 With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "...", "message": "...", "suggestion": "..."}}`. `--` ends the options: `vestal check-config -- --odd-name.json` reads that file.
 
@@ -446,10 +447,12 @@ With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "..
 | Command | |
 |---|---|
 | `vestal` | Start the dashboard and show it, or show the instance that runs already. |
-| `vestal daemon` | Start hidden (the launch agent and the systemd service run this). If an instance of this build runs, exit 0; one of another build is asked to quit and replaced. |
+| `vestal daemon` | Start hidden (the launch agent and the systemd service run this). If an instance of this build runs, exit 0; one of another build is asked to quit and replaced. On Linux, with no display to connect to it exits 1 (the service restarts it). |
+| `vestal --headless`, `vestal daemon --headless` | The same without a UI (also `VESTAL_HEADLESS=1`): sources, these commands and stats; show and hide only change the state it reports. |
 | `vestal show [view]`, `vestal toggle [view]` | Show, or show or hide, the dashboard; start vestal if needed. `view` must name a view of the config (exit 4 otherwise); until views can be switched (v0.4), the dashboard shows `main`. |
 | `vestal hide`, `vestal reload`, `vestal quit` | Tell the running instance. Exit 1 when none runs; they never start one. |
 | `vestal status [--json]` | The running instance: pid, build, config file, warnings, each source's age and last error, and this machine's stats. |
+| `vestal screenshot <out.png\|-> [--view <name>] [--frames <file.json>] [--json]` | The running dashboard drawn offscreen to a PNG, with its live data (Linux; macOS answers exit 5 until its renderer lands). Shown: what is on screen. Hidden: the view rendered now, with nothing appearing on screen. `--frames` writes every node's frame with `clipped` and `truncated`; `-` for the image writes only the frames. `--json` prints `{path, width, height, scale, clipped, truncated}`. |
 
 ## Config
 
