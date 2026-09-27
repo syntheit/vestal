@@ -63,6 +63,13 @@ struct JQPassThrough: Error {
 // the process. The guard compares the address of a local against the
 // thread's stack bounds and fails evaluation well before the end.
 
+#if !canImport(Darwin) && canImport(Glibc)
+/// glibc's pthread_getattr_np, a GNU extension the Glibc module does not
+/// import.
+@_silgen_name("pthread_getattr_np")
+private func jq_pthread_getattr_np(_ thread: pthread_t, _ attr: UnsafeMutablePointer<pthread_attr_t>) -> Int32
+#endif
+
 struct JQStackGuard {
     /// The lowest address evaluation may reach; 0 when unknown.
     let floor: UInt
@@ -77,7 +84,7 @@ struct JQStackGuard {
         if top > size { low = top - size }
         #elseif canImport(Glibc)
         var attr = pthread_attr_t()
-        if pthread_getattr_np(pthread_self(), &attr) == 0 {
+        if jq_pthread_getattr_np(pthread_self(), &attr) == 0 {
             var addr: UnsafeMutableRawPointer?
             var sz = 0
             if pthread_attr_getstack(&attr, &addr, &sz) == 0, let addr {
