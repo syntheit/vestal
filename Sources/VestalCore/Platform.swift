@@ -75,11 +75,73 @@ public protocol SystemStatsProvider {
     /// The file systems the local host's popup lists, "/" first. By default
     /// the root volume alone (as on macOS).
     func mounts() -> [MountUsage]
+
+    // v0.4: what the `system` source adds (EXTENSIBILITY.md 5.4). Each has
+    // a default, so a provider that can't read a value reports it unknown.
+
+    /// The 1, 5 and 15 minute load averages; nil if unknown.
+    func loadAverage() -> [Double]?
+    /// Logical CPU cores; nil if unknown.
+    func cpuCores() -> Int?
+    /// RAM in use (the same "used" as `memory().ramPercent`) and in total,
+    /// in bytes; nil if unknown.
+    func memoryBytes() -> MemoryBytes?
+    /// Linux pressure stall information for memory, `some avg10` of
+    /// /proc/pressure/memory (0-100); nil where the OS has none.
+    func memoryPSI() -> Double?
+    /// The sizes of these mount points, in the order given. One that isn't
+    /// a mount point or can't be read is left out.
+    func disks(_ mountpoints: [String]) -> [MountUsage]
+    /// Bytes per second per interface since this method's previous call;
+    /// 0 on the first call. `names` nil means the interfaces the total
+    /// counts (`networkRate`: all but loopback on macOS, the physical ones
+    /// on Linux); a list means exactly those, in that order, where they
+    /// exist. Nil if the counters can't be read.
+    func interfaceRates(_ names: [String]?) -> [InterfaceRate]?
 }
 
 extension SystemStatsProvider {
     public func mounts() -> [MountUsage] {
         disk().map { [MountUsage(mountpoint: "/", totalBytes: $0.totalBytes, freeBytes: $0.freeBytes)] } ?? []
+    }
+
+    public func loadAverage() -> [Double]? { nil }
+    public func cpuCores() -> Int? { ProcessInfo.processInfo.activeProcessorCount }
+    public func memoryBytes() -> MemoryBytes? { nil }
+    public func memoryPSI() -> Double? { nil }
+
+    /// "/" from `disk()`; nothing else.
+    public func disks(_ mountpoints: [String]) -> [MountUsage] {
+        mountpoints.compactMap { mount in
+            guard mount == "/", let root = disk() else { return nil }
+            return MountUsage(mountpoint: "/", totalBytes: root.totalBytes, freeBytes: root.freeBytes)
+        }
+    }
+
+    public func interfaceRates(_ names: [String]?) -> [InterfaceRate]? { nil }
+}
+
+/// RAM in bytes.
+public struct MemoryBytes: Codable, Equatable, Sendable {
+    public var used: Int64
+    public var total: Int64
+
+    public init(used: Int64, total: Int64) {
+        self.used = used
+        self.total = total
+    }
+}
+
+/// One network interface's rates, bytes per second.
+public struct InterfaceRate: Codable, Equatable, Sendable {
+    public var name: String
+    public var bytesIn: Int64
+    public var bytesOut: Int64
+
+    public init(name: String, bytesIn: Int64, bytesOut: Int64) {
+        self.name = name
+        self.bytesIn = bytesIn
+        self.bytesOut = bytesOut
     }
 }
 
@@ -132,11 +194,21 @@ public struct NowPlaying: Codable, Equatable, Sendable {
     public var title: String
     public var artist: String
     public var state: String // playing, paused, stopped, off
+    /// v0.4; nil when the player doesn't report it.
+    public var album: String?
+    /// Seconds into the track; nil when unknown.
+    public var position: Double?
+    /// The track's length in seconds; nil when unknown.
+    public var duration: Double?
 
-    public init(title: String, artist: String, state: String) {
+    public init(title: String, artist: String, state: String,
+                album: String? = nil, position: Double? = nil, duration: Double? = nil) {
         self.title = title
         self.artist = artist
         self.state = state
+        self.album = album
+        self.position = position
+        self.duration = duration
     }
 
     /// Player not running, or nothing loaded.
@@ -149,6 +221,43 @@ public protocol MediaProvider: Sendable {
     func nowPlaying() async -> NowPlaying
     /// Fire and forget.
     func playPause()
+    /// Fire and forget.
+    func next()
+    /// Fire and forget.
+    func previous()
+}
+
+extension MediaProvider {
+    public func next() {}
+    public func previous() {}
+}
+
+/// What the `media` source read: the player it chose, its state, and every
+/// player this OS can see (EXTENSIBILITY.md 5.2, 5.4).
+public struct MediaReading: Equatable, Sendable {
+    /// The player that matched `player`; nil when none did (then `playing`
+    /// is `.off`).
+    public var player: String?
+    public var playing: NowPlaying
+    /// The names this OS can see right now: the `player` values that work.
+    public var players: [String]
+
+    public init(player: String?, playing: NowPlaying, players: [String]) {
+        self.player = player
+        self.playing = playing
+        self.players = players
+    }
+}
+
+/// The `media` source's backend: AppleScript on macOS, MPRIS (playerctl) on
+/// Linux. Sendable: it runs in the runtime's fetch tasks.
+public protocol MediaBackend: Sendable {
+    /// Resolves `wanted` (player names in order, the first match wins, or
+    /// `["auto"]`) and reads that player. `auto` is Spotify, then Music, on
+    /// macOS; the first playing player, else the first one found, on Linux.
+    func read(_ wanted: [String]) async -> MediaReading
+    /// The provider for one player, for play/pause, next and previous.
+    func provider(for player: String) -> MediaProvider
 }
 
 // MARK: Calendar
@@ -161,13 +270,30 @@ public struct CalendarEntry: Codable, Equatable, Sendable {
     public var allDay: Bool
     /// The name of the calendar it belongs to.
     public var calendar: String
+    /// v0.4; nil when the event has none.
+    public var location: String?
 
-    public init(title: String, start: Date, end: Date, allDay: Bool, calendar: String) {
+    public init(title: String, start: Date, end: Date, allDay: Bool, calendar: String, location: String? = nil) {
         self.title = title
         self.start = start
         self.end = end
         self.allDay = allDay
         self.calendar = calendar
+        self.location = location
+    }
+
+    enum CodingKeys: String, CodingKey { case title, start, end, allDay, calendar, location }
+
+    /// `location` is written as null when absent, so every entry has the
+    /// same keys (EXTENSIBILITY.md 5.4).
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(title, forKey: .title)
+        try c.encode(start, forKey: .start)
+        try c.encode(end, forKey: .end)
+        try c.encode(allDay, forKey: .allDay)
+        try c.encode(calendar, forKey: .calendar)
+        try c.encode(location, forKey: .location)
     }
 }
 
@@ -215,6 +341,19 @@ public protocol AudioProvider {
     /// The default output device.
     func volume() -> VolumeInfo
     func setMuted(_ muted: Bool)
+    /// A fresh reading of the default output; nil when there is no output
+    /// device or it can't be read (the `system` source's `audio`). Runs off
+    /// the main actor.
+    func readVolume() async -> VolumeInfo?
+    /// One step (5%) up or down; fire and forget.
+    func volumeUp()
+    func volumeDown()
+}
+
+extension AudioProvider {
+    public func readVolume() async -> VolumeInfo? { volume() }
+    public func volumeUp() {}
+    public func volumeDown() {}
 }
 
 // MARK: Privacy
