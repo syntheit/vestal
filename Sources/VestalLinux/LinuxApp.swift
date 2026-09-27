@@ -168,8 +168,19 @@ final class LinuxSurface: ResidentSurface {
             if let view = request.view, view != current {
                 return reply(.failure("the dashboard is showing \"\(current)\"; hide it to capture \"\(view)\", or show that view first"))
             }
-            return dashboard.capture(model: nil, png: request.path) { [weak self] in self?.finish($0, request, reply) }
+            return dashboard.capture(model: nil, png: request.path) { [weak self] result in
+                // Hidden while it waited for a fade: take it the hidden way.
+                if case .failure(let error) = result, error.hiddenMeanwhile {
+                    self?.captureHidden(request, reply: reply)
+                } else {
+                    self?.finish(result, request, reply)
+                }
+            }
         }
+        captureHidden(request, reply: reply)
+    }
+
+    private func captureHidden(_ request: IPCRequest, reply: @escaping IPCReply) {
         let view = request.view ?? engine?.view
         Task { [weak self] in
             guard let snapshot = await self?.resident?.renderSnapshot(view: view) else {

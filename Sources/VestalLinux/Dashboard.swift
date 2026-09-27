@@ -329,6 +329,9 @@ public final class LinuxDashboard {
 
     public struct CaptureError: Error, CustomStringConvertible {
         public var description: String
+        /// The dashboard was hidden while a capture of it on screen waited
+        /// (for a fade); the caller can capture it hidden instead.
+        public var hiddenMeanwhile = false
     }
 
     /// `vestal screenshot`: writes the dashboard to `png` (nil: no image) and
@@ -337,7 +340,9 @@ public final class LinuxDashboard {
     /// mapped with opacity 0 and an empty input region (the compositor
     /// shows nothing and every click goes through; keyboard focus is never
     /// taken), laid out, captured and unmapped again, about 0.3 s. A show
-    /// meanwhile wins: the window stays, and the capture is of what it shows.
+    /// meanwhile keeps the window mapped afterwards (the capture may still
+    /// be of `model`). Shown but hidden before the capture could be taken
+    /// (during a fade): fails with `hiddenMeanwhile`.
     public func capture(model: RenderSnapshot?, png: String?, completion: @escaping (Result<Capture, CaptureError>) -> Void) {
         guard !capturing else { return completion(.failure(CaptureError(description: "a screenshot is being taken already"))) }
         let offscreen = !isVisible
@@ -363,8 +368,15 @@ public final class LinuxDashboard {
     /// compositor has configured the surface and GTK has laid it out.
     private func captureStep(attempt: Int, offscreen: Bool, png: String?,
                              completion: @escaping (Result<Capture, CaptureError>) -> Void) {
-        afterMilliseconds(100) { [weak self] in
+        // Shown: at once when nothing is fading, so a hide right after the
+        // request can't get in between.
+        afterMilliseconds(attempt == 1 && !offscreen ? 0 : 100) { [weak self] in
             guard let self else { return }
+            if !offscreen, !self.isVisible {
+                self.capturing = false
+                return completion(.failure(CaptureError(description: "the dashboard was hidden during the screenshot",
+                                                        hiddenMeanwhile: true)))
+            }
             let ready = gtk_widget_get_mapped(self.stage.widget) != 0 && gtk_widget_get_width(self.window) > 0
                 && self.fadeTick == 0 && (!offscreen || self.isVisible || attempt >= 3)
             if !ready, attempt < 30 {
