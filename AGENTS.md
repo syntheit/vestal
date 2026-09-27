@@ -44,7 +44,7 @@ sources:
   media     ok  MPRIS through playerctl: no MPRIS player running
   calendar  no  none: no calendar backend: set `ics` (files, a vdirsyncer directory or URLs) on the calendar source
   audio     no  wpctl: wpctl found, but no default output device
-  claude    no  Claude Code statusLine: no /home/me/.cache/vestal/claude-rate-limits.json yet: set Claude Code's statusLine to `vestal claude-statusline` (vestal docs ai-usage)
+  claude    ok  claude -p /usage: /etc/profiles/per-user/me/bin/claude
   codex     ok  codex app-server: /etc/profiles/per-user/me/bin/codex
 icons: ok  …/share/vestal/icons/Phosphor.ttf, …/share/vestal/icons/Phosphor-Fill.ttf
 screenshot: no  needs a Wayland session (WAYLAND_DISPLAY is not set); `vestal render` works anywhere
@@ -842,7 +842,7 @@ User: *"Show how much of my Claude and Codex limits I've used."*
 ```
 
 - `aiUsage` draws Claude's and Codex's 5-hour and weekly windows as bars, with `resets 4h` under each; a service with no data yet is left out. The numbers are the services' own: vestal reads no credentials.
-- Claude's come from Claude Code's status line, which must run `vestal claude-statusline`: under Home Manager `programs.vestal.claudeStatusLine.enable = true;`, else `"statusLine": {"type": "command", "command": "vestal claude-statusline"}` in `~/.claude/settings.json`. If the user already has a status line, don't replace it: use `vestal claude-statusline --then <their command>`. `vestal fetch claude` fails with a hint until Claude Code has run with it.
+- Claude's come from `claude -p /usage` (the user's Claude Code login, Pro or Max; no model call, no transcript); `vestal fetch claude` checks it. No status line is needed: don't set one up for vestal. If `claude` isn't on the dashboard's `PATH` (a native install in `~/.local/bin`), set `"argv": ["~/.local/bin/claude", "-p", "--no-session-persistence", "/usage"]` on the `claude` source. Per-model weekly limits are in `.extra`.
 - Codex's come from `codex app-server` (the user's `codex login`); `vestal fetch codex` checks it. For the system bar instead: `"show": [..., "claudeUsage", "codexUsage", ...]`. Details: `vestal docs ai-usage`.
 
 ### Recipe `disk-table`: disks as a table

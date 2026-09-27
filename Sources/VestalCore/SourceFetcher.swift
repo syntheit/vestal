@@ -9,7 +9,7 @@ import FoundationNetworking
 // HTTP through URLSession, commands through CommandRunner (an argv, never a
 // shell), files, ICS calendars, and the platform's providers for `calendar`
 // (EventKit), `system` and `media` (SourcePlatform), and `claude` and
-// `codex` (AIUsage). Tests pass their own fetcher.
+// `codex` (ClaudeUsage, AIUsage). Tests pass their own fetcher.
 //
 // A fetch either returns the bytes to keep or throws; the runtime keeps the
 // previous data on an error. `json` results must parse, HTTP must answer 2xx
@@ -142,9 +142,9 @@ public struct LiveFetcher: SourceFetcher {
             return (source.path ?? "").isEmpty ? "needs a \"path\"" : nil
         case "system":
             return platform.system == nil ? "system stats are not supported on this platform" : nil
-        case "calendar", "media", "claude":
+        case "calendar", "media":
             return nil
-        case "codex":
+        case "claude", "codex":
             return source.argv?.isEmpty == true ? "\"argv\" must not be empty" : nil
         default:
             return "unknown source type \"\(source.type)\""
@@ -169,10 +169,11 @@ public struct LiveFetcher: SourceFetcher {
                 ?? MediaReading(player: nil, playing: .off, players: [])
             return FetchResult(data: MediaSource.shape(reading).canonicalData())
         case "claude":
-            // One small file read (what `vestal claude-statusline` kept).
-            try Task.checkCancellation()
-            return FetchResult(data: try ClaudeRateLimits.read(path: ClaudeRateLimits.path(home: home), now: now())
-                .canonicalData())
+            // A draft may not pick the program; plain `claude -p /usage` is fine.
+            if source.argv != nil, !allowCommands { throw SourceError("not loaded (draft: pass --allow-commands)") }
+            return FetchResult(data: try await ClaudeUsage.fetch(argv: source.argv ?? ClaudeUsage.defaultArgv,
+                                                                 directory: SnapshotCache.platformDirectory(home: home),
+                                                                 now: now()).canonicalData())
         case "codex":
             // A draft may not pick the program; plain `codex app-server` is fine.
             if source.argv != nil, !allowCommands { throw SourceError("not loaded (draft: pass --allow-commands)") }

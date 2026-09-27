@@ -7,25 +7,23 @@ import Glibc
 
 // MARK: - vestal claude-statusline
 //
-// Claude Code's statusLine command. Claude Code runs it after each update
-// with a JSON description of the session on stdin; since 2.1.80 that holds
-// `rate_limits: {five_hour, seven_day}` (each `{used_percentage, resets_at}`)
-// for Pro and Max plans. This keeps those two windows, and nothing else of
-// the input, in the cache directory (ClaudeRateLimits, 0600, written
-// atomically), where the `claude` source reads them, and prints a short
-// line for Claude Code to show: `5h 35% · wk 50%`.
+// A Claude Code statusLine command that shows the `claude` source's last
+// numbers: `5h 25% · wk 59%`, from vestal's snapshot cache (what the
+// dashboard last fetched with `claude -p /usage`), or nothing when there
+// is none. It writes nothing and runs nothing but a `--then` command.
 //
 //   vestal claude-statusline [--then <command...>]
+//
+// It used to be the `claude` source's data: Claude Code passes rate limits
+// to its status line, but they are the session's, not the account's, so
+// the source now asks `claude -p /usage` (ClaudeUsage). The command stays
+// so a status line set up for it keeps working; nothing needs it.
 //
 // `--then` passes the same input to another statusLine command and prints
 // its output after this one's, for a status line that already exists. One
 // word after `--then` runs through `/bin/sh -c` (so a quoted command line
-// works); several run as they are.
-//
-// It must be quick and never get in the way: input that isn't JSON, or has
-// no rate limits, prints nothing of its own and exits 0. A window missing
-// from the input (Claude Code drops one once it resets) keeps the stored
-// one, which the source then reads as a new window at 0%.
+// works); several run as they are. It never fails: no cache prints nothing
+// of its own and exits 0.
 
 public enum ClaudeStatusLine {
     public typealias Output = ConfigCommands.Output
@@ -35,11 +33,13 @@ public enum ClaudeStatusLine {
     static let usage = "usage: vestal claude-statusline [--then <command...>]"
     /// How long a `--then` command may take.
     public static let chainTimeout: TimeInterval = 10
+    /// The cached source it shows (the built-in one).
+    public static let sourceName = "claude"
 
     public static func run(
         _ arguments: [String],
         input: Data,
-        path: String = ClaudeRateLimits.path(),
+        cache: SnapshotCache = SnapshotCache(),
         now: Date = Date(),
         chain: Chain = { ClaudeStatusLine.runChained($0, input: $1) }
     ) -> Output {
@@ -50,38 +50,23 @@ public enum ClaudeStatusLine {
             }
             then = Array(arguments.dropFirst())
         }
-        let ours = record(input, path: path, now: now)
+        let ours = line(cache: cache, now: now)
         let theirs = then.flatMap { chain($0, input) }?.trimmingCharacters(in: .newlines) ?? ""
-        let line = [ours, theirs].filter { !$0.isEmpty }.joined(separator: " · ")
-        return Output(status: 0, stdout: line.isEmpty ? "" : line + "\n")
+        let text = [ours, theirs].filter { !$0.isEmpty }.joined(separator: " · ")
+        return Output(status: 0, stdout: text.isEmpty ? "" : text + "\n")
     }
 
-    /// Stores the input's rate limits (if it has any) and returns the line
-    /// to show for them ("" for none).
-    static func record(_ input: Data, path: String, now: Date) -> String {
-        guard case .object(let payload)? = AnyJSON.decode(input),
-              case .object(let limits)? = payload["rate_limits"] else { return "" }
-        let fiveHour = ClaudeRateLimits.Stored(limits["five_hour"])
-        let sevenDay = ClaudeRateLimits.Stored(limits["seven_day"])
-        guard fiveHour != nil || sevenDay != nil else { return "" }
-
-        var previous: [String: AnyJSON] = [:]
-        if fiveHour == nil || sevenDay == nil, let raw = FileManager.default.contents(atPath: path),
-           case .object(let stored)? = AnyJSON.decode(raw) {
-            previous = stored
+    /// The cached reading as `5h 25% · wk 59%` ("" for none). A window
+    /// whose reset has passed shows 0%.
+    static func line(cache: SnapshotCache, now: Date) -> String {
+        guard let data = cache.load(sourceName)?.snapshot.data, let json = AnyJSON.decode(data),
+              let reading = AIUsage.Reading(json) else { return "" }
+        func percent(_ window: AIUsage.Window) -> Int {
+            AIUsage.Window(percent: Double(window.percent), resetsAt: window.resetsAt.map(Double.init), now: now).percent
         }
-        let file: AnyJSON = .object([
-            "five_hour": (fiveHour ?? ClaudeRateLimits.Stored(previous["five_hour"]))?.json ?? .null,
-            "seven_day": (sevenDay ?? ClaudeRateLimits.Stored(previous["seven_day"]))?.json ?? .null,
-            "updatedAt": .int(Int(now.timeIntervalSince1970)),
-        ])
-        let directory = (path as NSString).deletingLastPathComponent
-        SnapshotCache.makePrivateDirectory(directory)
-        SnapshotCache.writePrivate(file.canonicalData(), to: path)
-
         var parts: [String] = []
-        if let fiveHour { parts.append("5h \(fiveHour.window(now: now).percent)%") }
-        if let sevenDay { parts.append("wk \(sevenDay.window(now: now).percent)%") }
+        if let session = reading.session { parts.append("5h \(percent(session))%") }
+        if let weekly = reading.weekly { parts.append("wk \(percent(weekly))%") }
         return parts.joined(separator: " · ")
     }
 
