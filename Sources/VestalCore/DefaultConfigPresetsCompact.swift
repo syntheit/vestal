@@ -72,6 +72,7 @@ extension DefaultPresets {
 
       "aiUsage": {
         "type": "row", "gap": 20, "width": "fill", "height": 18, "spaceBefore": 4,
+        "when": "(($show | any(. == \"claude\")) and $sources[$claudeSource] != null) or (($show | any(. == \"codex\")) and $sources[$codexSource] != null)",
         "children": [
           { "type": "list", "direction": "row", "gap": 20, "rowId": ".",
             "items": "$show | map(select(. == \"claude\" or . == \"codex\")) | uniq_by(.)",

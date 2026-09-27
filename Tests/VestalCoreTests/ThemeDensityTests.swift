@@ -102,6 +102,24 @@ final class ThemeDensityTests: XCTestCase {
         XCTAssertEqual(stack.children.count, 2)
     }
 
+    /// Compact aiUsage is a fixed-height line: with no Claude or Codex data
+    /// it hides instead of leaving an empty one.
+    func testCompactAIUsageHidesWithoutData() throws {
+        let model = RenderConfigModel(expanded: ConfigExpansion.expand(try tree("""
+            { "theme": { "density": "compact" },
+              "widgets": { "usage": { "type": "aiUsage" } },
+              "views": { "main": { "children": ["usage"] } } }
+            """)))
+        func ids(_ sources: [String: JQValue]) -> [String] {
+            let session = RenderSession(model: model)
+            let data = RenderData(sources: sources, metas: [:], names: model.sourceNames)
+            return session.render(data: data, now: Self.at).root.children.map(\.id)
+        }
+        XCTAssertEqual(ids([:]), [])
+        let claude = try JQValue.parse(#"{"session": {"percent": 18, "resetsAt": 1790540000}, "weekly": null}"#)
+        XCTAssertEqual(ids(["claude": claude]), ["main/usage"])
+    }
+
     func testCompactHalvesTheViewGap() throws {
         func gap(_ density: String, _ viewGap: String = "") throws -> Double? {
             let model = RenderConfigModel(expanded: ConfigExpansion.expand(try tree("""
