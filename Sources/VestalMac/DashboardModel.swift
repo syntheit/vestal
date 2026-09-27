@@ -6,10 +6,14 @@ import VestalCore
 //
 // Everything the dashboard shows, as @Published properties for SwiftUI (an
 // ObservableObject: the Nix toolchain can't load macro plugins). The runtime keeps
-// it current: source and host snapshots arrive through `AppRuntime.observe`,
-// and the tickers registered here (clock, network, stats, media, Claude
-// usage) run only while the dashboard is visible. The view keeps nothing but
-// its own UI state (popups, animations).
+// it current: source and host snapshots arrive through `AppRuntime.observe`.
+// Since v0.4 the stats, the players and Claude usage are sources too
+// (`system`, and the inline `media` and `claude` sources of the v0.3 widgets,
+// LegacySources), fetched only while the dashboard is visible; this model
+// reads their data back into the v0.3 values, so the views show exactly what
+// they did. Two tickers stay here, also visible-only: the clock, and the
+// network rate with the privacy state, both every second as before. The view
+// keeps nothing but its own UI state (popups, animations).
 //
 // What depends on a widget's options is kept per widget key (weather, lists,
 // agendas, privacy), per player (media) or per projects directory (Claude
@@ -63,26 +67,30 @@ final class DashboardModel: ObservableObject {
     private let runtime: AppRuntime
     /// This model's runtime callback, until `detach`.
     private var observation: RuntimeObservation?
-    /// Where each player's last state is kept for the next start.
+    /// Where v0.3 kept each player's last state (read once, at the first
+    /// start after an upgrade; the `media` sources are cached since).
     private let cache: SnapshotCache?
-    /// What the cache holds for each player, so only changes are written.
-    private var savedNowPlaying: [String: NowPlaying] = [:]
     /// The hosts the layout shows, the first entry of each name.
     private let hosts: [HostConfig]
     /// The root volume, for the local host's popup.
     private var disk: DiskUsage?
     /// One provider per player that a media widget names.
     private let players: [String: MediaProvider]
-    /// Bumped on every play/pause click, per player. A poll that started
-    /// before the latest click may have read the old state, so it must not
-    /// overwrite the optimistic icon.
-    private var mediaGeneration: [String: Int] = [:]
+    /// Each player's `media` source (its inline name).
+    private let mediaSources: [String: String]
+    /// The latest play/pause click, per player. A fetch that started before
+    /// it may have read the old state, so it must not overwrite the
+    /// optimistic icon.
+    private var mediaClicked: [String: Date] = [:]
+    /// Each Claude projects directory's `claude` source (its inline name).
+    private let claudeSources: [String: String]
+    /// Whether the `system` source exists (a config may remove it); without
+    /// it the stats are read by a ticker here, as in v0.3.
+    private let hasSystemSource: Bool
     /// The toggles of the bars that show the privacy item, by bar key.
     private let privacy: [String: PrivacyProvider]
     /// The bar the `p` key toggles: the first one that shows privacy.
     private let privacyShortcut: String?
-    /// The projects directories that Claude usage items read.
-    private let claudeDirs: [String]
 
     /// Widgets of an unknown type render nothing; each is logged once.
     private static var loggedUnknownTypes: Set<String> = []
@@ -102,44 +110,64 @@ final class DashboardModel: ObservableObject {
 
         let players = Set(layout.entries.filter { $0.kind == .media }.map(\.widget.mediaPlayer))
         self.players = Dictionary(uniqueKeysWithValues: players.map { ($0, MacPlatform.media(player: $0)) })
+        mediaSources = Dictionary(uniqueKeysWithValues: players.map { ($0, LegacySources.media(player: $0).inlineName) })
         let privacyBars = layout.privacyBars
         privacy = Dictionary(uniqueKeysWithValues: privacyBars.map { ($0.key, MacPlatform.privacy($0.widget.privacy)) })
         privacyShortcut = privacyBars.first?.key
 
         let barClaude = ClaudeUsage.Options(widget: config.claudeUsageWidget)
         self.barClaude = barClaude
-        var claudeDirs: [String] = []
+        var claudeSources: [String: String] = [:]
         for entry in layout.entries {
             let options: ClaudeUsage.Options
+            let source: SourceConfig
             switch entry.kind {
-            case .systemBar where SystemBarLayout(entry.widget).leading.contains("claudeUsage"): options = barClaude
-            case .claudeUsage: options = ClaudeUsage.Options(widget: entry.widget)
+            case .systemBar where SystemBarLayout(entry.widget).leading.contains("claudeUsage"):
+                options = barClaude
+                source = LegacySources.claude(config.claudeUsageWidget)
+            case .claudeUsage:
+                options = ClaudeUsage.Options(widget: entry.widget)
+                source = LegacySources.claude(entry.widget)
             default: continue
             }
-            if !claudeDirs.contains(options.projectsDir) { claudeDirs.append(options.projectsDir) }
+            if claudeSources[options.projectsDir] == nil { claudeSources[options.projectsDir] = source.inlineName }
         }
-        self.claudeDirs = claudeDirs
+        self.claudeSources = claudeSources
 
-        // Mach, IOKit and CoreAudio reads take well under 1ms each.
+        // The `system` source, read now if its data is older than its
+        // refresh (Mach, IOKit and CoreAudio reads take well under 1ms each),
+        // so the first frame is complete.
+        let hasSystemSource = runtime.source(.source(SourceReaders.system)) != nil
+        self.hasSystemSource = hasSystemSource
         let stats = MacPlatform.stats
-        cpu = stats.cpuPercent()
-        memory = stats.memory()
-        temp = stats.temperature()
-        battery = stats.battery()
-        uptime = Format.uptimeLong(Int(stats.uptime()))
-        let disk = stats.disk()
+        if hasSystemSource { runtime.readNow([.source(SourceReaders.system)]) }
+        let reading = runtime.snapshot(.source(SourceReaders.system))?.data
+            .flatMap(AnyJSON.decode).flatMap(SystemReading.init)
+        cpu = reading?.cpuPercent ?? stats.cpuPercent()
+        memory = reading?.memory ?? stats.memory()
+        temp = reading?.temperature ?? stats.temperature()
+        battery = reading.map(\.battery) ?? stats.battery()
+        uptime = Format.uptimeLong(Int(reading?.uptime ?? stats.uptime()))
+        let disk = reading.map(\.disk) ?? stats.disk()
         self.disk = disk
         diskFree = Format.diskFree(disk)
         network = stats.networkRate()
-        volume = MacPlatform.audio.volume()
+        volume = reading?.volume ?? MacPlatform.audio.volume()
         privacyMode = privacy.mapValues { $0.isEnabled() }
-        // The media row as it last was, until the player answers: without it
-        // the row would appear a moment after the dashboard, shifting it.
-        if let cache {
-            for player in players {
-                guard let playing = cache.loadNowPlaying(player: player) else { continue }
+        for (dir, source) in claudeSources {
+            if let usage = runtime.snapshot(.source(source))?.data.flatMap(AnyJSON.decode).flatMap(ClaudeSource.usage) {
+                claudeUsage[dir] = usage
+            }
+        }
+        // The media row as it last was (the runtime serves the source's disk
+        // cache; v0.3's own file for the first start after an upgrade), until
+        // the player answers: without it the row would appear a moment after
+        // the dashboard, shifting it.
+        for player in players {
+            if let data = runtime.snapshot(.source(mediaSources[player] ?? ""))?.data, let json = AnyJSON.decode(data) {
+                nowPlaying[player] = MediaSource.nowPlaying(json)
+            } else if let playing = cache?.loadNowPlaying(player: player) {
                 nowPlaying[player] = playing
-                savedNowPlaying[player] = playing
             }
         }
 
@@ -196,7 +224,7 @@ final class DashboardModel: ObservableObject {
 
     func playPause(player: String) {
         players[player]?.playPause()
-        mediaGeneration[player, default: 0] += 1
+        mediaClicked[player] = Date()
         guard var playing = nowPlaying[player] else { return }
         if playing.state == "playing" { playing.state = "paused" }
         else if playing.state == "paused" { playing.state = "playing" }
@@ -224,31 +252,22 @@ final class DashboardModel: ObservableObject {
 
     // MARK: Tickers
 
-    private static let tickerNames = ["clock", "network", "stats", "media", "claude"]
+    private static let tickerNames = ["clock", "network", "stats"]
 
     private func registerTickers() {
-        // The clock and the network wait for the next whole second, and the
-        // stats for their interval: init has just read them. Media and Claude
-        // usage have nothing yet, so they run at once.
+        // The clock and the network wait for the next whole second: init has
+        // just read them. The stats, media and Claude usage are sources.
         runtime.addTicker(name: "clock", interval: 1, aligned: true, startNow: false) { [weak self] in
             self?.time = Date()
         }
         runtime.addTicker(name: "network", interval: 1, aligned: true, startNow: false) { [weak self] in
             self?.refreshNetwork()
         }
-        runtime.addTicker(name: "stats", interval: 3, startNow: false) { [weak self] in
-            self?.refreshStats()
-        }
-        // Its own ticker: an AppleScript round trip can take seconds, and the
-        // stats must not wait for it. Only with a media widget on screen.
-        if !players.isEmpty {
-            runtime.addTicker(name: "media", interval: 3) { [weak self] in
-                await self?.refreshMedia()
-            }
-        }
-        if !claudeDirs.isEmpty {
-            runtime.addTicker(name: "claude", interval: 30) { [weak self] in
-                await self?.refreshClaude()
+        // A config without the `system` source: read the stats here, as v0.3
+        // did, so the system bar still moves.
+        if !hasSystemSource {
+            runtime.addTicker(name: "stats", interval: 3, startNow: false) { [weak self] in
+                self?.refreshStats()
             }
         }
     }
@@ -259,7 +278,6 @@ final class DashboardModel: ObservableObject {
     }
 
     private func refreshStats() {
-        // CoreAudio answers at once; the media ticker waits on AppleScript.
         if !players.isEmpty { update(\.volume, MacPlatform.audio.volume()) }
         let stats = MacPlatform.stats
         update(\.cpu, stats.cpuPercent())
@@ -271,30 +289,6 @@ final class DashboardModel: ObservableObject {
         update(\.diskFree, Format.diskFree(disk))
     }
 
-    private func refreshMedia() async {
-        // One player after another: AppleScript runs on one serial queue.
-        for player in players.keys.sorted() {
-            guard let provider = players[player] else { continue }
-            let generation = mediaGeneration[player, default: 0]
-            let playing = await provider.nowPlaying()
-            guard generation == mediaGeneration[player, default: 0] else { continue }
-            update(\.nowPlaying, player, playing)
-            // A play/pause click changes the state without a poll, so this
-            // compares with what was saved, not with what is shown.
-            if let cache, savedNowPlaying[player] != playing {
-                savedNowPlaying[player] = playing
-                Task.detached(priority: .utility) { cache.saveNowPlaying(playing, player: player) }
-            }
-        }
-    }
-
-    private func refreshClaude() async {
-        for dir in claudeDirs {
-            let usage = await Task.detached(priority: .utility) { ClaudeUsage.read(projectsDir: dir) }.value
-            update(\.claudeUsage, dir, usage)
-        }
-    }
-
     // MARK: Runtime snapshots
 
     private func runtimeChanged(_ event: RuntimeEvent) {
@@ -302,10 +296,45 @@ final class DashboardModel: ObservableObject {
         case .snapshot(.host):
             deriveHosts()
         case .snapshot(.source(let name)):
+            if name == SourceReaders.system { deriveSystem() }
+            for (player, source) in mediaSources where source == name { deriveMedia(player) }
+            for (dir, source) in claudeSources where source == name { deriveClaude(dir) }
             for entry in layout.entries where entry.widget.sourceNames.contains(name) { derive(entry) }
             if hosts.contains(where: { $0.source == name }) { deriveHosts() }
         }
     }
+
+    /// The system bar's and the local host's values from the `system`
+    /// source. The network rate stays with its 1 s ticker.
+    private func deriveSystem() {
+        guard let json = data(SourceReaders.system).flatMap(AnyJSON.decode),
+              let reading = SystemReading(json) else { return }
+        update(\.cpu, reading.cpuPercent)
+        update(\.memory, reading.memory)
+        update(\.temp, reading.temperature)
+        update(\.battery, reading.battery)
+        update(\.uptime, Format.uptimeLong(Int(reading.uptime)))
+        disk = reading.disk
+        update(\.diskFree, Format.diskFree(reading.disk))
+        if let volume = reading.volume { update(\.volume, volume) }
+    }
+
+    /// A player's row from its `media` source. A fetch that started before
+    /// the latest play/pause click may have read the old state; it doesn't
+    /// replace the optimistic one.
+    private func deriveMedia(_ player: String) {
+        guard let source = mediaSources[player], let snapshot = runtime.snapshot(.source(source)),
+              let json = snapshot.data.flatMap(AnyJSON.decode) else { return }
+        if let clicked = mediaClicked[player], let fetchedAt = snapshot.fetchedAt, fetchedAt < clicked { return }
+        update(\.nowPlaying, player, MediaSource.nowPlaying(json))
+    }
+
+    private func deriveClaude(_ dir: String) {
+        guard let source = claudeSources[dir],
+              let usage = data(source).flatMap(AnyJSON.decode).flatMap(ClaudeSource.usage) else { return }
+        update(\.claudeUsage, dir, usage)
+    }
+
 
     private func data(_ source: String?) -> Data? {
         source.flatMap { runtime.snapshot(.source($0))?.data }

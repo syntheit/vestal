@@ -41,6 +41,10 @@ public enum VestalApp {
         exit(0)
     }
 
+    /// What the built-in source types read on macOS, for `vestal fetch` in
+    /// the CLI's own process (`--local`, or no instance running).
+    public static var sourcePlatform: SourcePlatform { MacPlatform.sources }
+
     /// Starts the dashboard for `vestal show` or `toggle` when none runs;
     /// it comes up shown. From an app bundle this goes through LaunchServices,
     /// so macOS treats the new process as Vestal itself: the calendar prompt
@@ -122,7 +126,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // The runtime serves its disk cache at once, so the model's first
         // values, and with them the first frame, already have data.
-        let runtime = AppRuntime(config: loaded.config, fetcher: LiveFetcher(calendar: MacPlatform.calendar), cache: cache)
+        let runtime = AppRuntime(config: loaded.config, fetcher: LiveFetcher(platform: MacPlatform.sources), cache: cache)
         self.runtime = runtime
 
         let window = NSWindow(

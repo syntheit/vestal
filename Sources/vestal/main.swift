@@ -29,6 +29,18 @@ func launchInstance() throws {
     #endif
 }
 
+/// What `vestal fetch --local` (or with no instance) reads the built-in
+/// source types with.
+var sourcePlatform: SourcePlatform {
+    #if os(macOS)
+    return VestalApp.sourcePlatform
+    #elseif os(Linux)
+    return LinuxPlatform.sources
+    #else
+    return SourcePlatform()
+    #endif
+}
+
 switch CLI.parse(Array(CommandLine.arguments.dropFirst())) {
 case .usageError(let message):
     emit(CLI.Output(status: 2, stderr: "vestal: \(message)\n\(CLI.usage)\n"))
@@ -45,6 +57,12 @@ case .command(.checkConfig(let arguments)):
 case .command(.printConfig(let arguments)):
     emit(ConfigCommands.printConfig(arguments))
 
+case .command(.sources(let arguments)):
+    emit(SourceCommands.sources(arguments, client: { try IPCClient.send($0, timeout: $1) }))
+
+case .command(.fetch(let arguments)):
+    emit(SourceCommands.fetch(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
+
 case .command(.send(let command)):
     emit(CLI.send(command, client: { try IPCClient.send($0) }, launch: launchInstance))
 
@@ -55,8 +73,8 @@ case .command(.start(let hidden)):
     // Take the socket before any window exists, so a second `vestal` never
     // opens one. Commands that come in before the app is up wait in the
     // inbox; the handler runs on the main queue.
-    let server = IPCServer(queue: .main) { command, reply in
-        MainActor.assumeIsolated { ResidentInbox.shared.deliver(command, reply: reply) }
+    let server = IPCServer.forRequests(queue: .main) { request, reply in
+        MainActor.assumeIsolated { ResidentInbox.shared.deliver(request, reply: reply) }
     }
     switch CLI.claim(hidden: hidden, start: { try server.start() }, client: { try IPCClient.send($0) }) {
     case .run:

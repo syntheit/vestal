@@ -48,6 +48,12 @@ enum SystemBridge {
     // MARK: - RAM Usage + Memory Pressure (single host_statistics64 call)
 
     static func getMemory() -> MemoryInfo {
+        getMemoryDetail()?.info ?? MemoryInfo(ramPercent: 0, pressurePercent: 0)
+    }
+
+    /// The v0.3 percentages and the bytes behind them: used = total −
+    /// (free + speculative + inactive), as `ramPercent` counts it.
+    static func getMemoryDetail() -> (info: MemoryInfo, bytes: MemoryBytes)? {
         var size = mach_msg_type_number_t(
             MemoryLayout<vm_statistics64_data_t>.size / MemoryLayout<integer_t>.size)
         var stats = vm_statistics64_data_t()
@@ -56,17 +62,26 @@ enum SystemBridge {
                 host_statistics64(mach_host_self(), HOST_VM_INFO64, ip, &size)
             }
         }
-        guard result == KERN_SUCCESS else { return MemoryInfo(ramPercent: 0, pressurePercent: 0) }
+        guard result == KERN_SUCCESS else { return nil }
         let total = ProcessInfo.processInfo.physicalMemory
-        guard total > 0 else { return MemoryInfo(ramPercent: 0, pressurePercent: 0) }
+        guard total > 0 else { return nil }
         let page = UInt64(vm_kernel_page_size)
-        let free = (UInt64(stats.free_count) + UInt64(stats.speculative_count)
-            + UInt64(stats.inactive_count)) * page
+        let free = min(total, (UInt64(stats.free_count) + UInt64(stats.speculative_count)
+            + UInt64(stats.inactive_count)) * page)
         let compressed = UInt64(stats.compressor_page_count) * page
-        return MemoryInfo(
+        let info = MemoryInfo(
             ramPercent: Int((total - free) * 100 / total),
             pressurePercent: Int(compressed * 100 / total)
         )
+        return (info, MemoryBytes(used: Int64(total - free), total: Int64(total)))
+    }
+
+    // MARK: - Load average
+
+    static func getLoadAverage() -> [Double]? {
+        var loads = [Double](repeating: 0, count: 3)
+        guard getloadavg(&loads, 3) == 3 else { return nil }
+        return loads
     }
 
     // MARK: - CPU Temperature (via SMC / IOKit)
@@ -166,7 +181,21 @@ enum SystemBridge {
 
     /// The root volume. Formatted for display by `Format.diskFree`.
     static func getDisk() -> DiskUsage? {
-        guard let attrs = try? FileManager.default.attributesOfFileSystem(forPath: "/"),
+        getDisk(mountpoint: "/")
+    }
+
+    /// A mount point's size, read the way v0.3 read "/"; nil if `path` is
+    /// not a mount point (statfs names another one) or can't be read.
+    static func getDisk(mountpoint path: String) -> DiskUsage? {
+        if path != "/" {
+            var info = statfs()
+            guard statfs(path, &info) == 0 else { return nil }
+            let mounted = withUnsafeBytes(of: info.f_mntonname) { raw in
+                String(decoding: raw.prefix { $0 != 0 }, as: UTF8.self)
+            }
+            guard mounted == path else { return nil }
+        }
+        guard let attrs = try? FileManager.default.attributesOfFileSystem(forPath: path),
               let total = attrs[.systemSize] as? Int64,
               let free = attrs[.systemFreeSize] as? Int64
         else { return nil }
@@ -180,24 +209,35 @@ enum SystemBridge {
     static func getNetworkTotals() -> (bytesIn: Int64, bytesOut: Int64)? {
         var totalIn: Int64 = 0
         var totalOut: Int64 = 0
+        guard let interfaces = getInterfaceTotals() else { return nil }
+        for (name, counters) in interfaces where name != "lo0" {
+            totalIn += counters.bytesIn
+            totalOut += counters.bytesOut
+        }
+        return (totalIn, totalOut)
+    }
 
+    /// Bytes in and out since boot per interface (loopback included), from
+    /// each interface's link-level address; nil if they can't be read.
+    static func getInterfaceTotals() -> [String: (bytesIn: Int64, bytesOut: Int64)]? {
         var ifaddr: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&ifaddr) == 0, let firstAddr = ifaddr else { return nil }
         defer { freeifaddrs(ifaddr) }
 
+        var totals: [String: (bytesIn: Int64, bytesOut: Int64)] = [:]
         var ptr: UnsafeMutablePointer<ifaddrs>? = firstAddr
         while let p = ptr {
             let name = String(cString: p.pointee.ifa_name)
-            if name != "lo0",
-               let addr = p.pointee.ifa_addr,
+            if let addr = p.pointee.ifa_addr,
                addr.pointee.sa_family == UInt8(AF_LINK),
                let data = p.pointee.ifa_data?.assumingMemoryBound(to: if_data.self) {
-                totalIn += Int64(data.pointee.ifi_ibytes)
-                totalOut += Int64(data.pointee.ifi_obytes)
+                let previous = totals[name] ?? (0, 0)
+                totals[name] = (previous.bytesIn + Int64(data.pointee.ifi_ibytes),
+                                previous.bytesOut + Int64(data.pointee.ifi_obytes))
             }
             ptr = p.pointee.ifa_next
         }
-        return (totalIn, totalOut)
+        return totals
     }
 
     // MARK: - Media player (via AppleScript, in-process)
@@ -225,7 +265,12 @@ enum SystemBridge {
     }
 
     static func getVolume() -> VolumeInfo {
-        guard let device = getDefaultOutputDevice() else { return VolumeInfo(level: 0, muted: false) }
+        readVolume() ?? VolumeInfo(level: 0, muted: false)
+    }
+
+    /// The default output's volume and mute; nil without an output device.
+    static func readVolume() -> VolumeInfo? {
+        guard let device = getDefaultOutputDevice() else { return nil }
 
         // Read volume (0.0–1.0)
         var volAddress = AudioObjectPropertyAddress(
@@ -254,6 +299,24 @@ enum SystemBridge {
         }
 
         return VolumeInfo(level: Int(volume * 100), muted: muted != 0)
+    }
+
+    /// Moves the default output's volume by `delta` (0-1 scale), clamped;
+    /// channel 1 when the device has no main volume.
+    static func changeVolume(by delta: Float32) {
+        guard let device = getDefaultOutputDevice() else { return }
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyVolumeScalar,
+            mScope: kAudioDevicePropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain)
+        var volume: Float32 = 0
+        var size = UInt32(MemoryLayout<Float32>.size)
+        if AudioObjectGetPropertyData(device, &address, 0, nil, &size, &volume) != noErr {
+            address.mElement = 1
+            guard AudioObjectGetPropertyData(device, &address, 0, nil, &size, &volume) == noErr else { return }
+        }
+        var value = min(1, max(0, volume + delta))
+        _ = AudioObjectSetPropertyData(device, &address, 0, nil, size, &value)
     }
 
     static func setMuted(_ muted: Bool) {
@@ -303,10 +366,32 @@ enum SystemBridge {
         return MediaScript.parse(raw)
     }
 
+    /// Runs `script` for `player` on `appleScriptQueue` if the player runs;
+    /// fire and forget (next, previous).
+    static func run(player: String, script: String) {
+        appleScriptQueue.async {
+            guard isRunning(player) else { return }
+            _ = runAppleScript(script)
+        }
+    }
+
+    /// The whole track (`MediaScript.track`), on `appleScriptQueue`.
+    static func track(player: String, script: String) async -> NowPlaying {
+        await withCheckedContinuation { continuation in
+            appleScriptQueue.async {
+                guard isRunning(player), let raw = runAppleScript(script) else {
+                    continuation.resume(returning: .off)
+                    return
+                }
+                continuation.resume(returning: MediaScript.parseTrack(raw, player: player))
+            }
+        }
+    }
+
     /// Whether an app by this name runs, the way AppleScript finds it: by the
     /// name it shows or its bundle's file name, ignoring case.
     /// NSRunningApplication's properties are safe to read off the main thread.
-    private static func isRunning(_ name: String) -> Bool {
+    static func isRunning(_ name: String) -> Bool {
         NSWorkspace.shared.runningApplications.contains { app in
             app.localizedName?.caseInsensitiveCompare(name) == .orderedSame
                 || app.bundleURL?.deletingPathExtension().lastPathComponent

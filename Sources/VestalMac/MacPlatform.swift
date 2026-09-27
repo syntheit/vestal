@@ -19,6 +19,16 @@ enum MacPlatform {
     static func media(player: String) -> MediaProvider { AppleScriptMedia(player: player) }
     /// A system bar's privacy toggle (VestalCore's, shared with Linux).
     static func privacy(_ config: PrivacyConfig?) -> PrivacyProvider { PrivacyScript(config) }
+
+    /// What the runtime's built-in sources read: EventKit, the `system`
+    /// source's own stats provider (its rates are per instance, apart from
+    /// the dashboard's network ticker) and AppleScript players. One per
+    /// process: the provider keeps its previous sample for the process's
+    /// lifetime (EXTENSIBILITY.md 5.4).
+    static let sources = SourcePlatform(
+        calendar: calendar,
+        system: SystemSampler(stats: MacSystemStats(), audio: CoreAudioOutput()),
+        media: AppleScriptBackend())
 }
 
 // MARK: - System stats (Mach, SMC/IOKit, getifaddrs)
@@ -63,6 +73,50 @@ final class MacSystemStats: SystemStatsProvider {
 
     func disk() -> DiskUsage? { SystemBridge.getDisk() }
     func uptime() -> TimeInterval { SystemBridge.getUptime() }
+
+    // v0.4 (the `system` source)
+
+    private var lastInterfaces: (time: TimeInterval, totals: [String: (bytesIn: Int64, bytesOut: Int64)])?
+
+    func loadAverage() -> [Double]? { SystemBridge.getLoadAverage() }
+    func memoryBytes() -> MemoryBytes? { SystemBridge.getMemoryDetail()?.bytes }
+
+    func disks(_ mountpoints: [String]) -> [MountUsage] {
+        var seen = Set<String>()
+        return mountpoints.compactMap { mount in
+            guard seen.insert(mount).inserted, let usage = SystemBridge.getDisk(mountpoint: mount) else { return nil }
+            return MountUsage(mountpoint: mount, totalBytes: usage.totalBytes, freeBytes: usage.freeBytes)
+        }
+    }
+
+    /// `names` nil: every interface but loopback that has carried traffic
+    /// since boot (the rest add nothing to the total), by name.
+    func interfaceRates(_ names: [String]?) -> [InterfaceRate]? {
+        guard let totals = SystemBridge.getInterfaceTotals() else { return nil }
+        let now = Date().timeIntervalSince1970
+        let previous = lastInterfaces
+        lastInterfaces = (now, totals)
+        let selected: [String]
+        if let names {
+            var seen = Set<String>()
+            selected = names.filter { totals[$0] != nil && seen.insert($0).inserted }
+        } else {
+            selected = totals.filter { $0.key != "lo0" && ($0.value.bytesIn > 0 || $0.value.bytesOut > 0) }
+                .keys.sorted()
+        }
+        return selected.map { name in
+            let current = totals[name] ?? (0, 0)
+            // First call, or too close to the last one: no rate yet.
+            guard let previous, let before = previous.totals[name], now - previous.time > 0.1 else {
+                return InterfaceRate(name: name, bytesIn: 0, bytesOut: 0)
+            }
+            let dt = now - previous.time
+            return InterfaceRate(
+                name: name,
+                bytesIn: max(0, Int64(Double(current.bytesIn - before.bytesIn) / dt)),
+                bytesOut: max(0, Int64(Double(current.bytesOut - before.bytesOut) / dt)))
+        }
+    }
 }
 
 // MARK: - Media (a player over AppleScript, off the main thread)
@@ -85,6 +139,26 @@ final class AppleScriptMedia: MediaProvider {
     }
 
     func playPause() { SystemBridge.playPause(player: player, script: playPauseScript) }
+    func next() { SystemBridge.run(player: player, script: MediaScript.nextTrack(player: player)) }
+    func previous() { SystemBridge.run(player: player, script: MediaScript.previousTrack(player: player)) }
+}
+
+/// The `media` source on macOS: `player` names an application, asked over
+/// AppleScript; `auto` is Spotify, then Music, the first one running. Only
+/// a running player is asked (a `tell` to an app that isn't installed would
+/// ask the user where it is). `players` lists the running ones of Spotify
+/// and Music.
+final class AppleScriptBackend: MediaBackend {
+    func read(_ wanted: [String]) async -> MediaReading {
+        let players = MediaScript.autoPlayers.filter(SystemBridge.isRunning)
+        guard let player = MediaScript.candidates(wanted).first(where: SystemBridge.isRunning) else {
+            return MediaReading(player: nil, playing: .off, players: players)
+        }
+        let playing = await SystemBridge.track(player: player, script: MediaScript.track(player: player))
+        return MediaReading(player: player, playing: playing, players: players)
+    }
+
+    func provider(for player: String) -> MediaProvider { AppleScriptMedia(player: player) }
 }
 
 // MARK: - Audio (CoreAudio default output device)
@@ -92,6 +166,9 @@ final class AppleScriptMedia: MediaProvider {
 final class CoreAudioOutput: AudioProvider {
     func volume() -> VolumeInfo { SystemBridge.getVolume() }
     func setMuted(_ muted: Bool) { SystemBridge.setMuted(muted) }
+    func readVolume() async -> VolumeInfo? { SystemBridge.readVolume() }
+    func volumeUp() { SystemBridge.changeVolume(by: 0.05) }
+    func volumeDown() { SystemBridge.changeVolume(by: -0.05) }
 }
 
 // MARK: - Calendar (EventKit; handles recurring events)
@@ -130,7 +207,8 @@ final class EventKitCalendar: CalendarProvider {
                 start: e.startDate,
                 end: e.endDate,
                 allDay: e.isAllDay,
-                calendar: e.calendar?.title ?? ""
+                calendar: e.calendar?.title ?? "",
+                location: e.location.flatMap { $0.isEmpty ? nil : $0 }
             )
         }
     }
