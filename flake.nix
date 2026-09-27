@@ -42,11 +42,22 @@
               pkgs.swiftPackages.Foundation
               pkgs.swiftPackages.Dispatch
               pkgs.swiftPackages.XCTest
+              # The GTK UI (VestalLinux): vestal-gtk4.pc and its libraries.
+              pkgs.pkg-config
+              (pkgs.callPackage ./nix/gtk-pkgconfig.nix { })
             ];
           }
           // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
             # SwiftPM compiles and runs Package.swift against libdispatch.
             LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.swiftPackages.Dispatch ];
+            # Where a dev build of the Linux UI finds Inter, JetBrains Mono and
+            # the Phosphor icon fonts (the package installs them next to the
+            # binary instead).
+            VESTAL_FONT_DIRS = lib.concatMapStringsSep ":" (p: "${p}/share/fonts") [
+              pkgs.inter
+              pkgs.jetbrains-mono
+              (pkgs.callPackage ./nix/phosphor-fonts.nix { })
+            ];
           }
         );
       });

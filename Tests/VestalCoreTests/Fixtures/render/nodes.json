@@ -1,0 +1,691 @@
+{
+  "diagnostics": [],
+  "minor": 0,
+  "popup": null,
+  "protocol": 1,
+  "root": {
+    "background": "#1a1c26cc",
+    "border": {
+      "color": "#ffffff14",
+      "width": 1
+    },
+    "children": [
+      {
+        "id": "main/title",
+        "size": 24,
+        "text": "Render model: every node type",
+        "type": "text",
+        "weight": 300
+      },
+      {
+        "color": "subtle",
+        "id": "main/sub",
+        "size": 12,
+        "text": "stack, grid, text, icon, bar, ring, spark, divider, spacer",
+        "tracking": 0.5,
+        "type": "text"
+      },
+      {
+        "id": "main/div",
+        "type": "divider",
+        "width": "fill"
+      },
+      {
+        "children": [
+          {
+            "color": "dim",
+            "id": "main/grid/0",
+            "lines": 1,
+            "size": 11,
+            "text": "fixed 90",
+            "tracking": 1,
+            "type": "text",
+            "weight": 700
+          },
+          {
+            "color": "dim",
+            "id": "main/grid/1",
+            "size": 11,
+            "text": "fit, end",
+            "type": "text",
+            "weight": 700
+          },
+          {
+            "color": "dim",
+            "id": "main/grid/2",
+            "size": 11,
+            "text": "fill",
+            "type": "text",
+            "weight": 700
+          },
+          {
+            "color": "dim",
+            "id": "main/grid/3",
+            "size": 11,
+            "text": "fit, center",
+            "type": "text",
+            "weight": 700
+          },
+          {
+            "color": "cyan",
+            "glyph": "",
+            "id": "main/grid/4",
+            "name": "cpu",
+            "size": 16,
+            "type": "icon"
+          },
+          {
+            "font": "mono",
+            "id": "main/grid/5",
+            "text": "1,234",
+            "type": "text"
+          },
+          {
+            "color": "cyan",
+            "height": 8,
+            "id": "main/grid/6",
+            "radius": 4,
+            "type": "bar",
+            "value": 0.62,
+            "width": "fill"
+          },
+          {
+            "color": "subtle",
+            "font": "mono",
+            "id": "main/grid/7",
+            "size": 12,
+            "text": "62%",
+            "type": "text"
+          },
+          {
+            "color": "purple",
+            "glyph": "",
+            "id": "main/grid/8",
+            "name": "memory",
+            "size": 16,
+            "type": "icon"
+          },
+          {
+            "font": "mono",
+            "id": "main/grid/9",
+            "text": "98",
+            "type": "text"
+          },
+          {
+            "color": "purple",
+            "height": 8,
+            "id": "main/grid/10",
+            "overlay": 0.7,
+            "overlayColor": "#ba99f740",
+            "overlayPosition": "below",
+            "radius": 4,
+            "trackColor": "track",
+            "type": "bar",
+            "value": 0.41,
+            "width": "fill"
+          },
+          {
+            "color": "subtle",
+            "font": "mono",
+            "id": "main/grid/11",
+            "size": 12,
+            "text": "41%",
+            "type": "text"
+          },
+          {
+            "color": "subtle",
+            "id": "main/grid/12",
+            "size": 12,
+            "span": 3,
+            "text": "a cell spanning three columns, centred vertically in its row",
+            "type": "text"
+          },
+          {
+            "color": "dim",
+            "id": "main/grid/13",
+            "size": 12,
+            "text": "tall\nrow",
+            "type": "text"
+          }
+        ],
+        "columns": [
+          {
+            "width": 90
+          },
+          {
+            "align": "end",
+            "width": "fit"
+          },
+          {
+            "width": "fill"
+          },
+          {
+            "align": "center",
+            "width": "fit"
+          }
+        ],
+        "gap": 12,
+        "id": "main/grid",
+        "rowGap": 8,
+        "type": "grid",
+        "width": "fill"
+      },
+      {
+        "align": "center",
+        "axis": "h",
+        "children": [
+          {
+            "center": {
+              "font": "mono",
+              "id": "main/gauges/0/c",
+              "size": 14,
+              "text": "72%",
+              "type": "text",
+              "weight": 600
+            },
+            "color": "cyan",
+            "height": 64,
+            "id": "main/gauges/0",
+            "type": "ring",
+            "value": 0.72,
+            "width": 64
+          },
+          {
+            "center": {
+              "align": "center",
+              "children": [
+                {
+                  "color": "good",
+                  "glyph": "",
+                  "id": "main/gauges/1/c/0",
+                  "name": "thermometer",
+                  "size": 14,
+                  "type": "icon"
+                },
+                {
+                  "color": "subtle",
+                  "font": "mono",
+                  "id": "main/gauges/1/c/1",
+                  "size": 11,
+                  "text": "35°",
+                  "type": "text"
+                }
+              ],
+              "gap": 2,
+              "id": "main/gauges/1/c",
+              "type": "stack"
+            },
+            "color": "good",
+            "height": 64,
+            "id": "main/gauges/1",
+            "sweep": 360,
+            "thickness": 4,
+            "trackColor": "track",
+            "type": "ring",
+            "value": 0.35,
+            "width": 64
+          },
+          {
+            "axis": "v",
+            "color": "dim",
+            "height": 48,
+            "id": "main/gauges/2",
+            "thickness": 1,
+            "type": "divider"
+          },
+          {
+            "children": [
+              {
+                "font": "mono",
+                "id": "main/gauges/3/0",
+                "size": 12,
+                "text": "BTC 63,412",
+                "type": "text"
+              },
+              {
+                "color": "accent",
+                "dot": true,
+                "fill": "#7aa1f733",
+                "height": 36,
+                "id": "main/gauges/3/1",
+                "type": "spark",
+                "values": [
+                  3,
+                  5,
+                  4,
+                  6,
+                  8,
+                  7,
+                  9,
+                  12,
+                  10,
+                  11,
+                  14,
+                  13
+                ],
+                "width": 160
+              }
+            ],
+            "gap": 4,
+            "id": "main/gauges/3",
+            "type": "stack"
+          },
+          {
+            "children": [
+              {
+                "color": "subtle",
+                "id": "main/gauges/4/0",
+                "size": 12,
+                "text": "min/max fixed",
+                "type": "text"
+              },
+              {
+                "color": "warn",
+                "height": 36,
+                "id": "main/gauges/4/1",
+                "max": 40,
+                "min": 0,
+                "strokeWidth": 2,
+                "type": "spark",
+                "values": [
+                  20,
+                  22,
+                  21,
+                  30,
+                  26,
+                  24,
+                  28
+                ],
+                "width": 120
+              }
+            ],
+            "gap": 4,
+            "id": "main/gauges/4",
+            "type": "stack"
+          },
+          {
+            "id": "main/gauges/5",
+            "min": 24,
+            "type": "spacer"
+          },
+          {
+            "height": 20,
+            "id": "main/gauges/6",
+            "type": "spark",
+            "values": [
+              1
+            ],
+            "width": 20
+          }
+        ],
+        "gap": 20,
+        "id": "main/gauges",
+        "type": "stack"
+      },
+      {
+        "align": "stretch",
+        "axis": "h",
+        "children": [
+          {
+            "background": "#ffffff0f",
+            "border": {
+              "color": "#ffffff1a",
+              "width": 1
+            },
+            "children": [
+              {
+                "id": "main/boxes/0/0",
+                "size": 12,
+                "text": "background, radius, border",
+                "type": "text",
+                "weight": 600
+              },
+              {
+                "color": "subtle",
+                "id": "main/boxes/0/1",
+                "size": 11,
+                "text": "padding 12 and a 1-point border",
+                "type": "text"
+              }
+            ],
+            "gap": 4,
+            "id": "main/boxes/0",
+            "padding": [
+              12,
+              12,
+              12,
+              12
+            ],
+            "radius": 10,
+            "type": "stack"
+          },
+          {
+            "background": "accent@0.25",
+            "children": [
+              {
+                "id": "main/boxes/1/0",
+                "size": 12,
+                "text": "opacity 0.5",
+                "type": "text",
+                "weight": 600
+              },
+              {
+                "color": "subtle",
+                "id": "main/boxes/1/1",
+                "size": 11,
+                "text": "whole subtree",
+                "type": "text"
+              }
+            ],
+            "gap": 4,
+            "id": "main/boxes/1",
+            "opacity": 0.5,
+            "padding": [
+              12,
+              12,
+              12,
+              12
+            ],
+            "radius": 10,
+            "type": "stack"
+          },
+          {
+            "background": "#f06b6b26",
+            "children": [
+              {
+                "id": "main/boxes/2/0",
+                "lines": 1,
+                "size": 12,
+                "text": "clip: this text is wider than its 120-point box",
+                "type": "text",
+                "weight": 600
+              },
+              {
+                "color": "bad",
+                "height": 6,
+                "id": "main/boxes/2/1",
+                "type": "bar",
+                "value": 1.0,
+                "width": 200
+              }
+            ],
+            "clip": true,
+            "gap": 6,
+            "id": "main/boxes/2",
+            "padding": [
+              12,
+              12,
+              12,
+              12
+            ],
+            "radius": 10,
+            "type": "stack",
+            "width": 120
+          },
+          {
+            "action": true,
+            "align": "center",
+            "alt": "GitHub",
+            "background": "#ffffff0f",
+            "children": [
+              {
+                "glyph": "",
+                "id": "main/boxes/3/0",
+                "name": "github-logo",
+                "size": 18,
+                "type": "icon"
+              },
+              {
+                "color": "subtle",
+                "id": "main/boxes/3/1",
+                "size": 11,
+                "text": "action",
+                "type": "text"
+              }
+            ],
+            "gap": 4,
+            "id": "main/boxes/3",
+            "padding": [
+              10,
+              14,
+              10,
+              14
+            ],
+            "radius": 10,
+            "type": "stack"
+          }
+        ],
+        "gap": 12,
+        "id": "main/boxes",
+        "type": "stack"
+      },
+      {
+        "align": "baseline",
+        "axis": "h",
+        "children": [
+          {
+            "id": "main/type/0",
+            "size": 36,
+            "text": "Display",
+            "type": "text",
+            "weight": 200
+          },
+          {
+            "color": "accent",
+            "font": "mono",
+            "id": "main/type/1",
+            "size": 18,
+            "text": "mono 18",
+            "type": "text"
+          },
+          {
+            "color": "subtle",
+            "font": "rounded",
+            "id": "main/type/2",
+            "size": 15,
+            "text": "rounded 15",
+            "type": "text"
+          },
+          {
+            "color": "dim",
+            "id": "main/type/3",
+            "size": 11,
+            "text": "BOLD TRACKED",
+            "tracking": 1.5,
+            "type": "text",
+            "weight": 700
+          }
+        ],
+        "gap": 14,
+        "id": "main/type",
+        "type": "stack"
+      },
+      {
+        "color": "subtle",
+        "id": "main/wrap",
+        "lines": 2,
+        "size": 12,
+        "text": "A text node with lines: 2 truncates at the tail with an ellipsis once it runs out of room, which this sentence does on purpose: it keeps going well past the second line, with more words about wrapping, word boundaries and the width the parent offers, so the tail is cut off here.",
+        "type": "text",
+        "width": "fill"
+      },
+      {
+        "alignSelf": "center",
+        "id": "main/center",
+        "size": 12,
+        "text": "textAlign: center, lines unlimited, wrapping inside a fixed 320-point width",
+        "textAlign": "center",
+        "type": "text",
+        "width": 320
+      },
+      {
+        "align": "center",
+        "axis": "h",
+        "children": [
+          {
+            "color": "dim",
+            "id": "main/justify/0",
+            "size": 11,
+            "text": "justify",
+            "type": "text"
+          },
+          {
+            "color": "dim",
+            "id": "main/justify/1",
+            "size": 11,
+            "text": "between",
+            "type": "text"
+          },
+          {
+            "color": "dim",
+            "id": "main/justify/2",
+            "size": 11,
+            "text": "these",
+            "type": "text"
+          },
+          {
+            "alignSelf": "end",
+            "color": "dim",
+            "id": "main/justify/3",
+            "size": 11,
+            "text": "words",
+            "type": "text"
+          }
+        ],
+        "height": 24,
+        "id": "main/justify",
+        "justify": "between",
+        "type": "stack",
+        "width": "fill"
+      },
+      {
+        "align": "center",
+        "axis": "h",
+        "children": [
+          {
+            "color": "good",
+            "height": 4,
+            "id": "main/fills/0",
+            "type": "bar",
+            "value": 0.3,
+            "width": "fill"
+          },
+          {
+            "color": "warn",
+            "height": 4,
+            "id": "main/fills/1",
+            "type": "bar",
+            "value": 0.6,
+            "width": "fill"
+          },
+          {
+            "color": "bad",
+            "height": 4,
+            "id": "main/fills/2",
+            "type": "bar",
+            "value": 0.9,
+            "width": "fill"
+          }
+        ],
+        "gap": 8,
+        "id": "main/fills",
+        "type": "stack",
+        "width": "fill"
+      },
+      {
+        "align": "center",
+        "axis": "h",
+        "children": [
+          {
+            "alt": "unknown node type: drawn as its alt text",
+            "id": "main/misc/0",
+            "type": "chart3d"
+          },
+          {
+            "id": "main/misc/1",
+            "name": "sf:hourglass",
+            "size": 14,
+            "type": "icon"
+          },
+          {
+            "color": "warn",
+            "glyph": "",
+            "id": "main/misc/2",
+            "name": "warning",
+            "size": 14,
+            "type": "icon",
+            "weight": "fill"
+          },
+          {
+            "color": "nosuchcolor",
+            "id": "main/misc/3",
+            "size": 12,
+            "text": "unknown colour name draws as text",
+            "type": "text"
+          }
+        ],
+        "gap": 10,
+        "id": "main/misc",
+        "type": "stack"
+      }
+    ],
+    "gap": 16,
+    "id": "main",
+    "maxWidth": 760,
+    "padding": [
+      40,
+      40,
+      40,
+      40
+    ],
+    "radius": 18,
+    "type": "stack",
+    "width": "fill"
+  },
+  "seq": 1,
+  "theme": {
+    "background": "aurora",
+    "colors": {
+      "accent": "#7aa1f7ff",
+      "bad": "#f06b6bff",
+      "bg": "#1a1c26ff",
+      "blue": "#7aa1f7ff",
+      "cyan": "#7dcfffff",
+      "dim": "#ffffff4d",
+      "good": "#73cf8fff",
+      "green": "#73cf8fff",
+      "orange": "#ff9e64ff",
+      "purple": "#ba99f7ff",
+      "red": "#f06b6bff",
+      "scrim": "#000000a6",
+      "subtle": "#ffffff80",
+      "teal": "#73d6c2ff",
+      "text": "#ffffffff",
+      "track": "#ffffff0f",
+      "warn": "#e3c975ff",
+      "yellow": "#e3c975ff"
+    },
+    "fonts": {
+      "mono": null,
+      "rounded": null,
+      "sans": null
+    },
+    "icons": {
+      "fonts": {
+        "fill": "Phosphor-Fill",
+        "regular": "Phosphor"
+      },
+      "set": "phosphor"
+    }
+  },
+  "type": "snapshot",
+  "view": "main",
+  "views": [
+    {
+      "key": "1",
+      "name": "main",
+      "title": "Main"
+    }
+  ],
+  "visible": true
+}

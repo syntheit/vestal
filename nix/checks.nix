@@ -38,10 +38,26 @@ in
           fi
           vestal check-config ${../examples/full.json}
           vestal print-config ${../examples/full.json} | jq -e 'type == "object"' > /dev/null
+          # check-config v2: zero diagnostics for the example, a pointer and
+          # a suggestion for a typo, exit 3 under --strict.
+          vestal check-config --json --strict ${../examples/full.json} | jq -e '.status == "ok" and .counts.warning == 0' > /dev/null
+          echo '{"hotkeys": "f3"}' > typo.json
+          vestal check-config --json typo.json | jq -e '.diagnostics[0].pointer == "/hotkeys" and .diagnostics[0].suggestion == "hotkey"' > /dev/null
+          rc=0
+          vestal check-config --strict typo.json > /dev/null || rc=$?
+          [ "$rc" = 3 ]
+          vestal check-config --commands ${../examples/full.json} > /dev/null
+          vestal print-config --origins ${../examples/full.json} | grep -q '^/widgets/claude/weeklyLimit  *95000000  *user$'
+          # The schema is the committed one, and the docs are built in.
+          vestal schema | cmp - ${../docs/vestal.schema.json}
+          vestal docs agents | grep -q '^# Configuring vestal'
+          rc=0
+          vestal docs nosuchtopic 2> /dev/null || rc=$?
+          [ "$rc" = 4 ]
 
           # The CLI contract the launch agent and activation rely on.
           vestal help > help
-          for command in daemon toggle show hide reload status quit check-config print-config; do
+          for command in daemon toggle show hide reload status quit check-config print-config schema docs; do
             grep -qE "^  $command " help
           done
           # With no instance, hide, reload, status and quit say so and exit 1;
@@ -62,8 +78,12 @@ in
           vestal bogus 2> /dev/null || rc=$?
           [ "$rc" = 2 ]
           rc=0
-          vestal toggle now 2> /dev/null || rc=$?
+          vestal toggle now later 2> /dev/null || rc=$?
           [ "$rc" = 2 ]
+          # A view the config doesn't have is "not found"; nothing starts.
+          rc=0
+          vestal toggle nowhere 2> /dev/null || rc=$?
+          [ "$rc" = 4 ]
         ''
         + lib.optionalString isLinux ''
           # The headless daemon (no UI on Linux yet): it takes the socket,
@@ -119,7 +139,8 @@ in
   # a generated entry point (nix/gen-linuxmain.py) instead of discovered.
   tests = vestal.overrideAttrs (old: {
     pname = "vestal-tests";
-    # The tests also read examples/full.json and docs/CONFIG.md.
+    # The tests also read examples/full.json, docs/CONFIG.md, the committed
+    # schema, and the Markdown embedded as `vestal docs`.
     src = lib.fileset.toSource {
       root = ../.;
       fileset = lib.fileset.unions [
@@ -128,6 +149,9 @@ in
         ../Tests
         ../examples
         ../docs/CONFIG.md
+        ../docs/vestal.schema.json
+        ../docs/reference
+        ../AGENTS.md
       ];
     };
     nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.python3 ];

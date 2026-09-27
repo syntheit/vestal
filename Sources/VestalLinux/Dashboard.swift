@@ -1,0 +1,412 @@
+#if os(Linux)
+import CGtk4
+import Foundation
+import VestalCore
+
+// MARK: - LinuxDashboard
+//
+// The GTK 4 dashboard, driven by render-model values (EXTENSIBILITY.md §10)
+// in-process. The core (or `vestal render-file`) calls:
+//
+//   LinuxDashboard.initialize()           once, on the main thread
+//   let ui = LinuxDashboard { input in … } clicks and keys come back here
+//   ui.apply(snapshot)                    a whole model
+//   ui.apply(patch)                       ops in order; false: send a snapshot
+//   ui.setVisible(true / false)           the core owns visibility (§10.7)
+//   ui.perform(.copy(text))               effects
+//   MainLoop.run()                        GLib's loop, with Dispatch's main queue
+//
+// The window is a wlr-layer-shell surface (gtk4-layer-shell) on the overlay
+// layer, anchored to every edge, exclusive zone -1, namespace `vestal`, with
+// exclusive keyboard focus while shown and none while hidden. Hidden means
+// unmapped: no surface, no frames, no aurora, no timers. The compositor
+// chooses the output each time it is mapped (no output is set), which on
+// Hyprland and Sway is the focused one; gtk4-layer-shell can't ask where the
+// pointer is. Without layer-shell (GNOME), it is an undecorated fullscreen
+// window instead.
+
+public final class LinuxDashboard {
+    public enum InitError: Error, CustomStringConvertible {
+        case noDisplay
+        public var description: String { "cannot open a display (is WAYLAND_DISPLAY set?)" }
+    }
+
+    /// Registers the bundled fonts and starts GTK. Call once, on the main
+    /// thread, before creating a dashboard.
+    public static func initialize() throws {
+        BundledFonts.register()
+        guard gtk_init_check() != 0 else { throw InitError.noDisplay }
+        MainLoop.bridgeDispatch()
+    }
+
+    /// The last model applied, with patches.
+    public private(set) var snapshot: RenderSnapshot?
+    public private(set) var isVisible = false
+    /// Whether the window is a layer-shell surface (false: fullscreen).
+    public let usesLayerShell: Bool
+
+    private let window: WidgetPtr
+    private var gtkWindow: UnsafeMutablePointer<GtkWindow> { cast(window) }
+    private let context: RenderContext
+    private let stage: StageView
+    private let aurora = AuroraArea()
+    private let css = gtk_css_provider_new()!
+    /// Bumped by every show and hide, so a stale fade's completion does
+    /// nothing (as the macOS app does).
+    private var fadeGeneration = 0
+    private var fadeTick: guint = 0
+
+    /// `send` receives every click (`invoke`) and key (`key`) the UI doesn't
+    /// consume itself, and `hide` when the window goes away on its own.
+    public init(send: @escaping (RenderInput) -> Void) {
+        context = RenderContext(theme: ThemeState(RenderTheme()), send: send)
+        stage = StageView(context: context, aurora: aurora)
+        window = gtk_window_new()
+        usesLayerShell = gtk_layer_is_supported() != 0
+
+        gtk_window_set_title(gtkWindow, "vestal")
+        gtk_window_set_decorated(gtkWindow, 0)
+        gtk_widget_add_css_class(window, "vestal")
+        gtk_window_set_child(gtkWindow, stage.widget)
+        gtk_style_context_add_provider_for_display(gdk_display_get_default(), OpaquePointer(css),
+                                                   guint(GTK_STYLE_PROVIDER_PRIORITY_APPLICATION))
+        if usesLayerShell {
+            gtk_layer_init_for_window(gtkWindow)
+            gtk_layer_set_layer(gtkWindow, GTK_LAYER_SHELL_LAYER_OVERLAY)
+            gtk_layer_set_namespace(gtkWindow, "vestal")
+            for edge in [GTK_LAYER_SHELL_EDGE_LEFT, GTK_LAYER_SHELL_EDGE_RIGHT, GTK_LAYER_SHELL_EDGE_TOP, GTK_LAYER_SHELL_EDGE_BOTTOM] {
+                gtk_layer_set_anchor(gtkWindow, edge, 1)
+            }
+            // -1: over panels and bars, reserving nothing.
+            gtk_layer_set_exclusive_zone(gtkWindow, -1)
+            gtk_layer_set_keyboard_mode(gtkWindow, GTK_LAYER_SHELL_KEYBOARD_MODE_NONE)
+            // The compositor's `closed` (its output went away) becomes a
+            // close-request, which hides and tells the core; the next show
+            // maps a new surface.
+            gtk_layer_set_respect_close(gtkWindow, 1)
+        } else {
+            uiLog("linux ui: the compositor has no wlr-layer-shell; using a fullscreen window")
+            gtk_window_fullscreen(gtkWindow)
+        }
+        gtk_widget_set_opacity(stage.widget, 0)
+        installKeys()
+        installCloseRequest()
+        applyThemeCSS()
+    }
+
+    deinit {
+        aurora.stop()
+        if fadeTick != 0 { gtk_widget_remove_tick_callback(stage.widget, fadeTick) }
+        gtk_style_context_remove_provider_for_display(gdk_display_get_default(), OpaquePointer(css))
+        g_object_unref(UnsafeMutableRawPointer(css))
+        // GTK owns toplevels until they are destroyed; this drops the whole
+        // widget tree and with it every NodeView and signal closure.
+        gtk_window_destroy(gtkWindow)
+    }
+
+    // MARK: Model
+
+    /// Draws a whole model: theme, the view's tree and the popup.
+    public func apply(_ snapshot: RenderSnapshot) {
+        let themeChanged = self.snapshot?.theme != snapshot.theme
+        self.snapshot = snapshot
+        if themeChanged { setTheme(snapshot.theme) }
+        context.nodes = [:]
+        stage.setRoot(snapshot.root)
+        stage.setPopup(snapshot.popup)
+    }
+
+    /// Applies a patch's ops in order, replacing only the named subtrees.
+    /// Returns false when the patch doesn't follow the last applied `seq` (or
+    /// names an unknown node): the caller should send `{"cmd": "snapshot"}`
+    /// and apply the fresh snapshot.
+    @discardableResult
+    public func apply(_ patch: RenderPatch) -> Bool {
+        guard var model = snapshot, patch.base == model.seq else { return false }
+        for op in patch.ops {
+            do { try model.apply(op) } catch { return false }
+            switch op {
+            case .replace(let id, let node):
+                guard replaceNode(id: id, with: node, popup: model.popup) else { return false }
+            case .root(let node, _):
+                stage.setRoot(node)
+            case .popup(let popup):
+                stage.setPopup(popup)
+            case .theme(let theme):
+                setTheme(theme)
+                stage.setRoot(model.root)
+                stage.setPopup(model.popup)
+            case .views, .diagnostics, .unknown:
+                break
+            }
+        }
+        model.seq = patch.seq
+        snapshot = model
+        return true
+    }
+
+    /// `popup` is the popup as patched so far (an earlier op may have
+    /// replaced it).
+    private func replaceNode(id: String, with node: RenderNode, popup current: RenderPopup?) -> Bool {
+        guard let old = context.nodes[id] else { return false }
+        if old === stage.root {
+            stage.setRoot(node)
+        } else if let card = stage.card, card.children.first === old, let popup = current {
+            // The popup's own root: rebuild the card around the new node.
+            stage.setPopup(RenderPopup(id: popup.id, width: popup.width, node: node))
+        } else if let parent = old.parent {
+            parent.replaceChild(old, with: node)
+        } else {
+            return false
+        }
+        return true
+    }
+
+    private func setTheme(_ theme: RenderTheme) {
+        context.theme = ThemeState(theme)
+        applyThemeCSS()
+        gtk_widget_set_visible(aurora.widget, theme.background == "aurora" && !aurora.failed ? 1 : 0)
+    }
+
+    private func applyThemeCSS() {
+        // The window's background shows at once on show; the content fades.
+        let background = context.theme.windowBackground
+        let text = "window.vestal { background-color: \(background.css); }"
+        gtk_css_provider_load_from_string(css, text)
+    }
+
+    // MARK: Visibility
+
+    /// Shows (map, focus, fade in over 0.2 s) or hides (fade out over
+    /// 0.15 s, then unmap). Idempotent; a show during a hide's fade wins.
+    public func setVisible(_ visible: Bool, animated: Bool = true) {
+        visible ? show(animated: animated) : hide(animated: animated)
+    }
+
+    private func show(animated: Bool) {
+        fadeGeneration += 1
+        isVisible = true
+        if usesLayerShell {
+            gtk_layer_set_keyboard_mode(gtkWindow, GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE)
+        }
+        gtk_widget_set_visible(window, 1)
+        gtk_window_present(gtkWindow)
+        if snapshot?.theme.background ?? "aurora" == "aurora" { aurora.start() }
+        fade(to: 1, duration: animated ? 0.2 : 0, easeOut: true, then: nil)
+    }
+
+    private func hide(animated: Bool) {
+        guard isVisible else { return }
+        fadeGeneration += 1
+        let generation = fadeGeneration
+        isVisible = false
+        fade(to: 0, duration: animated ? 0.15 : 0, easeOut: false) { [weak self] in
+            guard let self, generation == self.fadeGeneration else { return }
+            self.aurora.stop()
+            gtk_widget_set_visible(self.window, 0)
+            if self.usesLayerShell {
+                gtk_layer_set_keyboard_mode(self.gtkWindow, GTK_LAYER_SHELL_KEYBOARD_MODE_NONE)
+            }
+        }
+    }
+
+    /// Animates the content's opacity on the frame clock (so it costs
+    /// nothing once done, and nothing while unmapped).
+    private func fade(to target: Double, duration: Double, easeOut: Bool, then done: (() -> Void)?) {
+        if fadeTick != 0 { gtk_widget_remove_tick_callback(stage.widget, fadeTick); fadeTick = 0 }
+        let from = gtk_widget_get_opacity(stage.widget)
+        guard duration > 0, gtk_widget_get_mapped(stage.widget) != 0 || target > 0 else {
+            gtk_widget_set_opacity(stage.widget, target)
+            done?()
+            return
+        }
+        final class Fade {
+            var start: gint64 = 0
+            let from: Double, to: Double, duration: Double, easeOut: Bool
+            let done: (() -> Void)?
+            let finished: () -> Void
+            init(from: Double, to: Double, duration: Double, easeOut: Bool, done: (() -> Void)?, finished: @escaping () -> Void) {
+                self.from = from; self.to = to; self.duration = duration; self.easeOut = easeOut
+                self.done = done; self.finished = finished
+            }
+        }
+        let state = Fade(from: from, to: target, duration: duration, easeOut: easeOut, done: done) { [weak self] in
+            self?.fadeTick = 0
+        }
+        let tick: GtkTickCallback = { widget, clock, data in
+            let fade = Unmanaged<Fade>.fromOpaque(data!).takeUnretainedValue()
+            let now = gdk_frame_clock_get_frame_time(clock)
+            if fade.start == 0 { fade.start = now }
+            let t = min(1, Double(now - fade.start) / 1_000_000 / fade.duration)
+            let eased = fade.easeOut ? 1 - (1 - t) * (1 - t) : t * t
+            gtk_widget_set_opacity(widget, fade.from + (fade.to - fade.from) * eased)
+            guard t >= 1 else { return 1 }
+            fade.finished()
+            fade.done?()
+            return 0 // removed; the destroy notify releases `fade`
+        }
+        fadeTick = gtk_widget_add_tick_callback(stage.widget, tick, Unmanaged.passRetained(state).toOpaque(), releaseBox)
+    }
+
+    // MARK: Effects
+
+    public func perform(_ effect: RenderEffect) {
+        switch effect {
+        case .copy(let text):
+            gdk_clipboard_set_text(gdk_display_get_clipboard(gdk_display_get_default()), text)
+        case .notify(let level, let text):
+            uiLog("linux ui: \(level): \(text)")
+        }
+    }
+
+    // MARK: Input
+
+    private func installKeys() {
+        let controller = gtk_event_controller_key_new()!
+        let pressed: @convention(c) (UnsafeMutableRawPointer?, guint, guint, GdkModifierType, gpointer?) -> gboolean = { _, keyval, _, state, data in
+            guard let name = KeyNames.name(keyval: keyval, state: state) else { return 0 }
+            Box<(String) -> Void>.from(data)(name)
+            return 1
+        }
+        let send: (String) -> Void = { [weak self] name in self?.context.send(.key(name)) }
+        connectSignal(UnsafeMutableRawPointer(controller), "key-pressed", pressed, data: Box(send).retained())
+        gtk_widget_add_controller(window, controller)
+    }
+
+    private func installCloseRequest() {
+        // The compositor or window manager closing the window: hide, and
+        // tell the core, which owns visibility.
+        let close: @convention(c) (UnsafeMutableRawPointer?, gpointer?) -> gboolean = { _, data in
+            Box<() -> Void>.from(data)()
+            return 1 // keep the window
+        }
+        let handler: () -> Void = { [weak self] in
+            guard let self else { return }
+            self.setVisible(false, animated: false)
+            self.context.send(.hide)
+        }
+        connectSignal(window, "close-request", close, data: Box(handler).retained())
+    }
+
+    // MARK: Screenshot and frames
+
+    /// Renders the window's content offscreen to a PNG at the window's scale,
+    /// over the palette's `bg` (the desktop and its blur can't be captured).
+    public func screenshot(to path: String, solidBackground: Bool = true) -> Bool {
+        let width = Double(gtk_widget_get_width(window)), height = Double(gtk_widget_get_height(window))
+        guard width > 0, height > 0, let renderer = gtk_native_get_renderer(OpaquePointer(window)) else { return false }
+        let scale = Double(gtk_widget_get_scale_factor(window))
+        let paintable = gtk_widget_paintable_new(window)
+        defer { g_object_unref(UnsafeMutableRawPointer(paintable)) }
+        let snap = gtk_snapshot_new()
+        gtk_snapshot_scale(snap, Float(scale), Float(scale))
+        if solidBackground {
+            fillRounded(snap!, Rect(x: 0, y: 0, width: width, height: height), radius: 0, color: context.theme.color("bg").withAlpha(1))
+        }
+        gdk_paintable_snapshot(paintable, snap, width, height)
+        guard let node = gtk_snapshot_free_to_node(snap) else { return false }
+        defer { gsk_render_node_unref(node) }
+        var viewport = Rect(x: 0, y: 0, width: width * scale, height: height * scale).graphene
+        guard let texture = gsk_renderer_render_texture(renderer, node, &viewport) else { return false }
+        defer { g_object_unref(UnsafeMutableRawPointer(texture)) }
+        return gdk_texture_save_to_png(texture, path) != 0
+    }
+
+    /// Every node's final frame in window coordinates, in tree order, with
+    /// `clipped` (cut by the window or a `clip` ancestor) and `truncated`
+    /// (a text cut by `lines`), for `--frames` (§10.4, §11.6).
+    public func frames() -> [NodeFrame] {
+        var result: [NodeFrame] = []
+        let windowBounds = Rect(x: 0, y: 0, width: Double(gtk_widget_get_width(window)), height: Double(gtk_widget_get_height(window)))
+        func visit(_ view: NodeView, clipRect: Rect) {
+            var bounds = graphene_rect_t()
+            guard gtk_widget_compute_bounds(view.widget, window, &bounds) != 0 else { return }
+            let frame = Rect(x: Double(bounds.origin.x), y: Double(bounds.origin.y),
+                             width: Double(bounds.size.width), height: Double(bounds.size.height))
+            let clipped = !clipRect.contains(frame)
+            var truncated = false
+            if let label = view.label, view.truncates {
+                truncated = pango_layout_is_ellipsized(gtk_label_get_layout(OpaquePointer(label))) != 0
+            }
+            result.append(NodeFrame(id: view.node.id, x: frame.x, y: frame.y, width: frame.width, height: frame.height,
+                                    clipped: clipped, truncated: truncated))
+            let inner = view.node.clip ? clipRect.intersection(frame) : clipRect
+            for child in view.children { visit(child, clipRect: inner) }
+        }
+        if let root = stage.root { visit(root, clipRect: windowBounds) }
+        if let card = stage.card, let content = card.children.first { visit(content, clipRect: windowBounds) }
+        return result
+    }
+}
+
+/// One node's frame, for `--frames`.
+public struct NodeFrame: Codable, Equatable {
+    public var id: String
+    public var x: Double, y: Double, width: Double, height: Double
+    public var clipped: Bool
+    public var truncated: Bool
+}
+
+extension Rect {
+    /// With half a point of slack for rounding.
+    func contains(_ r: Rect) -> Bool {
+        r.x >= x - 0.5 && r.y >= y - 0.5 && r.x + r.width <= x + width + 0.5 && r.y + r.height <= y + height + 0.5
+    }
+
+    func intersection(_ r: Rect) -> Rect {
+        let x0 = max(x, r.x), y0 = max(y, r.y)
+        let x1 = min(x + width, r.x + r.width), y1 = min(y + height, r.y + r.height)
+        return Rect(x: x0, y: y0, width: max(0, x1 - x0), height: max(0, y1 - y0))
+    }
+}
+
+// MARK: - Key names
+
+/// GDK key events in the hotkey grammar of §9.2: `h`, `2`, `tab`,
+/// `shift+tab`, `space`, `enter`, `left`, `escape`, `f5`, with modifiers
+/// `cmd` (Super), `ctrl`, `alt` and `shift` in that order.
+enum KeyNames {
+    private static let named: [UInt32: String] = [
+        UInt32(GDK_KEY_Escape): "escape", UInt32(GDK_KEY_Tab): "tab", UInt32(GDK_KEY_ISO_Left_Tab): "tab",
+        UInt32(GDK_KEY_Return): "enter", UInt32(GDK_KEY_KP_Enter): "enter", UInt32(GDK_KEY_space): "space",
+        UInt32(GDK_KEY_Left): "left", UInt32(GDK_KEY_Right): "right", UInt32(GDK_KEY_Up): "up", UInt32(GDK_KEY_Down): "down",
+        UInt32(GDK_KEY_Home): "home", UInt32(GDK_KEY_End): "end", UInt32(GDK_KEY_Page_Up): "pageup",
+        UInt32(GDK_KEY_Page_Down): "pagedown", UInt32(GDK_KEY_BackSpace): "backspace", UInt32(GDK_KEY_Delete): "delete",
+    ]
+
+    private static let modifierKeys: Set<UInt32> = [
+        UInt32(GDK_KEY_Shift_L), UInt32(GDK_KEY_Shift_R), UInt32(GDK_KEY_Control_L), UInt32(GDK_KEY_Control_R),
+        UInt32(GDK_KEY_Alt_L), UInt32(GDK_KEY_Alt_R), UInt32(GDK_KEY_Super_L), UInt32(GDK_KEY_Super_R),
+        UInt32(GDK_KEY_Meta_L), UInt32(GDK_KEY_Meta_R), UInt32(GDK_KEY_Caps_Lock), UInt32(GDK_KEY_ISO_Level3_Shift),
+        UInt32(GDK_KEY_Num_Lock), UInt32(GDK_KEY_Hyper_L), UInt32(GDK_KEY_Hyper_R),
+    ]
+
+    static func name(keyval: guint, state: GdkModifierType) -> String? {
+        if modifierKeys.contains(keyval) { return nil }
+        let has: (GdkModifierType) -> Bool = { state.rawValue & $0.rawValue != 0 }
+        var shift = has(GDK_SHIFT_MASK)
+        let key: String
+        if let name = named[keyval] {
+            key = name
+            if keyval == UInt32(GDK_KEY_ISO_Left_Tab) { shift = true }
+        } else if keyval >= UInt32(GDK_KEY_F1), keyval <= UInt32(GDK_KEY_F20) {
+            key = "f\(keyval - UInt32(GDK_KEY_F1) + 1)"
+        } else {
+            let lower = gdk_keyval_to_lower(keyval)
+            let code = gdk_keyval_to_unicode(lower)
+            guard code >= 0x21, let scalar = Unicode.Scalar(code) else { return nil }
+            key = String(Character(scalar))
+            // Shift is part of a symbol ("!"), not a modifier of it; it
+            // stays a modifier of letters ("shift+h").
+            if lower == keyval, !Character(scalar).isLetter { shift = false }
+        }
+        var parts: [String] = []
+        if has(GDK_SUPER_MASK) || has(GDK_META_MASK) { parts.append("cmd") }
+        if has(GDK_CONTROL_MASK) { parts.append("ctrl") }
+        if has(GDK_ALT_MASK) { parts.append("alt") }
+        if shift { parts.append("shift") }
+        parts.append(key)
+        return parts.joined(separator: "+")
+    }
+}
+#endif

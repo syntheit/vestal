@@ -6,23 +6,29 @@ import XCTest
 // arguments, the resident's `sources` and `fetch`, `vestal sources` and
 // `vestal fetch` (EXTENSIBILITY.md 11.4), and check-config for the new keys.
 
-final class IPCRequestTests: XCTestCase {
-    func testRequestsWithoutArgumentsStayBareWords() {
-        XCTAssertEqual(IPCRequest(.status).line, "status")
-        XCTAssertEqual(IPCRequest(.sources).line, "sources")
-        XCTAssertEqual(IPCRequest(line: "toggle\n"), IPCRequest(.toggle))
-        XCTAssertNil(IPCRequest(line: "bogus"))
+final class IPCFetchRequestTests: XCTestCase {
+    private func parsed(_ line: String) -> IPCRequest? {
+        try? IPCRequest.parse(line).get()
     }
 
-    func testRequestsWithArgumentsAreJSON() {
-        let request = IPCRequest(.fetch, source: "system", raw: true, timeout: 10)
-        XCTAssertEqual(request.line, #"{"cmd":"fetch","raw":true,"source":"system","timeout":10}"#)
-        XCTAssertEqual(IPCRequest(line: request.line), request)
-        XCTAssertEqual(IPCRequest(line: #"{"cmd": "show", "view": "focus"}"#), IPCRequest(.show),
-                       "unknown keys are ignored")
-        XCTAssertNil(IPCRequest(line: #"{"cmd": "explode"}"#))
-        XCTAssertNil(IPCRequest(line: "{not json"))
+    func testRequestsWithoutArgumentsStayBareWords() {
+        XCTAssertEqual(IPCRequest(.status).wireLine, "status")
+        XCTAssertEqual(IPCRequest(.sources).wireLine, "sources")
+        XCTAssertEqual(parsed("toggle\n"), IPCRequest(.toggle))
+        XCTAssertNil(parsed("bogus"))
     }
+
+    func testFetchArgumentsAreJSON() {
+        let request = IPCRequest(.fetch, source: "system", raw: true, timeout: 10)
+        XCTAssertEqual(request.wireLine, #"{"cmd":"fetch","raw":true,"source":"system","timeout":10}"#)
+        XCTAssertEqual(parsed(request.wireLine), request)
+        XCTAssertEqual(parsed(#"{"cmd": "fetch", "source": "a", "cached": true, "extra": 1}"#),
+                       IPCRequest(.fetch, source: "a", cached: true), "unknown keys are ignored")
+        XCTAssertNil(parsed(#"{"cmd": "fetch", "source": 3}"#))
+        XCTAssertNil(parsed(#"{"cmd": "fetch", "timeout": "soon"}"#))
+        XCTAssertNil(parsed(#"{"cmd": "explode"}"#))
+    }
+
 
     func testTheServerHandsOverTheArguments() throws {
         let directory = NSTemporaryDirectory() + "vsr-" + UUID().uuidString.prefix(8)
@@ -202,7 +208,7 @@ final class SourceCommandsTests: XCTestCase {
         let old: SourceCommands.Client = { request, _ in
             request.command == .status
                 ? .status(IPCStatus(pid: 1, version: "", visible: false, configPath: config))
-                : .failure("unknown command '\(request.line)' (expected one of toggle, show, hide, reload, status, quit)")
+                : .failure("unknown command '\(request.wireLine)' (expected one of toggle, show, hide, reload, status, quit)")
         }
         let fallback = SourceCommands.fetch(["notes", "--config", config], environment: [:], home: dir.path,
                                             platform: SourcePlatform(), client: old, cache: cache)

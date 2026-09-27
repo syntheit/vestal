@@ -3,6 +3,9 @@ import VestalCore
 #if os(macOS)
 import VestalMac
 #endif
+#if os(Linux)
+import VestalLinux
+#endif
 
 // MARK: - Entry
 //
@@ -41,6 +44,15 @@ var sourcePlatform: SourcePlatform {
     #endif
 }
 
+#if os(Linux)
+// The GTK UI's development entry point: draws a render-model JSON file
+// (VestalLinux/RenderFileCommand.swift). Not in `CLI` yet, since it exists
+// only until the render engine drives the UI.
+if CommandLine.arguments.count > 1, CommandLine.arguments[1] == "render-file" {
+    exit(RenderFileCommand.run(Array(CommandLine.arguments.dropFirst(2))))
+}
+#endif
+
 switch CLI.parse(Array(CommandLine.arguments.dropFirst())) {
 case .usageError(let message):
     emit(CLI.Output(status: 2, stderr: "vestal: \(message)\n\(CLI.usage)\n"))
@@ -62,6 +74,16 @@ case .command(.sources(let arguments)):
 
 case .command(.fetch(let arguments)):
     emit(SourceCommands.fetch(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
+
+case .command(.schema(let arguments)):
+    emit(ConfigCommands.schema(arguments))
+
+case .command(.docs(let arguments)):
+    emit(DocsCommand.run(arguments))
+
+case .command(.sendRequest(let request)):
+    if let view = request.view, let failure = CLI.checkView(view) { emit(failure) }
+    emit(CLI.send(request, client: { try IPCClient.send($0) }, launch: launchInstance))
 
 case .command(.send(let command)):
     emit(CLI.send(command, client: { try IPCClient.send($0) }, launch: launchInstance))
