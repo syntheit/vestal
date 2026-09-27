@@ -367,4 +367,34 @@ final class DashboardModel: ObservableObject {
         if self[keyPath: keyPath][key] != value { self[keyPath: keyPath][key] = value }
     }
 }
+
+// MARK: - Fixed data
+
+extension DashboardModel {
+    /// Replaces what the dashboard shows with fixed values and stops
+    /// following the runtime, so the v0.3 views can be drawn offscreen with
+    /// the same data as a render-model fixture (`vestal render-file
+    /// --legacy`, the parity check of §13.4). The local host's row keeps
+    /// this Mac's uptime.
+    func showFixedData(_ data: LegacyDashboardData) {
+        detach()
+        time = data.time
+        cpu = data.cpu
+        memory = MemoryInfo(ramPercent: data.ram, pressurePercent: data.pressure)
+        temp = data.temp
+        battery = data.battery
+        uptime = data.uptime
+        diskFree = data.disk
+        network = data.network
+        privacyMode = data.privacy
+        claudeUsage = Dictionary(uniqueKeysWithValues: claudeDirs.map { ($0, data.claude) })
+        volume = data.volume
+        nowPlaying = data.nowPlaying
+        weather = data.weather
+        keyValues = data.keyValues
+        agenda = data.agenda
+        servers = data.servers
+        details = data.details
+    }
+}
 #endif
