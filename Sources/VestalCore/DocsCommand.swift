@@ -329,6 +329,10 @@ public enum DocsCommand {
         out += "\n\n## Its JSON\n\nWritten in the public config language (`vestal docs templates`). "
             + "To change it, copy it into your `templates` under a new name.\n\n```json\n"
             + template.json.prettyPrinted() + "\n```\n"
+        if let compact = DefaultPresets.compactTree.objectValue?[name] {
+            out += "\n## Its compact body\n\nWith `theme.density` `\"compact\"` (`vestal docs styling`) the same parameters "
+                + "fill this `widget` instead.\n\n```json\n" + compact.prettyPrinted() + "\n```\n"
+        }
         return out
     }
 

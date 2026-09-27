@@ -174,8 +174,21 @@ public struct TemplateRegistry: Equatable, Sendable {
         return result
     }()
 
-    public init(userTemplates: AnyJSON?) {
-        builtins = Self.builtinTemplates
+    /// `theme.density` `compact` (§8.1): the same templates and parameters,
+    /// with the bodies of DefaultPresets.compactTree in place of the ones
+    /// it names.
+    static let compactBuiltinTemplates: [String: TemplateDefinition] = {
+        var result = builtinTemplates
+        for (name, body) in DefaultPresets.compactTree.objectValue ?? [:] {
+            result[name]?.widget = body
+        }
+        return result
+    }()
+
+    /// `density`: `theme.density` of the effective config; `compact` swaps
+    /// in the compact bodies, anything else keeps the standard ones.
+    public init(userTemplates: AnyJSON?, density: String? = nil) {
+        builtins = density == "compact" ? Self.compactBuiltinTemplates : Self.builtinTemplates
         user = [:]
         for (name, json) in (userTemplates?.objectValue ?? [:]).sorted(by: { $0.key < $1.key }) {
             let path = "templates.\(name)"

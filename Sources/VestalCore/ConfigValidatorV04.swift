@@ -51,7 +51,7 @@ struct V04Checker {
         self.top = top
         self.platform = platform
         environment = ExprEnvironment.forFunctions(ExprEnvironment.userFunctions(of: .object(top)))
-        registry = TemplateRegistry(userTemplates: top["templates"])
+        registry = TemplateRegistry(userTemplates: top["templates"], density: ThemeConfig.density(top["theme"]))
         palette = RenderPalette(theme: top["theme"])
         sourceNames = Set(top["sources"]?.objectValue?.keys.map { $0 } ?? [])
         widgetNames = Set(top["widgets"]?.objectValue?.keys.map { $0 } ?? [])
@@ -704,6 +704,13 @@ public enum ConfigChecks {
             } else if case .object(let source)? = template.source {
                 checker.sourceFields(source, path: "templates.\(name).source", params: Set(data))
             }
+        }
+        // The compact bodies (`theme.density`), with the same parameters.
+        let compact = TemplateRegistry(userTemplates: nil, density: "compact")
+        for name in (DefaultPresets.compactTree.objectValue ?? [:]).keys.sorted() {
+            guard let template = compact.builtins[name], let body = template.widget else { continue }
+            let data = template.params.filter(\.value.isData).map(\.key)
+            checker.templateBody(body, path: "templates.\(name).widget (compact)", scope: V04Checker.baseScope.adding(data))
         }
         return checker.warnings
     }

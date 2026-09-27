@@ -84,6 +84,14 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
     public static let backgrounds = ["aurora", "blur", "none"]
     /// `theme.backdrop` (Linux): who blurs the desktop behind the dashboard.
     public static let backdrops = ["self", "compositor", "none"]
+    /// `theme.density`: how much room the built-in presets take.
+    public static let densities = ["comfortable", "compact"]
+
+    /// `theme.density` of a `theme` object: one of `densities`, else
+    /// `comfortable`.
+    public static func density(_ theme: AnyJSON?) -> String {
+        theme?.objectValue?["density"]?.stringValue.flatMap { densities.contains($0) ? $0 : nil } ?? "comfortable"
+    }
 
     public var palette: String = "tokyo-night"
     public var background: String = "aurora" // "aurora" | "blur" | "none"
