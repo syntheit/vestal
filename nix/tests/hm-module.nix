@@ -269,6 +269,9 @@ let
   claudeA = claudeWith fake;
   claudeB = claudeWith fakeB;
   claudeStep = c: c.home.activation.vestalClaudeStatusLine;
+  # Off (the default): the step that removes vestal's own status line.
+  claudeOff = evaluate pkgs.stdenv.hostPlatform.system { package = fake; };
+  claudeRemoveStep = c: c.home.activation.vestalClaudeStatusLineRemove;
   linuxPkgs = nixpkgs.legacyPackages.x86_64-linux;
   servicePATH =
     c:
@@ -519,6 +522,11 @@ let
         builtins.unsafeDiscardStringContext (claudeStep claudeA).data
       );
     "claude: settings.json is not a managed file" = !(claudeA.xdg.configFile ? "claude/settings.json");
+    "claude: off removes vestal's status line" =
+      darwin.home.activation ? vestalClaudeStatusLineRemove
+      && linux.home.activation ? vestalClaudeStatusLineRemove
+      && !(claudeA.home.activation ? vestalClaudeStatusLineRemove)
+      && lib.elem "writeBoundary" (claudeRemoveStep claudeOff).after;
     "hyprland: off by default" = hyprOff.wayland.windowManager.hyprland.settings == { };
     "hyprland: ignored on macOS" = hyprDarwin.wayland.windowManager.hyprland.settings == { };
   };
@@ -536,6 +544,7 @@ let
     "reload.sh" = darwin.home.activation.vestalReload.data;
     "claude-a.sh" = (claudeStep claudeA).data;
     "claude-b.sh" = (claudeStep claudeB).data;
+    "claude-off.sh" = (claudeRemoveStep claudeOff).data;
     "linux-service.json" = builtins.toJSON linuxDaemon.systemd.user.services.vestal;
     "linux-hyprland.json" = builtins.toJSON hyprHome.wayland.windowManager.hyprland.settings;
   };
@@ -712,4 +721,41 @@ pkgs.runCommand "vestal-hm-module"
     activate claudeA
     test -L "$settings" || fail "replaced a store link"
     grep -q 'link Home Manager or Nix owns' err || fail "no warning for a store link"
+
+    # claudeStatusLine off: vestal's own statusLine removed, nothing else.
+    stub $out/claude-off.sh > claudeOff.sh
+    mode() { stat -c %a "$settings" 2>/dev/null || stat -f %Lp "$settings"; }
+    rm -f "$settings"
+    activate claudeOff
+    test ! -e "$settings" || fail "removal created a settings.json"
+    "$jq" -n --arg c "$wantB" '{model: "opus", statusLine: {type: "command", command: $c}}' > "$settings"
+    chmod 640 "$settings"
+    DRY_RUN=1 activate claudeOff | grep -q 'Would remove' || fail "no dry-run removal message"
+    [ "$(statusCommand)" = "$wantB" ] || fail "a dry run removed the statusLine"
+    activate claudeOff
+    [ "$("$jq" -c . "$settings")" = '{"model":"opus"}' ] || fail "our statusLine not removed: $(cat "$settings")"
+    [ "$(mode)" = 640 ] || fail "mode not kept on removal"
+    cp "$settings" before; activate claudeOff
+    cmp -s before "$settings" || fail "rewrote a settings.json without our statusLine"
+
+    # Ours chaining another command: left alone, with a warning.
+    "$jq" --arg c "$wantA --then 'my-line'" '.statusLine = {type: "command", command: $c}' "$settings" > t && mv t "$settings"
+    cp "$settings" before; activate claudeOff
+    cmp -s before "$settings" || fail "removed a chained statusLine"
+    grep -q 'chaining another command' err || fail "no warning for a chained statusLine"
+
+    # Someone else's, even one that runs a vestal: not touched, no warning.
+    for c in '~/bin/line.sh' 'vestal claude-statusline' '/usr/local/bin/vestal claude-statusline' "$wantA-x"; do
+      "$jq" --arg c "$c" '.statusLine.command = $c' "$settings" > t && mv t "$settings"
+      cp "$settings" before; activate claudeOff
+      cmp -s before "$settings" || fail "removed another statusLine: $c"
+      [ ! -s err ] || fail "warned about another statusLine: $c"
+    done
+    "$jq" '.statusLine = "text"' "$settings" > t && mv t "$settings"
+    cp "$settings" before; activate claudeOff
+    cmp -s before "$settings" || fail "touched a statusLine that isn't a command"
+    echo 'not json' > "$settings"
+    activate claudeOff
+    [ "$(cat "$settings")" = 'not json' ] || fail "touched a settings.json that isn't JSON"
+    [ ! -s err ] || fail "warned about a settings.json that isn't JSON"
   ''

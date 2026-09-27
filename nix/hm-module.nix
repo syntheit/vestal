@@ -280,21 +280,91 @@ let
 
   # MARK: Claude Code's status line
   #
-  # Claude Code writes ~/.claude/settings.json itself, so it is edited in
-  # place (never linked): `statusLine` is added when there is none, and
-  # updated when it is vestal's own from another build (anything after
-  # `claude-statusline`, such as --then, is kept). Any other status line is
-  # left alone with a warning. Never fails the activation.
+  # The `claude` source runs `claude -p /usage` and needs no status line.
+  # `vestal claude-statusline` only shows the cached numbers, so it is opt-in
+  # (claudeStatusLine.enable); off, activation removes vestal's own status
+  # line from an earlier setup. Claude Code writes ~/.claude/settings.json
+  # itself, so it is edited in place (never linked).
+  #
+  # On: `statusLine` is added when there is none, and updated when it is
+  # vestal's own from another build (anything after `claude-statusline`,
+  # such as --then, is kept). Any other status line is left alone with a
+  # warning. Off: a statusLine that is exactly `<store>/bin/vestal
+  # claude-statusline` is deleted; one that chains another command with
+  # --then is left alone with a warning; anything else is not touched.
+  # Neither fails the activation.
   claudeSettings = "${home}/.claude/settings.json";
   claudeStatusCommand = "${lib.getExe cliPackage} claude-statusline";
+  # Ours: a vestal from the store, then exactly claude-statusline.
+  claudeOurs = "^/nix/store/[^/ ]+/bin/vestal claude-statusline( |$)";
+  # vestalClaudeSettingsWrite <file> <jq filter> [jq args...]: the file
+  # through the filter (a new one from {}), its mode kept (0600 when new).
+  # A snapshot is edited, and the file replaced only if Claude Code hasn't
+  # written it meanwhile, so none of its changes are lost.
+  claudeSettingsWrite = ''
+    vestalClaudeSettingsWrite() {
+      local settings=$1 filter=$2 tmp snapshot
+      local jq=${lib.escapeShellArg (lib.getExe pkgs.jq)}
+      shift 2
+      mkdir -p "''${settings%/*}" || return 1
+      tmp=$(mktemp "$settings.vestal.XXXXXX") || return 1
+      if [[ -e "$settings" ]]; then
+        snapshot="$tmp.orig"
+        cp -p "$settings" "$snapshot" \
+          && "$jq" "$@" "$filter" "$snapshot" > "$tmp" \
+          && ${pkgs.coreutils}/bin/chmod --reference="$snapshot" "$tmp" || { rm -f "$tmp" "$snapshot"; return 1; }
+        if ! cmp -s "$snapshot" "$settings"; then
+          rm -f "$tmp" "$snapshot"
+          echo "vestal: $settings changed while it was being edited; the statusLine is updated at the next activation" >&2
+          return 0
+        fi
+        mv "$tmp" "$settings" || { rm -f "$tmp" "$snapshot"; return 1; }
+        rm -f "$snapshot"
+      else
+        "$jq" -n "$@" "{} | $filter" > "$tmp" && chmod 600 "$tmp" \
+          && mv "$tmp" "$settings" || { rm -f "$tmp"; return 1; }
+      fi
+    }
+  '';
+  claudeStatusLineRemoveScript = ''
+    ${claudeSettingsWrite}
+    vestalClaudeStatusLineRemove() {
+      local settings=${lib.escapeShellArg claudeSettings}
+      local jq=${lib.escapeShellArg (lib.getExe pkgs.jq)}
+      local ours=${lib.escapeShellArg claudeOurs}
+      local exact='^/nix/store/[^/ ]+/bin/vestal claude-statusline *$'
+      local current target
+      [[ -e "$settings" ]] || return 0
+      if [[ -L "$settings" ]]; then
+        target=$(${pkgs.coreutils}/bin/realpath -e "$settings" 2>/dev/null) || return 0
+        [[ "$target" == /nix/store/* ]] && return 0
+        settings=$target
+      fi
+      current=$("$jq" -r 'if type == "object" and (.statusLine | type) == "object"
+          and .statusLine.type == "command" and (.statusLine.command | type) == "string"
+          then .statusLine.command else "" end' "$settings" 2>/dev/null) || return 0
+      [[ "$current" =~ $ours ]] || return 0
+      if ! [[ "$current" =~ $exact ]]; then
+        echo "vestal: $settings has vestal's statusLine chaining another command; leaving it. The claude source doesn't need it: set the statusLine to that command (vestal docs ai-usage)" >&2
+        return 0
+      fi
+      if [[ -v DRY_RUN ]]; then
+        echo "Would remove vestal's statusLine from $settings"
+        return 0
+      fi
+      vestalClaudeSettingsWrite "$settings" 'del(.statusLine)'
+    }
+
+    vestalClaudeStatusLineRemove || echo "vestal: could not update" ${lib.escapeShellArg claudeSettings} >&2
+  '';
   claudeStatusLineScript = ''
+    ${claudeSettingsWrite}
     vestalClaudeStatusLine() {
       local settings=${lib.escapeShellArg claudeSettings}
       local want=${lib.escapeShellArg claudeStatusCommand}
       local jq=${lib.escapeShellArg (lib.getExe pkgs.jq)}
-      # Ours: a vestal from the store, then exactly claude-statusline.
-      local ours='^/nix/store/[^/ ]+/bin/vestal claude-statusline( |$)'
-      local current="" state=none filter tmp
+      local ours=${lib.escapeShellArg claudeOurs}
+      local current="" state=none filter
       if [[ -L "$settings" ]]; then
         local target
         target=$(${pkgs.coreutils}/bin/realpath -e "$settings" 2>/dev/null) || target=""
@@ -330,26 +400,7 @@ let
         echo "Would set the statusLine in $settings to $want"
         return 0
       fi
-      mkdir -p "''${settings%/*}" || return 1
-      tmp=$(mktemp "$settings.vestal.XXXXXX") || return 1
-      if [[ -e "$settings" ]]; then
-        # Edit a snapshot; replace the file only if Claude Code hasn't
-        # written it meanwhile, so none of its changes are lost.
-        local snapshot="$tmp.orig"
-        cp -p "$settings" "$snapshot" \
-          && "$jq" --arg want "$want" "$filter" "$snapshot" > "$tmp" \
-          && ${pkgs.coreutils}/bin/chmod --reference="$snapshot" "$tmp" || { rm -f "$tmp" "$snapshot"; return 1; }
-        if ! cmp -s "$snapshot" "$settings"; then
-          rm -f "$tmp" "$snapshot"
-          echo "vestal: $settings changed while it was being edited; the statusLine is added at the next activation" >&2
-          return 0
-        fi
-        mv "$tmp" "$settings" || { rm -f "$tmp" "$snapshot"; return 1; }
-        rm -f "$snapshot"
-      else
-        "$jq" -n --arg want "$want" "{} | $filter" > "$tmp" && chmod 600 "$tmp" \
-          && mv "$tmp" "$settings" || { rm -f "$tmp"; return 1; }
-      fi
+      vestalClaudeSettingsWrite "$settings" "$filter" --arg want "$want"
     }
 
     vestalClaudeStatusLine || echo "vestal: could not update" ${lib.escapeShellArg claudeSettings} >&2
@@ -488,14 +539,16 @@ in
     };
 
     claudeStatusLine.enable = mkEnableOption ''
-      Claude Code's status line as `vestal claude-statusline`, which keeps
-      the Claude plan's rate limits for the `claude` source (Pro and Max
-      plans; see `vestal docs ai-usage`). Activation edits
-      {file}`~/.claude/settings.json` in place (Claude Code writes it too, so
-      it is never a link): it adds `statusLine` when there is none, and
-      updates vestal's own after a rebuild. Another status line is left
-      alone with a warning; chain it with `vestal claude-statusline --then
-      <command>` yourself'';
+      Claude Code's status line as `vestal claude-statusline`, which shows
+      the `claude` source's cached usage (`5h 25% · wk 59%`). The source
+      itself runs `claude -p /usage` and doesn't need it (see `vestal docs
+      ai-usage`). Activation edits {file}`~/.claude/settings.json` in place
+      (Claude Code writes it too, so it is never a link). On: it adds
+      `statusLine` when there is none, and updates vestal's own after a
+      rebuild; another status line is left alone with a warning (chain it
+      with `vestal claude-statusline --then <command>` yourself). Off: it
+      removes a `statusLine` that is exactly vestal's own (a store path's
+      `vestal claude-statusline`) and leaves everything else'';
 
     signingIdentity = mkOption {
       type = types.nullOr types.str;
@@ -643,6 +696,11 @@ in
 
     (mkIf cfg.claudeStatusLine.enable {
       home.activation.vestalClaudeStatusLine = lib.hm.dag.entryAfter [ "writeBoundary" ] claudeStatusLineScript;
+    })
+
+    (mkIf (!cfg.claudeStatusLine.enable) {
+      home.activation.vestalClaudeStatusLineRemove =
+        lib.hm.dag.entryAfter [ "writeBoundary" ] claudeStatusLineRemoveScript;
     })
 
     (mkIf signing {
