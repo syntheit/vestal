@@ -25,8 +25,8 @@ Fonts are the usual reason for a `platform` block:
 
 | Role | macOS default | Linux default |
 |---|---|---|
-| `sans` | the system font (SF Pro) | fontconfig `sans-serif` (Inter with the Nix package) |
-| `mono` | the system monospaced font (SF Mono) | fontconfig `monospace` |
+| `sans` | the system font (SF Pro) | Geist with the Nix package, else fontconfig `sans-serif` |
+| `mono` | the system monospaced font (SF Mono) | Geist Mono with the Nix package, else fontconfig `monospace` |
 | `rounded` | SF Pro Rounded | same as `sans` |
 
 A missing family falls back to the default.

@@ -6,7 +6,7 @@
 # socket, reload, stats), and the GTK 4 UI (VestalLinux; for now reached
 # through `vestal render-file`). Its wrapper puts wpctl (WirePlumber) and
 # playerctl on PATH, after the caller's own, for the volume and media
-# providers. The UI's fonts (Inter, JetBrains Mono, Phosphor) are installed
+# providers. The UI's fonts (Geist, Geist Mono, Phosphor) are installed
 # in $out/share/vestal/{fonts,icons}, where the binary looks for them.
 {
   lib,
@@ -18,8 +18,7 @@
   writeText,
   callPackage,
   pkg-config,
-  inter,
-  jetbrains-mono,
+  geist-font,
   # Linux runtime tools: `wpctl get-volume` and `playerctl`.
   wireplumber,
   playerctl,
@@ -175,8 +174,7 @@ stdenv.mkDerivation {
       ''
         install -Dm755 "$(swiftpmBinPath)/vestal" "$out/libexec/vestal/vestal"
         mkdir -p "$out/share/vestal/fonts" "$out/share/vestal/icons"
-        ln -s ${inter}/share/fonts "$out/share/vestal/fonts/inter"
-        ln -s ${jetbrains-mono}/share/fonts/truetype "$out/share/vestal/fonts/jetbrains-mono"
+        ln -s ${geist-font}/share/fonts/opentype "$out/share/vestal/fonts/geist"
         install -m644 Resources/icons/Phosphor.ttf Resources/icons/Phosphor-Fill.ttf Resources/icons/LICENSE \
           "$out/share/vestal/icons/"
         makeBinaryWrapper "$out/libexec/vestal/vestal" "$out/bin/vestal" \

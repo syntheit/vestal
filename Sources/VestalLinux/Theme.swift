@@ -78,17 +78,17 @@ final class ThemeState {
 
     // MARK: Fonts
 
-    /// The Pango family list for a font role. Inter and JetBrains Mono ship
-    /// with the Linux package (the macOS UI uses SF Pro and SF Mono); the
-    /// fontconfig generics follow as fallbacks.
+    /// The Pango family list for a font role. Geist and Geist Mono ship with
+    /// the Linux package (the macOS UI uses SF Pro and SF Mono, which they
+    /// resemble); the fontconfig generics follow as fallbacks.
     func family(role: String) -> String {
         switch role {
-        case "mono": return (theme.fonts.mono.map { "\($0)," } ?? "") + "JetBrains Mono,monospace"
+        case "mono": return (theme.fonts.mono.map { "\($0)," } ?? "") + "Geist Mono,monospace"
         case "rounded":
-            // No rounded Inter; the rounded role falls back to sans (§8.5).
+            // No rounded Geist; the rounded role falls back to sans (§8.5).
             let family = theme.fonts.rounded ?? theme.fonts.sans
-            return (family.map { "\($0)," } ?? "") + "Inter,sans-serif"
-        default: return (theme.fonts.sans.map { "\($0)," } ?? "") + "Inter,sans-serif"
+            return (family.map { "\($0)," } ?? "") + "Geist,sans-serif"
+        default: return (theme.fonts.sans.map { "\($0)," } ?? "") + "Geist,sans-serif"
         }
     }
 
@@ -120,7 +120,7 @@ final class ThemeState {
 enum BundledFonts {
     private static var registered = false
 
-    /// Adds Inter, JetBrains Mono and the Phosphor icon fonts to fontconfig
+    /// Adds Geist, Geist Mono and the Phosphor icon fonts to fontconfig
     /// for this process, before GTK loads any font. Looked up in
     /// `$VESTAL_FONT_DIRS` (colon-separated, for dev builds) and next to the
     /// executable in `share/vestal/{fonts,icons}` (the Nix package).

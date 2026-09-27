@@ -93,7 +93,7 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 | `background` | string | `"aurora"` | `"aurora"`: the animated aurora over the blurred desktop. `"blur"`: the blurred desktop only. `"none"`: the palette's solid `bg`. A UI that can't draw the aurora draws `blur`. |
 | `palettes` | object | none | Your palettes: name → `{"extends": "<palette>", "colors": {name: colour}}`. `extends` defaults to `tokyo-night`. |
 | `colors` | object | none | Colours added to, or overriding, the chosen palette: name → colour. |
-| `fonts` | object | platform defaults | A family per role: `{"sans": …, "mono": …, "rounded": …}`. `null` (or absent) is the platform's default: SF Pro, SF Mono and SF Pro Rounded on macOS; fontconfig's `sans-serif` and `monospace` on Linux (`rounded` is `sans` there). A family that isn't installed falls back to the default. |
+| `fonts` | object | platform defaults | A family per role: `{"sans": …, "mono": …, "rounded": …}`. `null` (or absent) is the platform's default: SF Pro, SF Mono and SF Pro Rounded on macOS; Geist and Geist Mono on Linux (shipped by the Nix package; fontconfig's `sans-serif` and `monospace` without them; `rounded` is `sans` there). A family that isn't installed falls back to the default. |
 | `font` | string | none | Shorthand for `fonts.sans`. |
 | `scale` | number | `1` | Multiplies every text, icon and fixed size (not gaps), for large screens or reading distance. |
 | `icons` | string | `"native"` on macOS | `"native"`: the macOS UI draws the icons the presets use as the SF Symbols v0.3 drew. `"phosphor"`: the bundled Phosphor font everywhere. Linux always uses Phosphor. |

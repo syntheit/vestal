@@ -29,7 +29,7 @@ The fonts are `Phosphor.ttf` (family `Phosphor`) and `Phosphor-Fill.ttf` (`Phosp
 | | Installed at |
 |---|---|
 | macOS | `Vestal.app/Contents/Resources/Fonts/` |
-| Linux (Nix package) | `$out/share/vestal/icons/`, next to Inter and JetBrains Mono in `$out/share/vestal/fonts/` |
+| Linux (Nix package) | `$out/share/vestal/icons/`, next to Geist and Geist Mono in `$out/share/vestal/fonts/` |
 | Development builds | the directories in `$VESTAL_FONT_DIRS` (colon-separated) |
 
 A UI draws an icon as one glyph in the icon font: the render model carries the name, the glyph (the code point) and the weight (`vestal docs render-model`).

@@ -55,12 +55,11 @@
           // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
             # SwiftPM compiles and runs Package.swift against libdispatch.
             LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.swiftPackages.Dispatch ];
-            # Where a dev build of the Linux UI finds Inter, JetBrains Mono and
+            # Where a dev build of the Linux UI finds Geist, Geist Mono and
             # the Phosphor icon fonts (the package installs them next to the
             # binary instead).
             VESTAL_FONT_DIRS = lib.concatStringsSep ":" [
-              "${pkgs.inter}/share/fonts"
-              "${pkgs.jetbrains-mono}/share/fonts"
+              "${pkgs.geist-font}/share/fonts"
               "${./Resources/icons}"
             ];
           }

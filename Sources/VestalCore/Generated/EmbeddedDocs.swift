@@ -1347,7 +1347,7 @@ The fonts are `Phosphor.ttf` (family `Phosphor`) and `Phosphor-Fill.ttf` (`Phosp
 | | Installed at |
 |---|---|
 | macOS | `Vestal.app/Contents/Resources/Fonts/` |
-| Linux (Nix package) | `$out/share/vestal/icons/`, next to Inter and JetBrains Mono in `$out/share/vestal/fonts/` |
+| Linux (Nix package) | `$out/share/vestal/icons/`, next to Geist and Geist Mono in `$out/share/vestal/fonts/` |
 | Development builds | the directories in `$VESTAL_FONT_DIRS` (colon-separated) |
 
 A UI draws an icon as one glyph in the icon font: the render model carries the name, the glyph (the code point) and the weight (`vestal docs render-model`).
@@ -1990,8 +1990,8 @@ Fonts are the usual reason for a `platform` block:
 
 | Role | macOS default | Linux default |
 |---|---|---|
-| `sans` | the system font (SF Pro) | fontconfig `sans-serif` (Inter with the Nix package) |
-| `mono` | the system monospaced font (SF Mono) | fontconfig `monospace` |
+| `sans` | the system font (SF Pro) | Geist with the Nix package, else fontconfig `sans-serif` |
+| `mono` | the system monospaced font (SF Mono) | Geist Mono with the Nix package, else fontconfig `monospace` |
 | `rounded` | SF Pro Rounded | same as `sans` |
 
 A missing family falls back to the default.
