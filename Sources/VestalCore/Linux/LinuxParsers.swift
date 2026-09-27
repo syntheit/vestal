@@ -253,31 +253,42 @@ public enum LinuxProc {
     /// name: nil when there is none (a desktop), as on a Mac without one.
     ///
     /// A system battery has TYPE=Battery and no SCOPE=Device (that marks a
-    /// mouse's, keyboard's or controller's battery). With several, the first
-    /// by name wins, BAT* names first (BAT0 before BAT1).
+    /// mouse's, keyboard's or controller's battery). Laptops with two packs
+    /// (BAT0 and BAT1) report them as one, as upower does:
     ///
-    /// - percent: CAPACITY, else ENERGY_NOW/ENERGY_FULL or CHARGE_NOW/CHARGE_FULL.
-    /// - charging: STATUS is "Charging".
+    /// - percent: the packs' energy (ENERGY_NOW over ENERGY_FULL, summed),
+    ///   else their charge (CHARGE_*), else the mean of their CAPACITY.
+    ///   With one pack, its CAPACITY when it has one.
+    /// - charging: a pack's STATUS is "Charging".
     /// - acPower: a mains or USB supply (not a device's) reports ONLINE=1;
-    ///   with no such supply listed, the battery isn't discharging.
+    ///   with no such supply listed, no pack is discharging.
     /// - timeRemaining: only while discharging, as macOS reports it: energy
-    ///   over power (µWh / µW), or charge over current (µAh / µA), in minutes.
+    ///   over power (µWh / µW), or charge over current (µAh / µA), summed
+    ///   over the packs, in minutes.
     public static func battery(supplies: [String: [String: String]]) -> BatteryInfo? {
-        let batteries = supplies
+        let packs = supplies
             .filter { $0.value["TYPE"] == "Battery" && $0.value["SCOPE"] != "Device" }
-            .sorted { ($0.key.hasPrefix("BAT") ? 0 : 1, $0.key) < ($1.key.hasPrefix("BAT") ? 0 : 1, $1.key) }
-        guard let battery = batteries.first?.value else { return nil }
-        func number(_ key: String) -> Double? { battery[key].flatMap { Double($0) } }
+            .sorted { $0.key < $1.key }
+            .map(\.value)
+        guard !packs.isEmpty else { return nil }
+        func sum(_ key: String) -> Double? {
+            let values = packs.map { $0[key].flatMap { Double($0) } }
+            return values.contains(where: { $0 == nil }) ? nil : values.reduce(0) { $0 + ($1 ?? 0) }
+        }
+        func ratio(_ now: String, _ full: String) -> Double? {
+            guard let now = sum(now), let full = sum(full), full > 0 else { return nil }
+            return now * 100 / full
+        }
 
-        var percent = number("CAPACITY")
-        if percent == nil, let now = number("ENERGY_NOW"), let full = number("ENERGY_FULL"), full > 0 {
-            percent = now * 100 / full
+        var percent: Double?
+        if packs.count == 1 { percent = packs[0]["CAPACITY"].flatMap { Double($0) } }
+        percent = percent ?? ratio("ENERGY_NOW", "ENERGY_FULL") ?? ratio("CHARGE_NOW", "CHARGE_FULL")
+        if percent == nil {
+            let capacities = packs.compactMap { $0["CAPACITY"].flatMap { Double($0) } }
+            if !capacities.isEmpty { percent = capacities.reduce(0, +) / Double(capacities.count) }
         }
-        if percent == nil, let now = number("CHARGE_NOW"), let full = number("CHARGE_FULL"), full > 0 {
-            percent = now * 100 / full
-        }
-        let status = battery["STATUS"] ?? ""
-        let discharging = status == "Discharging"
+        let statuses = packs.map { $0["STATUS"] ?? "" }
+        let discharging = statuses.contains("Discharging")
 
         let chargers = supplies.values.filter {
             ($0["TYPE"] == "Mains" || $0["TYPE"]?.hasPrefix("USB") == true) && $0["SCOPE"] != "Device"
@@ -286,15 +297,15 @@ public enum LinuxProc {
 
         var minutes: Int?
         if discharging {
-            if let energy = number("ENERGY_NOW"), let power = number("POWER_NOW"), power > 0 {
+            if let energy = sum("ENERGY_NOW"), let power = sum("POWER_NOW"), power > 0 {
                 minutes = Int(energy / power * 60)
-            } else if let charge = number("CHARGE_NOW"), let current = number("CURRENT_NOW"), current > 0 {
+            } else if let charge = sum("CHARGE_NOW"), let current = sum("CURRENT_NOW"), current > 0 {
                 minutes = Int(charge / current * 60)
             }
         }
         return BatteryInfo(
             percent: min(100, max(0, Int(percent ?? 0))),
-            charging: status == "Charging",
+            charging: statuses.contains("Charging"),
             acPower: acPower,
             timeRemaining: minutes.flatMap { $0 > 0 ? $0 : nil })
     }

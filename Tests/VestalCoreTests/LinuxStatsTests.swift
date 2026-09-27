@@ -184,11 +184,32 @@ final class LinuxStatsTests: XCTestCase {
         XCTAssertEqual(LinuxProc.battery(supplies: ["BAT1": full])?.acPower, true)
     }
 
-    func testBatteryPrefersBATNames() {
+    func testTwoPacksCountAsOne() {
+        // A ThinkPad's internal and removable packs: 10% of 20 Wh and 90% of
+        // 80 Wh make 74%, draining together.
+        let inner = LinuxProc.uevent("""
+            POWER_SUPPLY_TYPE=Battery
+            POWER_SUPPLY_STATUS=Discharging
+            POWER_SUPPLY_CAPACITY=10
+            POWER_SUPPLY_ENERGY_NOW=2000000
+            POWER_SUPPLY_ENERGY_FULL=20000000
+            POWER_SUPPLY_POWER_NOW=0
+            """)
+        let removable = LinuxProc.uevent("""
+            POWER_SUPPLY_TYPE=Battery
+            POWER_SUPPLY_STATUS=Discharging
+            POWER_SUPPLY_CAPACITY=90
+            POWER_SUPPLY_ENERGY_NOW=72000000
+            POWER_SUPPLY_ENERGY_FULL=80000000
+            POWER_SUPPLY_POWER_NOW=10000000
+            """)
+        XCTAssertEqual(LinuxProc.battery(supplies: ["BAT0": inner, "BAT1": removable]),
+                       BatteryInfo(percent: 74, charging: false, acPower: false, timeRemaining: 444))
+        // Without energy or charge figures: the mean capacity.
         let a = LinuxProc.uevent("POWER_SUPPLY_TYPE=Battery\nPOWER_SUPPLY_CAPACITY=10\n")
         let b = LinuxProc.uevent("POWER_SUPPLY_TYPE=Battery\nPOWER_SUPPLY_CAPACITY=90\n")
-        XCTAssertEqual(LinuxProc.battery(supplies: ["CMB0": a, "BAT1": b])?.percent, 90)
-        XCTAssertEqual(LinuxProc.battery(supplies: ["BAT1": a, "BAT0": b])?.percent, 90)
+        XCTAssertEqual(LinuxProc.battery(supplies: ["BAT0": a, "BAT1": b])?.percent, 50)
+        XCTAssertEqual(LinuxProc.battery(supplies: ["CMB0": b])?.percent, 90)
     }
 
     // MARK: Uptime and mounts

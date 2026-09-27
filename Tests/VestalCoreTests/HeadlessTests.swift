@@ -124,6 +124,27 @@ final class HeadlessTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(IPCStatus.self, from: Data(json.utf8)), status)
     }
 
+    // MARK: Cache
+
+    func testCacheDirectoryIsPrivate() throws {
+        let root = try makeTemporaryDirectory()
+        func mode(_ path: String) throws -> Int {
+            let attributes = try FileManager.default.attributesOfItem(atPath: path)
+            return try XCTUnwrap(attributes[.posixPermissions] as? Int)
+        }
+        // New: created 0700.
+        let fresh = root.appendingPathComponent("fresh").path
+        SnapshotCache(directory: fresh).saveNowPlaying(.off, player: "x")
+        XCTAssertEqual(try mode(fresh), 0o700)
+        // Left world-readable by an older build: tightened on the next write.
+        let old = root.appendingPathComponent("old").path
+        try FileManager.default.createDirectory(atPath: old, withIntermediateDirectories: true,
+                                                attributes: [.posixPermissions: 0o755])
+        SnapshotCache(directory: old).save(SourceSnapshot(data: Data("{}".utf8), fetchedAt: Date()),
+                                           source: SourceConfig(type: "command", argv: ["true"]), as: "s")
+        XCTAssertEqual(try mode(old), 0o700)
+    }
+
     // MARK: Calendar on Linux
 
     func testAgendaMayReadACommandOrHTTPSource() {
