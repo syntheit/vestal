@@ -1,0 +1,69 @@
+--- a/CoreFoundation/NumberDate.subproj/CFTimeZone.c
++++ b/CoreFoundation/NumberDate.subproj/CFTimeZone.c
+@@ -53,6 +53,10 @@
+ #ifndef TZDIR
+ #define TZDIR	"/usr/share/zoneinfo/" /* Time zone object file directory */
+ #endif /* !defined TZDIR */
++
++#ifndef NIX_TZDIR
++#define NIX_TZDIR "@tzdir@"
++#endif
+ 
+ #ifndef TZDEFAULT
+ #define TZDEFAULT	"/etc/localtime"
+@@ -813,9 +817,35 @@
+ #elif TARGET_OS_ANDROID
+ // Nothing
+ #elif TARGET_OS_LINUX || TARGET_OS_BSD || TARGET_OS_WASI
++// Nix: the time zone directory is chosen at run time, not fixed at TZDIR
++// (/usr/share/zoneinfo/, which NixOS doesn't have): $TZDIR, then
++// /usr/share/zoneinfo/, then NixOS's /etc/zoneinfo/, then the tzdata this
++// Foundation was built with.
++static Boolean __CFTZDirUsable(const char *dir) {
++    char path[CFMaxPathSize];
++    struct stat sb;
++    if (!dir || !dir[0] || strlen(dir) + sizeof("/UTC") >= sizeof(path)) return false;
++    snprintf(path, sizeof(path), "%s/UTC", dir);
++    return stat(path, &sb) == 0 && S_ISREG(sb.st_mode);
++}
++
+ static void __InitTZStrings(void) {
+-    __tzZoneInfo = CFSTR(TZDIR);
+-    __tzDir = TZDIR "zone.tab";
++    const char *candidates[] = { __CFgetenv("TZDIR"), TZDIR, "/etc/zoneinfo/", NIX_TZDIR };
++    const char *dir = NIX_TZDIR;
++    for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); i++) {
++        if (__CFTZDirUsable(candidates[i])) { dir = candidates[i]; break; }
++    }
++    size_t len = strlen(dir);
++    Boolean slash = len > 0 && dir[len - 1] == '/';
++    char *zoneInfo = malloc(len + 2);
++    char *zoneTab = malloc(len + sizeof("/zone.tab"));
++    if (!zoneInfo || !zoneTab) { free(zoneInfo); free(zoneTab); return; }
++    snprintf(zoneInfo, len + 2, "%s%s", dir, slash ? "" : "/");
++    snprintf(zoneTab, len + sizeof("/zone.tab"), "%szone.tab", zoneInfo);
++    // Both live for the rest of the process, like the constants they replace.
++    __tzZoneInfo = CFStringCreateWithCString(kCFAllocatorSystemDefault, zoneInfo, kCFStringEncodingUTF8);
++    __tzDir = zoneTab;
++    free(zoneInfo);
+ }
+ 
+ #else
+@@ -873,9 +903,16 @@
+         linkbuf[ret] = '\0';
+         const char *tzZoneInfo = CFStringGetCStringPtr(__tzZoneInfo, kCFStringEncodingASCII);
+         size_t zoneInfoDirLen = CFStringGetLength(__tzZoneInfo);
+-        if (strncmp(linkbuf, tzZoneInfo, zoneInfoDirLen) == 0) {
++        // Nix: /etc/localtime points into another zoneinfo directory than
++        // the one in use (NixOS: /etc/zoneinfo/Area/City); the name is what
++        // follows "/zoneinfo/".
++        const char *zoneinfo = strstr(linkbuf, "/zoneinfo/");
++        if (tzZoneInfo && strncmp(linkbuf, tzZoneInfo, zoneInfoDirLen) == 0) {
+             name = CFStringCreateWithBytes(kCFAllocatorSystemDefault, (uint8_t *)linkbuf + zoneInfoDirLen,
+                                            strlen(linkbuf) - zoneInfoDirLen, kCFStringEncodingUTF8, false);
++        } else if (zoneinfo && zoneinfo[sizeof("/zoneinfo/") - 1] != '\0') {
++            const char *rest = zoneinfo + sizeof("/zoneinfo/") - 1;
++            name = CFStringCreateWithBytes(kCFAllocatorSystemDefault, (uint8_t *)rest, strlen(rest), kCFStringEncodingUTF8, false);
+         } else {
+             name = CFStringCreateWithBytes(kCFAllocatorSystemDefault, (uint8_t *)linkbuf, strlen(linkbuf), kCFStringEncodingUTF8, false);
+         }

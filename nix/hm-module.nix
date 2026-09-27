@@ -222,6 +222,8 @@ let
   # A layer rule for the dashboard's layer surface (namespace `vestal`), in
   # the `match:` rule syntax of Hyprland 0.53 and later.
   layerRule = effect: "${effect}, match:namespace ^(vestal)$";
+  # Home Manager's Hyprland module before configType existed wrote hyprlang.
+  hyprlang = (config.wayland.windowManager.hyprland.configType or "hyprlang") == "hyprlang";
 
   # With signingIdentity unset, removes the copy activation installed while
   # it was set. The stamp says the copy is ours; an app without one is never
@@ -470,14 +472,18 @@ in
       };
     })
 
-    (mkIf (isLinux && cfg.hyprland.enable) {
-      # The lines below are hyprlang; Home Manager's Lua output turns each
-      # list entry into a call of its own, with other arguments.
-      warnings = lib.optional ((config.wayland.windowManager.hyprland.configType or "hyprlang") != "hyprlang") ''
-        programs.vestal.hyprland writes hyprlang `bind` and `layerrule` lines, but
-        wayland.windowManager.hyprland.configType is not "hyprlang". Add the bind and the
-        layer rules for the namespace `vestal` to your Hyprland config yourself.'';
+    # The lines below are hyprlang. Home Manager's Lua output would turn each
+    # into a call with the wrong name and arguments, so there it only warns.
+    (mkIf (isLinux && cfg.hyprland.enable && !hyprlang) {
+      warnings = [
+        ''
+          programs.vestal.hyprland writes hyprlang `bind` and `layerrule` lines, but
+          wayland.windowManager.hyprland.configType is not "hyprlang", so it adds nothing.
+          Bind `vestal toggle` and add layer rules for the namespace `vestal` yourself.''
+      ];
+    })
 
+    (mkIf (isLinux && cfg.hyprland.enable && hyprlang) {
       wayland.windowManager.hyprland.settings = {
         bind = lib.optional (cfg.hyprland.bind != null) "${cfg.hyprland.bind}, exec, ${lib.getExe cfg.package} toggle";
         layerrule =

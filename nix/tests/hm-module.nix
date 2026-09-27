@@ -453,7 +453,10 @@ let
     "hyprland: an unusable hotkey fails, unless the bind is set" =
       !(passes hyprBad) && passes hyprBadOverridden && hyprBinds hyprBadOverridden == [ "SUPER, T, exec, foot" ];
     "hyprland: assertions pass" = passes hyprHome && passes hyprOverride && passes hyprNone;
-    "hyprland: warns about Lua config" = hyprLua.warnings != [ ] && hyprHome.warnings == [ ];
+    "hyprland: with a Lua config, only a warning" =
+      hyprLua.warnings != [ ]
+      && hyprLua.wayland.windowManager.hyprland.settings == { }
+      && hyprHome.warnings == [ ];
     "hyprland: off by default" = hyprOff.wayland.windowManager.hyprland.settings == { };
     "hyprland: ignored on macOS" = hyprDarwin.wayland.windowManager.hyprland.settings == { };
   };

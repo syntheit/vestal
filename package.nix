@@ -23,6 +23,9 @@
   # Linux runtime tools: `wpctl get-volume` and `playerctl`.
   wireplumber,
   playerctl,
+  # Linux: the time zone data the patched Foundation falls back to.
+  tzdata,
+  patchelf,
   # Short commit hash shown in the info popup (BuildInfo.commit).
   commit ? "dev",
 }:
@@ -40,6 +43,22 @@ let
   # The Linux UI's libraries as one pkg-config module, and its icon fonts.
   gtkPkgConfig = callPackage ./nix/gtk-pkgconfig.nix { };
   phosphorFonts = callPackage ./nix/phosphor-fonts.nix { };
+
+  # Linux: swift-corelibs-foundation reads time zones only from its
+  # compile-time TZDIR, /usr/share/zoneinfo/, which NixOS doesn't have: there
+  # every TimeZone(identifier:) is nil and TimeZone.current is GMT. This build
+  # picks the directory at run time ($TZDIR, /usr/share/zoneinfo, NixOS's
+  # /etc/zoneinfo, then this tzdata) and names the local zone from the
+  # /etc/localtime link wherever it points. vestal runs against it (postFixup).
+  foundation = swiftPackages.Foundation.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [ ./nix/foundation-tzdir.patch ];
+    postPatch = (old.postPatch or "") + ''
+      substituteInPlace CoreFoundation/NumberDate.subproj/CFTimeZone.c \
+        --replace-fail '@tzdir@' '${tzdata}/share/zoneinfo/'
+    '';
+  });
+  stockFoundationLib = "${swiftPackages.Foundation}/lib/swift/linux";
+  foundationLib = "${foundation}/lib/swift/linux";
 
   # Contents/Info.plist of Vestal.app. Generated rather than templated, so it
   # is well-formed by construction; the flake's `info-plist` check parses it.
@@ -88,7 +107,10 @@ stdenv.mkDerivation {
     swiftpm
     makeBinaryWrapper
   ]
-  ++ lib.optionals stdenv.hostPlatform.isLinux [ pkg-config ];
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
+    pkg-config
+    patchelf
+  ];
 
   buildInputs = lib.optionals stdenv.hostPlatform.isLinux [ gtkPkgConfig ];
 
@@ -160,8 +182,25 @@ stdenv.mkDerivation {
     runHook postInstall
   '';
 
+  # Linux: load Foundation from the time-zone-patched build (same sources,
+  # same ABI) instead of nixpkgs' one. After the fixup phase, which shrinks
+  # the RUNPATH; fails if the stock entry isn't there to replace.
+  postFixup = lib.optionalString stdenv.hostPlatform.isLinux ''
+    bin="$out/libexec/vestal/vestal"
+    stock=${stockFoundationLib}
+    patched=${foundationLib}
+    rpath=$(patchelf --print-rpath "$bin")
+    case ":$rpath:" in
+      *":$stock:"*) ;;
+      *) echo "vestal: $bin's RUNPATH has no $stock: $rpath" >&2; exit 1 ;;
+    esac
+    patchelf --set-rpath "''${rpath//"$stock"/"$patched"}" "$bin"
+  '';
+
   passthru = {
     inherit infoPlist;
+    # Linux: the Foundation vestal runs against (see `foundation` above).
+    foundation = if stdenv.hostPlatform.isLinux then foundation else null;
     # Whether `vestal daemon` runs on this platform; the Home Manager module
     # only installs a login service when it does. On Linux it runs headless
     # until the UI exists.
