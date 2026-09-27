@@ -1972,7 +1972,7 @@ A built-in source template: `{"type": "foyer", "url": "https://box.example.com"}
 |---|---|---|
 | `palette` | `tokyo-night` | A built-in palette or a key of `palettes`. |
 | `background` | `aurora` | `aurora` (animated, over the blurred desktop), `blur` (the blurred desktop) or `none` (the palette's `bg`). A UI that can't draw the aurora draws `blur`. |
-| `dim` | Linux `0.5`, macOS none | 0 to 1: the opacity of the palette's `bg` over the blurred desktop, for `aurora` and `blur`. About `0.75` to `0.85` hides busy windows behind the dashboard. macOS by default keeps the material's own tint; set, it adds `bg` over it. On Linux it is the knob for how much shows through: Hyprland can't set blur strength per layer, and below its `ignore_alpha` (0.3 by default) it doesn't blur behind the dashboard at all (check-config warns). Clamped to 0 to 1. |
+| `dim` | Linux `0.5`, macOS none | 0 to 1: the opacity of the palette's `bg` over the blurred desktop, for `aurora` and `blur`. About `0.75` to `0.85` hides busy windows behind the dashboard. macOS by default keeps the material's own tint; set, it adds `bg` over it. On Linux it is the knob for how much shows through: Hyprland can't set blur strength per layer, and below its `ignore_alpha` (0.3 by default) it blurs only behind the aurora's ribbons, not the tint (check-config warns). Clamped to 0 to 1. |
 | `palettes` | none | Name → `{ "extends": "<palette>", "colors": { name: colour } }`. |
 | `colors` | none | Colours added to, or replacing, the chosen palette's. |
 | `fonts` | platform | `{ "sans": family, "mono": family, "rounded": family }`; `null` means the platform default. |
