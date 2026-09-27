@@ -44,6 +44,53 @@ var sourcePlatform: SourcePlatform {
     #endif
 }
 
+/// `vestal capabilities`: what this build and machine can do.
+var capabilitiesHost: CapabilitiesCommand.Host {
+    #if os(macOS)
+    return CapabilitiesCommand.Host(
+        ui: "SwiftUI",
+        screenshot: .init(true, "offscreen with the app's renderer (`vestal screenshot`); no window or permission needed"),
+        hotkey: .init(true, "`hotkey` in the config (Carbon)"),
+        platform: sourcePlatform)
+    #elseif os(Linux)
+    let wayland = ProcessInfo.processInfo.environment["WAYLAND_DISPLAY"].map { !$0.isEmpty } ?? false
+    return CapabilitiesCommand.Host(
+        ui: "GTK 4 (layer shell)",
+        screenshot: wayland
+            ? .init(true, "offscreen with the GTK renderer (`vestal screenshot`)")
+            : .init(false, "needs a Wayland session (WAYLAND_DISPLAY is not set); `vestal render` works anywhere"),
+        hotkey: .init(false, "not grabbed on Wayland: bind `vestal toggle` in the compositor (Hyprland: bind = , Home, exec, vestal toggle)"),
+        platform: sourcePlatform)
+    #else
+    return CapabilitiesCommand.Host(ui: nil, screenshot: .init(false, "no renderer in this build"),
+                                    hotkey: .init(false, "not supported"), platform: sourcePlatform)
+    #endif
+}
+
+/// `vestal screenshot`'s offscreen renderer: the render-file command of this
+/// build's UI, and why there is none when it can't run.
+var screenshotRenderer: (ScreenshotCommand.Renderer?, String?) {
+    #if os(macOS)
+    return ({ MacRenderFileCommand.run($0) }, nil)
+    #elseif os(Linux)
+    guard let display = ProcessInfo.processInfo.environment["WAYLAND_DISPLAY"], !display.isEmpty else {
+        return (nil, "the GTK renderer needs a Wayland session (WAYLAND_DISPLAY is not set)")
+    }
+    // The GTK window takes the screen's size and scale.
+    return ({ arguments in
+        var kept: [String] = []
+        var rest = arguments[...]
+        while let argument = rest.popFirst() {
+            if ["--size", "--scale", "--background"].contains(argument) { _ = rest.popFirst(); continue }
+            kept.append(argument)
+        }
+        return RenderFileCommand.run(kept)
+    }, nil)
+    #else
+    return (nil, "this build has no renderer")
+    #endif
+}
+
 // The UIs' development entry point: draws a render-model JSON file, on
 // screen with GTK (VestalLinux/RenderFileCommand.swift) or offscreen to a PNG
 // on macOS (VestalMac/Render/RenderFileCommand.swift). Not in `CLI` yet,
@@ -96,6 +143,21 @@ case .command(.docs(let arguments)):
 case .command(.icons(let arguments)):
     emit(IconsCommand.run(arguments))
 
+case .command(.subscribe(let arguments)):
+    if case .success(let options) = SubscribeCommand.parse(arguments), let view = options.view,
+       let failure = CLI.checkView(view) {
+        emit(failure)
+    }
+    emit(SubscribeCommand.run(arguments, write: { FileHandle.standardOutput.write(Data($0.utf8)) }))
+
+case .command(.capabilities(let arguments)):
+    emit(CapabilitiesCommand.run(arguments, host: capabilitiesHost, client: { try IPCClient.send($0, timeout: $1) }))
+
+case .command(.screenshot(let arguments)):
+    let (renderer, unsupported) = screenshotRenderer
+    emit(ScreenshotCommand.run(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) },
+                               renderer: renderer, unsupported: unsupported))
+
 case .command(.sendRequest(let request)):
     if let view = request.view, let failure = CLI.checkView(view) { emit(failure) }
     emit(CLI.send(request, client: { try IPCClient.send($0) }, launch: launchInstance))
@@ -112,6 +174,11 @@ case .command(.start(let hidden)):
     // inbox; the handler runs on the main queue.
     let server = IPCServer.forRequests(queue: .main) { request, reply in
         MainActor.assumeIsolated { ResidentInbox.shared.deliver(request, reply: reply) }
+    }
+    // `subscribe` streams the render model of the engine the app attaches
+    // to SubscriptionHub.shared (EXTENSIBILITY.md §10.8).
+    server.subscriptionHandler = { request, stream in
+        MainActor.assumeIsolated { SubscriptionHub.shared.add(request, stream) }
     }
     switch CLI.claim(hidden: hidden, start: { try server.start() }, client: { try IPCClient.send($0) }) {
     case .run:

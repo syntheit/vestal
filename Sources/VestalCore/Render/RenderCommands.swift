@@ -121,17 +121,50 @@ public enum RenderCommands {
         case .failure(let error): return Output(status: 2, stderr: "vestal: \(error.description)\n\(usage)\n")
         case .success(let parsed): options = parsed
         }
+        switch snapshot(options, environment: environment, home: home, platform: platform, client: client, cache: cache) {
+        case .failure(let failure):
+            return failure
+        case .success(let built):
+            var result = output(built.snapshot, options: options)
+            if options.strict, !built.configErrors.isEmpty {
+                result.status = 3
+                result.stderr += built.configErrors.map { "vestal: config error: \($0)\n" }.joined()
+            }
+            return result
+        }
+    }
+
+    /// A render's result, and the config's errors (for `--strict`).
+    /// (`Output` is also the failure: what to print instead.)
+    public struct Built {
+        public var snapshot: RenderSnapshot
+        public var configErrors: [ConfigWarning]
+    }
+
+    /// The render model `vestal render` (and `vestal screenshot`) prints:
+    /// the running instance's when this is its config and data mode auto,
+    /// else rendered here from fixtures, the cache or fresh fetches, with
+    /// `press` applied. The failure is the output to print.
+    public static func snapshot(
+        _ options: Options,
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        home: String = NSHomeDirectory(),
+        platform: SourcePlatform,
+        client: Client,
+        cache: SnapshotCache = SnapshotCache()
+    ) -> Result<Built, Output> {
         guard let loaded = SourceCommands.load(options.configPath, environment: environment, home: home) else {
-            return Output(status: 1, stderr: "vestal: can't read \(options.configPath ?? "-")\n")
+            return .failure(Output(status: 1, stderr: "vestal: can't read \(options.configPath ?? "-")\n"))
         }
         if loaded.hasErrors {
-            return Output(status: 1, stderr: loaded.warnings.filter(\.isError).map { "vestal: \($0)\n" }.joined())
+            return .failure(Output(status: 1, stderr: loaded.warnings.filter(\.isError).map { "vestal: \($0)\n" }.joined()))
         }
+        let configErrors = loaded.warnings.filter { ConfigDiagnostics.severity(of: $0) == .error }
         let model = RenderConfigModel(loaded: loaded)
         if let view = options.view, model.views[view] == nil {
             let close = DidYouMean.suggestions(for: view, among: model.viewNames)
-            return Output(status: 4, stderr: "vestal: no view named \"\(view)\""
-                + (close.isEmpty ? "" : "; did you mean \(close.map { "\"\($0)\"" }.joined(separator: " or "))?") + "\n")
+            return .failure(Output(status: 4, stderr: "vestal: no view named \"\(view)\""
+                + (close.isEmpty ? "" : "; did you mean \(close.map { "\"\($0)\"" }.joined(separator: " or "))?") + "\n"))
         }
         let session = RenderSession(model: model, view: options.view)
         // For reproducible output: TZ picks the zone, VESTAL_LOCALE the locale.
@@ -147,7 +180,7 @@ public enum RenderCommands {
             if let response = try? client(request, 15), response.ok, let json = response.data,
                let bytes = try? JSONEncoder().encode(json),
                let snapshot = try? RenderJSON.decoder.decode(RenderSnapshot.self, from: bytes) {
-                return output(snapshot, options: options)
+                return .success(Built(snapshot: snapshot, configErrors: configErrors))
             }
         }
         let data = RenderSources.load(
@@ -159,13 +192,7 @@ public enum RenderCommands {
             let effects = session.key(key, data: data, now: now)
             if effects.contains(.changed) { snapshot = session.render(data: data, now: now) }
         }
-        var result = output(snapshot, options: options)
-        let configErrors = loaded.warnings.filter { ConfigDiagnostics.severity(of: $0) == .error }
-        if options.strict, !configErrors.isEmpty {
-            result.status = 3
-            result.stderr += configErrors.map { "vestal: config error: \($0)\n" }.joined()
-        }
-        return result
+        return .success(Built(snapshot: snapshot, configErrors: configErrors))
     }
 
     static func output(_ snapshot: RenderSnapshot, options: Options) -> Output {
@@ -184,6 +211,9 @@ public enum RenderCommands {
         return String(decoding: data, as: UTF8.self)
     }
 }
+
+/// A command that stops early fails with what it prints.
+extension ConfigCommands.Output: Error {}
 
 // MARK: - Data for a render outside the running instance
 
