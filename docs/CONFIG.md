@@ -646,7 +646,31 @@ A row of system stats, from the `system` source.
 | `claudeSource` | source | `"claude"` | What the `claudeUsage` item reads. |
 | `codexSource` | source | `"codex"` | What the `codexUsage` item reads. |
 | `privacyKey` | string | none | The privacy toggle's key (the adapter sets `p`). |
+| `trailing` | list of widgets | `[]` | Widgets drawn at the right end, after the privacy toggle: per-device toggles, indicators. Each can have its own `source`, `action` and `key` (see the example below). |
 
+
+Per-device mic and camera toggles at the right end (Linux, with a script that prints the device's state as JSON and toggles it):
+
+```json
+{
+  "sources": {
+    "mic": { "type": "command", "argv": ["usb-toggle", "mic", "waybar"], "refresh": "2s", "when": "visible" }
+  },
+  "widgets": {
+    "systemBar": {
+      "type": "systemBar",
+      "trailing": [
+        { "type": "icon", "source": "mic", "when": ".class != null", "size": 11, "weight": "fill",
+          "name": { "expr": "if .class == \"on\" then \"microphone\" else \"microphone-slash\" end" },
+          "color": { "expr": "if .class == \"on\" then \"bad\" else \"good\" end" },
+          "action": { "run": ["sudo", "-n", "usb-toggle", "mic", "toggle"],
+                      "optimistic": ". + {class: (if .class == \"on\" then \"off\" else \"on\" end)}" },
+          "key": "ctrl+m" }
+      ]
+    }
+  }
+}
+```
 ### `media`
 
 What a music player is playing, with play/pause and the output volume. `"spotify"` is an alias of this type.

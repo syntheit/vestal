@@ -12928,6 +12928,21 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "trailing": {
+          "description": "Extra widgets at the right end, after the privacy toggle (e.g. per-device mic and camera toggles)",
+          "examples": [
+            []
+          ],
+          "items": {
+            "$ref": "#/$defs/widget"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "trend": {
           "description": "The trend parameter (string).",
           "examples": [
@@ -17624,6 +17639,22 @@
               "color": "subtle",
               "size": 12
             }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "trailing": {
+          "default": [],
+          "description": "Extra widgets at the right end, after the privacy toggle (e.g. per-device mic and camera toggles)",
+          "examples": [
+            []
+          ],
+          "items": {
+            "$ref": "#/$defs/widget"
+          },
+          "type": [
+            "array",
+            "null"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"

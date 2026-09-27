@@ -333,7 +333,8 @@ public enum DefaultPresets {
           "privacy": { "type": "object", "description": "{command: [argv], stateFile: path}" },
           "claudeSource": { "type": "source", "default": "claude", "description": "What the claudeUsage item reads" },
           "codexSource": { "type": "source", "default": "codex", "description": "What the codexUsage item reads" },
-          "privacyKey": { "type": "string", "description": "The privacy toggle's key" }
+          "privacyKey": { "type": "string", "description": "The privacy toggle's key" },
+          "trailing": { "type": "widgets", "default": [], "description": "Extra widgets at the right end, after the privacy toggle (e.g. per-device mic and camera toggles)" }
         },
         "widget": {
           "type": "row", "gap": 16, "height": 24, "width": "fill", "spaceBefore": 28,
@@ -390,7 +391,8 @@ public enum DefaultPresets {
                   "name": { "expr": "if .exists then \"video-camera-slash\" else \"video-camera\" end" },
                   "color": { "expr": "if .exists then \"good\" else \"bad\" end" } }
               ]
-            }
+            },
+            { "param": "trailing" }
           ]
         }
       },
