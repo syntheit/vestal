@@ -259,6 +259,16 @@ let
     extraPackages = [ fakeB ];
   };
   darwinExtra = evaluate "aarch64-darwin" { extraPackages = [ fakeB ]; };
+  # claudeStatusLine on the system the check runs on, so its script runs here.
+  claudeWith =
+    package:
+    evaluate pkgs.stdenv.hostPlatform.system {
+      inherit package;
+      claudeStatusLine.enable = true;
+    };
+  claudeA = claudeWith fake;
+  claudeB = claudeWith fakeB;
+  claudeStep = c: c.home.activation.vestalClaudeStatusLine;
   linuxPkgs = nixpkgs.legacyPackages.x86_64-linux;
   servicePATH =
     c:
@@ -501,6 +511,14 @@ let
       hyprLua.warnings != [ ]
       && hyprLua.wayland.windowManager.hyprland.settings == { }
       && hyprHome.warnings == [ ];
+    "claude: off by default" =
+      !(darwin.home.activation ? vestalClaudeStatusLine) && !(linux.home.activation ? vestalClaudeStatusLine);
+    "claude: after the files are written" = lib.elem "writeBoundary" (claudeStep claudeA).after;
+    "claude: runs this package's claude-statusline" =
+      lib.hasInfix (builtins.unsafeDiscardStringContext "${fake}/bin/vestal claude-statusline") (
+        builtins.unsafeDiscardStringContext (claudeStep claudeA).data
+      );
+    "claude: settings.json is not a managed file" = !(claudeA.xdg.configFile ? "claude/settings.json");
     "hyprland: off by default" = hyprOff.wayland.windowManager.hyprland.settings == { };
     "hyprland: ignored on macOS" = hyprDarwin.wayland.windowManager.hyprland.settings == { };
   };
@@ -516,6 +534,8 @@ let
     "sign-no-agent.sh" = darwinSignedNoAgent.home.activation.vestalSignApp.data;
     "unsign.sh" = darwin.home.activation.vestalRemoveSignedApp.data;
     "reload.sh" = darwin.home.activation.vestalReload.data;
+    "claude-a.sh" = (claudeStep claudeA).data;
+    "claude-b.sh" = (claudeStep claudeB).data;
     "linux-service.json" = builtins.toJSON linuxDaemon.systemd.user.services.vestal;
     "linux-hyprland.json" = builtins.toJSON hyprHome.wayland.windowManager.hyprland.settings;
   };
@@ -645,4 +665,51 @@ pkgs.runCommand "vestal-hm-module"
     test ! -e "$app" -a ! -e "$stamp" || fail "the signed copy was not removed"
     mkdir -p "$app"; activate unsign
     test -d "$app" || fail "removed an app without a stamp"
+
+    # claudeStatusLine: ~/.claude/settings.json edited in place.
+    fail() { echo "hm-module: claude step: $*" >&2; cat err >&2; exit 1; }
+    stub $out/claude-a.sh > claudeA.sh
+    stub $out/claude-b.sh > claudeB.sh
+    jq=${lib.getExe pkgs.jq}
+    settings=$home/.claude/settings.json
+    wantA='${fake}/bin/vestal claude-statusline' wantB='${fakeB}/bin/vestal claude-statusline'
+    statusCommand() { "$jq" -r '.statusLine.command' "$settings"; }
+
+    activate claudeA
+    [ "$("$jq" -c .statusLine "$settings")" = "{\"type\":\"command\",\"command\":\"$wantA\"}" ] \
+      || fail "no statusLine in a new settings.json"
+    [ "$(stat -c %a "$settings" 2>/dev/null || stat -f %Lp "$settings")" = 600 ] || fail "a new settings.json is not 0600"
+
+    echo '{"model": "opus", "permissions": {"allow": ["Bash(ls)"]}}' > "$settings"; chmod 640 "$settings"
+    activate claudeA
+    [ "$(statusCommand)" = "$wantA" ] || fail "statusLine not merged"
+    [ "$("$jq" -c '[.model, .permissions]' "$settings")" = '["opus",{"allow":["Bash(ls)"]}]' ] || fail "other keys lost"
+    [ "$(stat -c %a "$settings" 2>/dev/null || stat -f %Lp "$settings")" = 640 ] || fail "mode not kept"
+    cp "$settings" before; activate claudeA
+    cmp -s before "$settings" || fail "rewrote an up-to-date settings.json"
+
+    # Ours from another build, chained: the path is updated, the rest kept.
+    "$jq" --arg c "$wantB --then 'my-line'" '.statusLine.command = $c' "$settings" > t && mv t "$settings"
+    activate claudeA
+    [ "$(statusCommand)" = "$wantA --then 'my-line'" ] || fail "our old statusLine not updated: $(statusCommand)"
+
+    # Someone else's: left alone, with a warning.
+    "$jq" '.statusLine.command = "~/bin/line.sh"' "$settings" > t && mv t "$settings"
+    cp "$settings" before; activate claudeA
+    cmp -s before "$settings" || fail "replaced another statusLine"
+    grep -q 'already has a statusLine' err || fail "no warning for another statusLine"
+
+    echo 'not json' > "$settings"
+    activate claudeA
+    [ "$(cat "$settings")" = 'not json' ] || fail "rewrote a settings.json that isn't JSON"
+    grep -q 'not a JSON object' err || fail "no warning for bad JSON"
+
+    rm "$settings"
+    DRY_RUN=1 activate claudeB | grep -q 'Would set' || fail "no dry-run message"
+    test ! -e "$settings" || fail "a dry run wrote settings.json"
+
+    ln -s ${pkgs.writeText "claude-settings.json" "{}"} "$settings"
+    activate claudeA
+    test -L "$settings" || fail "replaced a store link"
+    grep -q 'link Home Manager or Nix owns' err || fail "no warning for a store link"
   ''

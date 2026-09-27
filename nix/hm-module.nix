@@ -277,6 +277,73 @@ let
       fi
     fi
   '';
+
+  # MARK: Claude Code's status line
+  #
+  # Claude Code writes ~/.claude/settings.json itself, so it is edited in
+  # place (never linked): `statusLine` is added when there is none, and
+  # updated when it is vestal's own from another build (anything after
+  # `claude-statusline`, such as --then, is kept). Any other status line is
+  # left alone with a warning. Never fails the activation.
+  claudeSettings = "${home}/.claude/settings.json";
+  claudeStatusCommand = "${lib.getExe cliPackage} claude-statusline";
+  claudeStatusLineScript = ''
+    vestalClaudeStatusLine() {
+      local settings=${lib.escapeShellArg claudeSettings}
+      local want=${lib.escapeShellArg claudeStatusCommand}
+      local jq=${lib.escapeShellArg (lib.getExe pkgs.jq)}
+      # Ours: a vestal from the store, then exactly claude-statusline.
+      local ours='^/nix/store/[^/ ]+/bin/vestal claude-statusline( |$)'
+      local current="" state=none filter tmp
+      if [[ -L "$settings" ]]; then
+        local target
+        target=$(${pkgs.coreutils}/bin/realpath -e "$settings" 2>/dev/null) || target=""
+        if [[ -z "$target" || "$target" == /nix/store/* ]]; then
+          echo "vestal: $settings is a link Home Manager or Nix owns; add the statusLine there: {\"type\": \"command\", \"command\": \"$want\"}" >&2
+          return 0
+        fi
+        settings=$target
+      fi
+      if [[ -e "$settings" ]]; then
+        if ! state=$("$jq" -r 'if type != "object" then error("not an object")
+            elif has("statusLine") | not then "none"
+            elif (.statusLine | type) == "object" and .statusLine.type == "command"
+                 and (.statusLine.command | type) == "string" then "command"
+            else "other" end' "$settings" 2>/dev/null); then
+          echo "vestal: $settings is not a JSON object; leaving it alone" >&2
+          return 0
+        fi
+        if [[ "$state" == command ]]; then current=$("$jq" -r '.statusLine.command' "$settings"); fi
+      fi
+
+      if [[ "$state" == none ]]; then
+        filter='. + {statusLine: {type: "command", command: $want}}'
+      elif [[ "$state" == command && "$current" =~ $ours ]]; then
+        [[ "''${current%% *} claude-statusline" == "$want" ]] && return 0
+        filter='.statusLine.command |= ($want + (ltrimstr(capture("^(?<p>[^ ]+ claude-statusline)").p)))'
+      else
+        echo "vestal: $settings already has a statusLine; leaving it alone. To show Claude usage in vestal, run \`$want --then <your command>\` as the status line (vestal docs ai-usage)" >&2
+        return 0
+      fi
+
+      if [[ -v DRY_RUN ]]; then
+        echo "Would set the statusLine in $settings to $want"
+        return 0
+      fi
+      mkdir -p "''${settings%/*}" || return 1
+      tmp=$(mktemp "$settings.vestal.XXXXXX") || return 1
+      if [[ -e "$settings" ]]; then
+        "$jq" --arg want "$want" "$filter" "$settings" > "$tmp" \
+          && ${pkgs.coreutils}/bin/chmod --reference="$settings" "$tmp" \
+          && mv "$tmp" "$settings" || { rm -f "$tmp"; return 1; }
+      else
+        "$jq" -n --arg want "$want" "{} | $filter" > "$tmp" && chmod 600 "$tmp" \
+          && mv "$tmp" "$settings" || { rm -f "$tmp"; return 1; }
+      fi
+    }
+
+    vestalClaudeStatusLine || echo "vestal: could not update" ${lib.escapeShellArg claudeSettings} >&2
+  '';
 in
 {
   options.programs.vestal = {
@@ -409,6 +476,16 @@ in
         '';
       };
     };
+
+    claudeStatusLine.enable = mkEnableOption ''
+      Claude Code's status line as `vestal claude-statusline`, which keeps
+      the Claude plan's rate limits for the `claude` source (Pro and Max
+      plans; see `vestal docs ai-usage`). Activation edits
+      {file}`~/.claude/settings.json` in place (Claude Code writes it too, so
+      it is never a link): it adds `statusLine` when there is none, and
+      updates vestal's own after a rebuild. Another status line is left
+      alone with a warning; chain it with `vestal claude-statusline --then
+      <command>` yourself'';
 
     signingIdentity = mkOption {
       type = types.nullOr types.str;
@@ -552,6 +629,10 @@ in
           ++ lib.optional (cfg.hyprland.animation != null) (layerRule "animation ${cfg.hyprland.animation}")
           ++ lib.optional cfg.hyprland.noAnim (layerRule "no_anim on");
       };
+    })
+
+    (mkIf cfg.claudeStatusLine.enable {
+      home.activation.vestalClaudeStatusLine = lib.hm.dag.entryAfter [ "writeBoundary" ] claudeStatusLineScript;
     })
 
     (mkIf signing {
