@@ -347,32 +347,11 @@ final class DashboardModel: ObservableObject {
     }
 
     /// This machine's popup, from the stats the dashboard already reads.
+    /// The root volume only (VestalCore's `ServerDetail.local`).
     private func localDetail(name: String) -> AsyncData.ServerDetail {
-        var mounts: [AsyncData.MountDetail] = []
-        if let disk {
-            let used = disk.totalBytes - disk.freeBytes
-            let pct = disk.totalBytes > 0 ? Int(Double(used) * 100 / Double(disk.totalBytes)) : 0
-            mounts.append(AsyncData.MountDetail(
-                mountpoint: "/", usagePercent: pct,
-                totalBytes: disk.totalBytes, usedBytes: used
-            ))
-        }
-        return AsyncData.ServerDetail(
-            name: name, ok: true,
-            cpuPercent: cpu,
-            ramPercent: memory.ramPercent,
-            memCompressed: memory.pressurePercent,
-            cpuTemp: temp,
-            uptimeSecs: Int(ProcessInfo.processInfo.systemUptime),
-            gpu: nil,
-            pools: [],
-            mounts: mounts,
-            rxBytesPerSec: network.bytesIn,
-            txBytesPerSec: network.bytesOut,
-            dockerRunning: nil,
-            jellyfinStreams: nil,
-            minecraft: nil
-        )
+        let mounts = disk.map { [MountUsage(mountpoint: "/", totalBytes: $0.totalBytes, freeBytes: $0.freeBytes)] } ?? []
+        return .local(name: name, cpuPercent: cpu, memory: memory, temperature: temp,
+                      uptime: ProcessInfo.processInfo.systemUptime, mounts: mounts, network: network)
     }
 
     /// Assigns only real changes: each assignment to a @Published property

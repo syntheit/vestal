@@ -1,0 +1,177 @@
+== /proc/stat
+cpu  26825754 8210172 19052460 546888766 274560662 2157937 976959 0 0 0
+cpu0 1977480 836953 1412716 31800316 18616263 96596 208548 0 0 0
+cpu1 1279611 313265 985594 31472306 20724405 87482 107625 0 0 0
+cpu2 3496276 1218198 1777351 28479522 19670588 129723 85550 0 0 0
+cpu3 3577870 1257114 1819207 21065081 26952342 103463 65069 0 0 0
+cpu4 614507 190990 855781 45353168 7869631 62568 45662 0 0 0
+cpu5 822535 363874 1102147 36565941 15935491 62798 38747 0 0 0
+cpu6 649261 189398 743778 38321090 14846783 56249 28225 0 0 0
+cpu7 1093216 611089 1307208 33706822 17980498 67354 37930 0 0 0
+cpu8 1806235 493739 1175472 36413428 14886526 95232 43578 0 0 0
+cpu9 1324404 296331 1021330 21601789 30561091 88735 36094 0 0 0
+cpu10 3567313 659550 1331300 32742138 16410149 93340 38075 0 0 0
+cpu11 3595181 647430 1320106 34564109 14578445 91669 37266 0 0 0
+cpu12 596629 158498 709477 42033070 11268257 56064 23808 0 0 0
+cpu13 763103 195480 726656 32199760 20873499 51739 22100 0 0 0
+cpu14 620850 298459 1308539 41826184 10198093 923996 57756 0 0 0
+cpu15 1041277 479797 1455790 38744036 13188595 90922 100918 0 0 0
+intr 7701731333 134 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 5 0 1 1 1 0 1 0 1 1 2220 27 11 9 20 53 19 11 48 0 0 0 0 0 0 45799249 0 0 0 0 0 0 0 0 0 0 0 25712564 0 0 0 0 0 0 0 0 0 0 3636266 0 0 0 0 0 0 0 0 0 0 0 0 62355232 129657 0 2356 1699131 2916 86471 5464 45282 5187 3005 2723 2540 5920 2084 5733 2697 2577 6761 3 0 186380067 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+ctxt 8529609003
+btime 1789940974
+processes 62967537
+procs_running 2
+procs_blocked 10
+softirq 2896978090 22895730 428122352 198288 138622914 45571765 0 7541977 1175473331 1270 1078550463
+== /proc/meminfo
+MemTotal:       32785284 kB
+MemFree:          749724 kB
+MemAvailable:    9474076 kB
+Buffers:             592 kB
+Cached:          8442888 kB
+SwapCached:         3704 kB
+Active:         14853556 kB
+Inactive:       11744788 kB
+Active(anon):   14575968 kB
+Inactive(anon):  3859312 kB
+Active(file):     277588 kB
+Inactive(file):  7885476 kB
+Unevictable:      104412 kB
+Mlocked:           14584 kB
+SwapTotal:      26878652 kB
+SwapFree:       19526504 kB
+Zswap:                 0 kB
+Zswapped:              0 kB
+Dirty:              2528 kB
+Writeback:             0 kB
+AnonPages:      18258412 kB
+Mapped:           889584 kB
+Shmem:            178592 kB
+KReclaimable:    1026828 kB
+Slab:            1758036 kB
+SReclaimable:    1026828 kB
+SUnreclaim:       731208 kB
+KernelStack:       38416 kB
+PageTables:       272816 kB
+SecPageTables:      5252 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:    43271292 kB
+Committed_AS:   41066864 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:      315568 kB
+VmallocChunk:          0 kB
+Percpu:            20544 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:         0 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+FileHugePages:         0 kB
+FilePmdMapped:         0 kB
+CmaTotal:              0 kB
+CmaFree:               0 kB
+Unaccepted:            0 kB
+Balloon:               0 kB
+GPUActive:             0 kB
+GPUReclaim:            0 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+Hugetlb:               0 kB
+DirectMap4k:     3809184 kB
+DirectMap2M:    22329344 kB
+DirectMap1G:     7340032 kB
+== /proc/net/dev
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo: 32847968  133564    0    0    0     0          0         0 32847968  133564    0    0    0     0       0          0
+enp34s0: 88949605407 84253146    0    0    0     0          0    239191 18548136143 48905157    0    0    0     0       0          0
+  wlo1: 438266643  449405    0    0    0     0          0         0 402134214  442576    0  155    0     0       0          0
+   wg0:  396060    4305    0    0    0     0          0         0  1537224   30631 12123   16    0     0       0          0
+tailscale0: 5425033083 4641738    0    0    0     0          0         0 7327791986 10973490    0    0    0     0       0          0
+== /proc/uptime
+545431.25 5468887.71
+== /proc/self/mounts
+/dev/mapper/luks-3e72a884-3bf1-43ba-815c-b04b5efb3e26 / btrfs rw,relatime,compress=zstd:3,ssd,space_cache=v2,subvolid=256,subvol=/@ 0 0
+tmpfs /run tmpfs rw,nosuid,nodev,size=8196324k,nr_inodes=819200,mode=755 0 0
+devtmpfs /dev devtmpfs rw,nosuid,size=1639268k,nr_inodes=4082937,mode=755 0 0
+devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=3,mode=620,ptmxmode=666 0 0
+tmpfs /dev/shm tmpfs rw,nosuid,nodev,size=16392644k 0 0
+proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0
+ramfs /run/keys ramfs rw,nosuid,nodev,relatime,mode=750 0 0
+sysfs /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0
+/dev/mapper/luks-3e72a884-3bf1-43ba-815c-b04b5efb3e26 /nix/store btrfs ro,nosuid,nodev,relatime,compress=zstd:3,ssd,space_cache=v2,subvolid=256,subvol=/@ 0 0
+none /run/secrets.d ramfs rw,nosuid,nodev,noexec,relatime,mode=751 0 0
+securityfs /sys/kernel/security securityfs rw,nosuid,nodev,noexec,relatime 0 0
+cgroup2 /sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot,memory_hugetlb_accounting 0 0
+none /sys/fs/pstore pstore rw,nosuid,nodev,noexec,relatime 0 0
+efivarfs /sys/firmware/efi/efivars efivarfs rw,nosuid,nodev,noexec,relatime 0 0
+bpf /sys/fs/bpf bpf rw,nosuid,nodev,noexec,relatime,mode=700 0 0
+mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0
+hugetlbfs /dev/hugepages hugetlbfs rw,nosuid,nodev,relatime,pagesize=2M 0 0
+debugfs /sys/kernel/debug debugfs rw,nosuid,nodev,noexec,relatime 0 0
+tracefs /sys/kernel/tracing tracefs rw,nosuid,nodev,noexec,relatime 0 0
+none /run/credentials/systemd-journald.service tmpfs ro,nosuid,nodev,noexec,relatime,nosymfollow,size=1024k,nr_inodes=1024,mode=700,noswap 0 0
+configfs /sys/kernel/config configfs rw,nosuid,nodev,noexec,relatime 0 0
+fusectl /sys/fs/fuse/connections fusectl rw,nosuid,nodev,noexec,relatime 0 0
+none /run/credentials/systemd-resolved.service tmpfs ro,nosuid,nodev,noexec,relatime,nosymfollow,size=1024k,nr_inodes=1024,mode=700,noswap 0 0
+tmpfs /run/wrappers tmpfs rw,nodev,relatime,size=16392644k,mode=755 0 0
+tmpfs /tmp tmpfs rw,nosuid,nodev,size=16392644k 0 0
+/dev/sda1 /boot vfat rw,relatime,fmask=0077,dmask=0077,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro 0 0
+sunrpc /var/lib/nfs/rpc_pipefs rpc_pipefs rw,relatime 0 0
+tmpfs /run/user/1000 tmpfs rw,nosuid,nodev,relatime,size=3278528k,nr_inodes=819632,mode=700,uid=1000,gid=100 0 0
+portal /run/user/1000/doc fuse.portal rw,nosuid,nodev,relatime,user_id=1000,group_id=100 0 0
+gvfsd-fuse /run/user/1000/gvfs fuse.gvfsd-fuse rw,nosuid,nodev,relatime,user_id=1000,group_id=100 0 0
+== /sys/class/hwmon/hwmon0/name
+nvme
+== /sys/class/hwmon/hwmon1/name
+k10temp
+== /sys/class/hwmon/hwmon2/name
+iwlwifi_1
+== /sys/class/hwmon/hwmon3/name
+hidpp_battery_10
+== /sys/class/hwmon/hwmon0/temp1_label
+Composite
+== /sys/class/hwmon/hwmon0/temp2_label
+Sensor 1
+== /sys/class/hwmon/hwmon1/temp1_label
+Tctl
+== /sys/class/hwmon/hwmon1/temp3_label
+Tccd1
+== /sys/class/hwmon/hwmon0/temp1_input
+36850
+== /sys/class/hwmon/hwmon0/temp2_input
+36850
+== /sys/class/hwmon/hwmon1/temp1_input
+51500
+== /sys/class/hwmon/hwmon1/temp3_input
+48750
+== /sys/class/hwmon/hwmon2/temp1_input
+38000
+== /sys/class/thermal/thermal_zone0/type
+iwlwifi_1
+== /sys/class/thermal/thermal_zone0/temp
+38000
+== /sys/class/power_supply/hidpp_battery_10/uevent
+DEVTYPE=power_supply
+POWER_SUPPLY_NAME=hidpp_battery_10
+POWER_SUPPLY_TYPE=Battery
+POWER_SUPPLY_STATUS=Discharging
+POWER_SUPPLY_ONLINE=1
+POWER_SUPPLY_CAPACITY_LEVEL=Normal
+POWER_SUPPLY_TYPE=Battery
+POWER_SUPPLY_SCOPE=Device
+POWER_SUPPLY_MODEL_NAME=MX Vertical Advanced Ergonomic Mouse
+POWER_SUPPLY_MANUFACTURER=Logitech
+POWER_SUPPLY_SERIAL_NUMBER=00:00:00:00:00:00
+== /sys/devices/virtual/net/lo/type
+772
+== /sys/devices/virtual/net/tailscale0/type
+65534
+== /sys/devices/virtual/net/wg0/type
+65534
+== /sys/block/zram0/mm_stat
+7186841600 2299504272 2352947200        0 3000115200    59808   844216   117178   535473

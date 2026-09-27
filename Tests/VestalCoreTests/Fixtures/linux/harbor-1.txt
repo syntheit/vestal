@@ -1,0 +1,517 @@
+== /proc/stat
+cpu  10390655 50444 6298107 366306471 3028051 491381 715440 0 370166 0
+cpu0 733520 3089 401547 17926303 167177 28171 82523 0 24899 0
+cpu1 363549 1497 210976 18663471 104248 10458 23322 0 9528 0
+cpu2 865853 3301 463355 17722472 239385 30782 15242 0 46513 0
+cpu3 385759 2010 210760 18680607 89089 9131 3485 0 11053 0
+cpu4 824955 3894 593765 17585776 246565 30450 165051 0 45446 0
+cpu5 404881 2461 213115 18663349 87480 8217 1927 0 11167 0
+cpu6 941042 4075 500346 17551634 292258 31492 15771 0 52154 0
+cpu7 374981 1405 208059 18710857 77435 7916 1927 0 9922 0
+cpu8 945645 4179 502971 17549748 288479 31187 15205 0 50657 0
+cpu9 369443 2138 203135 18724335 75114 7433 1743 0 8021 0
+cpu10 933946 4488 501292 17576982 277260 29974 14045 0 47838 0
+cpu11 353035 1622 200517 18753595 67290 6913 1596 0 7054 0
+cpu12 389936 2579 293390 18425707 187779 30780 14267 0 10638 0
+cpu13 354698 2253 260544 18514108 173916 28879 12009 0 8166 0
+cpu14 330615 1980 234529 18607693 140866 24941 10497 0 5843 0
+cpu15 317920 1834 226352 18655531 122293 22257 9039 0 4587 0
+cpu16 382592 2066 269499 18567613 106506 21503 8539 0 4611 0
+cpu17 364547 1947 273324 18244047 89628 90447 303999 0 3731 0
+cpu18 377448 1841 266493 18585355 100513 20580 7727 0 3983 0
+cpu19 376283 1776 264127 18597281 94760 19860 7518 0 4342 0
+intr 3690910524 21 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 214 22 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 164 1 1 1 1 1 6704 0 0 0 0 0 0 0 0 35852 35853 35855 1115697 696008 1409807 611256 1530195 571158 1573582 585855 1564988 539830 1423348 504792 2057007 1970825 1431180 1127724 757052 692477 681704 643863 1030667 468974 1496427 502822 1500072 435032 1762499 488984 1751390 440455 1737417 413679 818692 652220 552351 465270 473975 458549 471648 419656 1090990 677685 1377239 594054 1494992 554642 1537311 567906 1532775 520444 1391832 489886 2009687 1928729 1391382 1090099 723126 658383 652406 615560 6402926 48 0 92334 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3 264213259 444 207455 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+ctxt 6154648482
+btime 1790292441
+processes 8327202
+procs_running 5
+procs_blocked 0
+softirq 1524061948 68 47210054 3032989 884031309 6452478 0 118061 304099593 2513029 276604367
+== /proc/meminfo
+MemTotal:       65593952 kB
+MemFree:         2128564 kB
+MemAvailable:   31615760 kB
+Buffers:              36 kB
+Cached:         23963608 kB
+SwapCached:        90408 kB
+Active:         10586292 kB
+Inactive:       24479460 kB
+Active(anon):    8423768 kB
+Inactive(anon):  4176672 kB
+Active(file):    2162524 kB
+Inactive(file): 20302788 kB
+Unevictable:        2280 kB
+Mlocked:            2016 kB
+SwapTotal:      16398332 kB
+SwapFree:        9598988 kB
+Zswap:                 0 kB
+Zswapped:              0 kB
+Dirty:              5996 kB
+Writeback:             0 kB
+AnonPages:      10977276 kB
+Mapped:          2140272 kB
+Shmem:           1496384 kB
+KReclaimable:   11518708 kB
+Slab:           18656304 kB
+SReclaimable:   11492552 kB
+SUnreclaim:      7163752 kB
+KernelStack:       83304 kB
+PageTables:       226356 kB
+SecPageTables:      1160 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:    49195308 kB
+Committed_AS:   62509792 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:     1180856 kB
+VmallocChunk:          0 kB
+Percpu:            29200 kB
+HardwareCorrupted:     0 kB
+AnonHugePages:   1386496 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+FileHugePages:         0 kB
+FilePmdMapped:         0 kB
+CmaTotal:              0 kB
+CmaFree:               0 kB
+Unaccepted:            0 kB
+Balloon:               0 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+Hugetlb:               0 kB
+DirectMap4k:    14136732 kB
+DirectMap2M:    49573888 kB
+DirectMap1G:     4194304 kB
+== /proc/net/dev
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo: 3077373027 4620076    0    0    0     0          0         0 3077373027 4620076    0    0    0     0       0          0
+enp4s0: 282340201419 458990982    0    0    0     0          0     16483 253432888090 471203437    0    0    0     0       0          0
+wlp5s0:       0       0    0    0    0     0          0         0        0       0    0    2    0     0       0          0
+virbr0: 113583063  898582    0    0    0     0          0         3 73594740  897753    0    2    0     0       0          0
+ vnet0: 126176061  898645    0    0    0     0          0         0 78642219  994776    0    0    0     0       0          0
+   wg0: 1855617292 2193712    0    0    0     0          0         0 26837248696 19151611 2007 3376    0     0       0          0
+tailscale0: 8553222   79888    0    0    0     0          0         0 12232094   84481    0    0    0     0       0          0
+pelican0: 661267118  487114    0    0    0     0          0       574 63417042  435355    0    2    0     0       0          0
+br-39a107b76d1f:  101977    3263    0    0    0     0          0         0    32299     124    0    2    0     0       0          0
+br-602b2f6b4c5c:      84       3    0    0    0     0          0         0     7162      79    0    2    0     0       0          0
+br-e559394731f2: 33246682   51375    0    0    0     0          0         0  7834966   60392    0    2    0     0       0          0
+br-e872033d5c8e: 975150407  693155    0    0    0     0          0         0 1693235732 1047098    0    2    0     0       0          0
+br-f39ac70de67d: 84497037  109480    0    0    0     0          0         0 21165937  111786    0    2    0     0       0          0
+br-1d57a893bce6:    2806      20    0    0    0     0          0         0    12619      90    0    2    0     0       0          0
+br-381a069a40d4: 5804167   59591    0    0    0     0          0         0 12074356   52351    0    2    0     0       0          0
+br-4bf18627444f: 65402793   92584    0    0    0     0          0         0 67090050  154306    0    2    0     0       0          0
+docker0: 25153755888 2502400    0    0    0     0          0       864 654954975 1822458    0    2    0     0       0          0
+br-56cf9f76451f:      84       3    0    0    0     0          0         0     7162      79    0    2    0     0       0          0
+br-5bac12140a52: 7309489   17240    0    0    0     0          0         0  6547926   18445    0    2    0     0       0          0
+br-75de15cde649: 215553029300 443565626    0    0    0     0          0        34 266823832853 439890350    0    2    0     0       0          0
+br-cae2adb8ec95: 108942963  210536    0    0    0     0          0         0 20273703  191233    0    2    0     0       0          0
+veth4b0e2bc:     126       3    0    0    0     0          0         0   146785    3342    0    0    0     0       0          0
+vethcf1f9a1: 6365211   53139    0    0    0     0          0         0 12742804   68324    0    0    0     0       0          0
+veth79a162a:    2960      17    0    0    0     0          0         0    17086     135    0    0    0     0       0          0
+vethaeed52b:    2960      17    0    0    0     0          0         0   686094   16069    0    0    0     0       0          0
+veth06d3035:     126       3    0    0    0     0          0         0    11503     121    0    0    0     0       0          0
+veth04e290e:     126       3    0    0    0     0          0         0    11087     118    0    0    0     0       0          0
+veth7c9527c:     126       3    0    0    0     0          0         0    11503     121    0    0    0     0       0          0
+vethd86f271:     126       3    0    0    0     0          0         0  2072033    7497    0    0    0     0       0          0
+vethf5386e5: 9428784   51270    0    0    0     0          0         0  5513821   54735    0    0    0     0       0          0
+veth620cd62:   12419      43    0    0    0     0          0         0   171364    3379    0    0    0     0       0          0
+br-e33f0af4cbc2:       0       0    0    0    0     0          0         0        0       0    0    2    0     0       0          0
+vethaf78fe9: 187009917  122829    0    0    0     0          0         0 13379509  129634    0    0    0     0       0          0
+veth7474039:     126       3    0    0    0     0          0         0  2068951    7465    0    0    0     0       0          0
+veth15a89c5: 13739753   45076    0    0    0     0          0         0  5564519   55529    0    0    0     0       0          0
+vethffbefe0:     126       3    0    0    0     0          0         0    12091     135    0    0    0     0       0          0
+veth4b5ab0d: 7980369102  710794    0    0    0     0          0         0 824354457  651391    0    0    0     0       0          0
+veth89500fb:     126       3    0    0    0     0          0         0  2068951    7465    0    0    0     0       0          0
+vethf80c8e3: 40256518  521568    0    0    0     0          0         0 230517426  713549    0    0    0     0       0          0
+vethdcf1ce8: 21194952   54719    0    0    0     0          0         0  7843743   60229    0    0    0     0       0          0
+vethaf05872: 3326487234 3969697    0    0    0     0          0         0 10634035759 4248522    0    0    0     0       0          0
+vethb803b0b:     126       3    0    0    0     0          0         0  2068825    7462    0    0    0     0       0          0
+vethe66e8c3: 54552528   35672    0    0    0     0          0         0  8045529   50252    0    0    0     0       0          0
+veth3e0fac0: 952851936 2420810    0    0    0     0          0         0 1381040613 2555145    0    0    0     0       0          0
+veth37314a6: 851414468 4246496    0    0    0     0          0         0 639068050 4197564    0    0    0     0       0          0
+vetheb32ce5: 44415965  150732    0    0    0     0          0         0 126173217  197300    0    0    0     0       0          0
+veth4d7d52b: 287202495  730783    0    0    0     0          0         0 323746805  904514    0    0    0     0       0          0
+vethf0a6fbf:  631529    6865    0    0    0     0          0         0   583648    7588    0    0    0     0       0          0
+veth7f4ad1b: 5528758   40979    0    0    0     0          0         0  9576466   80702    0    0    0     0       0          0
+veth367bb5e: 26496662   24946    0    0    0     0          0         0  4793224   32096    0    0    0     0       0          0
+veth691815f: 13256893  204876    0    0    0     0          0         0 13264928  204958    0    0    0     0       0          0
+veth07647ad: 242948429  778628    0    0    0     0          0         0 60012060  578009    0    0    0     0       0          0
+veth2ead821: 1534771169 1182663    0    0    0     0          0         0 5173083891 1286155    0    0    0     0       0          0
+veth6ed7be9: 125517406 1517544    0    0    0     0          0         0 467414814 1599020    0    0    0     0       0          0
+veth4628800: 1029490438 5194404    0    0    0     0          0         0 1205709691 5131608    0    0    0     0       0          0
+veth4735491: 125084635  414950    0    0    0     0          0         0 33391072  395721    0    0    0     0       0          0
+veth14838ff: 7575622   69790    0    0    0     0          0         0 136272579   70403    0    0    0     0       0          0
+vethc36edcb: 1373950    3342    0    0    0     0          0         0  4198132    4762    0    0    0     0       0          0
+veth0b1d345: 510934172 1730843    0    0    0     0          0         0 138884014 1618940    0    0    0     0       0          0
+veth4cc34f8: 24526054927 1369192    0    0    0     0          0         0 230093950 1071192    0    0    0     0       0          0
+veth18760cc:     126       3    0    0    0     0          0         0    10039     120    0    0    0     0       0          0
+vethf23686d:   60692     427    0    0    0     0          0         0   150286     509    0    0    0     0       0          0
+vetha6d3bf9: 2692386   39315    0    0    0     0          0         0  8036267   38405    0    0    0     0       0          0
+veth21d40c1: 91160345  130089    0    0    0     0          0         0 30080629  127701    0    0    0     0       0          0
+veth4f48cbd: 646043600  273004    0    0    0     0          0         0 31271435  452759    0    0    0     0       0          0
+veth1840cfc: 22043114  214110    0    0    0     0          0         0 36568087   80248    0    0    0     0       0          0
+veth0164f4c: 221669523927 442465339    0    0    0     0          0         0 259168475342 438676734    0    0    0     0       0          0
+vethd38a865: 367161700   99310    0    0    0     0          0         0 58797696  111203    0    0    0     0       0          0
+veth2e77abe: 68074365  257715    0    0    0     0          0         0 245780332  235678    0    0    0     0       0          0
+veth6cc6671: 84667284  941128    0    0    0     0          0         0 1795409966  783571    0    0    0     0       0          0
+veth1fa0292: 745101750  591353    0    0    0     0          0         0 202782362  736325    0    0    0     0       0          0
+veth015f31f: 94857141  264172    0    0    0     0          0         0  6397076   50338    0    0    0     0       0          0
+== /proc/uptime
+193960.76 3663064.78
+== /proc/self/mounts
+/dev/nvme2n1p1 / btrfs rw,relatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=256,subvol=/@ 0 0
+tmpfs /run tmpfs rw,nosuid,nodev,size=16398488k,nr_inodes=819200,mode=755 0 0
+devtmpfs /dev devtmpfs rw,nosuid,size=3279700k,nr_inodes=8176928,mode=755 0 0
+devpts /dev/pts devpts rw,nosuid,noexec,relatime,gid=3,mode=620,ptmxmode=666 0 0
+tmpfs /dev/shm tmpfs rw,nosuid,nodev 0 0
+proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0
+ramfs /run/keys ramfs rw,nosuid,nodev,relatime,mode=750 0 0
+sysfs /sys sysfs rw,nosuid,nodev,noexec,relatime 0 0
+/dev/nvme2n1p1 /nix/store btrfs ro,nosuid,nodev,relatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=256,subvol=/@ 0 0
+none /run/secrets.d ramfs rw,nosuid,nodev,noexec,relatime,mode=751 0 0
+securityfs /sys/kernel/security securityfs rw,nosuid,nodev,noexec,relatime 0 0
+cgroup2 /sys/fs/cgroup cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot,memory_hugetlb_accounting 0 0
+none /sys/fs/pstore pstore rw,nosuid,nodev,noexec,relatime 0 0
+efivarfs /sys/firmware/efi/efivars efivarfs rw,nosuid,nodev,noexec,relatime 0 0
+bpf /sys/fs/bpf bpf rw,nosuid,nodev,noexec,relatime,mode=700 0 0
+none /run/credentials/systemd-journald.service tmpfs ro,nosuid,nodev,noexec,relatime,nosymfollow,size=1024k,nr_inodes=1024,mode=700,noswap 0 0
+debugfs /sys/kernel/debug debugfs rw,nosuid,nodev,noexec,relatime 0 0
+tracefs /sys/kernel/tracing tracefs rw,nosuid,nodev,noexec,relatime 0 0
+hugetlbfs /dev/hugepages hugetlbfs rw,nosuid,nodev,relatime,pagesize=2M 0 0
+mqueue /dev/mqueue mqueue rw,nosuid,nodev,noexec,relatime 0 0
+configfs /sys/kernel/config configfs rw,nosuid,nodev,noexec,relatime 0 0
+none /run/credentials/systemd-resolved.service tmpfs ro,nosuid,nodev,noexec,relatime,nosymfollow,size=1024k,nr_inodes=1024,mode=700,noswap 0 0
+tmpfs /run/wrappers tmpfs rw,nodev,relatime,mode=755 0 0
+tmpfs /tmp tmpfs rw,nosuid,nodev,size=16777216k 0 0
+fusectl /sys/fs/fuse/connections fusectl rw,nosuid,nodev,noexec,relatime 0 0
+mergerfs /media fuse.mergerfs rw,nosuid,nodev,relatime,user_id=0,group_id=0,default_permissions,allow_other 0 0
+/dev/nvme2n1p2 /boot vfat rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=iso8859-1,shortname=mixed,errors=remount-ro 0 0
+/dev/sdd1 /micron01 btrfs rw,relatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/ 0 0
+lambdapool /lambdapool zfs rw,relatime,xattr,noacl,casesensitive 0 0
+arespool /arespool zfs rw,relatime,xattr,noacl,casesensitive 0 0
+epsilpool /epsilpool zfs rw,relatime,xattr,noacl,casesensitive 0 0
+rhopool /rhopool zfs rw,relatime,xattr,noacl,casesensitive 0 0
+deltapool /deltapool zfs rw,relatime,xattr,noacl,casesensitive 0 0
+iotapool /iotapool zfs rw,relatime,xattr,noacl,casesensitive 0 0
+thetapool /thetapool zfs rw,relatime,xattr,noacl,casesensitive 0 0
+platapool /platapool zfs rw,relatime,xattr,noacl,casesensitive 0 0
+iotapool/seafile-replica /iotapool/seafile-replica zfs ro,relatime,xattr,noacl,casesensitive 0 0
+platapool/seafile /platapool/seafile zfs rw,noatime,xattr,noacl,casesensitive 0 0
+none /run/credentials/libvirtd.service tmpfs ro,nosuid,nodev,noexec,relatime,nosymfollow,size=1024k,nr_inodes=1024,mode=700,noswap 0 0
+none /run/credentials/paperless-scheduler.service tmpfs ro,nosuid,nodev,noexec,relatime,nosymfollow,size=1024k,nr_inodes=1024,mode=700,noswap 0 0
+none /run/credentials/cloudflared-tunnel-harbor.service tmpfs ro,nosuid,nodev,noexec,relatime,nosymfollow,size=1024k,nr_inodes=1024,mode=700,noswap 0 0
+/dev/nvme2n1p1 /var/lib/docker/btrfs btrfs rw,relatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=256,subvol=/@ 0 0
+none /run/credentials/getty@tty1.service tmpfs ro,nosuid,nodev,noexec,relatime,nosymfollow,size=1024k,nr_inodes=1024,mode=700,noswap 0 0
+nsfs /run/docker/netns/default nsfs rw 0 0
+nsfs /run/docker/netns/2f248bf506d2 nsfs rw 0 0
+nsfs /run/docker/netns/0df16ff7490d nsfs rw 0 0
+nsfs /run/docker/netns/0819bb956a16 nsfs rw 0 0
+nsfs /run/docker/netns/2415eba31f8b nsfs rw 0 0
+nsfs /run/docker/netns/7633f660679a nsfs rw 0 0
+nsfs /run/docker/netns/9065275db62c nsfs rw 0 0
+nsfs /run/docker/netns/c45b1e16f788 nsfs rw 0 0
+nsfs /run/docker/netns/fb73841cd9aa nsfs rw 0 0
+nsfs /run/docker/netns/29e06c7835da nsfs rw 0 0
+nsfs /run/docker/netns/81a149aa8cdf nsfs rw 0 0
+nsfs /run/docker/netns/8266bda2e675 nsfs rw 0 0
+nsfs /run/docker/netns/c616f7163352 nsfs rw 0 0
+nsfs /run/docker/netns/d6114ae1ccdc nsfs rw 0 0
+nsfs /run/docker/netns/d428238bdc9b nsfs rw 0 0
+nsfs /run/docker/netns/eef781564a6e nsfs rw 0 0
+nsfs /run/docker/netns/a18732d4a967 nsfs rw 0 0
+nsfs /run/docker/netns/ba325682038d nsfs rw 0 0
+nsfs /run/docker/netns/bd75cfa3d661 nsfs rw 0 0
+nsfs /run/docker/netns/b5d98f854353 nsfs rw 0 0
+nsfs /run/docker/netns/de7aae08e057 nsfs rw 0 0
+nsfs /run/docker/netns/84405c93352f nsfs rw 0 0
+nsfs /run/docker/netns/f8463dbb052f nsfs rw 0 0
+nsfs /run/docker/netns/fd16d7377207 nsfs rw 0 0
+nsfs /run/docker/netns/a9055936839a nsfs rw 0 0
+nsfs /run/docker/netns/4884216f17b3 nsfs rw 0 0
+nsfs /run/docker/netns/7fb1a785a24b nsfs rw 0 0
+nsfs /run/docker/netns/f2728e79ee7c nsfs rw 0 0
+nsfs /run/docker/netns/dd7d320b58a5 nsfs rw 0 0
+nsfs /run/docker/netns/d6aef62a251b nsfs rw 0 0
+nsfs /run/docker/netns/8f2f5cd1a7ae nsfs rw 0 0
+nsfs /run/docker/netns/300ed7dc20bd nsfs rw 0 0
+nsfs /run/docker/netns/a5b20a868e99 nsfs rw 0 0
+nsfs /run/docker/netns/f40884e37b74 nsfs rw 0 0
+nsfs /run/docker/netns/c84c97988f98 nsfs rw 0 0
+nsfs /run/docker/netns/7d193719457d nsfs rw 0 0
+nsfs /run/docker/netns/2c4baab5685a nsfs rw 0 0
+nsfs /run/docker/netns/c4cf511eefd6 nsfs rw 0 0
+nsfs /run/docker/netns/2983db6a15c8 nsfs rw 0 0
+nsfs /run/docker/netns/b7dd8b5b8b12 nsfs rw 0 0
+nsfs /run/docker/netns/c6319d1357f0 nsfs rw 0 0
+nsfs /run/docker/netns/93780978934f nsfs rw 0 0
+nsfs /run/docker/netns/a73fb51d829d nsfs rw 0 0
+nsfs /run/docker/netns/9cdee8b8e131 nsfs rw 0 0
+nsfs /run/docker/netns/7fedd97d9ab2 nsfs rw 0 0
+nsfs /run/docker/netns/5e158a46a362 nsfs rw 0 0
+tmpfs /run/user/1000 tmpfs rw,nosuid,nodev,relatime,size=6559392k,nr_inodes=1639848,mode=700,uid=1000,gid=100 0 0
+nsfs /run/docker/netns/38d631bfe07e nsfs rw 0 0
+nsfs /run/docker/netns/5229b3daf62f nsfs rw 0 0
+nsfs /run/docker/netns/2dfdc290133f nsfs rw 0 0
+== /sys/class/hwmon/hwmon0/name
+nvme
+== /sys/class/hwmon/hwmon1/name
+nvme
+== /sys/class/hwmon/hwmon2/name
+nvme
+== /sys/class/hwmon/hwmon3/name
+coretemp
+== /sys/class/hwmon/hwmon4/name
+iwlwifi_1
+== /sys/class/hwmon/hwmon0/temp1_label
+Composite
+== /sys/class/hwmon/hwmon0/temp2_label
+Sensor 1
+== /sys/class/hwmon/hwmon0/temp3_label
+Sensor 2
+== /sys/class/hwmon/hwmon1/temp1_label
+Composite
+== /sys/class/hwmon/hwmon1/temp2_label
+Sensor 1
+== /sys/class/hwmon/hwmon1/temp3_label
+Sensor 2
+== /sys/class/hwmon/hwmon2/temp1_label
+Composite
+== /sys/class/hwmon/hwmon2/temp2_label
+Sensor 1
+== /sys/class/hwmon/hwmon2/temp3_label
+Sensor 2
+== /sys/class/hwmon/hwmon3/temp10_label
+Core 8
+== /sys/class/hwmon/hwmon3/temp14_label
+Core 12
+== /sys/class/hwmon/hwmon3/temp18_label
+Core 16
+== /sys/class/hwmon/hwmon3/temp1_label
+Package id 0
+== /sys/class/hwmon/hwmon3/temp22_label
+Core 20
+== /sys/class/hwmon/hwmon3/temp26_label
+Core 24
+== /sys/class/hwmon/hwmon3/temp27_label
+Core 25
+== /sys/class/hwmon/hwmon3/temp28_label
+Core 26
+== /sys/class/hwmon/hwmon3/temp29_label
+Core 27
+== /sys/class/hwmon/hwmon3/temp2_label
+Core 0
+== /sys/class/hwmon/hwmon3/temp30_label
+Core 28
+== /sys/class/hwmon/hwmon3/temp31_label
+Core 29
+== /sys/class/hwmon/hwmon3/temp32_label
+Core 30
+== /sys/class/hwmon/hwmon3/temp33_label
+Core 31
+== /sys/class/hwmon/hwmon3/temp6_label
+Core 4
+== /sys/class/hwmon/hwmon0/temp1_input
+50850
+== /sys/class/hwmon/hwmon0/temp2_input
+67850
+== /sys/class/hwmon/hwmon0/temp3_input
+41850
+== /sys/class/hwmon/hwmon1/temp1_input
+50850
+== /sys/class/hwmon/hwmon1/temp2_input
+50850
+== /sys/class/hwmon/hwmon1/temp3_input
+53850
+== /sys/class/hwmon/hwmon2/temp1_input
+54850
+== /sys/class/hwmon/hwmon2/temp2_input
+73850
+== /sys/class/hwmon/hwmon2/temp3_input
+47850
+== /sys/class/hwmon/hwmon3/temp10_input
+54000
+== /sys/class/hwmon/hwmon3/temp14_input
+43000
+== /sys/class/hwmon/hwmon3/temp18_input
+43000
+== /sys/class/hwmon/hwmon3/temp1_input
+54000
+== /sys/class/hwmon/hwmon3/temp22_input
+43000
+== /sys/class/hwmon/hwmon3/temp26_input
+42000
+== /sys/class/hwmon/hwmon3/temp27_input
+42000
+== /sys/class/hwmon/hwmon3/temp28_input
+42000
+== /sys/class/hwmon/hwmon3/temp29_input
+42000
+== /sys/class/hwmon/hwmon3/temp2_input
+43000
+== /sys/class/hwmon/hwmon3/temp30_input
+45000
+== /sys/class/hwmon/hwmon3/temp31_input
+44000
+== /sys/class/hwmon/hwmon3/temp32_input
+43000
+== /sys/class/hwmon/hwmon3/temp33_input
+44000
+== /sys/class/hwmon/hwmon3/temp6_input
+57000
+== /sys/class/hwmon/hwmon4/temp1_input
+34000
+== /sys/class/thermal/thermal_zone0/type
+x86_pkg_temp
+== /sys/class/thermal/thermal_zone1/type
+iwlwifi_1
+== /sys/class/thermal/thermal_zone0/temp
+59000
+== /sys/class/thermal/thermal_zone1/temp
+34000
+== /sys/devices/virtual/net/br-1d57a893bce6/type
+1
+== /sys/devices/virtual/net/br-381a069a40d4/type
+1
+== /sys/devices/virtual/net/br-39a107b76d1f/type
+1
+== /sys/devices/virtual/net/br-4bf18627444f/type
+1
+== /sys/devices/virtual/net/br-56cf9f76451f/type
+1
+== /sys/devices/virtual/net/br-5bac12140a52/type
+1
+== /sys/devices/virtual/net/br-602b2f6b4c5c/type
+1
+== /sys/devices/virtual/net/br-75de15cde649/type
+1
+== /sys/devices/virtual/net/br-cae2adb8ec95/type
+1
+== /sys/devices/virtual/net/br-e33f0af4cbc2/type
+1
+== /sys/devices/virtual/net/br-e559394731f2/type
+1
+== /sys/devices/virtual/net/br-e872033d5c8e/type
+1
+== /sys/devices/virtual/net/br-f39ac70de67d/type
+1
+== /sys/devices/virtual/net/docker0/type
+1
+== /sys/devices/virtual/net/lo/type
+772
+== /sys/devices/virtual/net/pelican0/type
+1
+== /sys/devices/virtual/net/tailscale0/type
+65534
+== /sys/devices/virtual/net/veth015f31f/type
+1
+== /sys/devices/virtual/net/veth0164f4c/type
+1
+== /sys/devices/virtual/net/veth04e290e/type
+1
+== /sys/devices/virtual/net/veth06d3035/type
+1
+== /sys/devices/virtual/net/veth07647ad/type
+1
+== /sys/devices/virtual/net/veth0b1d345/type
+1
+== /sys/devices/virtual/net/veth14838ff/type
+1
+== /sys/devices/virtual/net/veth15a89c5/type
+1
+== /sys/devices/virtual/net/veth1840cfc/type
+1
+== /sys/devices/virtual/net/veth18760cc/type
+1
+== /sys/devices/virtual/net/veth1fa0292/type
+1
+== /sys/devices/virtual/net/veth21d40c1/type
+1
+== /sys/devices/virtual/net/veth2e77abe/type
+1
+== /sys/devices/virtual/net/veth2ead821/type
+1
+== /sys/devices/virtual/net/veth367bb5e/type
+1
+== /sys/devices/virtual/net/veth37314a6/type
+1
+== /sys/devices/virtual/net/veth3e0fac0/type
+1
+== /sys/devices/virtual/net/veth4628800/type
+1
+== /sys/devices/virtual/net/veth4735491/type
+1
+== /sys/devices/virtual/net/veth4b0e2bc/type
+1
+== /sys/devices/virtual/net/veth4b5ab0d/type
+1
+== /sys/devices/virtual/net/veth4cc34f8/type
+1
+== /sys/devices/virtual/net/veth4d7d52b/type
+1
+== /sys/devices/virtual/net/veth4f48cbd/type
+1
+== /sys/devices/virtual/net/veth620cd62/type
+1
+== /sys/devices/virtual/net/veth691815f/type
+1
+== /sys/devices/virtual/net/veth6cc6671/type
+1
+== /sys/devices/virtual/net/veth6ed7be9/type
+1
+== /sys/devices/virtual/net/veth7474039/type
+1
+== /sys/devices/virtual/net/veth79a162a/type
+1
+== /sys/devices/virtual/net/veth7c9527c/type
+1
+== /sys/devices/virtual/net/veth7f4ad1b/type
+1
+== /sys/devices/virtual/net/veth89500fb/type
+1
+== /sys/devices/virtual/net/vetha6d3bf9/type
+1
+== /sys/devices/virtual/net/vethaeed52b/type
+1
+== /sys/devices/virtual/net/vethaf05872/type
+1
+== /sys/devices/virtual/net/vethaf78fe9/type
+1
+== /sys/devices/virtual/net/vethb803b0b/type
+1
+== /sys/devices/virtual/net/vethc36edcb/type
+1
+== /sys/devices/virtual/net/vethcf1f9a1/type
+1
+== /sys/devices/virtual/net/vethd38a865/type
+1
+== /sys/devices/virtual/net/vethd86f271/type
+1
+== /sys/devices/virtual/net/vethdcf1ce8/type
+1
+== /sys/devices/virtual/net/vethe66e8c3/type
+1
+== /sys/devices/virtual/net/vetheb32ce5/type
+1
+== /sys/devices/virtual/net/vethf0a6fbf/type
+1
+== /sys/devices/virtual/net/vethf23686d/type
+1
+== /sys/devices/virtual/net/vethf5386e5/type
+1
+== /sys/devices/virtual/net/vethf80c8e3/type
+1
+== /sys/devices/virtual/net/vethffbefe0/type
+1
+== /sys/devices/virtual/net/virbr0/type
+1
+== /sys/devices/virtual/net/vnet0/type
+1
+== /sys/devices/virtual/net/wg0/type
+65534
+== /sys/block/zram0/mm_stat
+6614904832 1844277160 1888653312        0 1888681984    37933   129853    48504    68431

@@ -17,7 +17,7 @@ enum MacPlatform {
 
     /// A media widget's player.
     static func media(player: String) -> MediaProvider { AppleScriptMedia(player: player) }
-    /// A system bar's privacy toggle.
+    /// A system bar's privacy toggle (VestalCore's, shared with Linux).
     static func privacy(_ config: PrivacyConfig?) -> PrivacyProvider { PrivacyScript(config) }
 }
 
@@ -92,43 +92,6 @@ final class AppleScriptMedia: MediaProvider {
 final class CoreAudioOutput: AudioProvider {
     func volume() -> VolumeInfo { SystemBridge.getVolume() }
     func setMuted(_ muted: Bool) { SystemBridge.setMuted(muted) }
-}
-
-// MARK: - Privacy (state file + toggle command, from the config)
-
-/// `systemBar.privacy`: the state file exists while privacy mode is on, and
-/// the command toggles it. Unless both are set, privacy mode reads as off and
-/// toggling does nothing.
-final class PrivacyScript: PrivacyProvider {
-    private let command: [String]?
-    private let stateFile: String?
-
-    init(_ config: PrivacyConfig?) {
-        let configured = config?.isConfigured == true
-        command = configured ? config?.command : nil
-        stateFile = configured ? config?.stateFile.map { CommandRunner.expandTilde($0) } : nil
-    }
-
-    func isEnabled() -> Bool {
-        guard let stateFile else { return false }
-        return FileManager.default.fileExists(atPath: stateFile)
-    }
-
-    /// Runs the command in the background and returns at once. An argv, never
-    /// a shell; `~` expands in every element (CommandRunner).
-    func toggle() {
-        guard let command else { return }
-        Task.detached(priority: .utility) {
-            do {
-                let result = try await CommandRunner.run(command, timeout: 10)
-                if result.status != 0 {
-                    NSLog("%@", "[vestal] privacy command exited with status \(result.status): \(result.stderrString)")
-                }
-            } catch {
-                NSLog("%@", "[vestal] privacy command failed: \(error)")
-            }
-        }
-    }
 }
 
 // MARK: - Calendar (EventKit; handles recurring events)
