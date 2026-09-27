@@ -32,7 +32,16 @@ let package = Package(
         .library(name: "VestalCore", targets: ["VestalCore"]),
     ],
     targets: [
-        .target(name: "VestalCore"),
+        .target(
+            name: "VestalCore",
+            swiftSettings: [
+                // Swift 5.10's closure specializer runs away on the expression
+                // engine's continuation-passing evaluator (Expr/): a release
+                // build does not finish in 30 minutes with it, and takes
+                // seconds without.
+                .unsafeFlags(["-Xllvm", "-sil-disable-pass=closure-specialize"], .when(configuration: .release)),
+            ]
+        ),
         .target(
             name: "VestalMac",
             dependencies: ["VestalCore"],

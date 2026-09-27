@@ -1,0 +1,14950 @@
+[
+ {
+  "line": 14,
+  "expr": ".",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": {
+     "c": [
+      10,
+      20,
+      30
+     ]
+    },
+    "d": null,
+    "e f": "sp",
+    "if": "kw"
+   }
+  ]
+ },
+ {
+  "line": 15,
+  "expr": ".a",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 16,
+  "expr": ".b.c",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   [
+    10,
+    20,
+    30
+   ]
+  ]
+ },
+ {
+  "line": 17,
+  "expr": ".b.c[0]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   10
+  ]
+ },
+ {
+  "line": 18,
+  "expr": ".b.c[-1]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   30
+  ]
+ },
+ {
+  "line": 19,
+  "expr": ".b.c[1:]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   [
+    20,
+    30
+   ]
+  ]
+ },
+ {
+  "line": 20,
+  "expr": ".b.c[:2]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   [
+    10,
+    20
+   ]
+  ]
+ },
+ {
+  "line": 21,
+  "expr": ".b.c[-2:]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   [
+    20,
+    30
+   ]
+  ]
+ },
+ {
+  "line": 22,
+  "expr": ".b.c[5]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 23,
+  "expr": ".b.c[-5]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 24,
+  "expr": ".missing",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 25,
+  "expr": ".missing.deeper",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 26,
+  "expr": ".\"e f\"",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   "sp"
+  ]
+ },
+ {
+  "line": 27,
+  "expr": ".[\"e f\"]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   "sp"
+  ]
+ },
+ {
+  "line": 28,
+  "expr": ".b[\"c\"][1]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   20
+  ]
+ },
+ {
+  "line": 29,
+  "expr": ".b.\"c\"",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   [
+    10,
+    20,
+    30
+   ]
+  ]
+ },
+ {
+  "line": 30,
+  "expr": ".if",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   "kw"
+  ]
+ },
+ {
+  "line": 31,
+  "expr": ".b.c.[0]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   10
+  ]
+ },
+ {
+  "line": 32,
+  "expr": ".b | .c | .[2]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   30
+  ]
+ },
+ {
+  "line": 33,
+  "expr": ".b.c[1.7]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   20
+  ]
+ },
+ {
+  "line": 34,
+  "expr": ".b.c[-1.5]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   30
+  ]
+ },
+ {
+  "line": 35,
+  "expr": ".b.c[nan]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 36,
+  "expr": ".a.b",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [],
+  "error": "Cannot index number with string \"b\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 37,
+  "expr": ".a?",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 38,
+  "expr": ".a.b?",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": []
+ },
+ {
+  "line": 39,
+  "expr": "[.a?, .b.c[0]?]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   [
+    1,
+    10
+   ]
+  ]
+ },
+ {
+  "line": 40,
+  "expr": ".b.c[1:2:3]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected ':' (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 41,
+  "expr": ".b.c[\"x\"]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [],
+  "error": "Cannot index array with string \"x\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 42,
+  "expr": ".b.c[null]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [],
+  "error": "Cannot index array with null",
+  "kind": "runtime"
+ },
+ {
+  "line": 43,
+  "expr": ".b.c[true]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [],
+  "error": "Cannot index array with boolean",
+  "kind": "runtime"
+ },
+ {
+  "line": 44,
+  "expr": ".[0]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [],
+  "error": "Cannot index object with number",
+  "kind": "runtime"
+ },
+ {
+  "line": 45,
+  "expr": ".[\"a\",\"b\"]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   1,
+   {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   }
+  ]
+ },
+ {
+  "line": 46,
+  "expr": ".b.c[[20]]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   [
+    1
+   ]
+  ]
+ },
+ {
+  "line": 47,
+  "expr": ".b.c | .[[10,20]]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   [
+    0
+   ]
+  ]
+ },
+ {
+  "line": 48,
+  "expr": ".b.c | .[[]]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 49,
+  "expr": ".b.c | .[[40]]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 50,
+  "expr": ".d.x.y",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 51,
+  "expr": ".d[0]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 52,
+  "expr": ".d[1:2]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 53,
+  "expr": ".d[]?",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": []
+ },
+ {
+  "line": 54,
+  "expr": ".d[]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [],
+  "error": "Cannot iterate over null (null)",
+  "kind": "runtime"
+ },
+ {
+  "line": 55,
+  "expr": ".a[]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [],
+  "error": "Cannot iterate over number (1)",
+  "kind": "runtime"
+ },
+ {
+  "line": 56,
+  "expr": ".[]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   1,
+   {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   null,
+   "sp",
+   "kw"
+  ]
+ },
+ {
+  "line": 57,
+  "expr": ".b[]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   [
+    10,
+    20,
+    30
+   ]
+  ]
+ },
+ {
+  "line": 58,
+  "expr": "[.b[][]]",
+  "input": {
+   "a": 1,
+   "b": {
+    "c": [
+     10,
+     20,
+     30
+    ]
+   },
+   "d": null,
+   "e f": "sp",
+   "if": "kw"
+  },
+  "outputs": [
+   [
+    10,
+    20,
+    30
+   ]
+  ]
+ },
+ {
+  "line": 60,
+  "expr": ".[2:4]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [
+   [
+    3,
+    4
+   ]
+  ]
+ },
+ {
+  "line": 61,
+  "expr": ".[:-2]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [
+   [
+    1,
+    2,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 62,
+  "expr": ".[-2:]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [
+   [
+    4,
+    5
+   ]
+  ]
+ },
+ {
+  "line": 63,
+  "expr": ".[10:]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 64,
+  "expr": ".[3:1]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 65,
+  "expr": ".[1.2:3.7]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [
+   [
+    2,
+    3,
+    4
+   ]
+  ]
+ },
+ {
+  "line": 66,
+  "expr": ".[null:2]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 67,
+  "expr": ".[1:null]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [
+   [
+    2,
+    3,
+    4,
+    5
+   ]
+  ]
+ },
+ {
+  "line": 68,
+  "expr": ".[\"a\":]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [],
+  "error": "Array/string slice indices must be integers",
+  "kind": "runtime"
+ },
+ {
+  "line": 69,
+  "expr": ".[(0,1):(3,4)]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [
+   [
+    1,
+    2,
+    3
+   ],
+   [
+    1,
+    2,
+    3,
+    4
+   ],
+   [
+    2,
+    3
+   ],
+   [
+    2,
+    3,
+    4
+   ]
+  ]
+ },
+ {
+  "line": 70,
+  "expr": ".[(0,1)]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [
+   1,
+   2
+  ]
+ },
+ {
+  "line": 71,
+  "expr": "[.[] | . * 2]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [
+   [
+    2,
+    4,
+    6,
+    8,
+    10
+   ]
+  ]
+ },
+ {
+  "line": 72,
+  "expr": ".[-1:][0]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [
+   5
+  ]
+ },
+ {
+  "line": 73,
+  "expr": ".[4:5][0]",
+  "input": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "outputs": [
+   5
+  ]
+ },
+ {
+  "line": 75,
+  "expr": ".[2:4]",
+  "input": "abcdef",
+  "outputs": [
+   "cd"
+  ]
+ },
+ {
+  "line": 76,
+  "expr": ".[-2:]",
+  "input": "abcdef",
+  "outputs": [
+   "ef"
+  ]
+ },
+ {
+  "line": 77,
+  "expr": ".[:1]",
+  "input": "abcdef",
+  "outputs": [
+   "a"
+  ]
+ },
+ {
+  "line": 78,
+  "expr": ".[0]",
+  "input": "abcdef",
+  "outputs": [],
+  "error": "Cannot index string with number",
+  "kind": "runtime"
+ },
+ {
+  "line": 79,
+  "expr": ".[10:]",
+  "input": "abcdef",
+  "outputs": [
+   ""
+  ]
+ },
+ {
+  "line": 81,
+  "expr": ".[1:5]",
+  "input": "héllo wörld",
+  "outputs": [
+   "éllo"
+  ]
+ },
+ {
+  "line": 82,
+  "expr": "length",
+  "input": "héllo wörld",
+  "outputs": [
+   11
+  ]
+ },
+ {
+  "line": 83,
+  "expr": "utf8bytelength",
+  "input": "héllo wörld",
+  "outputs": [
+   13
+  ]
+ },
+ {
+  "line": 85,
+  "expr": "null | .[0]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 86,
+  "expr": "null | .a",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 87,
+  "expr": "null | .[1:3]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 88,
+  "expr": "null | .[null]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot index null with null",
+  "kind": "runtime"
+ },
+ {
+  "line": 89,
+  "expr": "null | .[true]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot index null with boolean",
+  "kind": "runtime"
+ },
+ {
+  "line": 90,
+  "expr": "null | .[]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot iterate over null (null)",
+  "kind": "runtime"
+ },
+ {
+  "line": 91,
+  "expr": "1 | .a",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot index number with string \"a\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 92,
+  "expr": "\"x\" | .a",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot index string with string \"a\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 93,
+  "expr": "\"x\" | .aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot index string with string",
+  "kind": "runtime"
+ },
+ {
+  "line": 94,
+  "expr": "[1] | .a",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot index array with string \"a\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 95,
+  "expr": "{\"a\":1} | .[0]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot index object with number",
+  "kind": "runtime"
+ },
+ {
+  "line": 96,
+  "expr": "{} | .[1:2]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot index object with object",
+  "kind": "runtime"
+ },
+ {
+  "line": 97,
+  "expr": "true | .[0]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot index boolean with number",
+  "kind": "runtime"
+ },
+ {
+  "line": 98,
+  "expr": "5 | .[]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot iterate over number (5)",
+  "kind": "runtime"
+ },
+ {
+  "line": 99,
+  "expr": "\"abcdefghijklmnopqrstuvwxyz\" | .[]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot iterate over string (\"abcdefghij...)",
+  "kind": "runtime"
+ },
+ {
+  "line": 100,
+  "expr": "{\"a\":\"abcdefghijklmnopqrstuvwxyz\"} | .[0]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot index object with number",
+  "kind": "runtime"
+ },
+ {
+  "line": 104,
+  "expr": "1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 105,
+  "expr": "-1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -1
+  ]
+ },
+ {
+  "line": 106,
+  "expr": "1.5",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1.5
+  ]
+ },
+ {
+  "line": 107,
+  "expr": "-0.5",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -0.5
+  ]
+ },
+ {
+  "line": 108,
+  "expr": ".5",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0.5
+  ]
+ },
+ {
+  "line": 109,
+  "expr": "1e3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1000.0
+  ]
+ },
+ {
+  "line": 110,
+  "expr": "1.5e-3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0.0015
+  ]
+ },
+ {
+  "line": 111,
+  "expr": "\"plain\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "plain"
+  ]
+ },
+ {
+  "line": 112,
+  "expr": "\"esc \\\" \\\\ \\/ \\n \\t \\r \\b \\f\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "esc \" \\ / \n \t \r \b \f"
+  ]
+ },
+ {
+  "line": 113,
+  "expr": "\"\\u00e9\\u4e2d\\ud83d\\ude00\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "é中😀"
+  ]
+ },
+ {
+  "line": 114,
+  "expr": "true",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 115,
+  "expr": "false",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 116,
+  "expr": "null",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 117,
+  "expr": "[]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 118,
+  "expr": "{}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {}
+  ]
+ },
+ {
+  "line": 119,
+  "expr": "[1,2,3]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 120,
+  "expr": "[1,[2,[3]]]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    [
+     2,
+     [
+      3
+     ]
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 121,
+  "expr": "{\"a\":1,\"b\":[1,2]}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2
+    ]
+   }
+  ]
+ },
+ {
+  "line": 122,
+  "expr": "{a:1, b:2}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1,
+    "b": 2
+   }
+  ]
+ },
+ {
+  "line": 123,
+  "expr": "{\"a b\":1}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a b": 1
+   }
+  ]
+ },
+ {
+  "line": 124,
+  "expr": "{if:1, then:2, else:3, end:4, and:5, or:6, reduce:7}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "if": 1,
+    "then": 2,
+    "else": 3,
+    "end": 4,
+    "and": 5,
+    "or": 6,
+    "reduce": 7
+   }
+  ]
+ },
+ {
+  "line": 125,
+  "expr": "{a:1,}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1
+   }
+  ]
+ },
+ {
+  "line": 126,
+  "expr": "{(1,2|tostring):3}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "1": 3
+   },
+   {
+    "2": 3
+   }
+  ]
+ },
+ {
+  "line": 127,
+  "expr": "{(\"a\",\"b\"):(1,2)}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1
+   },
+   {
+    "a": 2
+   },
+   {
+    "b": 1
+   },
+   {
+    "b": 2
+   }
+  ]
+ },
+ {
+  "line": 128,
+  "expr": "{a:(1,2), b:(3,4)}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1,
+    "b": 3
+   },
+   {
+    "a": 1,
+    "b": 4
+   },
+   {
+    "a": 2,
+    "b": 3
+   },
+   {
+    "a": 2,
+    "b": 4
+   }
+  ]
+ },
+ {
+  "line": 129,
+  "expr": "[{a:(1,2)}]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    {
+     "a": 1
+    },
+    {
+     "a": 2
+    }
+   ]
+  ]
+ },
+ {
+  "line": 130,
+  "expr": "{\"\\(1+1)\":3}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "2": 3
+   }
+  ]
+ },
+ {
+  "line": 132,
+  "expr": "{a}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "a": 1
+   }
+  ]
+ },
+ {
+  "line": 133,
+  "expr": "{a, b}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": 2
+   }
+  ]
+ },
+ {
+  "line": 134,
+  "expr": "{\"a\"}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "a": 1
+   }
+  ]
+ },
+ {
+  "line": 135,
+  "expr": "{\"c\"}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "c": {
+     "d": 3
+    }
+   }
+  ]
+ },
+ {
+  "line": 136,
+  "expr": "{a, x}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "x": null
+   }
+  ]
+ },
+ {
+  "line": 137,
+  "expr": "{(.k): .a}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "b": 1
+   }
+  ]
+ },
+ {
+  "line": 138,
+  "expr": "{a: .c.d}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "a": 3
+   }
+  ]
+ },
+ {
+  "line": 139,
+  "expr": "{a: .a | . + 1}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected '+', expecting '}' (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 140,
+  "expr": "{a: -1}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "a": -1
+   }
+  ]
+ },
+ {
+  "line": 141,
+  "expr": "{a: -.a}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "a": -1
+   }
+  ]
+ },
+ {
+  "line": 142,
+  "expr": "{a: .c | .d}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "a": 3
+   }
+  ]
+ },
+ {
+  "line": 143,
+  "expr": "{\"x\": .a, y: .b}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "x": 1,
+    "y": 2
+   }
+  ]
+ },
+ {
+  "line": 144,
+  "expr": "{$__loc__}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "__loc__": {
+     "file": "<top-level>",
+     "line": 1
+    }
+   }
+  ]
+ },
+ {
+  "line": 145,
+  "expr": ".a as $x | {$x}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "x": 1
+   }
+  ]
+ },
+ {
+  "line": 146,
+  "expr": ".a as $x | {$x: 1}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [],
+  "error": "Cannot use number (1) as object key",
+  "kind": "runtime"
+ },
+ {
+  "line": 147,
+  "expr": ".k as $k | {$k: 1}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "b": 1
+   }
+  ]
+ },
+ {
+  "line": 148,
+  "expr": "[.a, .b]",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 149,
+  "expr": "[.[]]",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   [
+    1,
+    2,
+    {
+     "d": 3
+    },
+    "b"
+   ]
+  ]
+ },
+ {
+  "line": 150,
+  "expr": "[.[] | numbers]",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 151,
+  "expr": "{a: [.a, .b], b: {c: .c}}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "a": [
+     1,
+     2
+    ],
+    "b": {
+     "c": {
+      "d": 3
+     }
+    }
+   }
+  ]
+ },
+ {
+  "line": 152,
+  "expr": "{a: 1} + {b: 2}",
+  "input": {
+   "a": 1,
+   "b": 2,
+   "c": {
+    "d": 3
+   },
+   "k": "b"
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": 2
+   }
+  ]
+ },
+ {
+  "line": 154,
+  "expr": "{(1):2}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: Cannot use number (1) as object key at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 155,
+  "expr": "{(null):2}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: Cannot use null (null) as object key at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 156,
+  "expr": "{(true):2}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: Cannot use boolean (true) as object key at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 157,
+  "expr": "[1,2][]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1,
+   2
+  ]
+ },
+ {
+  "line": 158,
+  "expr": "[[1,2],[3]] | [.[][]]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 159,
+  "expr": "[] | length",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0
+  ]
+ },
+ {
+  "line": 160,
+  "expr": "[range(5)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    1,
+    2,
+    3,
+    4
+   ]
+  ]
+ },
+ {
+  "line": 161,
+  "expr": "[range(3)] | length",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3
+  ]
+ },
+ {
+  "line": 165,
+  "expr": "\"a\\(1)b\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "a1b"
+  ]
+ },
+ {
+  "line": 166,
+  "expr": "\"\\(1,2)-\\(3,4)\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "1-3",
+   "2-3",
+   "1-4",
+   "2-4"
+  ]
+ },
+ {
+  "line": 167,
+  "expr": "\"x\\(\"y\")z\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "xyz"
+  ]
+ },
+ {
+  "line": 168,
+  "expr": "\"\\([1,2])\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "[1,2]"
+  ]
+ },
+ {
+  "line": 169,
+  "expr": "\"\\({\"a\":1})\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "{\"a\":1}"
+  ]
+ },
+ {
+  "line": 170,
+  "expr": "\"\\(null)\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "null"
+  ]
+ },
+ {
+  "line": 171,
+  "expr": "\"\\(true)\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "true"
+  ]
+ },
+ {
+  "line": 172,
+  "expr": "\"nested \\(\"in \\(\"ner\")\")\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "nested in ner"
+  ]
+ },
+ {
+  "line": 173,
+  "expr": "\"\\(1 + 2) = three\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "3 = three"
+  ]
+ },
+ {
+  "line": 175,
+  "expr": "\"hi \\(.name)!\"",
+  "input": {
+   "name": "ada",
+   "n": 3,
+   "list": [
+    1,
+    "a",
+    null,
+    true
+   ]
+  },
+  "outputs": [
+   "hi ada!"
+  ]
+ },
+ {
+  "line": 176,
+  "expr": "\"\\(.n * 2)\"",
+  "input": {
+   "name": "ada",
+   "n": 3,
+   "list": [
+    1,
+    "a",
+    null,
+    true
+   ]
+  },
+  "outputs": [
+   "6"
+  ]
+ },
+ {
+  "line": 177,
+  "expr": "\"\\(.list)\"",
+  "input": {
+   "name": "ada",
+   "n": 3,
+   "list": [
+    1,
+    "a",
+    null,
+    true
+   ]
+  },
+  "outputs": [
+   "[1,\"a\",null,true]"
+  ]
+ },
+ {
+  "line": 178,
+  "expr": "@base64 \"user:\\(.name)\"",
+  "input": {
+   "name": "ada",
+   "n": 3,
+   "list": [
+    1,
+    "a",
+    null,
+    true
+   ]
+  },
+  "outputs": [
+   "user:YWRh"
+  ]
+ },
+ {
+  "line": 179,
+  "expr": "@uri \"q=\\(.name) & more\"",
+  "input": {
+   "name": "ada",
+   "n": 3,
+   "list": [
+    1,
+    "a",
+    null,
+    true
+   ]
+  },
+  "outputs": [
+   "q=ada & more"
+  ]
+ },
+ {
+  "line": 180,
+  "expr": "@html \"<b>\\(.name)</b>\"",
+  "input": {
+   "name": "ada",
+   "n": 3,
+   "list": [
+    1,
+    "a",
+    null,
+    true
+   ]
+  },
+  "outputs": [
+   "<b>ada</b>"
+  ]
+ },
+ {
+  "line": 181,
+  "expr": "@json \"v=\\(.list)\"",
+  "input": {
+   "name": "ada",
+   "n": 3,
+   "list": [
+    1,
+    "a",
+    null,
+    true
+   ]
+  },
+  "outputs": [
+   "v=[1,\"a\",null,true]"
+  ]
+ },
+ {
+  "line": 182,
+  "expr": "@text \"v=\\(.list)\"",
+  "input": {
+   "name": "ada",
+   "n": 3,
+   "list": [
+    1,
+    "a",
+    null,
+    true
+   ]
+  },
+  "outputs": [
+   "v=[1,\"a\",null,true]"
+  ]
+ },
+ {
+  "line": 183,
+  "expr": "@sh \"echo \\(.name)\"",
+  "input": {
+   "name": "ada",
+   "n": 3,
+   "list": [
+    1,
+    "a",
+    null,
+    true
+   ]
+  },
+  "outputs": [
+   "echo 'ada'"
+  ]
+ },
+ {
+  "line": 184,
+  "expr": "@csv \"\\(.list)\"",
+  "input": {
+   "name": "ada",
+   "n": 3,
+   "list": [
+    1,
+    "a",
+    null,
+    true
+   ]
+  },
+  "outputs": [
+   "1,\"a\",,true"
+  ]
+ },
+ {
+  "line": 186,
+  "expr": "[1,\"a\\\"b\",null,true] | @csv",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "1,\"a\"\"b\",,true"
+  ]
+ },
+ {
+  "line": 187,
+  "expr": "[1,\"a\\tb\",null,true,\"x\\\\y\"] | @tsv",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "1\ta\\tb\t\ttrue\tx\\\\y"
+  ]
+ },
+ {
+  "line": 188,
+  "expr": "[1,[2]] | @csv",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "array ([2]) is not valid in a csv row",
+  "kind": "runtime"
+ },
+ {
+  "line": 189,
+  "expr": "{\"a\":1} | @csv",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "object ({\"a\":1}) cannot be csv-formatted, only array",
+  "kind": "runtime"
+ },
+ {
+  "line": 190,
+  "expr": "\"x\" | @csv",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "string (\"x\") cannot be csv-formatted, only array",
+  "kind": "runtime"
+ },
+ {
+  "line": 191,
+  "expr": "[1,\"a'b\",null,true] | @sh",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "1 'a'\\''b' null true"
+  ]
+ },
+ {
+  "line": 192,
+  "expr": "\"it's\" | @sh",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "'it'\\''s'"
+  ]
+ },
+ {
+  "line": 193,
+  "expr": "{\"a\":1} | @sh",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "object ({\"a\":1}) can not be escaped for shell",
+  "kind": "runtime"
+ },
+ {
+  "line": 194,
+  "expr": "[[1]] | @sh",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "array ([1]) can not be escaped for shell",
+  "kind": "runtime"
+ },
+ {
+  "line": 195,
+  "expr": "\"<&>'\\\"\" | @html",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "&lt;&amp;&gt;&apos;&quot;"
+  ]
+ },
+ {
+  "line": 196,
+  "expr": "[1,{\"a\":\"<\"}] | @html",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "[1,{&quot;a&quot;:&quot;&lt;&quot;}]"
+  ]
+ },
+ {
+  "line": 197,
+  "expr": "\"a b/é?&=~-_.\" | @uri",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "a%20b%2F%C3%A9%3F%26%3D~-_."
+  ]
+ },
+ {
+  "line": 198,
+  "expr": "\"hello\" | @base64",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "aGVsbG8="
+  ]
+ },
+ {
+  "line": 199,
+  "expr": "\"hello\" | @base64 | @base64d",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "hello"
+  ]
+ },
+ {
+  "line": 200,
+  "expr": "\"aGVsbG8\" | @base64d",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "hello"
+  ]
+ },
+ {
+  "line": 201,
+  "expr": "\"YQ==\" | @base64d",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "a"
+  ]
+ },
+ {
+  "line": 202,
+  "expr": "\"YQ\" | @base64d",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "a"
+  ]
+ },
+ {
+  "line": 203,
+  "expr": "1 | @base64",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "MQ=="
+  ]
+ },
+ {
+  "line": 204,
+  "expr": "[1,2] | @text",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "[1,2]"
+  ]
+ },
+ {
+  "line": 205,
+  "expr": "[1,2] | @json",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "[1,2]"
+  ]
+ },
+ {
+  "line": 206,
+  "expr": "\"x\" | @json",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "\"x\""
+  ]
+ },
+ {
+  "line": 207,
+  "expr": "\"é\" | @uri",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "%C3%A9"
+  ]
+ },
+ {
+  "line": 208,
+  "expr": "\"hello\" | format(\"base64\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "aGVsbG8="
+  ]
+ },
+ {
+  "line": 209,
+  "expr": "[1,2] | format(\"csv\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "1,2"
+  ]
+ },
+ {
+  "line": 210,
+  "expr": "\"x\" | format(\"nope\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "nope is not a valid format",
+  "kind": "runtime"
+ },
+ {
+  "line": 214,
+  "expr": "1 + 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3
+  ]
+ },
+ {
+  "line": 215,
+  "expr": "1 - 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -1
+  ]
+ },
+ {
+  "line": 216,
+  "expr": "2 * 3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   6
+  ]
+ },
+ {
+  "line": 217,
+  "expr": "7 / 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3.5
+  ]
+ },
+ {
+  "line": 218,
+  "expr": "7 % 3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 219,
+  "expr": "-7 % 3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -1
+  ]
+ },
+ {
+  "line": 220,
+  "expr": "7 % -3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 221,
+  "expr": "5.5 % 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 222,
+  "expr": "5 % 2.5",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 223,
+  "expr": "1e20 % 7",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0
+  ]
+ },
+ {
+  "line": 224,
+  "expr": "5 % 0.5",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "number (5) and number (0.5) cannot be divided (remainder) because the divisor is zero",
+  "kind": "runtime"
+ },
+ {
+  "line": 225,
+  "expr": "5 % 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "number (5) and number (0) cannot be divided (remainder) because the divisor is zero",
+  "kind": "runtime"
+ },
+ {
+  "line": 226,
+  "expr": "1 / 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "number (1) and number (0) cannot be divided because the divisor is zero",
+  "kind": "runtime"
+ },
+ {
+  "line": 227,
+  "expr": "0 / 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "number (0) and number (0) cannot be divided because the divisor is zero",
+  "kind": "runtime"
+ },
+ {
+  "line": 228,
+  "expr": "1 + null",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 229,
+  "expr": "null + 1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 230,
+  "expr": "null + null",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 231,
+  "expr": "\"a\" + \"b\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "ab"
+  ]
+ },
+ {
+  "line": 232,
+  "expr": "[1] + [2]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 233,
+  "expr": "{\"a\":1} + {\"b\":2}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1,
+    "b": 2
+   }
+  ]
+ },
+ {
+  "line": 234,
+  "expr": "{\"a\":1,\"b\":1} + {\"b\":2}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1,
+    "b": 2
+   }
+  ]
+ },
+ {
+  "line": 235,
+  "expr": "[1,2,3,2] - [2]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 236,
+  "expr": "[1,[2]] - [[2]]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1
+   ]
+  ]
+ },
+ {
+  "line": 237,
+  "expr": "{\"a\":{\"b\":1,\"c\":2}} * {\"a\":{\"c\":3}}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": {
+     "b": 1,
+     "c": 3
+    }
+   }
+  ]
+ },
+ {
+  "line": 238,
+  "expr": "{\"a\":1} * {\"a\":{\"b\":1}}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": {
+     "b": 1
+    }
+   }
+  ]
+ },
+ {
+  "line": 239,
+  "expr": "\"ab\" * 3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "ababab"
+  ]
+ },
+ {
+  "line": 240,
+  "expr": "\"ab\" * 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   ""
+  ]
+ },
+ {
+  "line": 241,
+  "expr": "\"ab\" * 0.9",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   ""
+  ]
+ },
+ {
+  "line": 242,
+  "expr": "\"ab\" * 2.7",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "abab"
+  ]
+ },
+ {
+  "line": 243,
+  "expr": "\"ab\" * -1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 244,
+  "expr": "0 * \"ab\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   ""
+  ]
+ },
+ {
+  "line": 245,
+  "expr": "3 * \"ab\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "ababab"
+  ]
+ },
+ {
+  "line": 246,
+  "expr": "\"a,b,c\" / \",\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a",
+    "b",
+    "c"
+   ]
+  ]
+ },
+ {
+  "line": 247,
+  "expr": "\"abc\" / \"\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a",
+    "b",
+    "c"
+   ]
+  ]
+ },
+ {
+  "line": 248,
+  "expr": "\"\" / \",\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 249,
+  "expr": "\"a,,b\" / \",\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a",
+    "",
+    "b"
+   ]
+  ]
+ },
+ {
+  "line": 250,
+  "expr": "1 + \"a\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "number (1) and string (\"a\") cannot be added",
+  "kind": "runtime"
+ },
+ {
+  "line": 251,
+  "expr": "\"a\" - 1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "string (\"a\") and number (1) cannot be subtracted",
+  "kind": "runtime"
+ },
+ {
+  "line": 252,
+  "expr": "{} - {}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "object ({}) and object ({}) cannot be subtracted",
+  "kind": "runtime"
+ },
+ {
+  "line": 253,
+  "expr": "[] * 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "array ([]) and number (2) cannot be multiplied",
+  "kind": "runtime"
+ },
+ {
+  "line": 254,
+  "expr": "{} / {}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "object ({}) and object ({}) cannot be divided",
+  "kind": "runtime"
+ },
+ {
+  "line": 255,
+  "expr": "\"a\" % 1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "string (\"a\") and number (1) cannot be divided (remainder)",
+  "kind": "runtime"
+ },
+ {
+  "line": 256,
+  "expr": "null - 1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "null (null) and number (1) cannot be subtracted",
+  "kind": "runtime"
+ },
+ {
+  "line": 257,
+  "expr": "-(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -1
+  ]
+ },
+ {
+  "line": 258,
+  "expr": "-\"a\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "string (\"a\") cannot be negated",
+  "kind": "runtime"
+ },
+ {
+  "line": 259,
+  "expr": "-null",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "null (null) cannot be negated",
+  "kind": "runtime"
+ },
+ {
+  "line": 260,
+  "expr": "-(1,2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -1,
+   -2
+  ]
+ },
+ {
+  "line": 261,
+  "expr": "[.[]?] | -length",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0
+  ]
+ },
+ {
+  "line": 262,
+  "expr": "1 + 2 * 3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   7
+  ]
+ },
+ {
+  "line": 263,
+  "expr": "(1 + 2) * 3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   9
+  ]
+ },
+ {
+  "line": 264,
+  "expr": "10 - 2 - 3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   5
+  ]
+ },
+ {
+  "line": 265,
+  "expr": "100 / 10 / 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   5
+  ]
+ },
+ {
+  "line": 266,
+  "expr": "2 * 3 % 4",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   2
+  ]
+ },
+ {
+  "line": 267,
+  "expr": "-1 + 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 268,
+  "expr": "- 1 * 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -2
+  ]
+ },
+ {
+  "line": 269,
+  "expr": "[(1,2) + (10,20)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    11,
+    12,
+    21,
+    22
+   ]
+  ]
+ },
+ {
+  "line": 270,
+  "expr": "[(1,2) * (3,4)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    3,
+    6,
+    4,
+    8
+   ]
+  ]
+ },
+ {
+  "line": 271,
+  "expr": "0.1 + 0.2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0.30000000000000004
+  ]
+ },
+ {
+  "line": 272,
+  "expr": "1e308 * 10",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1.7976931348623157e+308
+  ]
+ },
+ {
+  "line": 273,
+  "expr": "-1e308 * 10",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -1.7976931348623157e+308
+  ]
+ },
+ {
+  "line": 274,
+  "expr": "3 / 3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 275,
+  "expr": "1 / 3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0.3333333333333333
+  ]
+ },
+ {
+  "line": 276,
+  "expr": "2 / 3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0.6666666666666666
+  ]
+ },
+ {
+  "line": 277,
+  "expr": "1e17 + 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1e+17
+  ]
+ },
+ {
+  "line": 278,
+  "expr": "1e16 + 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1e+16
+  ]
+ },
+ {
+  "line": 279,
+  "expr": "1e15 + 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1000000000000000
+  ]
+ },
+ {
+  "line": 280,
+  "expr": "123456789012 * 1000",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   123456789012000
+  ]
+ },
+ {
+  "line": 281,
+  "expr": "12345678901234567890 + 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   12345678901234567000
+  ]
+ },
+ {
+  "line": 282,
+  "expr": "1e-5 + 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1e-05
+  ]
+ },
+ {
+  "line": 283,
+  "expr": "0.0001 + 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0.0001
+  ]
+ },
+ {
+  "line": 284,
+  "expr": "1.5e-7 + 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1.5e-07
+  ]
+ },
+ {
+  "line": 285,
+  "expr": "[1e17, 1e-7, 0.1, 100, 1.5] | map(. + 0) | tojson",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "[1e+17,1e-07,0.1,100,1.5]"
+  ]
+ },
+ {
+  "line": 286,
+  "expr": "1e1000 + 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1.7976931348623157e+308
+  ]
+ },
+ {
+  "line": 287,
+  "expr": "-0 + 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0
+  ]
+ },
+ {
+  "line": 291,
+  "expr": "1 == 1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 292,
+  "expr": "1 == 1.0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 293,
+  "expr": "1 != 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 294,
+  "expr": "\"a\" < \"b\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 295,
+  "expr": "\"B\" < \"a\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 296,
+  "expr": "\"é\" < \"z\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 297,
+  "expr": "[1,2] < [1,3]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 298,
+  "expr": "[1,2] < [1,2,0]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 299,
+  "expr": "{\"a\":1} < {\"b\":0}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 300,
+  "expr": "{\"a\":2} < {\"a\":1,\"b\":0}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 301,
+  "expr": "{\"b\":1} == {\"b\":1}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 302,
+  "expr": "{\"a\":1,\"b\":2} == {\"b\":2,\"a\":1}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 303,
+  "expr": "null < false",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 304,
+  "expr": "false < true",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 305,
+  "expr": "true < 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 306,
+  "expr": "0 < \"\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 307,
+  "expr": "\"\" < []",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 308,
+  "expr": "[] < {}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 309,
+  "expr": "nan < nan",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 310,
+  "expr": "nan == nan",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 311,
+  "expr": "nan < 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 312,
+  "expr": "[nan] == [nan]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 313,
+  "expr": "[(1,2) < (1,2)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    false,
+    false,
+    true,
+    false
+   ]
+  ]
+ },
+ {
+  "line": 314,
+  "expr": "1 < 2 and 2 < 3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 315,
+  "expr": "true and false",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 316,
+  "expr": "null or false",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 317,
+  "expr": "1 and \"x\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 318,
+  "expr": "false or 0",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 319,
+  "expr": "[(true,false) and (true,false)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    true,
+    false,
+    false
+   ]
+  ]
+ },
+ {
+  "line": 320,
+  "expr": "[(true,false) or (true,false)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    true,
+    true,
+    false
+   ]
+  ]
+ },
+ {
+  "line": 321,
+  "expr": "[false and error(\"x\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    false
+   ]
+  ]
+ },
+ {
+  "line": 322,
+  "expr": "[true or error(\"x\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    true
+   ]
+  ]
+ },
+ {
+  "line": 323,
+  "expr": "true | not",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 324,
+  "expr": "null | not",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 325,
+  "expr": "0 | not",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 326,
+  "expr": "[1,null,false,\"\",[]] | map(not)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    false,
+    true,
+    true,
+    false,
+    false
+   ]
+  ]
+ },
+ {
+  "line": 327,
+  "expr": "1 == 1 == true",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected == (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 328,
+  "expr": "1 < 2 < 3",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected '<' (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 332,
+  "expr": ".a // \"default\"",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [
+   "default"
+  ]
+ },
+ {
+  "line": 333,
+  "expr": ".b // \"default\"",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [
+   "default"
+  ]
+ },
+ {
+  "line": 334,
+  "expr": ".c // \"default\"",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [
+   0
+  ]
+ },
+ {
+  "line": 335,
+  "expr": ".d // \"default\"",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [
+   "x"
+  ]
+ },
+ {
+  "line": 336,
+  "expr": ".missing // .d",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [
+   "x"
+  ]
+ },
+ {
+  "line": 337,
+  "expr": ".a // .b // .c",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [
+   0
+  ]
+ },
+ {
+  "line": 338,
+  "expr": "[.a, .b, .c] | .[] // 9",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [
+   0
+  ]
+ },
+ {
+  "line": 339,
+  "expr": "[(null,false) // (1,2)]",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 340,
+  "expr": "[(1,null,2) // 3]",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 341,
+  "expr": "[empty // 3]",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [
+   [
+    3
+   ]
+  ]
+ },
+ {
+  "line": 342,
+  "expr": "[.[] // 5]",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [
+   [
+    0,
+    "x"
+   ]
+  ]
+ },
+ {
+  "line": 343,
+  "expr": "(.a // .b) // \"z\"",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [
+   "z"
+  ]
+ },
+ {
+  "line": 344,
+  "expr": "[error(\"x\") // 1]",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [],
+  "error": "x",
+  "kind": "runtime"
+ },
+ {
+  "line": 345,
+  "expr": "[1 | .a // 5]",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [],
+  "error": "Cannot index number with string \"a\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 346,
+  "expr": ".x // empty",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": []
+ },
+ {
+  "line": 347,
+  "expr": "first(.a, .d // 1)",
+  "input": {
+   "a": null,
+   "b": false,
+   "c": 0,
+   "d": "x"
+  },
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 351,
+  "expr": "if true then 1 else 2 end",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 352,
+  "expr": "if false then 1 else 2 end",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   2
+  ]
+ },
+ {
+  "line": 353,
+  "expr": "if null then 1 elif 0 then 2 else 3 end",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   2
+  ]
+ },
+ {
+  "line": 354,
+  "expr": "if false then 1 elif false then 2 else 3 end",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3
+  ]
+ },
+ {
+  "line": 355,
+  "expr": "if false then 1 elif false then 2 end",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 356,
+  "expr": "if . then 1 end",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 357,
+  "expr": "5 | if . > 3 then \"big\" end",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "big"
+  ]
+ },
+ {
+  "line": 358,
+  "expr": "[if (true,false) then 1 else 2 end]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 359,
+  "expr": "[if true then (1,2) else 3 end]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 360,
+  "expr": "if empty then 1 else 2 end",
+  "input": null,
+  "nullInput": true,
+  "outputs": []
+ },
+ {
+  "line": 361,
+  "expr": "if 1 then \"a\" else \"b\" end | . + \"!\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "a!"
+  ]
+ },
+ {
+  "line": 362,
+  "expr": "[.[]?] | if length == 0 then \"empty\" else \"some\" end",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "empty"
+  ]
+ },
+ {
+  "line": 363,
+  "expr": "if true then 1 else 2 end + 1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   2
+  ]
+ },
+ {
+  "line": 367,
+  "expr": ".[0], .[1]",
+  "input": [
+   3,
+   1,
+   2
+  ],
+  "outputs": [
+   3,
+   1
+  ]
+ },
+ {
+  "line": 368,
+  "expr": "[.[] | . + 1]",
+  "input": [
+   3,
+   1,
+   2
+  ],
+  "outputs": [
+   [
+    4,
+    2,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 369,
+  "expr": "(.[0], .[1]) | . * 10",
+  "input": [
+   3,
+   1,
+   2
+  ],
+  "outputs": [
+   30,
+   10
+  ]
+ },
+ {
+  "line": 370,
+  "expr": "[., .] | length",
+  "input": [
+   3,
+   1,
+   2
+  ],
+  "outputs": [
+   2
+  ]
+ },
+ {
+  "line": 371,
+  "expr": "[(.[] | select(. > 1)), 99]",
+  "input": [
+   3,
+   1,
+   2
+  ],
+  "outputs": [
+   [
+    3,
+    2,
+    99
+   ]
+  ]
+ },
+ {
+  "line": 372,
+  "expr": ".[] | select(. > 1) | . * 2",
+  "input": [
+   3,
+   1,
+   2
+  ],
+  "outputs": [
+   6,
+   4
+  ]
+ },
+ {
+  "line": 373,
+  "expr": "map(.) | length",
+  "input": [
+   3,
+   1,
+   2
+  ],
+  "outputs": [
+   3
+  ]
+ },
+ {
+  "line": 374,
+  "expr": "(1, 2) as $x | $x * 10",
+  "input": [
+   3,
+   1,
+   2
+  ],
+  "outputs": [
+   10,
+   20
+  ]
+ },
+ {
+  "line": 378,
+  "expr": ".a as $x | $x",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 379,
+  "expr": ".a as $x | .b | map(. + $x)",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   [
+    2,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 380,
+  "expr": ".b[] as $x | $x * 2",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   2,
+   4
+  ]
+ },
+ {
+  "line": 381,
+  "expr": ". as {a: $a, b: [$b0, $b1]} | [$a, $b0, $b1]",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   [
+    1,
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 382,
+  "expr": ". as {$a, $b} | [$a, $b]",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   [
+    1,
+    [
+     1,
+     2
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 383,
+  "expr": ". as {c: {d: $d}} | $d",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   "e"
+  ]
+ },
+ {
+  "line": 384,
+  "expr": ". as {$c: {d: $d}} | [$c, $d]",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   [
+    {
+     "d": "e"
+    },
+    "e"
+   ]
+  ]
+ },
+ {
+  "line": 385,
+  "expr": ". as {\"a\": $x} | $x",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 386,
+  "expr": ". as {(\"a\",\"c\"): $x} | $x",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   1,
+   {
+    "d": "e"
+   }
+  ]
+ },
+ {
+  "line": 387,
+  "expr": ". as [$x] | $x",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [],
+  "error": "Cannot index object with number",
+  "kind": "runtime"
+ },
+ {
+  "line": 388,
+  "expr": ".b as [$x, $y, $z] | [$x, $y, $z]",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   [
+    1,
+    2,
+    null
+   ]
+  ]
+ },
+ {
+  "line": 389,
+  "expr": ".b as [$first] | $first",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 390,
+  "expr": "[.b[] as $x | .a as $y | $x + $y]",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   [
+    2,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 391,
+  "expr": ".a as $x | .a as $x | $x",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 392,
+  "expr": "[.b | .[] as [$a] ?// $a | $a]",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 393,
+  "expr": "[[1,2],{\"a\":3},4] | [.[] as [$a] ?// {$a} ?// $a | $a]",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   [
+    1,
+    3,
+    4
+   ]
+  ]
+ },
+ {
+  "line": 394,
+  "expr": "[[1,2],{\"a\":3}] | [.[] as [$a] ?// {a:$a} | $a]",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   [
+    1,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 395,
+  "expr": "[[3]] | .[] as [$a] ?// $a | $a + 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   4
+  ]
+ },
+ {
+  "line": 396,
+  "expr": ". as [$a] ?// $a | $a",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2
+    ],
+    "c": {
+     "d": "e"
+    }
+   }
+  ]
+ },
+ {
+  "line": 397,
+  "expr": "[{\"k\":\"a\",\"a\":1}] | .[0] as {(.k): $v} | $v",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 398,
+  "expr": "{\"a\":1} | .[] as {a:$x} | $x",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [],
+  "error": "Cannot index number with string \"a\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 399,
+  "expr": "$__loc__",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   {
+    "file": "<top-level>",
+    "line": 1
+   }
+  ]
+ },
+ {
+  "line": 400,
+  "expr": "{\"a\":1} | . as $d | $d.a",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 401,
+  "expr": ".b as [$x] | $x.foo",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [],
+  "error": "Cannot index number with string \"foo\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 402,
+  "expr": "$undefined",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [],
+  "error": "jq: error: $undefined is not defined at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 403,
+  "expr": ". as $x | $y",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2
+   ],
+   "c": {
+    "d": "e"
+   }
+  },
+  "outputs": [],
+  "error": "jq: error: $y is not defined at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 407,
+  "expr": "reduce range(5) as $i (0; . + $i)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   10
+  ]
+ },
+ {
+  "line": 408,
+  "expr": "reduce empty as $i (0; . + 1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0
+  ]
+ },
+ {
+  "line": 409,
+  "expr": "reduce (1,2,3) as $x ([]; . + [$x * 2])",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    4,
+    6
+   ]
+  ]
+ },
+ {
+  "line": 410,
+  "expr": "reduce range(3) as $x (0,10; . + $x)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3,
+   13
+  ]
+ },
+ {
+  "line": 411,
+  "expr": "reduce range(4) as $x (0; if $x == 1 then empty else . + 1 end)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   2
+  ]
+ },
+ {
+  "line": 412,
+  "expr": "reduce range(3) as $x (0; ., 10)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   10
+  ]
+ },
+ {
+  "line": 413,
+  "expr": "reduce [[1,2],[3,4]][] as [$a,$b] (0; . + $a * $b)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   14
+  ]
+ },
+ {
+  "line": 414,
+  "expr": "reduce .[]? as $x (0; . + 1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0
+  ]
+ },
+ {
+  "line": 415,
+  "expr": "[foreach range(5) as $i (0; . + $i)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    1,
+    3,
+    6,
+    10
+   ]
+  ]
+ },
+ {
+  "line": 416,
+  "expr": "[foreach range(5) as $i (0; . + $i; [$i, .])]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     3,
+     6
+    ],
+    [
+     4,
+     10
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 417,
+  "expr": "[foreach (1,2,3) as $x (0; (.+1, .+10))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    10,
+    11,
+    20,
+    21,
+    30
+   ]
+  ]
+ },
+ {
+  "line": 418,
+  "expr": "[foreach range(3) as $x (0; empty; .)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 419,
+  "expr": "[foreach [1,2][] as $x ({}; .[$x|tostring] = $x; keys)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     "1"
+    ],
+    [
+     "1",
+     "2"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 420,
+  "expr": "[limit(3; range(10))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 421,
+  "expr": "[limit(0; range(10))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 422,
+  "expr": "[limit(-1; 1, 2)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 423,
+  "expr": "[limit(5; 1, 2)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 424,
+  "expr": "[limit(1; empty)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 425,
+  "expr": "[first(range(10; 0; -1))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    10
+   ]
+  ]
+ },
+ {
+  "line": 426,
+  "expr": "[first(empty)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 427,
+  "expr": "[last(range(5))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    4
+   ]
+  ]
+ },
+ {
+  "line": 428,
+  "expr": "[last(empty)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    null
+   ]
+  ]
+ },
+ {
+  "line": 429,
+  "expr": "[nth(2; range(10))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2
+   ]
+  ]
+ },
+ {
+  "line": 430,
+  "expr": "[nth(0; range(10))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0
+   ]
+  ]
+ },
+ {
+  "line": 431,
+  "expr": "[nth(-1; range(10))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "nth doesn't support negative indices",
+  "kind": "runtime"
+ },
+ {
+  "line": 432,
+  "expr": "[nth(20; range(10))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 433,
+  "expr": "[range(5)] | first, last, nth(2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0,
+   4,
+   2
+  ]
+ },
+ {
+  "line": 434,
+  "expr": "[] | first",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 435,
+  "expr": "[] | last",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 436,
+  "expr": "[range(0; 10; 3)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    3,
+    6,
+    9
+   ]
+  ]
+ },
+ {
+  "line": 437,
+  "expr": "[range(5; 0; -2)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    5,
+    3,
+    1
+   ]
+  ]
+ },
+ {
+  "line": 438,
+  "expr": "[range(0; 1; 0.25)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    0.25,
+    0.5,
+    0.75
+   ]
+  ]
+ },
+ {
+  "line": 439,
+  "expr": "[range(0; 3; 0)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 440,
+  "expr": "[range(3; 0)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 441,
+  "expr": "[range(0.5; 3)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0.5,
+    1.5,
+    2.5
+   ]
+  ]
+ },
+ {
+  "line": 442,
+  "expr": "[range(-2)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 443,
+  "expr": "[range(0,1; 3,4)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    1,
+    2,
+    0,
+    1,
+    2,
+    3,
+    1,
+    2,
+    1,
+    2,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 444,
+  "expr": "[range(1; 2; 1, 0.5)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    1,
+    1.5
+   ]
+  ]
+ },
+ {
+  "line": 445,
+  "expr": "range(\"a\"; 2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Range bounds must be numeric",
+  "kind": "runtime"
+ },
+ {
+  "line": 446,
+  "expr": "[1 | until(. > 100; . * 2)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    128
+   ]
+  ]
+ },
+ {
+  "line": 447,
+  "expr": "[1 | while(. < 50; . * 3)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    3,
+    9,
+    27
+   ]
+  ]
+ },
+ {
+  "line": 448,
+  "expr": "[limit(5; 1 | repeat(. * 2))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    2,
+    2,
+    2,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 449,
+  "expr": "[10 | limit(4; repeat(. - 1))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    9,
+    9,
+    9,
+    9
+   ]
+  ]
+ },
+ {
+  "line": 450,
+  "expr": "isempty(empty)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 451,
+  "expr": "isempty(1, error(\"x\"))",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 452,
+  "expr": "[limit(3; repeat(1))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    1,
+    1
+   ]
+  ]
+ },
+ {
+  "line": 453,
+  "expr": "[.[]?] | first(.[]?, 1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 454,
+  "expr": "first(1, error(\"x\"))",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 455,
+  "expr": "[limit(2; 1, 2, error(\"x\"))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 459,
+  "expr": "def f: 1; f",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 460,
+  "expr": "def f(x): x * 2; f(3)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   6
+  ]
+ },
+ {
+  "line": 461,
+  "expr": "def f($x): $x * 2; f(3)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   6
+  ]
+ },
+ {
+  "line": 462,
+  "expr": "def f(x): [x]; f(1,2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 463,
+  "expr": "def f($x): [$x]; [f(1,2)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     1
+    ],
+    [
+     2
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 464,
+  "expr": "def f($a; $b): [$a, $b]; [f(1,2; 3,4)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     1,
+     3
+    ],
+    [
+     1,
+     4
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     2,
+     4
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 465,
+  "expr": "def f(a; b): [a, b]; f(1,2; 3,4)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2,
+    3,
+    4
+   ]
+  ]
+ },
+ {
+  "line": 466,
+  "expr": "def fac: if . <= 1 then 1 else . * (. - 1 | fac) end; 10 | fac",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3628800
+  ]
+ },
+ {
+  "line": 467,
+  "expr": "def fib: if . < 2 then . else (. - 1 | fib) + (. - 2 | fib) end; [range(10) | fib]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    1,
+    1,
+    2,
+    3,
+    5,
+    8,
+    13,
+    21,
+    34
+   ]
+  ]
+ },
+ {
+  "line": 468,
+  "expr": "def f: def g: 3; g * 2; f",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   6
+  ]
+ },
+ {
+  "line": 469,
+  "expr": "def f(x): def g: x + 1; g; f(10)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   11
+  ]
+ },
+ {
+  "line": 470,
+  "expr": "def f: reduce .[] as $x (0; . + $x); [1,2,3] | f",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   6
+  ]
+ },
+ {
+  "line": 471,
+  "expr": "def inc(f): f + 1; inc(inc(1))",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3
+  ]
+ },
+ {
+  "line": 472,
+  "expr": "1 as $x | def f: $x + 1; 10 as $x | f",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   2
+  ]
+ },
+ {
+  "line": 473,
+  "expr": "def f: .a; {\"a\":5} | f",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   5
+  ]
+ },
+ {
+  "line": 474,
+  "expr": "def map(f): \"mine\"; [1] | map(. + 1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "mine"
+  ]
+ },
+ {
+  "line": 475,
+  "expr": "def f(g): [g, g]; f(1, 2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2,
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 476,
+  "expr": "def f($x): x + $x; f(10)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   20
+  ]
+ },
+ {
+  "line": 477,
+  "expr": "def f: 1; def f: 2; f",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   2
+  ]
+ },
+ {
+  "line": 478,
+  "expr": "def f: 1; def f(x): x; [f, f(2)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 479,
+  "expr": "def rec: if . > 0 then . - 1 | rec else \"done\" end; 100 | rec",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "done"
+  ]
+ },
+ {
+  "line": 480,
+  "expr": "def f(x): x; f(.a)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 481,
+  "expr": "def f: g; def g: 1; f",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: g/0 is not defined at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 482,
+  "expr": "f",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: f/0 is not defined at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 483,
+  "expr": "foo(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: foo/1 is not defined at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 484,
+  "expr": "length(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: length/1 is not defined at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 485,
+  "expr": "map",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: map/0 is not defined at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 486,
+  "expr": "def f(x): x; f",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: f/0 is not defined at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 490,
+  "expr": "try error(\"x\") catch .",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "x"
+  ]
+ },
+ {
+  "line": 491,
+  "expr": "try error({\"a\":1}) catch .",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1
+   }
+  ]
+ },
+ {
+  "line": 492,
+  "expr": "try error(null) catch .",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 493,
+  "expr": "try (1/0) catch .",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "number (1) and number (0) cannot be divided because the divisor is zero"
+  ]
+ },
+ {
+  "line": 494,
+  "expr": "try 1 catch .",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 495,
+  "expr": "[try (1, error(\"x\"), 3) catch .]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    "x"
+   ]
+  ]
+ },
+ {
+  "line": 496,
+  "expr": "[.[]?]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 497,
+  "expr": "[(1,2) | tostring?]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "1",
+    "2"
+   ]
+  ]
+ },
+ {
+  "line": 498,
+  "expr": "try error(\"x\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": []
+ },
+ {
+  "line": 499,
+  "expr": "[try error(\"x\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 500,
+  "expr": "(try error(\"x\") catch .) | length",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 501,
+  "expr": "try error(\"x\") catch . | length",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 502,
+  "expr": "[1, \"a\", null] | map(try (. + 1) catch \"bad\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    "bad",
+    1
+   ]
+  ]
+ },
+ {
+  "line": 503,
+  "expr": "[{\"a\":1}, 2] | map(.a?)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1
+   ]
+  ]
+ },
+ {
+  "line": 504,
+  "expr": "[{\"a\":1}, 2] | [.[] | .a?]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1
+   ]
+  ]
+ },
+ {
+  "line": 505,
+  "expr": "error(\"custom\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "custom",
+  "kind": "runtime"
+ },
+ {
+  "line": 506,
+  "expr": "error",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "null (not a string)",
+  "kind": "runtime"
+ },
+ {
+  "line": 507,
+  "expr": "\"msg\" | error",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "msg",
+  "kind": "runtime"
+ },
+ {
+  "line": 508,
+  "expr": "{\"a\":1} | error",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "{\"a\":1} (not a string)",
+  "kind": "runtime"
+ },
+ {
+  "line": 509,
+  "expr": "null | error",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "null (not a string)",
+  "kind": "runtime"
+ },
+ {
+  "line": 510,
+  "expr": "error(null)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "null (not a string)",
+  "kind": "runtime"
+ },
+ {
+  "line": 511,
+  "expr": "[.[] | try error catch .]?",
+  "input": null,
+  "nullInput": true,
+  "outputs": []
+ },
+ {
+  "line": 512,
+  "expr": "try (try error(\"inner\") catch error(\"outer: \" + .)) catch .",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "outer: inner"
+  ]
+ },
+ {
+  "line": 513,
+  "expr": "[(1,2) | try error(.) catch .]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 514,
+  "expr": "[label $out | 1, 2, break $out, 3]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 515,
+  "expr": "[label $f | range(10) | ., (select(. == 3) | break $f)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    1,
+    2,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 516,
+  "expr": "label $a | label $b | 1, break $a, 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 517,
+  "expr": "[range(3) | label $x | if . == 1 then break $x else . end]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 518,
+  "expr": "break $x",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: $*label-x is not defined at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 519,
+  "expr": "try (break $x) catch .",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: $*label-x is not defined at <top-level>, line 1:",
+  "kind": "compile"
+ },
+ {
+  "line": 520,
+  "expr": ".a?.b?",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 521,
+  "expr": "[..?]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    null
+   ]
+  ]
+ },
+ {
+  "line": 522,
+  "expr": "(1,2)?",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1,
+   2
+  ]
+ },
+ {
+  "line": 526,
+  "expr": "[path(..)]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [],
+    [
+     "a"
+    ],
+    [
+     "a",
+     "b"
+    ],
+    [
+     "a",
+     "c"
+    ],
+    [
+     "a",
+     "c",
+     0
+    ],
+    [
+     "a",
+     "c",
+     1
+    ],
+    [
+     "d"
+    ],
+    [
+     "e"
+    ],
+    [
+     "e",
+     0
+    ],
+    [
+     "e",
+     0,
+     "f"
+    ],
+    [
+     "e",
+     1
+    ],
+    [
+     "e",
+     1,
+     "f"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 527,
+  "expr": "[paths]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a"
+    ],
+    [
+     "a",
+     "b"
+    ],
+    [
+     "a",
+     "c"
+    ],
+    [
+     "a",
+     "c",
+     0
+    ],
+    [
+     "a",
+     "c",
+     1
+    ],
+    [
+     "d"
+    ],
+    [
+     "e"
+    ],
+    [
+     "e",
+     0
+    ],
+    [
+     "e",
+     0,
+     "f"
+    ],
+    [
+     "e",
+     1
+    ],
+    [
+     "e",
+     1,
+     "f"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 528,
+  "expr": "[paths(type == \"number\")]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "a",
+     "c",
+     0
+    ],
+    [
+     "a",
+     "c",
+     1
+    ],
+    [
+     "e",
+     0,
+     "f"
+    ],
+    [
+     "e",
+     1,
+     "f"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 529,
+  "expr": "path(.a.b)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    "a",
+    "b"
+   ]
+  ]
+ },
+ {
+  "line": 530,
+  "expr": "[path(.a[])]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "a",
+     "c"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 531,
+  "expr": "[path(.e[].f)]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "e",
+     0,
+     "f"
+    ],
+    [
+     "e",
+     1,
+     "f"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 532,
+  "expr": "path(.a.c[1:])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    "a",
+    "c",
+    {
+     "start": 1,
+     "end": null
+    }
+   ]
+  ]
+ },
+ {
+  "line": 533,
+  "expr": "[path(.a | select(.b == 1))]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 534,
+  "expr": "[path(.a // .x)]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 535,
+  "expr": "[path(.d // .x)]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "x"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 536,
+  "expr": "[path(if .d then .a else .e end)]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "e"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 537,
+  "expr": "[path(first(.a, .e))]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 538,
+  "expr": "[path(limit(1; .a, .e))]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 539,
+  "expr": "[path(.a | .b, .c)]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "a",
+     "c"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 540,
+  "expr": "[path(getpath([\"a\",\"b\"]))]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a",
+     "b"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 541,
+  "expr": "[path(.a | getpath([\"c\", 0]))]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a",
+     "c",
+     0
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 542,
+  "expr": "[path(empty)]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 543,
+  "expr": "path(.)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 544,
+  "expr": "[path(.a as $x | .e)]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "e"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 545,
+  "expr": "path(1)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Invalid path expression with result 1",
+  "kind": "runtime"
+ },
+ {
+  "line": 546,
+  "expr": "path(.a | tostring)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Invalid path expression with result \"{\\\"b\\\":1,\\\"c\\\":[1,2]}\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 547,
+  "expr": "path(.a | 1)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Invalid path expression with result 1",
+  "kind": "runtime"
+ },
+ {
+  "line": 548,
+  "expr": "[path(last(.a, .e))]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Invalid path expression with result [{\"f\":1},{\"f\":2}]",
+  "kind": "runtime"
+ },
+ {
+  "line": 549,
+  "expr": "path(.a | keys)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Invalid path expression with result [\"b\",\"c\"]",
+  "kind": "runtime"
+ },
+ {
+  "line": 550,
+  "expr": "[path(.a.b | select(. == 1))]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a",
+     "b"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 551,
+  "expr": "getpath([\"a\",\"b\"])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 552,
+  "expr": "getpath([\"a\",\"c\",1])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   2
+  ]
+ },
+ {
+  "line": 553,
+  "expr": "getpath([\"x\",\"y\"])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 554,
+  "expr": "getpath([\"a\",\"b\",\"c\"])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Cannot index number with string \"c\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 555,
+  "expr": "getpath([])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1,
+     "c": [
+      1,
+      2
+     ]
+    },
+    "d": null,
+    "e": [
+     {
+      "f": 1
+     },
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 556,
+  "expr": "getpath(\"a\")",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Path must be specified as an array",
+  "kind": "runtime"
+ },
+ {
+  "line": 557,
+  "expr": "[getpath([\"a\",\"b\"], [\"d\"])]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    1,
+    null
+   ]
+  ]
+ },
+ {
+  "line": 558,
+  "expr": "setpath([\"a\",\"b\"]; 99)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 99,
+     "c": [
+      1,
+      2
+     ]
+    },
+    "d": null,
+    "e": [
+     {
+      "f": 1
+     },
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 559,
+  "expr": "setpath([\"new\"]; 1)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1,
+     "c": [
+      1,
+      2
+     ]
+    },
+    "d": null,
+    "e": [
+     {
+      "f": 1
+     },
+     {
+      "f": 2
+     }
+    ],
+    "new": 1
+   }
+  ]
+ },
+ {
+  "line": 560,
+  "expr": "setpath([\"e\", 0, \"f\"]; \"x\")",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1,
+     "c": [
+      1,
+      2
+     ]
+    },
+    "d": null,
+    "e": [
+     {
+      "f": "x"
+     },
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 561,
+  "expr": "setpath([]; 1)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 562,
+  "expr": "setpath([\"a\", \"c\", 5]; 1)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1,
+     "c": [
+      1,
+      2,
+      null,
+      null,
+      null,
+      1
+     ]
+    },
+    "d": null,
+    "e": [
+     {
+      "f": 1
+     },
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 563,
+  "expr": "setpath([\"a\",\"b\",\"x\"]; 1)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Cannot index number with string \"x\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 564,
+  "expr": "setpath(\"a\"; 1)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Path must be specified as an array",
+  "kind": "runtime"
+ },
+ {
+  "line": 565,
+  "expr": "del(.a)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "d": null,
+    "e": [
+     {
+      "f": 1
+     },
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 566,
+  "expr": "del(.a.b, .d)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "c": [
+      1,
+      2
+     ]
+    },
+    "e": [
+     {
+      "f": 1
+     },
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 567,
+  "expr": "del(.e[0])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1,
+     "c": [
+      1,
+      2
+     ]
+    },
+    "d": null,
+    "e": [
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 568,
+  "expr": "del(.e[])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1,
+     "c": [
+      1,
+      2
+     ]
+    },
+    "d": null,
+    "e": []
+   }
+  ]
+ },
+ {
+  "line": 569,
+  "expr": "del(.a.c[0, 1])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1,
+     "c": []
+    },
+    "d": null,
+    "e": [
+     {
+      "f": 1
+     },
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 570,
+  "expr": "del(.missing)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1,
+     "c": [
+      1,
+      2
+     ]
+    },
+    "d": null,
+    "e": [
+     {
+      "f": 1
+     },
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 571,
+  "expr": "del(.)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 572,
+  "expr": "del(.a.c[1:])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1,
+     "c": [
+      1
+     ]
+    },
+    "d": null,
+    "e": [
+     {
+      "f": 1
+     },
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 573,
+  "expr": "del(.e[] | select(.f == 1))",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1,
+     "c": [
+      1,
+      2
+     ]
+    },
+    "d": null,
+    "e": [
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 574,
+  "expr": "delpaths([[\"a\",\"b\"], [\"d\"]])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "c": [
+      1,
+      2
+     ]
+    },
+    "e": [
+     {
+      "f": 1
+     },
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 575,
+  "expr": "delpaths([])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1,
+     "c": [
+      1,
+      2
+     ]
+    },
+    "d": null,
+    "e": [
+     {
+      "f": 1
+     },
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 576,
+  "expr": "delpaths([[]])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 577,
+  "expr": "delpaths(\"x\")",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Paths must be specified as an array",
+  "kind": "runtime"
+ },
+ {
+  "line": 578,
+  "expr": "to_entries",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    {
+     "key": "a",
+     "value": {
+      "b": 1,
+      "c": [
+       1,
+       2
+      ]
+     }
+    },
+    {
+     "key": "d",
+     "value": null
+    },
+    {
+     "key": "e",
+     "value": [
+      {
+       "f": 1
+      },
+      {
+       "f": 2
+      }
+     ]
+    }
+   ]
+  ]
+ },
+ {
+  "line": 579,
+  "expr": ".a | to_entries",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    {
+     "key": "b",
+     "value": 1
+    },
+    {
+     "key": "c",
+     "value": [
+      1,
+      2
+     ]
+    }
+   ]
+  ]
+ },
+ {
+  "line": 580,
+  "expr": ".e | to_entries",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    {
+     "key": 0,
+     "value": {
+      "f": 1
+     }
+    },
+    {
+     "key": 1,
+     "value": {
+      "f": 2
+     }
+    }
+   ]
+  ]
+ },
+ {
+  "line": 581,
+  "expr": "[{\"key\":\"x\",\"value\":1},{\"name\":\"y\",\"value\":2},{\"k\":\"z\",\"v\":3}] | from_entries",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Cannot use null (null) as object key",
+  "kind": "runtime"
+ },
+ {
+  "line": 582,
+  "expr": "[{\"key\":1,\"value\":2}] | from_entries",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Cannot use number (1) as object key",
+  "kind": "runtime"
+ },
+ {
+  "line": 583,
+  "expr": "[{\"key\":null,\"value\":2}] | from_entries",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Cannot use null (null) as object key",
+  "kind": "runtime"
+ },
+ {
+  "line": 584,
+  "expr": "[{\"key\":false,\"value\":2}] | from_entries",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [],
+  "error": "Cannot use null (null) as object key",
+  "kind": "runtime"
+ },
+ {
+  "line": 585,
+  "expr": "[{\"Key\":\"a\",\"Value\":1},{\"Name\":\"b\",\"value\":2}] | from_entries",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": 2
+   }
+  ]
+ },
+ {
+  "line": 586,
+  "expr": "[] | from_entries",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {}
+  ]
+ },
+ {
+  "line": 587,
+  "expr": "with_entries(.value |= tostring)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": "{\"b\":1,\"c\":[1,2]}",
+    "d": "null",
+    "e": "[{\"f\":1},{\"f\":2}]"
+   }
+  ]
+ },
+ {
+  "line": 588,
+  "expr": "with_entries(select(.key != \"a\"))",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "d": null,
+    "e": [
+     {
+      "f": 1
+     },
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 589,
+  "expr": ".a | with_entries(.key |= ascii_upcase)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "B": 1,
+    "C": [
+     1,
+     2
+    ]
+   }
+  ]
+ },
+ {
+  "line": 590,
+  "expr": "pick(.a.b)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1
+    }
+   }
+  ]
+ },
+ {
+  "line": 591,
+  "expr": "pick(.e[1].f)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "e": [
+     null,
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 592,
+  "expr": "pick(.x.y)",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "x": {
+     "y": null
+    }
+   }
+  ]
+ },
+ {
+  "line": 593,
+  "expr": "[.a | paths]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "b"
+    ],
+    [
+     "c"
+    ],
+    [
+     "c",
+     0
+    ],
+    [
+     "c",
+     1
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 594,
+  "expr": "tostream",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a",
+     "b"
+    ],
+    1
+   ],
+   [
+    [
+     "a",
+     "c",
+     0
+    ],
+    1
+   ],
+   [
+    [
+     "a",
+     "c",
+     1
+    ],
+    2
+   ],
+   [
+    [
+     "a",
+     "c",
+     1
+    ]
+   ],
+   [
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    [
+     "d"
+    ],
+    null
+   ],
+   [
+    [
+     "e",
+     0,
+     "f"
+    ],
+    1
+   ],
+   [
+    [
+     "e",
+     0,
+     "f"
+    ]
+   ],
+   [
+    [
+     "e",
+     1,
+     "f"
+    ],
+    2
+   ],
+   [
+    [
+     "e",
+     1,
+     "f"
+    ]
+   ],
+   [
+    [
+     "e",
+     1
+    ]
+   ],
+   [
+    [
+     "e"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 595,
+  "expr": "[tostream] | fromstream(.[])",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1,
+     "c": [
+      1,
+      2
+     ]
+    },
+    "d": null,
+    "e": [
+     {
+      "f": 1
+     },
+     {
+      "f": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 596,
+  "expr": "[1,[2]] | [tostream]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     [
+      0
+     ],
+     1
+    ],
+    [
+     [
+      1,
+      0
+     ],
+     2
+    ],
+    [
+     [
+      1,
+      0
+     ]
+    ],
+    [
+     [
+      1
+     ]
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 597,
+  "expr": "[{\"a\":[1,2]} | tostream]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     [
+      "a",
+      0
+     ],
+     1
+    ],
+    [
+     [
+      "a",
+      1
+     ],
+     2
+    ],
+    [
+     [
+      "a",
+      1
+     ]
+    ],
+    [
+     [
+      "a"
+     ]
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 598,
+  "expr": "fromstream(([1,[2]] | tostream))",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    1,
+    [
+     2
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 599,
+  "expr": "[1|truncate_stream([[0],1],[[1,0],2],[[1,0]],[[1]])]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     [
+      0
+     ],
+     2
+    ],
+    [
+     [
+      0
+     ]
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 600,
+  "expr": "{\"a\":{\"b\":{\"c\":1}}} | [paths(..)]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a"
+    ],
+    [
+     "a"
+    ],
+    [
+     "a"
+    ],
+    [
+     "a",
+     "b"
+    ],
+    [
+     "a",
+     "b"
+    ],
+    [
+     "a",
+     "b",
+     "c"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 601,
+  "expr": "[paths(numbers)]",
+  "input": {
+   "a": {
+    "b": 1,
+    "c": [
+     1,
+     2
+    ]
+   },
+   "d": null,
+   "e": [
+    {
+     "f": 1
+    },
+    {
+     "f": 2
+    }
+   ]
+  },
+  "outputs": [
+   [
+    [
+     "a",
+     "b"
+    ],
+    [
+     "a",
+     "c",
+     0
+    ],
+    [
+     "a",
+     "c",
+     1
+    ],
+    [
+     "e",
+     0,
+     "f"
+    ],
+    [
+     "e",
+     1,
+     "f"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 605,
+  "expr": "1 | path(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Invalid path expression with result 1",
+  "kind": "runtime"
+ },
+ {
+  "line": 606,
+  "expr": "1 | path(. + 0)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Invalid path expression with result 1",
+  "kind": "runtime"
+ },
+ {
+  "line": 607,
+  "expr": "1 | (1 = 2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Invalid path expression with result 1",
+  "kind": "runtime"
+ },
+ {
+  "line": 608,
+  "expr": "null | [path(null)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    []
+   ]
+  ]
+ },
+ {
+  "line": 609,
+  "expr": "{\"a\":true} | [path(.a | true)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     "a"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 610,
+  "expr": "\"a\\nc\" | test(\"a.c\"; \"m\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 612,
+  "expr": "1 ?// 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected ?//, expecting end of file (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 614,
+  "expr": "{\"a\":1} | .a?//1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected ?//, expecting end of file (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 618,
+  "expr": ".a = 5",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 5,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 619,
+  "expr": ".a = (5, 6)",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 5,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   },
+   {
+    "a": 6,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 620,
+  "expr": ".x = 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    },
+    "x": 1
+   }
+  ]
+ },
+ {
+  "line": 621,
+  "expr": ".b[0] = 9",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     9,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 622,
+  "expr": ".b[5] = 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2,
+     3,
+     null,
+     null,
+     1
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 623,
+  "expr": ".b[-1] = 9",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2,
+     9
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 624,
+  "expr": ".b[-10] = 9",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [],
+  "error": "Out of bounds negative array index",
+  "kind": "runtime"
+ },
+ {
+  "line": 625,
+  "expr": ".c.d = .a",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": 1
+    }
+   }
+  ]
+ },
+ {
+  "line": 626,
+  "expr": ".a |= . + 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 2,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 627,
+  "expr": ".b[] |= . * 10",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     10,
+     20,
+     30
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 628,
+  "expr": ".b |= map(. + 1)",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     2,
+     3,
+     4
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 629,
+  "expr": ".b[1:] = [\"x\"]",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     "x"
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 630,
+  "expr": ".b[1:] |= map(. * 100)",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     200,
+     300
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 631,
+  "expr": ".b[:1] = []",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 632,
+  "expr": ".a += 10",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 11,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 633,
+  "expr": ".a -= 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 0,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 634,
+  "expr": ".a *= 3",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 3,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 635,
+  "expr": ".a /= 2",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 0.5,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 636,
+  "expr": ".a %= 2",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 637,
+  "expr": ".b += [4]",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 638,
+  "expr": ".c.e //= \"default\"",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x",
+     "e": "default"
+    }
+   }
+  ]
+ },
+ {
+  "line": 639,
+  "expr": ".c.d //= \"default\"",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 640,
+  "expr": ".a += (1, 2)",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 2,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   },
+   {
+    "a": 3,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 641,
+  "expr": ".b[] += 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     2,
+     3,
+     4
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 642,
+  "expr": ".b[] |= empty",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 643,
+  "expr": ".b |= (., 10)",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 644,
+  "expr": ".[] |= type",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": "number",
+    "b": "array",
+    "c": "object"
+   }
+  ]
+ },
+ {
+  "line": 645,
+  "expr": ".missing |= 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    },
+    "missing": 1
+   }
+  ]
+ },
+ {
+  "line": 646,
+  "expr": ".a |= empty",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 647,
+  "expr": ".b[1] |= empty",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 648,
+  "expr": ".a = .b",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": [
+     1,
+     2,
+     3
+    ],
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 649,
+  "expr": ".a |= .b",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [],
+  "error": "Cannot index number with string \"b\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 650,
+  "expr": ".c |= with_entries(.value = 0)",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": 0
+    }
+   }
+  ]
+ },
+ {
+  "line": 651,
+  "expr": "(.a, .x) = 0",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 0,
+    "b": [
+     1,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    },
+    "x": 0
+   }
+  ]
+ },
+ {
+  "line": 652,
+  "expr": ".b[] = 7",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     7,
+     7,
+     7
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 653,
+  "expr": "(.b | .[0]) = 42",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     42,
+     2,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 654,
+  "expr": ".b.x = 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [],
+  "error": "Cannot index array with string \"x\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 655,
+  "expr": ".a.x = 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [],
+  "error": "Cannot index number with string \"x\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 656,
+  "expr": ".a[0] = 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [],
+  "error": "Cannot index number with number",
+  "kind": "runtime"
+ },
+ {
+  "line": 657,
+  "expr": ".b[\"x\"] = 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [],
+  "error": "Cannot index array with string \"x\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 658,
+  "expr": ".b[1.5] = 7",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     7,
+     3
+    ],
+    "c": {
+     "d": "x"
+    }
+   }
+  ]
+ },
+ {
+  "line": 659,
+  "expr": "null | .[2] = 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   [
+    null,
+    null,
+    1
+   ]
+  ]
+ },
+ {
+  "line": 660,
+  "expr": "null | .a.b = 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": {
+     "b": 1
+    }
+   }
+  ]
+ },
+ {
+  "line": 661,
+  "expr": "null | .[1:2] = [\"x\"]",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   [
+    "x"
+   ]
+  ]
+ },
+ {
+  "line": 662,
+  "expr": "[1,2,3,4,5] | .[1:3] |= map(. * 10)",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   [
+    1,
+    20,
+    30,
+    4,
+    5
+   ]
+  ]
+ },
+ {
+  "line": 663,
+  "expr": "[1,2,3] | .[1:] = 5",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [],
+  "error": "A slice of an array can only be assigned another array",
+  "kind": "runtime"
+ },
+ {
+  "line": 664,
+  "expr": "{} | .a += 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1
+   }
+  ]
+ },
+ {
+  "line": 665,
+  "expr": "{} | .a //= 3",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 3
+   }
+  ]
+ },
+ {
+  "line": 666,
+  "expr": "{\"a\":[{\"b\":1},{\"b\":2}]} | .a[].b |= . + 1",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": [
+     {
+      "b": 2
+     },
+     {
+      "b": 3
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 667,
+  "expr": "{\"a\":[{\"b\":1},{\"b\":2}]} | .a |= map(select(.b > 1))",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": [
+     {
+      "b": 2
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 668,
+  "expr": "{\"a\":1} | .a = (.a | tostring)",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": "1"
+   }
+  ]
+ },
+ {
+  "line": 669,
+  "expr": "[[1,2],[3,4]] | .[][0] = 0",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   [
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     4
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 670,
+  "expr": "{\"x\":{\"y\":1}} | .x.y as $v | .x.z = $v",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "x": {
+     "y": 1,
+     "z": 1
+    }
+   }
+  ]
+ },
+ {
+  "line": 671,
+  "expr": ". as $orig | .a = 100 | [., $orig.a]",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   [
+    {
+     "a": 100,
+     "b": [
+      1,
+      2,
+      3
+     ],
+     "c": {
+      "d": "x"
+     }
+    },
+    1
+   ]
+  ]
+ },
+ {
+  "line": 672,
+  "expr": "map_values(tostring)",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": "1",
+    "b": "[1,2,3]",
+    "c": "{\"d\":\"x\"}"
+   }
+  ]
+ },
+ {
+  "line": 673,
+  "expr": ".b | map_values(. + 1)",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   [
+    2,
+    3,
+    4
+   ]
+  ]
+ },
+ {
+  "line": 674,
+  "expr": ".b | map_values(empty)",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 675,
+  "expr": "{\"a\":1,\"b\":null} | map_values(values)",
+  "input": {
+   "a": 1,
+   "b": [
+    1,
+    2,
+    3
+   ],
+   "c": {
+    "d": "x"
+   }
+  },
+  "outputs": [
+   {
+    "a": 1
+   }
+  ]
+ },
+ {
+  "line": 679,
+  "expr": "[..]",
+  "input": {
+   "a": [
+    1,
+    {
+     "b": 2
+    }
+   ],
+   "c": "x"
+  },
+  "outputs": [
+   [
+    {
+     "a": [
+      1,
+      {
+       "b": 2
+      }
+     ],
+     "c": "x"
+    },
+    [
+     1,
+     {
+      "b": 2
+     }
+    ],
+    1,
+    {
+     "b": 2
+    },
+    2,
+    "x"
+   ]
+  ]
+ },
+ {
+  "line": 680,
+  "expr": "[.. | numbers]",
+  "input": {
+   "a": [
+    1,
+    {
+     "b": 2
+    }
+   ],
+   "c": "x"
+  },
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 681,
+  "expr": "[.. | .b? // empty]",
+  "input": {
+   "a": [
+    1,
+    {
+     "b": 2
+    }
+   ],
+   "c": "x"
+  },
+  "outputs": [
+   [
+    2
+   ]
+  ]
+ },
+ {
+  "line": 682,
+  "expr": "[..|scalars]",
+  "input": {
+   "a": [
+    1,
+    {
+     "b": 2
+    }
+   ],
+   "c": "x"
+  },
+  "outputs": [
+   [
+    1,
+    2,
+    "x"
+   ]
+  ]
+ },
+ {
+  "line": 683,
+  "expr": "[recurse]",
+  "input": {
+   "a": [
+    1,
+    {
+     "b": 2
+    }
+   ],
+   "c": "x"
+  },
+  "outputs": [
+   [
+    {
+     "a": [
+      1,
+      {
+       "b": 2
+      }
+     ],
+     "c": "x"
+    },
+    [
+     1,
+     {
+      "b": 2
+     }
+    ],
+    1,
+    {
+     "b": 2
+    },
+    2,
+    "x"
+   ]
+  ]
+ },
+ {
+  "line": 684,
+  "expr": "[recurse(.[]?)]",
+  "input": {
+   "a": [
+    1,
+    {
+     "b": 2
+    }
+   ],
+   "c": "x"
+  },
+  "outputs": [
+   [
+    {
+     "a": [
+      1,
+      {
+       "b": 2
+      }
+     ],
+     "c": "x"
+    },
+    [
+     1,
+     {
+      "b": 2
+     }
+    ],
+    1,
+    {
+     "b": 2
+    },
+    2,
+    "x"
+   ]
+  ]
+ },
+ {
+  "line": 685,
+  "expr": "[recurse(.a?; . != null)]",
+  "input": {
+   "a": [
+    1,
+    {
+     "b": 2
+    }
+   ],
+   "c": "x"
+  },
+  "outputs": [
+   [
+    {
+     "a": [
+      1,
+      {
+       "b": 2
+      }
+     ],
+     "c": "x"
+    },
+    [
+     1,
+     {
+      "b": 2
+     }
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 686,
+  "expr": "2 | [recurse(if . < 20 then . * 2 else empty end)]",
+  "input": {
+   "a": [
+    1,
+    {
+     "b": 2
+    }
+   ],
+   "c": "x"
+  },
+  "outputs": [
+   [
+    2,
+    4,
+    8,
+    16,
+    32
+   ]
+  ]
+ },
+ {
+  "line": 687,
+  "expr": "[recurse(.[]?; type == \"array\" or type == \"object\")]",
+  "input": {
+   "a": [
+    1,
+    {
+     "b": 2
+    }
+   ],
+   "c": "x"
+  },
+  "outputs": [
+   [
+    {
+     "a": [
+      1,
+      {
+       "b": 2
+      }
+     ],
+     "c": "x"
+    },
+    [
+     1,
+     {
+      "b": 2
+     }
+    ],
+    {
+     "b": 2
+    }
+   ]
+  ]
+ },
+ {
+  "line": 688,
+  "expr": "[.. | select(type == \"string\")]",
+  "input": {
+   "a": [
+    1,
+    {
+     "b": 2
+    }
+   ],
+   "c": "x"
+  },
+  "outputs": [
+   [
+    "x"
+   ]
+  ]
+ },
+ {
+  "line": 689,
+  "expr": "..|numbers",
+  "input": {
+   "a": [
+    1,
+    {
+     "b": 2
+    }
+   ],
+   "c": "x"
+  },
+  "outputs": [
+   1,
+   2
+  ]
+ },
+ {
+  "line": 690,
+  "expr": "{\"a\":{\"a\":{\"a\":null}}} | [recurse(.a; . != null)]",
+  "input": {
+   "a": [
+    1,
+    {
+     "b": 2
+    }
+   ],
+   "c": "x"
+  },
+  "outputs": [
+   [
+    {
+     "a": {
+      "a": {
+       "a": null
+      }
+     }
+    },
+    {
+     "a": {
+      "a": null
+     }
+    },
+    {
+     "a": null
+    }
+   ]
+  ]
+ },
+ {
+  "line": 694,
+  "expr": "[null, true, 1, -5, \"héllo\", [1,2], {\"a\":1}] | map(try length catch \"err\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    "err",
+    1,
+    5,
+    5,
+    2,
+    1
+   ]
+  ]
+ },
+ {
+  "line": 695,
+  "expr": "true | length",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "boolean (true) has no length",
+  "kind": "runtime"
+ },
+ {
+  "line": 696,
+  "expr": "\"héllo\" | utf8bytelength",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   6
+  ]
+ },
+ {
+  "line": 697,
+  "expr": "1 | utf8bytelength",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "number (1) only strings have UTF-8 byte length",
+  "kind": "runtime"
+ },
+ {
+  "line": 698,
+  "expr": "{\"b\":1,\"a\":2,\"é\":3,\"B\":4} | keys",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "B",
+    "a",
+    "b",
+    "é"
+   ]
+  ]
+ },
+ {
+  "line": 699,
+  "expr": "{\"b\":1,\"a\":2} | keys_unsorted",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "b",
+    "a"
+   ]
+  ]
+ },
+ {
+  "line": 700,
+  "expr": "[5,6] | keys",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    1
+   ]
+  ]
+ },
+ {
+  "line": 701,
+  "expr": "null | keys",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "null (null) has no keys",
+  "kind": "runtime"
+ },
+ {
+  "line": 702,
+  "expr": "1 | keys",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "number (1) has no keys",
+  "kind": "runtime"
+ },
+ {
+  "line": 703,
+  "expr": "{\"a\":1} | has(\"a\"), has(\"b\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true,
+   false
+  ]
+ },
+ {
+  "line": 704,
+  "expr": "[1,2] | has(0), has(2), has(-1), has(1.5)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true,
+   false,
+   false,
+   true
+  ]
+ },
+ {
+  "line": 705,
+  "expr": "{\"a\":1} | has(0)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot check whether object has a number key",
+  "kind": "runtime"
+ },
+ {
+  "line": 706,
+  "expr": "[1] | has(\"a\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot check whether array has a string key",
+  "kind": "runtime"
+ },
+ {
+  "line": 707,
+  "expr": "\"a\" | has(\"a\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot check whether string has a string key",
+  "kind": "runtime"
+ },
+ {
+  "line": 708,
+  "expr": "\"a\" | in({\"a\":1})",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 709,
+  "expr": "0 | in([5])",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 710,
+  "expr": "\"foobar\" | contains(\"bar\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 711,
+  "expr": "\"foobar\" | contains(\"baz\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 712,
+  "expr": "\"foobar\" | contains(\"\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 713,
+  "expr": "[\"foobar\",\"baz\"] | contains([\"bar\"])",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 714,
+  "expr": "[\"foobar\",\"baz\"] | contains([\"bar\",\"qux\"])",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 715,
+  "expr": "{\"a\":[1,2,3],\"b\":\"x\"} | contains({\"a\":[1]})",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 716,
+  "expr": "{\"a\":[1,2,3],\"b\":\"x\"} | contains({\"a\":[4]})",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 717,
+  "expr": "{\"a\":1} | contains({\"b\":null})",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 718,
+  "expr": "1 | contains(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 719,
+  "expr": "1 | contains(2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 720,
+  "expr": "true | contains(false)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "boolean (true) and boolean (false) cannot have their containment checked",
+  "kind": "runtime"
+ },
+ {
+  "line": 721,
+  "expr": "true | contains(true)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 722,
+  "expr": "null | contains(null)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 723,
+  "expr": "\"a\" | contains(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "string (\"a\") and number (1) cannot have their containment checked",
+  "kind": "runtime"
+ },
+ {
+  "line": 724,
+  "expr": "[1,[2,3]] | contains([[2]])",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 725,
+  "expr": "[1,[2,3]] | contains([2])",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 726,
+  "expr": "\"bar\" | inside(\"foobar\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 727,
+  "expr": "[\"a\"] | inside([\"a\",\"b\"])",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 728,
+  "expr": "{\"a\":1} | inside({\"a\":1,\"b\":2})",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 729,
+  "expr": "\"\\u0000x\" | contains(\"x\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 733,
+  "expr": "[1,2,3] | map(. * 2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    4,
+    6
+   ]
+  ]
+ },
+ {
+  "line": 734,
+  "expr": "{\"a\":1,\"b\":2} | map(. + 1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 735,
+  "expr": "1 | map(.)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot iterate over number (1)",
+  "kind": "runtime"
+ },
+ {
+  "line": 736,
+  "expr": "[1,2,3] | map(select(. != 2))",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 737,
+  "expr": "[1,2,3] | map(empty)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 738,
+  "expr": "[1,2] | map(., .)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    1,
+    2,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 739,
+  "expr": "[1,2,3,4] | [.[] | select(. % 2 == 0)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    4
+   ]
+  ]
+ },
+ {
+  "line": 740,
+  "expr": "[1, null, 2] | map(values)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 741,
+  "expr": "[1,2,3] | add",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   6
+  ]
+ },
+ {
+  "line": 742,
+  "expr": "[\"a\",\"b\"] | add",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "ab"
+  ]
+ },
+ {
+  "line": 743,
+  "expr": "[[1],[2]] | add",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 744,
+  "expr": "[{\"a\":1},{\"b\":2}] | add",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1,
+    "b": 2
+   }
+  ]
+ },
+ {
+  "line": 745,
+  "expr": "[] | add",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 746,
+  "expr": "null | add",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot iterate over null (null)",
+  "kind": "runtime"
+ },
+ {
+  "line": 747,
+  "expr": "[1, null, 2] | add",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3
+  ]
+ },
+ {
+  "line": 748,
+  "expr": "[1, \"a\"] | add",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "number (1) and string (\"a\") cannot be added",
+  "kind": "runtime"
+ },
+ {
+  "line": 749,
+  "expr": "{\"a\":1,\"b\":2} | add",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3
+  ]
+ },
+ {
+  "line": 750,
+  "expr": "[true, false] | any, all",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true,
+   false
+  ]
+ },
+ {
+  "line": 751,
+  "expr": "[] | any, all",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false,
+   true
+  ]
+ },
+ {
+  "line": 752,
+  "expr": "[null, 1] | any",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 753,
+  "expr": "[1, 2] | all(. > 0)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 754,
+  "expr": "[1, 2] | any(. > 1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 755,
+  "expr": "any(1, 2; . == 2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 756,
+  "expr": "all(1, 2; . == 2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 757,
+  "expr": "any(error(\"x\"); true)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "x",
+  "kind": "runtime"
+ },
+ {
+  "line": 758,
+  "expr": "[1,[2,[3,[4]]]] | flatten",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2,
+    3,
+    4
+   ]
+  ]
+ },
+ {
+  "line": 759,
+  "expr": "[1,[2,[3,[4]]]] | flatten(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2,
+    [
+     3,
+     [
+      4
+     ]
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 760,
+  "expr": "[1,[2,[3,[4]]]] | flatten(0)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    [
+     2,
+     [
+      3,
+      [
+       4
+      ]
+     ]
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 761,
+  "expr": "[1,[2]] | flatten(-1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "flatten depth must not be negative",
+  "kind": "runtime"
+ },
+ {
+  "line": 762,
+  "expr": "[[]] | flatten",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 763,
+  "expr": "{\"a\":[1]} | flatten",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1
+   ]
+  ]
+ },
+ {
+  "line": 764,
+  "expr": "[1.5, -1.5, 2.5, -0.5] | map(floor)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    -2,
+    2,
+    -1
+   ]
+  ]
+ },
+ {
+  "line": 765,
+  "expr": "[1.5, -1.5, 2.5, -0.5] | map(ceil)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    -1,
+    3,
+    0
+   ]
+  ]
+ },
+ {
+  "line": 766,
+  "expr": "[1.5, -1.5, 2.5, -0.5, 0.5] | map(round)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    -2,
+    3,
+    -1,
+    1
+   ]
+  ]
+ },
+ {
+  "line": 767,
+  "expr": "[1.5, -1.5, 2.5] | map(fabs)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1.5,
+    1.5,
+    2.5
+   ]
+  ]
+ },
+ {
+  "line": 768,
+  "expr": "[1.7, -1.7] | map(trunc)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    -1
+   ]
+  ]
+ },
+ {
+  "line": 769,
+  "expr": "[2.5, 3.5, -2.5] | map(rint)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    4,
+    -2
+   ]
+  ]
+ },
+ {
+  "line": 770,
+  "expr": "[4, 2, 0] | map(sqrt)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    1.4142135623730951,
+    0
+   ]
+  ]
+ },
+ {
+  "line": 771,
+  "expr": "-1 | sqrt | isnan",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 772,
+  "expr": "pow(2; 10)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1024
+  ]
+ },
+ {
+  "line": 773,
+  "expr": "pow(2; 0.5)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1.4142135623730951
+  ]
+ },
+ {
+  "line": 774,
+  "expr": "[pow(2,3; 1,2)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    3,
+    4,
+    9
+   ]
+  ]
+ },
+ {
+  "line": 775,
+  "expr": "[1, 10, 100] | map(log10)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 776,
+  "expr": "1 | exp",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   2.718281828459045
+  ]
+ },
+ {
+  "line": 777,
+  "expr": "0 | log",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -1.7976931348623157e+308
+  ]
+ },
+ {
+  "line": 778,
+  "expr": "[8] | map(log2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    3
+   ]
+  ]
+ },
+ {
+  "line": 779,
+  "expr": "[-3, 3] | map(abs)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    3,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 780,
+  "expr": "\"abc\" | abs",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "abc"
+  ]
+ },
+ {
+  "line": 781,
+  "expr": "null | abs",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "null (null) cannot be negated",
+  "kind": "runtime"
+ },
+ {
+  "line": 782,
+  "expr": "[3.7] | map(significand)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1.85
+   ]
+  ]
+ },
+ {
+  "line": 783,
+  "expr": "8 | logb",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3
+  ]
+ },
+ {
+  "line": 784,
+  "expr": "[0.75] | map(frexp)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     0.75,
+     0
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 785,
+  "expr": "3.5 | modf",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0.5,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 786,
+  "expr": "[1, 2] | map(exp10)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    10,
+    100
+   ]
+  ]
+ },
+ {
+  "line": 787,
+  "expr": "2 | exp2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   4
+  ]
+ },
+ {
+  "line": 788,
+  "expr": "10 | fmin(3; 4)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3
+  ]
+ },
+ {
+  "line": 789,
+  "expr": "[atan2(1; 1)] | map(. * 4)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    3.141592653589793
+   ]
+  ]
+ },
+ {
+  "line": 790,
+  "expr": "1 | [sin, cos] | map(. * 1000 | round)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    841,
+    540
+   ]
+  ]
+ },
+ {
+  "line": 791,
+  "expr": "5 | ldexp(.; 2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   20
+  ]
+ },
+ {
+  "line": 792,
+  "expr": "fma(2; 3; 4)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   10
+  ]
+ },
+ {
+  "line": 793,
+  "expr": "3 | fmod(.; 2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 794,
+  "expr": "\"a\" | floor",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "string (\"a\") number required",
+  "kind": "runtime"
+ },
+ {
+  "line": 795,
+  "expr": "infinite",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1.7976931348623157e+308
+  ]
+ },
+ {
+  "line": 796,
+  "expr": "-infinite",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -1.7976931348623157e+308
+  ]
+ },
+ {
+  "line": 797,
+  "expr": "nan | isnan",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 798,
+  "expr": "[infinite, nan, 1] | map(isinfinite)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    true,
+    false,
+    false
+   ]
+  ]
+ },
+ {
+  "line": 799,
+  "expr": "[infinite, nan, 1, 0] | map(isnormal)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    false,
+    false,
+    true,
+    false
+   ]
+  ]
+ },
+ {
+  "line": 800,
+  "expr": "[1, infinite, nan] | map(isfinite)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    true,
+    false,
+    true
+   ]
+  ]
+ },
+ {
+  "line": 801,
+  "expr": "[infinite] | tojson",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "[1.7976931348623157e+308]"
+  ]
+ },
+ {
+  "line": 802,
+  "expr": "nan | tostring",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "null"
+  ]
+ },
+ {
+  "line": 803,
+  "expr": "[nan] | tojson",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "[null]"
+  ]
+ },
+ {
+  "line": 804,
+  "expr": "[1, nan] | sort",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    null,
+    1
+   ]
+  ]
+ },
+ {
+  "line": 805,
+  "expr": "[nan, 1, null] | sort",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    null,
+    null,
+    1
+   ]
+  ]
+ },
+ {
+  "line": 806,
+  "expr": "[1,2,3] | min, max",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1,
+   3
+  ]
+ },
+ {
+  "line": 807,
+  "expr": "[] | min, max",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null,
+   null
+  ]
+ },
+ {
+  "line": 808,
+  "expr": "[{\"a\":2},{\"a\":1},{\"a\":1}] | min_by(.a), max_by(.a)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1
+   },
+   {
+    "a": 2
+   }
+  ]
+ },
+ {
+  "line": 809,
+  "expr": "[{\"a\":1,\"i\":0},{\"a\":1,\"i\":1}] | min_by(.a).i, max_by(.a).i",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0,
+   1
+  ]
+ },
+ {
+  "line": 810,
+  "expr": "1 | min",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "number (1) and number (1) cannot be iterated over",
+  "kind": "runtime"
+ },
+ {
+  "line": 811,
+  "expr": "[1] | min_by(error(\"x\"))",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "x",
+  "kind": "runtime"
+ },
+ {
+  "line": 815,
+  "expr": "[3,1,2] | sort",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 816,
+  "expr": "[null, true, false, 0, -1, \"a\", \"B\", [], {}, [0], {\"a\":1}] | sort",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    null,
+    false,
+    true,
+    -1,
+    0,
+    "B",
+    "a",
+    [],
+    [
+     0
+    ],
+    {},
+    {
+     "a": 1
+    }
+   ]
+  ]
+ },
+ {
+  "line": 817,
+  "expr": "[\"b\",\"a\",\"B\",\"é\",\"z\"] | sort",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "B",
+    "a",
+    "b",
+    "z",
+    "é"
+   ]
+  ]
+ },
+ {
+  "line": 818,
+  "expr": "[{\"a\":2,\"b\":1},{\"a\":1,\"b\":2}] | sort",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    {
+     "a": 1,
+     "b": 2
+    },
+    {
+     "a": 2,
+     "b": 1
+    }
+   ]
+  ]
+ },
+ {
+  "line": 819,
+  "expr": "[[2],[1,3],[1]] | sort",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     1
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     2
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 820,
+  "expr": "{\"a\":1} | sort",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "object ({\"a\":1}) cannot be sorted, as it is not an array",
+  "kind": "runtime"
+ },
+ {
+  "line": 821,
+  "expr": "[{\"a\":2},{\"a\":1},{\"a\":2,\"b\":0}] | sort_by(.a)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    {
+     "a": 1
+    },
+    {
+     "a": 2
+    },
+    {
+     "a": 2,
+     "b": 0
+    }
+   ]
+  ]
+ },
+ {
+  "line": 822,
+  "expr": "[{\"a\":2,\"i\":0},{\"a\":1,\"i\":1},{\"a\":2,\"i\":2}] | sort_by(.a) | map(.i)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    0,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 823,
+  "expr": "[{\"a\":1,\"b\":2},{\"a\":1,\"b\":1}] | sort_by(.a, .b)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    {
+     "a": 1,
+     "b": 1
+    },
+    {
+     "a": 1,
+     "b": 2
+    }
+   ]
+  ]
+ },
+ {
+  "line": 824,
+  "expr": "[3,1,2] | sort_by(-.)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    3,
+    2,
+    1
+   ]
+  ]
+ },
+ {
+  "line": 825,
+  "expr": "[1,2,3,4,5] | group_by(. % 2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     2,
+     4
+    ],
+    [
+     1,
+     3,
+     5
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 826,
+  "expr": "[{\"a\":1},{\"a\":null},{\"b\":1}] | group_by(.a)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     {
+      "a": null
+     },
+     {
+      "b": 1
+     }
+    ],
+    [
+     {
+      "a": 1
+     }
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 827,
+  "expr": "[] | group_by(.)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 828,
+  "expr": "[1,2,1,3,2] | unique",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 829,
+  "expr": "[1,1.0,\"1\"] | unique",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    "1"
+   ]
+  ]
+ },
+ {
+  "line": 830,
+  "expr": "[{\"a\":1,\"b\":1},{\"a\":1,\"b\":2},{\"a\":2}] | unique_by(.a)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    {
+     "a": 1,
+     "b": 1
+    },
+    {
+     "a": 2
+    }
+   ]
+  ]
+ },
+ {
+  "line": 831,
+  "expr": "[\"ab\",\"c\",\"de\"] | unique_by(length)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "c",
+    "ab"
+   ]
+  ]
+ },
+ {
+  "line": 832,
+  "expr": "[1,2,3] | reverse",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    3,
+    2,
+    1
+   ]
+  ]
+ },
+ {
+  "line": 833,
+  "expr": "[] | reverse",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 834,
+  "expr": "null | reverse",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 835,
+  "expr": "\"abc\" | reverse",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot index string with number",
+  "kind": "runtime"
+ },
+ {
+  "line": 836,
+  "expr": "[1,[2]] | reverse",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     2
+    ],
+    1
+   ]
+  ]
+ },
+ {
+  "line": 837,
+  "expr": "1 | sort_by(.)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot iterate over number (1)",
+  "kind": "runtime"
+ },
+ {
+  "line": 841,
+  "expr": "\"Hello World\" | ascii_downcase, ascii_upcase",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "hello world",
+   "HELLO WORLD"
+  ]
+ },
+ {
+  "line": 842,
+  "expr": "\"ÀÉ\" | ascii_downcase",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "ÀÉ"
+  ]
+ },
+ {
+  "line": 843,
+  "expr": "1 | ascii_downcase",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "explode input must be a string",
+  "kind": "runtime"
+ },
+ {
+  "line": 844,
+  "expr": "\"test\" | ltrimstr(\"te\"), rtrimstr(\"st\"), ltrimstr(\"x\"), ltrimstr(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "st",
+   "te",
+   "test",
+   "test"
+  ]
+ },
+ {
+  "line": 845,
+  "expr": "1 | ltrimstr(\"a\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 846,
+  "expr": "\"aaa\" | ltrimstr(\"a\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "aa"
+  ]
+ },
+ {
+  "line": 847,
+  "expr": "\"test\" | startswith(\"te\"), endswith(\"st\"), startswith(\"x\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true,
+   true,
+   false
+  ]
+ },
+ {
+  "line": 848,
+  "expr": "1 | startswith(\"a\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "startswith() requires string inputs",
+  "kind": "runtime"
+ },
+ {
+  "line": 849,
+  "expr": "\"a\" | endswith(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "endswith() requires string inputs",
+  "kind": "runtime"
+ },
+ {
+  "line": 850,
+  "expr": "\"a,b, c\" | split(\", \")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a,b",
+    "c"
+   ]
+  ]
+ },
+ {
+  "line": 851,
+  "expr": "\"a,b,c\" | split(\",\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a",
+    "b",
+    "c"
+   ]
+  ]
+ },
+ {
+  "line": 852,
+  "expr": "\"abc\" | split(\"\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a",
+    "b",
+    "c"
+   ]
+  ]
+ },
+ {
+  "line": 853,
+  "expr": "\"\" | split(\",\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 854,
+  "expr": "\"a1b22c\" | split(\"[0-9]+\"; null)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a",
+    "b",
+    "c"
+   ]
+  ]
+ },
+ {
+  "line": 855,
+  "expr": "\"a1b22c\" | split(\"[0-9]+\"; \"g\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a",
+    "b",
+    "c"
+   ]
+  ]
+ },
+ {
+  "line": 856,
+  "expr": "\"a1B2c\" | [splits(\"[a-z]\"; \"i\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "",
+    "1",
+    "2",
+    ""
+   ]
+  ]
+ },
+ {
+  "line": 857,
+  "expr": "\"a, b,c\" | [splits(\", *\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a",
+    "b",
+    "c"
+   ]
+  ]
+ },
+ {
+  "line": 858,
+  "expr": "1 | split(\",\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "split input and separator must be strings",
+  "kind": "runtime"
+ },
+ {
+  "line": 859,
+  "expr": "\"a\" | split(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "split input and separator must be strings",
+  "kind": "runtime"
+ },
+ {
+  "line": 860,
+  "expr": "[\"a\",\"b\",\"c\"] | join(\", \")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "a, b, c"
+  ]
+ },
+ {
+  "line": 861,
+  "expr": "[\"a\",1,null,true,false] | join(\"-\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "a-1--true-false"
+  ]
+ },
+ {
+  "line": 862,
+  "expr": "[] | join(\",\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   ""
+  ]
+ },
+ {
+  "line": 863,
+  "expr": "[\"a\"] | join(\",\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "a"
+  ]
+ },
+ {
+  "line": 864,
+  "expr": "[[1]] | join(\",\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "string (\"\") and array ([1]) cannot be added",
+  "kind": "runtime"
+ },
+ {
+  "line": 865,
+  "expr": "[{\"a\":1}] | join(\",\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "string (\"\") and object ({\"a\":1}) cannot be added",
+  "kind": "runtime"
+ },
+ {
+  "line": 866,
+  "expr": "[\"a\",\"b\"] | join(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "string (\"a\") and number (1) cannot be added",
+  "kind": "runtime"
+ },
+ {
+  "line": 867,
+  "expr": "\"abc\" | explode",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    97,
+    98,
+    99
+   ]
+  ]
+ },
+ {
+  "line": 868,
+  "expr": "[65, 98, 128512] | implode",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "Ab😀"
+  ]
+ },
+ {
+  "line": 869,
+  "expr": "\"héllo\" | explode | implode",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "héllo"
+  ]
+ },
+ {
+  "line": 870,
+  "expr": "[1,[2]] | implode",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "array ([2]) can't be imploded, unicode codepoint needs to be numeric",
+  "kind": "runtime"
+ },
+ {
+  "line": 871,
+  "expr": "\"x\" | implode",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "implode input must be an array",
+  "kind": "runtime"
+ },
+ {
+  "line": 872,
+  "expr": "[-1] | implode",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "�"
+  ]
+ },
+ {
+  "line": 873,
+  "expr": "\"a\" | explode | map(. + 1) | implode",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "b"
+  ]
+ },
+ {
+  "line": 874,
+  "expr": "\"abc\" | test(\"b\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 875,
+  "expr": "\"abc\" | test(\"B\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 876,
+  "expr": "\"abc\" | test(\"B\"; \"i\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 877,
+  "expr": "\"abc\" | test(\"B\"; \"x\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 878,
+  "expr": "\"abc\" | test([\"B\", \"i\"])",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 879,
+  "expr": "\"abc\" | test(\"a.c\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 880,
+  "expr": "\"a\\nc\" | test(\"a.c\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 881,
+  "expr": "\"a\\nc\" | test(\"a.c\"; \"s\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 882,
+  "expr": "1 | test(\"a\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "number (1) cannot be matched, as it is not a string",
+  "kind": "runtime"
+ },
+ {
+  "line": 883,
+  "expr": "\"a\" | test(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "number not a string or array",
+  "kind": "runtime"
+ },
+ {
+  "line": 884,
+  "expr": "\"a\" | test(\"a\"; \"q\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "q is not a valid modifier string",
+  "kind": "runtime"
+ },
+ {
+  "line": 885,
+  "expr": "\"a\" | test(\"a\"; 1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "number (1) is not a string",
+  "kind": "runtime"
+ },
+ {
+  "line": 886,
+  "expr": "\"test 123 foo 45\" | [match(\"[0-9]+\"; \"g\") | .string]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "123",
+    "45"
+   ]
+  ]
+ },
+ {
+  "line": 887,
+  "expr": "\"aXbxc\" | [match(\"x\"; \"gi\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    {
+     "offset": 1,
+     "length": 1,
+     "string": "X",
+     "captures": []
+    },
+    {
+     "offset": 3,
+     "length": 1,
+     "string": "x",
+     "captures": []
+    }
+   ]
+  ]
+ },
+ {
+  "line": 888,
+  "expr": "\"foo bar\" | match(\"(?<a>\\\\w+) (?<b>\\\\w+)\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "offset": 0,
+    "length": 7,
+    "string": "foo bar",
+    "captures": [
+     {
+      "offset": 0,
+      "length": 3,
+      "string": "foo",
+      "name": "a"
+     },
+     {
+      "offset": 4,
+      "length": 3,
+      "string": "bar",
+      "name": "b"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 889,
+  "expr": "\"foo bar\" | match(\"(\\\\w+) (\\\\w+)\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "offset": 0,
+    "length": 7,
+    "string": "foo bar",
+    "captures": [
+     {
+      "offset": 0,
+      "length": 3,
+      "string": "foo",
+      "name": null
+     },
+     {
+      "offset": 4,
+      "length": 3,
+      "string": "bar",
+      "name": null
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 890,
+  "expr": "\"ab\" | match(\"(a)(x)?\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "offset": 0,
+    "length": 1,
+    "string": "a",
+    "captures": [
+     {
+      "offset": 0,
+      "length": 1,
+      "string": "a",
+      "name": null
+     },
+     {
+      "offset": -1,
+      "string": null,
+      "length": 0,
+      "name": null
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 891,
+  "expr": "\"ab\" | match(\"(?<x>a)(b)\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "offset": 0,
+    "length": 2,
+    "string": "ab",
+    "captures": [
+     {
+      "offset": 0,
+      "length": 1,
+      "string": "a",
+      "name": "x"
+     },
+     {
+      "offset": 1,
+      "length": 1,
+      "string": "b",
+      "name": null
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "line": 892,
+  "expr": "\"abc\" | [match(\"\"; \"g\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    {
+     "offset": 0,
+     "length": 0,
+     "string": "",
+     "captures": []
+    },
+    {
+     "offset": 1,
+     "length": 0,
+     "string": "",
+     "captures": []
+    },
+    {
+     "offset": 2,
+     "length": 0,
+     "string": "",
+     "captures": []
+    },
+    {
+     "offset": 3,
+     "length": 0,
+     "string": "",
+     "captures": []
+    }
+   ]
+  ]
+ },
+ {
+  "line": 893,
+  "expr": "\"abc\" | [match(\"x*\"; \"g\")] | length",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   4
+  ]
+ },
+ {
+  "line": 894,
+  "expr": "\"ab\" | [match(\"(?<n>x)?\"; \"g\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    {
+     "offset": 0,
+     "length": 0,
+     "string": "",
+     "captures": [
+      {
+       "offset": 0,
+       "string": "",
+       "length": 0,
+       "name": "n"
+      }
+     ]
+    },
+    {
+     "offset": 1,
+     "length": 0,
+     "string": "",
+     "captures": [
+      {
+       "offset": 1,
+       "string": "",
+       "length": 0,
+       "name": "n"
+      }
+     ]
+    },
+    {
+     "offset": 2,
+     "length": 0,
+     "string": "",
+     "captures": [
+      {
+       "offset": 2,
+       "string": "",
+       "length": 0,
+       "name": "n"
+      }
+     ]
+    }
+   ]
+  ]
+ },
+ {
+  "line": 895,
+  "expr": "\"ab\" | [match(\"a|\"; \"g\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    {
+     "offset": 0,
+     "length": 1,
+     "string": "a",
+     "captures": []
+    },
+    {
+     "offset": 1,
+     "length": 0,
+     "string": "",
+     "captures": []
+    },
+    {
+     "offset": 2,
+     "length": 0,
+     "string": "",
+     "captures": []
+    }
+   ]
+  ]
+ },
+ {
+  "line": 896,
+  "expr": "\"éa1\" | match(\"[0-9]\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "offset": 2,
+    "length": 1,
+    "string": "1",
+    "captures": []
+   }
+  ]
+ },
+ {
+  "line": 897,
+  "expr": "\"😀a1\" | match(\"a1\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "offset": 1,
+    "length": 2,
+    "string": "a1",
+    "captures": []
+   }
+  ]
+ },
+ {
+  "line": 898,
+  "expr": "\"a1b2\" | [match(\"\\\\d\"; \"g\") | .offset]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 899,
+  "expr": "\"aaa\" | [match(\"a*?\"; \"g\") | .offset]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    1,
+    2,
+    3
+   ]
+  ]
+ },
+ {
+  "line": 900,
+  "expr": "\"xyz\" | [match(\"q\"; \"g\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 901,
+  "expr": "\"foo bar foo\" | capture(\"(?<first>\\\\w+) (?<second>\\\\w+)\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "first": "foo",
+    "second": "bar"
+   }
+  ]
+ },
+ {
+  "line": 902,
+  "expr": "\"xyz-123\" | capture(\"(?<letters>[a-z]+)-(?<numbers>[0-9]+)\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "letters": "xyz",
+    "numbers": "123"
+   }
+  ]
+ },
+ {
+  "line": 903,
+  "expr": "\"k1=v1 k2=v2\" | [capture(\"(?<key>\\\\w+)=(?<value>\\\\w+)\"; \"g\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    {
+     "key": "k1",
+     "value": "v1"
+    },
+    {
+     "key": "k2",
+     "value": "v2"
+    }
+   ]
+  ]
+ },
+ {
+  "line": 904,
+  "expr": "\"abc\" | capture(\"(?<x>z)?\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "x": ""
+   }
+  ]
+ },
+ {
+  "line": 905,
+  "expr": "\"a1b22c333\" | [scan(\"[0-9]+\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "1",
+    "22",
+    "333"
+   ]
+  ]
+ },
+ {
+  "line": 906,
+  "expr": "\"a1b22\" | [scan(\"([a-z])([0-9]+)\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     "a",
+     "1"
+    ],
+    [
+     "b",
+     "22"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 907,
+  "expr": "\"AbAb\" | [scan(\"a\"; \"i\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "A",
+    "A"
+   ]
+  ]
+ },
+ {
+  "line": 908,
+  "expr": "\"abc\" | sub(\"b\"; \"X\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "aXc"
+  ]
+ },
+ {
+  "line": 909,
+  "expr": "\"abcb\" | sub(\"b\"; \"X\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "aXcb"
+  ]
+ },
+ {
+  "line": 910,
+  "expr": "\"abcb\" | gsub(\"b\"; \"X\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "aXcX"
+  ]
+ },
+ {
+  "line": 911,
+  "expr": "\"abc\" | sub(\"(?<x>b)\"; \"[\\(.x)]\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "a[b]c"
+  ]
+ },
+ {
+  "line": 912,
+  "expr": "\"foo bar foo\" | gsub(\"(?<w>foo)\"; \"<\\(.w)>\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "<foo> bar <foo>"
+  ]
+ },
+ {
+  "line": 913,
+  "expr": "\"abab\" | [gsub(\"a\"; \"x\", \"y\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "xbxb",
+    "ybyb"
+   ]
+  ]
+ },
+ {
+  "line": 914,
+  "expr": "\"abc\" | gsub(\"\"; \"-\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "-a-b-c-"
+  ]
+ },
+ {
+  "line": 915,
+  "expr": "\"abc\" | gsub(\"x\"; \"y\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "abc"
+  ]
+ },
+ {
+  "line": 916,
+  "expr": "\"aAa\" | gsub(\"a\"; \"b\"; \"i\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "bbb"
+  ]
+ },
+ {
+  "line": 917,
+  "expr": "\"abc\" | sub(\"(?<a>.)\"; \"\\(.a|ascii_upcase)\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "Abc"
+  ]
+ },
+ {
+  "line": 918,
+  "expr": "\"2023-01-15\" | sub(\"(?<y>\\\\d+)-(?<m>\\\\d+)-(?<d>\\\\d+)\"; \"\\(.d)/\\(.m)/\\(.y)\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "15/01/2023"
+  ]
+ },
+ {
+  "line": 919,
+  "expr": "\"  x  \" | gsub(\"^\\\\s+|\\\\s+$\"; \"\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "x"
+  ]
+ },
+ {
+  "line": 920,
+  "expr": "\"a.b.c\" | gsub(\"\\\\.\"; \"/\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "a/b/c"
+  ]
+ },
+ {
+  "line": 921,
+  "expr": "\"abc\" | [sub(\"(?<x>.)\"; \"\\(.x)1\", \"\\(.x)2\")]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a1bc",
+    "a2bc"
+   ]
+  ]
+ },
+ {
+  "line": 923,
+  "expr": "\"abc\" | test(\"(\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Regex failure: end pattern with unmatched parenthesis",
+  "kind": "runtime",
+  "loose": true
+ },
+ {
+  "line": 924,
+  "expr": "\"a,b\" | index(\",\"), rindex(\",\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1,
+   1
+  ]
+ },
+ {
+  "line": 925,
+  "expr": "\"a,b,c,b\" | indices(\"b\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    6
+   ]
+  ]
+ },
+ {
+  "line": 926,
+  "expr": "\"a,b\" | indices(\", \")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 927,
+  "expr": "\"xxx\" | indices(\"xx\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    1
+   ]
+  ]
+ },
+ {
+  "line": 928,
+  "expr": "\"\" | indices(\"x\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   []
+  ]
+ },
+ {
+  "line": 929,
+  "expr": "\"abc\" | index(\"z\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 930,
+  "expr": "[1,2,1,2] | indices(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 931,
+  "expr": "[1,2,1,2] | indices([1,2])",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    0,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 932,
+  "expr": "[1,2,1,2] | index(2), rindex(2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1,
+   3
+  ]
+ },
+ {
+  "line": 933,
+  "expr": "null | indices(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 934,
+  "expr": "\"a\" | tostring",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "a"
+  ]
+ },
+ {
+  "line": 935,
+  "expr": "1 | tostring",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "1"
+  ]
+ },
+ {
+  "line": 936,
+  "expr": "[1,\"a\"] | tostring",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "[1,\"a\"]"
+  ]
+ },
+ {
+  "line": 937,
+  "expr": "{\"a\":[1,2]} | tostring",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "{\"a\":[1,2]}"
+  ]
+ },
+ {
+  "line": 938,
+  "expr": "\"1.5\" | tonumber",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1.5
+  ]
+ },
+ {
+  "line": 939,
+  "expr": "\"  12  \" | tonumber",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   12
+  ]
+ },
+ {
+  "line": 940,
+  "expr": "\"-1e3\" | tonumber",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -1000.0
+  ]
+ },
+ {
+  "line": 942,
+  "expr": "\"abc\" | tonumber",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Invalid numeric literal at EOF at line 1, column 3 (while parsing 'abc')",
+  "kind": "runtime",
+  "loose": true
+ },
+ {
+  "line": 943,
+  "expr": "\"[1]\" | tonumber",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "string (\"[1]\") cannot be parsed as a number",
+  "kind": "runtime"
+ },
+ {
+  "line": 945,
+  "expr": "\"\" | tonumber",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Expected JSON value (while parsing '')",
+  "kind": "runtime",
+  "loose": true
+ },
+ {
+  "line": 946,
+  "expr": "null | tonumber",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "null (null) cannot be parsed as a number",
+  "kind": "runtime"
+ },
+ {
+  "line": 947,
+  "expr": "5 | tonumber",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   5
+  ]
+ },
+ {
+  "line": 948,
+  "expr": "\"nan\" | tonumber | isnan",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 949,
+  "expr": "[1, \"1\", null, true, [1], {\"a\":\"b\"}] | map(type)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "number",
+    "string",
+    "null",
+    "boolean",
+    "array",
+    "object"
+   ]
+  ]
+ },
+ {
+  "line": 950,
+  "expr": "65 | [.] | implode",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "A"
+  ]
+ },
+ {
+  "line": 951,
+  "expr": "\"  pad \" | ltrimstr(\" \")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   " pad "
+  ]
+ },
+ {
+  "line": 952,
+  "expr": "\"a\\u0000b\" | length",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3
+  ]
+ },
+ {
+  "line": 953,
+  "expr": "\"\\t\\n\" | tojson",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "\"\\t\\n\""
+  ]
+ },
+ {
+  "line": 954,
+  "expr": "\"\\u007f\\u0000é\\u001f\" | tojson",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "\"\\u007f\\u0000é\\u001f\""
+  ]
+ },
+ {
+  "line": 955,
+  "expr": "\"x\" | tojson | fromjson",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "x"
+  ]
+ },
+ {
+  "line": 956,
+  "expr": "\"{\\\"a\\\":1,\\\"b\\\":[1,2]}\" | fromjson",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1,
+    "b": [
+     1,
+     2
+    ]
+   }
+  ]
+ },
+ {
+  "line": 958,
+  "expr": "\"[1,2\" | fromjson",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Unfinished JSON term at EOF at line 1, column 4 (while parsing '[1,2')",
+  "kind": "runtime",
+  "loose": true
+ },
+ {
+  "line": 960,
+  "expr": "\"1 2\" | fromjson",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Unexpected extra JSON values (while parsing '1 2')",
+  "kind": "runtime",
+  "loose": true
+ },
+ {
+  "line": 961,
+  "expr": "1 | fromjson",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "number (1) only strings can be parsed",
+  "kind": "runtime"
+ },
+ {
+  "line": 962,
+  "expr": "\"nan\" | fromjson | isnan",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 963,
+  "expr": "{\"b\":1,\"a\":[1,{\"c\":null}]} | tojson",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "{\"b\":1,\"a\":[1,{\"c\":null}]}"
+  ]
+ },
+ {
+  "line": 964,
+  "expr": "{\"b\":1,\"a\":[1,{\"c\":null}]} | tostring",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "{\"b\":1,\"a\":[1,{\"c\":null}]}"
+  ]
+ },
+ {
+  "line": 965,
+  "expr": "\"é\\n\\\"\" | tojson",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "\"é\\n\\\"\""
+  ]
+ },
+ {
+  "line": 966,
+  "expr": "\"x\" | @text",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "x"
+  ]
+ },
+ {
+  "line": 967,
+  "expr": "\"aXbXc\" | ascii_downcase | split(\"x\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a",
+    "b",
+    "c"
+   ]
+  ]
+ },
+ {
+  "line": 971,
+  "expr": "[1, \"a\", null, true, [], {}] | map(type)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "number",
+    "string",
+    "null",
+    "boolean",
+    "array",
+    "object"
+   ]
+  ]
+ },
+ {
+  "line": 972,
+  "expr": "[1, \"a\", null, true, [], {}] | [.[] | numbers]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1
+   ]
+  ]
+ },
+ {
+  "line": 973,
+  "expr": "[1, \"a\", null, true, [], {}] | [.[] | strings]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a"
+   ]
+  ]
+ },
+ {
+  "line": 974,
+  "expr": "[1, \"a\", null, true, [], {}] | [.[] | nulls]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    null
+   ]
+  ]
+ },
+ {
+  "line": 975,
+  "expr": "[1, \"a\", null, true, [], {}] | [.[] | booleans]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    true
+   ]
+  ]
+ },
+ {
+  "line": 976,
+  "expr": "[1, \"a\", null, true, [], {}] | [.[] | arrays]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    []
+   ]
+  ]
+ },
+ {
+  "line": 977,
+  "expr": "[1, \"a\", null, true, [], {}] | [.[] | objects]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    {}
+   ]
+  ]
+ },
+ {
+  "line": 978,
+  "expr": "[1, \"a\", null, true, [], {}] | [.[] | iterables]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [],
+    {}
+   ]
+  ]
+ },
+ {
+  "line": 979,
+  "expr": "[1, \"a\", null, true, [], {}] | [.[] | scalars]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    "a",
+    null,
+    true
+   ]
+  ]
+ },
+ {
+  "line": 980,
+  "expr": "[1, \"a\", null, true, [], {}] | [.[] | values]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    "a",
+    true,
+    [],
+    {}
+   ]
+  ]
+ },
+ {
+  "line": 981,
+  "expr": "[1, infinite, nan] | [.[] | finites]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    null
+   ]
+  ]
+ },
+ {
+  "line": 982,
+  "expr": "[1, 0, infinite] | [.[] | normals]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1
+   ]
+  ]
+ },
+ {
+  "line": 986,
+  "expr": "2 | IN(1, 2, 3)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 987,
+  "expr": "5 | IN(1, 2, 3)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   false
+  ]
+ },
+ {
+  "line": 988,
+  "expr": "IN(1, 2; 2, 3)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 989,
+  "expr": "[{\"id\":\"a\",\"v\":1},{\"id\":\"b\",\"v\":2}] | INDEX(.id)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": {
+     "id": "a",
+     "v": 1
+    },
+    "b": {
+     "id": "b",
+     "v": 2
+    }
+   }
+  ]
+ },
+ {
+  "line": 990,
+  "expr": "INDEX({\"id\":1},{\"id\":2}; .id)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "1": {
+     "id": 1
+    },
+    "2": {
+     "id": 2
+    }
+   }
+  ]
+ },
+ {
+  "line": 991,
+  "expr": "[[1,2],[3,4]] | [combinations]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     1,
+     3
+    ],
+    [
+     1,
+     4
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     2,
+     4
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 992,
+  "expr": "[0,1] | [combinations(2)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     1,
+     1
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 993,
+  "expr": "[[1,2],[3]] | transpose",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     1,
+     3
+    ],
+    [
+     2,
+     null
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 994,
+  "expr": "[[1],[2,3]] | transpose",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     1,
+     2
+    ],
+    [
+     null,
+     3
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 995,
+  "expr": "[1,[2,{\"a\":3}]] | walk(if type == \"number\" then . + 1 else . end)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    [
+     3,
+     {
+      "a": 4
+     }
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 996,
+  "expr": "{\"b\":2,\"a\":1} | walk(if type == \"object\" then to_entries | sort_by(.key) | from_entries else . end)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1,
+    "b": 2
+   }
+  ]
+ },
+ {
+  "line": 997,
+  "expr": "[1,[2]] | walk(numbers |= . * 10)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    10,
+    [
+     20
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 998,
+  "expr": "[1,2,3] | bsearch(2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 999,
+  "expr": "[1,2,3] | bsearch(0)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -1
+  ]
+ },
+ {
+  "line": 1000,
+  "expr": "[1,2,3] | bsearch(4)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -4
+  ]
+ },
+ {
+  "line": 1001,
+  "expr": "[1,3] | bsearch(2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -2
+  ]
+ },
+ {
+  "line": 1002,
+  "expr": "[] | bsearch(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   -1
+  ]
+ },
+ {
+  "line": 1003,
+  "expr": "[1] | bsearch(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   0
+  ]
+ },
+ {
+  "line": 1004,
+  "expr": "[{\"a\":1}] | JOIN({\"1\":\"x\"}; .a | tostring)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     {
+      "a": 1
+     },
+     "x"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 1005,
+  "expr": "[1,2] | tojson | fromjson",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 1006,
+  "expr": "{\"a\":1} | [splits(\"x\")]?",
+  "input": null,
+  "nullInput": true,
+  "outputs": []
+ },
+ {
+  "line": 1007,
+  "expr": "[3,2,1] | sort | first",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ]
+ },
+ {
+  "line": 1008,
+  "expr": "\"abc\" | [limit(2; splits(\"\"))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "",
+    "a"
+   ]
+  ]
+ },
+ {
+  "line": 1009,
+  "expr": "[1,2,3] | [.[] | tostring] | join(\"\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "123"
+  ]
+ },
+ {
+  "line": 1010,
+  "expr": "{\"a\":{\"b\":{\"c\":1}}} | [getpath([\"a\",\"b\",\"c\"], [\"a\",\"x\"])]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1,
+    null
+   ]
+  ]
+ },
+ {
+  "line": 1011,
+  "expr": "{\"a\":[1,2]} | [.a | .. ]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     1,
+     2
+    ],
+    1,
+    2
+   ]
+  ]
+ },
+ {
+  "line": 1012,
+  "expr": "{} | .a.b.c",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   null
+  ]
+ },
+ {
+  "line": 1013,
+  "expr": "{\"items\":[{\"n\":\"a\",\"ok\":true},{\"n\":\"b\",\"ok\":false}]} | [.items[] | select(.ok) | .n]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a"
+   ]
+  ]
+ },
+ {
+  "line": 1014,
+  "expr": "{\"items\":[{\"n\":\"a\",\"v\":3},{\"n\":\"b\",\"v\":1}]} | .items | sort_by(.v) | map(.n) | join(\",\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "b,a"
+  ]
+ },
+ {
+  "line": 1015,
+  "expr": "{\"items\":[{\"n\":\"a\",\"v\":3},{\"n\":\"b\",\"v\":1}]} | .items | map(.v) | add / length",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   2
+  ]
+ },
+ {
+  "line": 1016,
+  "expr": "{\"rates\":{\"BRL\":5.1,\"EUR\":0.9}} | .rates | to_entries | map(\"\\(.key)=\\(.value)\") | join(\" \")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "BRL=5.1 EUR=0.9"
+  ]
+ },
+ {
+  "line": 1017,
+  "expr": "{\"cpu\":[{\"load\":0.5},{\"load\":0.7}]} | [.cpu[].load] | max * 100 | floor",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   70
+  ]
+ },
+ {
+  "line": 1018,
+  "expr": "{\"t\":\"2015-03-05T23:51:47Z\"} | .t | fromdate",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1425599507
+  ]
+ },
+ {
+  "line": 1019,
+  "expr": "[1,2,3] | length as $n | add / $n",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   2
+  ]
+ },
+ {
+  "line": 1020,
+  "expr": "\"x\" as $s | [range(3)] | map($s * (. + 1))",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "x",
+    "xx",
+    "xxx"
+   ]
+  ]
+ },
+ {
+  "line": 1021,
+  "expr": "[{\"name\":\"a\",\"tags\":[\"x\",\"y\"]},{\"name\":\"b\",\"tags\":[\"y\"]}] | map(select(.tags | index(\"x\"))) | map(.name)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    "a"
+   ]
+  ]
+ },
+ {
+  "line": 1022,
+  "expr": "[{\"name\":\"a\",\"tags\":[\"x\",\"y\"]},{\"name\":\"b\",\"tags\":[\"y\"]}] | map(select(any(.tags[]; . == \"y\"))) | length",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   2
+  ]
+ },
+ {
+  "line": 1023,
+  "expr": "{\"a\":{\"x\":1},\"b\":{\"x\":2}} | to_entries | map({(.key): .value.x}) | add",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1,
+    "b": 2
+   }
+  ]
+ },
+ {
+  "line": 1024,
+  "expr": "{\"a\":{\"x\":1},\"b\":{\"x\":2}} | with_entries(.value |= .x)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": 1,
+    "b": 2
+   }
+  ]
+ },
+ {
+  "line": 1025,
+  "expr": "{\"a\":1,\"b\":2} | to_entries | map(select(.value > 1)) | from_entries",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "b": 2
+   }
+  ]
+ },
+ {
+  "line": 1026,
+  "expr": "[{\"k\":\"a\"},{\"k\":\"b\"},{\"k\":\"a\"}] | group_by(.k) | map({key: .[0].k, count: length})",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    {
+     "key": "a",
+     "count": 2
+    },
+    {
+     "key": "b",
+     "count": 1
+    }
+   ]
+  ]
+ },
+ {
+  "line": 1027,
+  "expr": "{\"a\":null,\"b\":1} | del(..|nulls)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "b": 1
+   }
+  ]
+ },
+ {
+  "line": 1028,
+  "expr": "{\"a\":[1,null,{\"b\":null}]} | del(.. | nulls)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   {
+    "a": [
+     1,
+     {}
+    ]
+   }
+  ]
+ },
+ {
+  "line": 1029,
+  "expr": "[1,[2,[3]]] | getpath([1,1,0])",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3
+  ]
+ },
+ {
+  "line": 1030,
+  "expr": "[1,[2]] | getpath([1,0,0])",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot index number with number",
+  "kind": "runtime"
+ },
+ {
+  "line": 1031,
+  "expr": "{\"a\":\"x\"} | getpath([\"a\", 0])",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Cannot index string with number",
+  "kind": "runtime"
+ },
+ {
+  "line": 1035,
+  "expr": "0 | todate",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "1970-01-01T00:00:00Z"
+  ]
+ },
+ {
+  "line": 1036,
+  "expr": "1425599507 | todate",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "2015-03-05T23:51:47Z"
+  ]
+ },
+ {
+  "line": 1037,
+  "expr": "1425599507 | todateiso8601",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "2015-03-05T23:51:47Z"
+  ]
+ },
+ {
+  "line": 1038,
+  "expr": "\"2015-03-05T23:51:47Z\" | fromdate",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1425599507
+  ]
+ },
+ {
+  "line": 1039,
+  "expr": "\"2015-03-05T23:51:47Z\" | fromdateiso8601",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1425599507
+  ]
+ },
+ {
+  "line": 1040,
+  "expr": "\"2015-03-05T23:51:47Z\" | strptime(\"%Y-%m-%dT%H:%M:%SZ\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2015,
+    2,
+    5,
+    23,
+    51,
+    47,
+    4,
+    63
+   ]
+  ]
+ },
+ {
+  "line": 1041,
+  "expr": "\"2015-03-05T23:51:47Z\" | strptime(\"%Y-%m-%dT%H:%M:%SZ\") | mktime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1425599507
+  ]
+ },
+ {
+  "line": 1042,
+  "expr": "1425599507 | gmtime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2015,
+    2,
+    5,
+    23,
+    51,
+    47,
+    4,
+    63
+   ]
+  ]
+ },
+ {
+  "line": 1043,
+  "expr": "1425599507 | gmtime | mktime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1425599507
+  ]
+ },
+ {
+  "line": 1044,
+  "expr": "1425599507.9 | gmtime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2015,
+    2,
+    5,
+    23,
+    51,
+    47.90000009536743,
+    4,
+    63
+   ]
+  ]
+ },
+ {
+  "line": 1045,
+  "expr": "1425599507 | gmtime | todate",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "2015-03-05T23:51:47Z"
+  ]
+ },
+ {
+  "line": 1046,
+  "expr": "-1 | gmtime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1969,
+    11,
+    31,
+    23,
+    59,
+    59,
+    3,
+    364
+   ]
+  ]
+ },
+ {
+  "line": 1047,
+  "expr": "-1.5 | gmtime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1969,
+    11,
+    31,
+    23,
+    59,
+    59.5,
+    3,
+    364
+   ]
+  ]
+ },
+ {
+  "line": 1048,
+  "expr": "0 | gmtime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    1970,
+    0,
+    1,
+    0,
+    0,
+    0,
+    4,
+    0
+   ]
+  ]
+ },
+ {
+  "line": 1049,
+  "expr": "951782400 | gmtime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2000,
+    1,
+    29,
+    0,
+    0,
+    0,
+    2,
+    59
+   ]
+  ]
+ },
+ {
+  "line": 1050,
+  "expr": "4102444800 | gmtime | todate",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "2100-01-01T00:00:00Z"
+  ]
+ },
+ {
+  "line": 1051,
+  "expr": "[2015,2,5,23,51,47,4,63] | mktime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1425599507
+  ]
+ },
+ {
+  "line": 1052,
+  "expr": "[2015,14,40,25,61,61,0,0] | mktime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1460253721
+  ]
+ },
+ {
+  "line": 1053,
+  "expr": "[2015,2,5,23,51,47] | mktime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "mktime requires parsed datetime inputs",
+  "kind": "runtime"
+ },
+ {
+  "line": 1054,
+  "expr": "[2015,2,5] | mktime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "mktime requires parsed datetime inputs",
+  "kind": "runtime"
+ },
+ {
+  "line": 1055,
+  "expr": "\"x\" | mktime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "mktime requires array inputs",
+  "kind": "runtime"
+ },
+ {
+  "line": 1056,
+  "expr": "[2015,\"a\",5,23,51,47,4,63] | mktime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "mktime requires parsed datetime inputs",
+  "kind": "runtime"
+ },
+ {
+  "line": 1057,
+  "expr": "1425599507 | strftime(\"%Y-%m-%d %H:%M:%S\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "2015-03-05 23:51:47"
+  ]
+ },
+ {
+  "line": 1058,
+  "expr": "1425599507 | strftime(\"%A, %B %d, %Y\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "Thursday, March 05, 2015"
+  ]
+ },
+ {
+  "line": 1059,
+  "expr": "1425599507 | strftime(\"%a %b %e %I:%M %p %j\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "Thu Mar  5 11:51 PM 064"
+  ]
+ },
+ {
+  "line": 1060,
+  "expr": "1425599507 | strftime(\"%c|%D|%e|%j|%k|%l|%p|%r|%s|%u|%U|%V|%w|%W|%x|%X|%y|%Z|%z|%G|%g|%C|%h|%T|%F|%R|%%\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "Thu Mar  5 23:51:47 2015|03/05/15| 5|064|23|11|PM|11:51:47 PM|1425599507|4|09|10|4|09|03/05/15|23:51:47|15|UTC|+0000|2015|15|20|Mar|23:51:47|2015-03-05|23:51|%"
+  ]
+ },
+ {
+  "line": 1061,
+  "expr": "0 | strftime(\"%V %G %U %W %u %w %j\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "01 1970 00 00 4 4 001"
+  ]
+ },
+ {
+  "line": 1062,
+  "expr": "1609459200 | strftime(\"%V %G %g %U %W\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "53 2020 20 00 00"
+  ]
+ },
+ {
+  "line": 1063,
+  "expr": "1609459200 | gmtime | strftime(\"%V %G\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "53 2020"
+  ]
+ },
+ {
+  "line": 1064,
+  "expr": "1704067200 | strftime(\"%V %G %U %W\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "01 2024 00 01"
+  ]
+ },
+ {
+  "line": 1065,
+  "expr": "1735603200 | strftime(\"%V %G %U %W\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "01 2025 52 53"
+  ]
+ },
+ {
+  "line": 1066,
+  "expr": "[2015,2,5,23,51,47,4,63] | strftime(\"%Y %H\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "2015 23"
+  ]
+ },
+ {
+  "line": 1067,
+  "expr": "\"x\" | strftime(\"%Y\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "strftime/1 requires parsed datetime inputs",
+  "kind": "runtime"
+ },
+ {
+  "line": 1068,
+  "expr": "[1] | strftime(\"%Y\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "strftime/1 requires parsed datetime inputs",
+  "kind": "runtime"
+ },
+ {
+  "line": 1069,
+  "expr": "\"10:15 2015-03-05\" | strptime(\"%H:%M %Y-%m-%d\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2015,
+    2,
+    5,
+    10,
+    15,
+    0,
+    4,
+    63
+   ]
+  ]
+ },
+ {
+  "line": 1070,
+  "expr": "\"10:15 2015-03-05\" | strptime(\"%H:%M %Y-%m-%d\") | mktime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1425550500
+  ]
+ },
+ {
+  "line": 1071,
+  "expr": "\"5 March 2015\" | strptime(\"%d %B %Y\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2015,
+    2,
+    5,
+    0,
+    0,
+    0,
+    4,
+    63
+   ]
+  ]
+ },
+ {
+  "line": 1072,
+  "expr": "\"  5 Mar 2015\" | strptime(\"%e %b %Y\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2015,
+    2,
+    5,
+    0,
+    0,
+    0,
+    4,
+    63
+   ]
+  ]
+ },
+ {
+  "line": 1073,
+  "expr": "\"Thu, 05 Mar 2015 23:51:47\" | strptime(\"%a, %d %b %Y %H:%M:%S\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2015,
+    2,
+    5,
+    23,
+    51,
+    47,
+    4,
+    63
+   ]
+  ]
+ },
+ {
+  "line": 1074,
+  "expr": "\"2015-03-05 \" | strptime(\"%Y-%m-%d\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2015,
+    2,
+    5,
+    0,
+    0,
+    0,
+    4,
+    63,
+    " "
+   ]
+  ]
+ },
+ {
+  "line": 1075,
+  "expr": "\"2015-03-05T23:51:47+0100\" | strptime(\"%Y-%m-%dT%H:%M:%S%z\") | mktime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1425595907
+  ]
+ },
+ {
+  "line": 1076,
+  "expr": "\"15/03/05\" | strptime(\"%y/%m/%d\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2015,
+    2,
+    5,
+    0,
+    0,
+    0,
+    4,
+    63
+   ]
+  ]
+ },
+ {
+  "line": 1077,
+  "expr": "\"2015 070\" | strptime(\"%Y %j\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2015,
+    2,
+    11,
+    0,
+    0,
+    0,
+    3,
+    69
+   ]
+  ]
+ },
+ {
+  "line": 1078,
+  "expr": "\"2015-03-05 11:30 PM\" | strptime(\"%Y-%m-%d %I:%M %p\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2015,
+    2,
+    5,
+    23,
+    30,
+    0,
+    4,
+    63
+   ]
+  ]
+ },
+ {
+  "line": 1079,
+  "expr": "\"1425599507\" | strptime(\"%s\") | mktime",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1425599507
+  ]
+ },
+ {
+  "line": 1080,
+  "expr": "\"x\" | strptime(\"%Y\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "date \"x\" does not match format \"%Y\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 1081,
+  "expr": "\"2015-03-05\" | strptime(\"%Y-%m\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "date \"2015-03-05\" does not match format \"%Y-%m\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 1082,
+  "expr": "1 | strptime(\"%Y\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "strptime/1 requires string inputs and arguments",
+  "kind": "runtime"
+ },
+ {
+  "line": 1083,
+  "expr": "\"2015-03-05T23:51:47.123Z\" | fromdate",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "date \"2015-03-05T23:51:47.123Z\" does not match format \"%Y-%m-%dT%H:%M:%SZ\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 1084,
+  "expr": "\"2015-13-05\" | strptime(\"%Y-%m-%d\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "date \"2015-13-05\" does not match format \"%Y-%m-%d\"",
+  "kind": "runtime"
+ },
+ {
+  "line": 1085,
+  "expr": "now | type",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "number"
+  ]
+ },
+ {
+  "line": 1086,
+  "expr": "now > 1600000000",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 1091,
+  "expr": "1 +",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1093,
+  "expr": "(1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1095,
+  "expr": "[1, 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1097,
+  "expr": "{a: 1 + 2}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected '+', expecting '}' (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1099,
+  "expr": ".a.",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected end of file, expecting FORMAT or QQSTRING_START or '[' (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1101,
+  "expr": "if 1 then 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1103,
+  "expr": "\"unterminated",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected end of file, expecting QQSTRING_TEXT or QQSTRING_INTERP_START or QQSTRING_END (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1105,
+  "expr": "1 == 1 == 1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected == (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1107,
+  "expr": ".[",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1109,
+  "expr": "reduce . as $x (0)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected ')' (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1111,
+  "expr": "{1: 2}",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected LITERAL (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1113,
+  "expr": "def f: 1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected end of file (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1115,
+  "expr": ".a | | .b",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected '|' (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1117,
+  "expr": "\"\\q\"",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: Invalid escape at line 1, column 4 (while parsing '\"\\q\"') at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1119,
+  "expr": "f(1, 2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: f/1 is not defined at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1121,
+  "expr": "$__loc__ as $x | 1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   1
+  ],
+  "loose": true
+ },
+ {
+  "line": 1123,
+  "expr": "@nope",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "nope is not a valid format",
+  "kind": "runtime",
+  "loose": true
+ },
+ {
+  "line": 1125,
+  "expr": "import \"a\" as a; 1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: module not found: a",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 1127,
+  "expr": "input",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "break",
+  "kind": "runtime",
+  "loose": true
+ },
+ {
+  "line": 1132,
+  "expr": "\" x \" | trim, ltrim, rtrim",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "x",
+   "x ",
+   " x"
+  ],
+  "jq": "1.8"
+ },
+ {
+  "line": 1134,
+  "expr": "\"xabcx\" | trimstr(\"x\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   "abc"
+  ],
+  "jq": "1.8"
+ },
+ {
+  "line": 1136,
+  "expr": "[skip(2; range(5))]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    2,
+    3,
+    4
+   ]
+  ],
+  "jq": "1.8"
+ },
+ {
+  "line": 1138,
+  "expr": "[\"true\", \"false\", true] | map(toboolean)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    true,
+    false,
+    true
+   ]
+  ],
+  "jq": "1.8"
+ },
+ {
+  "line": 1140,
+  "expr": "[1,2,3] | add(.[] * 10)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   60
+  ],
+  "jq": "1.8"
+ },
+ {
+  "line": 1142,
+  "expr": "add(1, 2, 3)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   6
+  ],
+  "jq": "1.8"
+ },
+ {
+  "line": 1144,
+  "expr": "[1,2] | add(.[])",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   3
+  ],
+  "jq": "1.8"
+ },
+ {
+  "line": 1146,
+  "expr": "1 | trim",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "trim input must be a string",
+  "kind": "runtime",
+  "jq": "1.8"
+ }
+]

@@ -1,0 +1,1146 @@
+# Expression engine cases. scripts/gen-expr-fixtures.py runs each through
+# real jq (1.7.1 unless marked) and writes expr-cases.json, which
+# ExprFixtureTests replays against JQExpression.
+#
+# One expression per line. Directives:
+#   @input <json>   input for the following cases (until the next @input/@null)
+#   @null           null input (jq -n)
+#   @loose          next case: only check that it fails, not the message
+#   @jq18           next case: expected output from jq 1.8 (1.8-only builtin)
+# Lines starting with '#' are comments.
+
+## Identity, fields, indexing
+@input {"a":1,"b":{"c":[10,20,30]},"d":null,"e f":"sp","if":"kw"}
+.
+.a
+.b.c
+.b.c[0]
+.b.c[-1]
+.b.c[1:]
+.b.c[:2]
+.b.c[-2:]
+.b.c[5]
+.b.c[-5]
+.missing
+.missing.deeper
+."e f"
+.["e f"]
+.b["c"][1]
+.b."c"
+.if
+.b.c.[0]
+.b | .c | .[2]
+.b.c[1.7]
+.b.c[-1.5]
+.b.c[nan]
+.a.b
+.a?
+.a.b?
+[.a?, .b.c[0]?]
+.b.c[1:2:3]
+.b.c["x"]
+.b.c[null]
+.b.c[true]
+.[0]
+.["a","b"]
+.b.c[[20]]
+.b.c | .[[10,20]]
+.b.c | .[[]]
+.b.c | .[[40]]
+.d.x.y
+.d[0]
+.d[1:2]
+.d[]?
+.d[]
+.a[]
+.[]
+.b[]
+[.b[][]]
+@input [1,2,3,4,5]
+.[2:4]
+.[:-2]
+.[-2:]
+.[10:]
+.[3:1]
+.[1.2:3.7]
+.[null:2]
+.[1:null]
+.["a":]
+.[(0,1):(3,4)]
+.[(0,1)]
+[.[] | . * 2]
+.[-1:][0]
+.[4:5][0]
+@input "abcdef"
+.[2:4]
+.[-2:]
+.[:1]
+.[0]
+.[10:]
+@input "héllo wörld"
+.[1:5]
+length
+utf8bytelength
+@null
+null | .[0]
+null | .a
+null | .[1:3]
+null | .[null]
+null | .[true]
+null | .[]
+1 | .a
+"x" | .a
+"x" | .aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+[1] | .a
+{"a":1} | .[0]
+{} | .[1:2]
+true | .[0]
+5 | .[]
+"abcdefghijklmnopqrstuvwxyz" | .[]
+{"a":"abcdefghijklmnopqrstuvwxyz"} | .[0]
+
+## Literals and construction
+@null
+1
+-1
+1.5
+-0.5
+.5
+1e3
+1.5e-3
+"plain"
+"esc \" \\ \/ \n \t \r \b \f"
+"\u00e9\u4e2d\ud83d\ude00"
+true
+false
+null
+[]
+{}
+[1,2,3]
+[1,[2,[3]]]
+{"a":1,"b":[1,2]}
+{a:1, b:2}
+{"a b":1}
+{if:1, then:2, else:3, end:4, and:5, or:6, reduce:7}
+{a:1,}
+{(1,2|tostring):3}
+{("a","b"):(1,2)}
+{a:(1,2), b:(3,4)}
+[{a:(1,2)}]
+{"\(1+1)":3}
+@input {"a":1,"b":2,"c":{"d":3},"k":"b"}
+{a}
+{a, b}
+{"a"}
+{"c"}
+{a, x}
+{(.k): .a}
+{a: .c.d}
+{a: .a | . + 1}
+{a: -1}
+{a: -.a}
+{a: .c | .d}
+{"x": .a, y: .b}
+{$__loc__}
+.a as $x | {$x}
+.a as $x | {$x: 1}
+.k as $k | {$k: 1}
+[.a, .b]
+[.[]]
+[.[] | numbers]
+{a: [.a, .b], b: {c: .c}}
+{a: 1} + {b: 2}
+@null
+{(1):2}
+{(null):2}
+{(true):2}
+[1,2][]
+[[1,2],[3]] | [.[][]]
+[] | length
+[range(5)]
+[range(3)] | length
+
+## String interpolation and formats
+@null
+"a\(1)b"
+"\(1,2)-\(3,4)"
+"x\("y")z"
+"\([1,2])"
+"\({"a":1})"
+"\(null)"
+"\(true)"
+"nested \("in \("ner")")"
+"\(1 + 2) = three"
+@input {"name":"ada","n":3,"list":[1,"a",null,true]}
+"hi \(.name)!"
+"\(.n * 2)"
+"\(.list)"
+@base64 "user:\(.name)"
+@uri "q=\(.name) & more"
+@html "<b>\(.name)</b>"
+@json "v=\(.list)"
+@text "v=\(.list)"
+@sh "echo \(.name)"
+@csv "\(.list)"
+@null
+[1,"a\"b",null,true] | @csv
+[1,"a\tb",null,true,"x\\y"] | @tsv
+[1,[2]] | @csv
+{"a":1} | @csv
+"x" | @csv
+[1,"a'b",null,true] | @sh
+"it's" | @sh
+{"a":1} | @sh
+[[1]] | @sh
+"<&>'\"" | @html
+[1,{"a":"<"}] | @html
+"a b/é?&=~-_." | @uri
+"hello" | @base64
+"hello" | @base64 | @base64d
+"aGVsbG8" | @base64d
+"YQ==" | @base64d
+"YQ" | @base64d
+1 | @base64
+[1,2] | @text
+[1,2] | @json
+"x" | @json
+"é" | @uri
+"hello" | format("base64")
+[1,2] | format("csv")
+"x" | format("nope")
+
+## Arithmetic
+@null
+1 + 2
+1 - 2
+2 * 3
+7 / 2
+7 % 3
+-7 % 3
+7 % -3
+5.5 % 2
+5 % 2.5
+1e20 % 7
+5 % 0.5
+5 % 0
+1 / 0
+0 / 0
+1 + null
+null + 1
+null + null
+"a" + "b"
+[1] + [2]
+{"a":1} + {"b":2}
+{"a":1,"b":1} + {"b":2}
+[1,2,3,2] - [2]
+[1,[2]] - [[2]]
+{"a":{"b":1,"c":2}} * {"a":{"c":3}}
+{"a":1} * {"a":{"b":1}}
+"ab" * 3
+"ab" * 0
+"ab" * 0.9
+"ab" * 2.7
+"ab" * -1
+0 * "ab"
+3 * "ab"
+"a,b,c" / ","
+"abc" / ""
+"" / ","
+"a,,b" / ","
+1 + "a"
+"a" - 1
+{} - {}
+[] * 2
+{} / {}
+"a" % 1
+null - 1
+-(1)
+-"a"
+-null
+-(1,2)
+[.[]?] | -length
+1 + 2 * 3
+(1 + 2) * 3
+10 - 2 - 3
+100 / 10 / 2
+2 * 3 % 4
+-1 + 2
+- 1 * 2
+[(1,2) + (10,20)]
+[(1,2) * (3,4)]
+0.1 + 0.2
+1e308 * 10
+-1e308 * 10
+3 / 3
+1 / 3
+2 / 3
+1e17 + 0
+1e16 + 0
+1e15 + 0
+123456789012 * 1000
+12345678901234567890 + 0
+1e-5 + 0
+0.0001 + 0
+1.5e-7 + 0
+[1e17, 1e-7, 0.1, 100, 1.5] | map(. + 0) | tojson
+1e1000 + 0
+-0 + 0
+
+## Comparison and logic
+@null
+1 == 1
+1 == 1.0
+1 != 2
+"a" < "b"
+"B" < "a"
+"é" < "z"
+[1,2] < [1,3]
+[1,2] < [1,2,0]
+{"a":1} < {"b":0}
+{"a":2} < {"a":1,"b":0}
+{"b":1} == {"b":1}
+{"a":1,"b":2} == {"b":2,"a":1}
+null < false
+false < true
+true < 0
+0 < ""
+"" < []
+[] < {}
+nan < nan
+nan == nan
+nan < 0
+[nan] == [nan]
+[(1,2) < (1,2)]
+1 < 2 and 2 < 3
+true and false
+null or false
+1 and "x"
+false or 0
+[(true,false) and (true,false)]
+[(true,false) or (true,false)]
+[false and error("x")]
+[true or error("x")]
+true | not
+null | not
+0 | not
+[1,null,false,"",[]] | map(not)
+1 == 1 == true
+1 < 2 < 3
+
+## Alternative operator
+@input {"a":null,"b":false,"c":0,"d":"x"}
+.a // "default"
+.b // "default"
+.c // "default"
+.d // "default"
+.missing // .d
+.a // .b // .c
+[.a, .b, .c] | .[] // 9
+[(null,false) // (1,2)]
+[(1,null,2) // 3]
+[empty // 3]
+[.[] // 5]
+(.a // .b) // "z"
+[error("x") // 1]
+[1 | .a // 5]
+.x // empty
+first(.a, .d // 1)
+
+## Conditionals
+@null
+if true then 1 else 2 end
+if false then 1 else 2 end
+if null then 1 elif 0 then 2 else 3 end
+if false then 1 elif false then 2 else 3 end
+if false then 1 elif false then 2 end
+if . then 1 end
+5 | if . > 3 then "big" end
+[if (true,false) then 1 else 2 end]
+[if true then (1,2) else 3 end]
+if empty then 1 else 2 end
+if 1 then "a" else "b" end | . + "!"
+[.[]?] | if length == 0 then "empty" else "some" end
+if true then 1 else 2 end + 1
+
+## Pipes, comma, parentheses
+@input [3,1,2]
+.[0], .[1]
+[.[] | . + 1]
+(.[0], .[1]) | . * 10
+[., .] | length
+[(.[] | select(. > 1)), 99]
+.[] | select(. > 1) | . * 2
+map(.) | length
+(1, 2) as $x | $x * 10
+
+## Variables and binding
+@input {"a":1,"b":[1,2],"c":{"d":"e"}}
+.a as $x | $x
+.a as $x | .b | map(. + $x)
+.b[] as $x | $x * 2
+. as {a: $a, b: [$b0, $b1]} | [$a, $b0, $b1]
+. as {$a, $b} | [$a, $b]
+. as {c: {d: $d}} | $d
+. as {$c: {d: $d}} | [$c, $d]
+. as {"a": $x} | $x
+. as {("a","c"): $x} | $x
+. as [$x] | $x
+.b as [$x, $y, $z] | [$x, $y, $z]
+.b as [$first] | $first
+[.b[] as $x | .a as $y | $x + $y]
+.a as $x | .a as $x | $x
+[.b | .[] as [$a] ?// $a | $a]
+[[1,2],{"a":3},4] | [.[] as [$a] ?// {$a} ?// $a | $a]
+[[1,2],{"a":3}] | [.[] as [$a] ?// {a:$a} | $a]
+[[3]] | .[] as [$a] ?// $a | $a + 1
+. as [$a] ?// $a | $a
+[{"k":"a","a":1}] | .[0] as {(.k): $v} | $v
+{"a":1} | .[] as {a:$x} | $x
+$__loc__
+{"a":1} | . as $d | $d.a
+.b as [$x] | $x.foo
+$undefined
+. as $x | $y
+
+## reduce / foreach / limit / first / last / nth / until / while / repeat / range
+@null
+reduce range(5) as $i (0; . + $i)
+reduce empty as $i (0; . + 1)
+reduce (1,2,3) as $x ([]; . + [$x * 2])
+reduce range(3) as $x (0,10; . + $x)
+reduce range(4) as $x (0; if $x == 1 then empty else . + 1 end)
+reduce range(3) as $x (0; ., 10)
+reduce [[1,2],[3,4]][] as [$a,$b] (0; . + $a * $b)
+reduce .[]? as $x (0; . + 1)
+[foreach range(5) as $i (0; . + $i)]
+[foreach range(5) as $i (0; . + $i; [$i, .])]
+[foreach (1,2,3) as $x (0; (.+1, .+10))]
+[foreach range(3) as $x (0; empty; .)]
+[foreach [1,2][] as $x ({}; .[$x|tostring] = $x; keys)]
+[limit(3; range(10))]
+[limit(0; range(10))]
+[limit(-1; 1, 2)]
+[limit(5; 1, 2)]
+[limit(1; empty)]
+[first(range(10; 0; -1))]
+[first(empty)]
+[last(range(5))]
+[last(empty)]
+[nth(2; range(10))]
+[nth(0; range(10))]
+[nth(-1; range(10))]
+[nth(20; range(10))]
+[range(5)] | first, last, nth(2)
+[] | first
+[] | last
+[range(0; 10; 3)]
+[range(5; 0; -2)]
+[range(0; 1; 0.25)]
+[range(0; 3; 0)]
+[range(3; 0)]
+[range(0.5; 3)]
+[range(-2)]
+[range(0,1; 3,4)]
+[range(1; 2; 1, 0.5)]
+range("a"; 2)
+[1 | until(. > 100; . * 2)]
+[1 | while(. < 50; . * 3)]
+[limit(5; 1 | repeat(. * 2))]
+[10 | limit(4; repeat(. - 1))]
+isempty(empty)
+isempty(1, error("x"))
+[limit(3; repeat(1))]
+[.[]?] | first(.[]?, 1)
+first(1, error("x"))
+[limit(2; 1, 2, error("x"))]
+
+## Functions (def)
+@null
+def f: 1; f
+def f(x): x * 2; f(3)
+def f($x): $x * 2; f(3)
+def f(x): [x]; f(1,2)
+def f($x): [$x]; [f(1,2)]
+def f($a; $b): [$a, $b]; [f(1,2; 3,4)]
+def f(a; b): [a, b]; f(1,2; 3,4)
+def fac: if . <= 1 then 1 else . * (. - 1 | fac) end; 10 | fac
+def fib: if . < 2 then . else (. - 1 | fib) + (. - 2 | fib) end; [range(10) | fib]
+def f: def g: 3; g * 2; f
+def f(x): def g: x + 1; g; f(10)
+def f: reduce .[] as $x (0; . + $x); [1,2,3] | f
+def inc(f): f + 1; inc(inc(1))
+1 as $x | def f: $x + 1; 10 as $x | f
+def f: .a; {"a":5} | f
+def map(f): "mine"; [1] | map(. + 1)
+def f(g): [g, g]; f(1, 2)
+def f($x): x + $x; f(10)
+def f: 1; def f: 2; f
+def f: 1; def f(x): x; [f, f(2)]
+def rec: if . > 0 then . - 1 | rec else "done" end; 100 | rec
+def f(x): x; f(.a)
+def f: g; def g: 1; f
+f
+foo(1)
+length(1)
+map
+def f(x): x; f
+
+## Optional and try/catch
+@null
+try error("x") catch .
+try error({"a":1}) catch .
+try error(null) catch .
+try (1/0) catch .
+try 1 catch .
+[try (1, error("x"), 3) catch .]
+[.[]?]
+[(1,2) | tostring?]
+try error("x")
+[try error("x")]
+(try error("x") catch .) | length
+try error("x") catch . | length
+[1, "a", null] | map(try (. + 1) catch "bad")
+[{"a":1}, 2] | map(.a?)
+[{"a":1}, 2] | [.[] | .a?]
+error("custom")
+error
+"msg" | error
+{"a":1} | error
+null | error
+error(null)
+[.[] | try error catch .]?
+try (try error("inner") catch error("outer: " + .)) catch .
+[(1,2) | try error(.) catch .]
+[label $out | 1, 2, break $out, 3]
+[label $f | range(10) | ., (select(. == 3) | break $f)]
+label $a | label $b | 1, break $a, 2
+[range(3) | label $x | if . == 1 then break $x else . end]
+break $x
+try (break $x) catch .
+.a?.b?
+[..?]
+(1,2)?
+
+## Paths: path, paths, getpath, setpath, del, to_entries, pick
+@input {"a":{"b":1,"c":[1,2]},"d":null,"e":[{"f":1},{"f":2}]}
+[path(..)]
+[paths]
+[paths(type == "number")]
+path(.a.b)
+[path(.a[])]
+[path(.e[].f)]
+path(.a.c[1:])
+[path(.a | select(.b == 1))]
+[path(.a // .x)]
+[path(.d // .x)]
+[path(if .d then .a else .e end)]
+[path(first(.a, .e))]
+[path(limit(1; .a, .e))]
+[path(.a | .b, .c)]
+[path(getpath(["a","b"]))]
+[path(.a | getpath(["c", 0]))]
+[path(empty)]
+path(.)
+[path(.a as $x | .e)]
+path(1)
+path(.a | tostring)
+path(.a | 1)
+[path(last(.a, .e))]
+path(.a | keys)
+[path(.a.b | select(. == 1))]
+getpath(["a","b"])
+getpath(["a","c",1])
+getpath(["x","y"])
+getpath(["a","b","c"])
+getpath([])
+getpath("a")
+[getpath(["a","b"], ["d"])]
+setpath(["a","b"]; 99)
+setpath(["new"]; 1)
+setpath(["e", 0, "f"]; "x")
+setpath([]; 1)
+setpath(["a", "c", 5]; 1)
+setpath(["a","b","x"]; 1)
+setpath("a"; 1)
+del(.a)
+del(.a.b, .d)
+del(.e[0])
+del(.e[])
+del(.a.c[0, 1])
+del(.missing)
+del(.)
+del(.a.c[1:])
+del(.e[] | select(.f == 1))
+delpaths([["a","b"], ["d"]])
+delpaths([])
+delpaths([[]])
+delpaths("x")
+to_entries
+.a | to_entries
+.e | to_entries
+[{"key":"x","value":1},{"name":"y","value":2},{"k":"z","v":3}] | from_entries
+[{"key":1,"value":2}] | from_entries
+[{"key":null,"value":2}] | from_entries
+[{"key":false,"value":2}] | from_entries
+[{"Key":"a","Value":1},{"Name":"b","value":2}] | from_entries
+[] | from_entries
+with_entries(.value |= tostring)
+with_entries(select(.key != "a"))
+.a | with_entries(.key |= ascii_upcase)
+pick(.a.b)
+pick(.e[1].f)
+pick(.x.y)
+[.a | paths]
+tostream
+[tostream] | fromstream(.[])
+[1,[2]] | [tostream]
+[{"a":[1,2]} | tostream]
+fromstream(([1,[2]] | tostream))
+[1|truncate_stream([[0],1],[[1,0],2],[[1,0]],[[1]])]
+{"a":{"b":{"c":1}}} | [paths(..)]
+[paths(numbers)]
+
+## Path identity (review)
+@null
+1 | path(1)
+1 | path(. + 0)
+1 | (1 = 2)
+null | [path(null)]
+{"a":true} | [path(.a | true)]
+"a\nc" | test("a.c"; "m")
+@loose
+1 ?// 2
+@loose
+{"a":1} | .a?//1
+
+## Assignment operators
+@input {"a":1,"b":[1,2,3],"c":{"d":"x"}}
+.a = 5
+.a = (5, 6)
+.x = 1
+.b[0] = 9
+.b[5] = 1
+.b[-1] = 9
+.b[-10] = 9
+.c.d = .a
+.a |= . + 1
+.b[] |= . * 10
+.b |= map(. + 1)
+.b[1:] = ["x"]
+.b[1:] |= map(. * 100)
+.b[:1] = []
+.a += 10
+.a -= 1
+.a *= 3
+.a /= 2
+.a %= 2
+.b += [4]
+.c.e //= "default"
+.c.d //= "default"
+.a += (1, 2)
+.b[] += 1
+.b[] |= empty
+.b |= (., 10)
+.[] |= type
+.missing |= 1
+.a |= empty
+.b[1] |= empty
+.a = .b
+.a |= .b
+.c |= with_entries(.value = 0)
+(.a, .x) = 0
+.b[] = 7
+(.b | .[0]) = 42
+.b.x = 1
+.a.x = 1
+.a[0] = 1
+.b["x"] = 1
+.b[1.5] = 7
+null | .[2] = 1
+null | .a.b = 1
+null | .[1:2] = ["x"]
+[1,2,3,4,5] | .[1:3] |= map(. * 10)
+[1,2,3] | .[1:] = 5
+{} | .a += 1
+{} | .a //= 3
+{"a":[{"b":1},{"b":2}]} | .a[].b |= . + 1
+{"a":[{"b":1},{"b":2}]} | .a |= map(select(.b > 1))
+{"a":1} | .a = (.a | tostring)
+[[1,2],[3,4]] | .[][0] = 0
+{"x":{"y":1}} | .x.y as $v | .x.z = $v
+. as $orig | .a = 100 | [., $orig.a]
+map_values(tostring)
+.b | map_values(. + 1)
+.b | map_values(empty)
+{"a":1,"b":null} | map_values(values)
+
+## Recursive descent
+@input {"a":[1,{"b":2}],"c":"x"}
+[..]
+[.. | numbers]
+[.. | .b? // empty]
+[..|scalars]
+[recurse]
+[recurse(.[]?)]
+[recurse(.a?; . != null)]
+2 | [recurse(if . < 20 then . * 2 else empty end)]
+[recurse(.[]?; type == "array" or type == "object")]
+[.. | select(type == "string")]
+..|numbers
+{"a":{"a":{"a":null}}} | [recurse(.a; . != null)]
+
+## Builtins: length, keys, has, in, contains, inside
+@null
+[null, true, 1, -5, "héllo", [1,2], {"a":1}] | map(try length catch "err")
+true | length
+"héllo" | utf8bytelength
+1 | utf8bytelength
+{"b":1,"a":2,"é":3,"B":4} | keys
+{"b":1,"a":2} | keys_unsorted
+[5,6] | keys
+null | keys
+1 | keys
+{"a":1} | has("a"), has("b")
+[1,2] | has(0), has(2), has(-1), has(1.5)
+{"a":1} | has(0)
+[1] | has("a")
+"a" | has("a")
+"a" | in({"a":1})
+0 | in([5])
+"foobar" | contains("bar")
+"foobar" | contains("baz")
+"foobar" | contains("")
+["foobar","baz"] | contains(["bar"])
+["foobar","baz"] | contains(["bar","qux"])
+{"a":[1,2,3],"b":"x"} | contains({"a":[1]})
+{"a":[1,2,3],"b":"x"} | contains({"a":[4]})
+{"a":1} | contains({"b":null})
+1 | contains(1)
+1 | contains(2)
+true | contains(false)
+true | contains(true)
+null | contains(null)
+"a" | contains(1)
+[1,[2,3]] | contains([[2]])
+[1,[2,3]] | contains([2])
+"bar" | inside("foobar")
+["a"] | inside(["a","b"])
+{"a":1} | inside({"a":1,"b":2})
+"\u0000x" | contains("x")
+
+## Builtins: map, select, empty, add, any, all, flatten, range, floor, sqrt ...
+@null
+[1,2,3] | map(. * 2)
+{"a":1,"b":2} | map(. + 1)
+1 | map(.)
+[1,2,3] | map(select(. != 2))
+[1,2,3] | map(empty)
+[1,2] | map(., .)
+[1,2,3,4] | [.[] | select(. % 2 == 0)]
+[1, null, 2] | map(values)
+[1,2,3] | add
+["a","b"] | add
+[[1],[2]] | add
+[{"a":1},{"b":2}] | add
+[] | add
+null | add
+[1, null, 2] | add
+[1, "a"] | add
+{"a":1,"b":2} | add
+[true, false] | any, all
+[] | any, all
+[null, 1] | any
+[1, 2] | all(. > 0)
+[1, 2] | any(. > 1)
+any(1, 2; . == 2)
+all(1, 2; . == 2)
+any(error("x"); true)
+[1,[2,[3,[4]]]] | flatten
+[1,[2,[3,[4]]]] | flatten(1)
+[1,[2,[3,[4]]]] | flatten(0)
+[1,[2]] | flatten(-1)
+[[]] | flatten
+{"a":[1]} | flatten
+[1.5, -1.5, 2.5, -0.5] | map(floor)
+[1.5, -1.5, 2.5, -0.5] | map(ceil)
+[1.5, -1.5, 2.5, -0.5, 0.5] | map(round)
+[1.5, -1.5, 2.5] | map(fabs)
+[1.7, -1.7] | map(trunc)
+[2.5, 3.5, -2.5] | map(rint)
+[4, 2, 0] | map(sqrt)
+-1 | sqrt | isnan
+pow(2; 10)
+pow(2; 0.5)
+[pow(2,3; 1,2)]
+[1, 10, 100] | map(log10)
+1 | exp
+0 | log
+[8] | map(log2)
+[-3, 3] | map(abs)
+"abc" | abs
+null | abs
+[3.7] | map(significand)
+8 | logb
+[0.75] | map(frexp)
+3.5 | modf
+[1, 2] | map(exp10)
+2 | exp2
+10 | fmin(3; 4)
+[atan2(1; 1)] | map(. * 4)
+1 | [sin, cos] | map(. * 1000 | round)
+5 | ldexp(.; 2)
+fma(2; 3; 4)
+3 | fmod(.; 2)
+"a" | floor
+infinite
+-infinite
+nan | isnan
+[infinite, nan, 1] | map(isinfinite)
+[infinite, nan, 1, 0] | map(isnormal)
+[1, infinite, nan] | map(isfinite)
+[infinite] | tojson
+nan | tostring
+[nan] | tojson
+[1, nan] | sort
+[nan, 1, null] | sort
+[1,2,3] | min, max
+[] | min, max
+[{"a":2},{"a":1},{"a":1}] | min_by(.a), max_by(.a)
+[{"a":1,"i":0},{"a":1,"i":1}] | min_by(.a).i, max_by(.a).i
+1 | min
+[1] | min_by(error("x"))
+
+## Builtins: sort, group, unique, reverse
+@null
+[3,1,2] | sort
+[null, true, false, 0, -1, "a", "B", [], {}, [0], {"a":1}] | sort
+["b","a","B","é","z"] | sort
+[{"a":2,"b":1},{"a":1,"b":2}] | sort
+[[2],[1,3],[1]] | sort
+{"a":1} | sort
+[{"a":2},{"a":1},{"a":2,"b":0}] | sort_by(.a)
+[{"a":2,"i":0},{"a":1,"i":1},{"a":2,"i":2}] | sort_by(.a) | map(.i)
+[{"a":1,"b":2},{"a":1,"b":1}] | sort_by(.a, .b)
+[3,1,2] | sort_by(-.)
+[1,2,3,4,5] | group_by(. % 2)
+[{"a":1},{"a":null},{"b":1}] | group_by(.a)
+[] | group_by(.)
+[1,2,1,3,2] | unique
+[1,1.0,"1"] | unique
+[{"a":1,"b":1},{"a":1,"b":2},{"a":2}] | unique_by(.a)
+["ab","c","de"] | unique_by(length)
+[1,2,3] | reverse
+[] | reverse
+null | reverse
+"abc" | reverse
+[1,[2]] | reverse
+1 | sort_by(.)
+
+## Builtins: strings
+@null
+"Hello World" | ascii_downcase, ascii_upcase
+"ÀÉ" | ascii_downcase
+1 | ascii_downcase
+"test" | ltrimstr("te"), rtrimstr("st"), ltrimstr("x"), ltrimstr(1)
+1 | ltrimstr("a")
+"aaa" | ltrimstr("a")
+"test" | startswith("te"), endswith("st"), startswith("x")
+1 | startswith("a")
+"a" | endswith(1)
+"a,b, c" | split(", ")
+"a,b,c" | split(",")
+"abc" | split("")
+"" | split(",")
+"a1b22c" | split("[0-9]+"; null)
+"a1b22c" | split("[0-9]+"; "g")
+"a1B2c" | [splits("[a-z]"; "i")]
+"a, b,c" | [splits(", *")]
+1 | split(",")
+"a" | split(1)
+["a","b","c"] | join(", ")
+["a",1,null,true,false] | join("-")
+[] | join(",")
+["a"] | join(",")
+[[1]] | join(",")
+[{"a":1}] | join(",")
+["a","b"] | join(1)
+"abc" | explode
+[65, 98, 128512] | implode
+"héllo" | explode | implode
+[1,[2]] | implode
+"x" | implode
+[-1] | implode
+"a" | explode | map(. + 1) | implode
+"abc" | test("b")
+"abc" | test("B")
+"abc" | test("B"; "i")
+"abc" | test("B"; "x")
+"abc" | test(["B", "i"])
+"abc" | test("a.c")
+"a\nc" | test("a.c")
+"a\nc" | test("a.c"; "s")
+1 | test("a")
+"a" | test(1)
+"a" | test("a"; "q")
+"a" | test("a"; 1)
+"test 123 foo 45" | [match("[0-9]+"; "g") | .string]
+"aXbxc" | [match("x"; "gi")]
+"foo bar" | match("(?<a>\\w+) (?<b>\\w+)")
+"foo bar" | match("(\\w+) (\\w+)")
+"ab" | match("(a)(x)?")
+"ab" | match("(?<x>a)(b)")
+"abc" | [match(""; "g")]
+"abc" | [match("x*"; "g")] | length
+"ab" | [match("(?<n>x)?"; "g")]
+"ab" | [match("a|"; "g")]
+"éa1" | match("[0-9]")
+"😀a1" | match("a1")
+"a1b2" | [match("\\d"; "g") | .offset]
+"aaa" | [match("a*?"; "g") | .offset]
+"xyz" | [match("q"; "g")]
+"foo bar foo" | capture("(?<first>\\w+) (?<second>\\w+)")
+"xyz-123" | capture("(?<letters>[a-z]+)-(?<numbers>[0-9]+)")
+"k1=v1 k2=v2" | [capture("(?<key>\\w+)=(?<value>\\w+)"; "g")]
+"abc" | capture("(?<x>z)?")
+"a1b22c333" | [scan("[0-9]+")]
+"a1b22" | [scan("([a-z])([0-9]+)")]
+"AbAb" | [scan("a"; "i")]
+"abc" | sub("b"; "X")
+"abcb" | sub("b"; "X")
+"abcb" | gsub("b"; "X")
+"abc" | sub("(?<x>b)"; "[\(.x)]")
+"foo bar foo" | gsub("(?<w>foo)"; "<\(.w)>")
+"abab" | [gsub("a"; "x", "y")]
+"abc" | gsub(""; "-")
+"abc" | gsub("x"; "y")
+"aAa" | gsub("a"; "b"; "i")
+"abc" | sub("(?<a>.)"; "\(.a|ascii_upcase)")
+"2023-01-15" | sub("(?<y>\\d+)-(?<m>\\d+)-(?<d>\\d+)"; "\(.d)/\(.m)/\(.y)")
+"  x  " | gsub("^\\s+|\\s+$"; "")
+"a.b.c" | gsub("\\."; "/")
+"abc" | [sub("(?<x>.)"; "\(.x)1", "\(.x)2")]
+@loose
+"abc" | test("(")
+"a,b" | index(","), rindex(",")
+"a,b,c,b" | indices("b")
+"a,b" | indices(", ")
+"xxx" | indices("xx")
+"" | indices("x")
+"abc" | index("z")
+[1,2,1,2] | indices(1)
+[1,2,1,2] | indices([1,2])
+[1,2,1,2] | index(2), rindex(2)
+null | indices(1)
+"a" | tostring
+1 | tostring
+[1,"a"] | tostring
+{"a":[1,2]} | tostring
+"1.5" | tonumber
+"  12  " | tonumber
+"-1e3" | tonumber
+@loose
+"abc" | tonumber
+"[1]" | tonumber
+@loose
+"" | tonumber
+null | tonumber
+5 | tonumber
+"nan" | tonumber | isnan
+[1, "1", null, true, [1], {"a":"b"}] | map(type)
+65 | [.] | implode
+"  pad " | ltrimstr(" ")
+"a\u0000b" | length
+"\t\n" | tojson
+"\u007f\u0000é\u001f" | tojson
+"x" | tojson | fromjson
+"{\"a\":1,\"b\":[1,2]}" | fromjson
+@loose
+"[1,2" | fromjson
+@loose
+"1 2" | fromjson
+1 | fromjson
+"nan" | fromjson | isnan
+{"b":1,"a":[1,{"c":null}]} | tojson
+{"b":1,"a":[1,{"c":null}]} | tostring
+"é\n\"" | tojson
+"x" | @text
+"aXbXc" | ascii_downcase | split("x")
+
+## Builtins: types and selectors
+@null
+[1, "a", null, true, [], {}] | map(type)
+[1, "a", null, true, [], {}] | [.[] | numbers]
+[1, "a", null, true, [], {}] | [.[] | strings]
+[1, "a", null, true, [], {}] | [.[] | nulls]
+[1, "a", null, true, [], {}] | [.[] | booleans]
+[1, "a", null, true, [], {}] | [.[] | arrays]
+[1, "a", null, true, [], {}] | [.[] | objects]
+[1, "a", null, true, [], {}] | [.[] | iterables]
+[1, "a", null, true, [], {}] | [.[] | scalars]
+[1, "a", null, true, [], {}] | [.[] | values]
+[1, infinite, nan] | [.[] | finites]
+[1, 0, infinite] | [.[] | normals]
+
+## Builtins: misc (in, IN, INDEX, getpath, splits, combinations, walk, transpose, env-free)
+@null
+2 | IN(1, 2, 3)
+5 | IN(1, 2, 3)
+IN(1, 2; 2, 3)
+[{"id":"a","v":1},{"id":"b","v":2}] | INDEX(.id)
+INDEX({"id":1},{"id":2}; .id)
+[[1,2],[3,4]] | [combinations]
+[0,1] | [combinations(2)]
+[[1,2],[3]] | transpose
+[[1],[2,3]] | transpose
+[1,[2,{"a":3}]] | walk(if type == "number" then . + 1 else . end)
+{"b":2,"a":1} | walk(if type == "object" then to_entries | sort_by(.key) | from_entries else . end)
+[1,[2]] | walk(numbers |= . * 10)
+[1,2,3] | bsearch(2)
+[1,2,3] | bsearch(0)
+[1,2,3] | bsearch(4)
+[1,3] | bsearch(2)
+[] | bsearch(1)
+[1] | bsearch(1)
+[{"a":1}] | JOIN({"1":"x"}; .a | tostring)
+[1,2] | tojson | fromjson
+{"a":1} | [splits("x")]?
+[3,2,1] | sort | first
+"abc" | [limit(2; splits(""))]
+[1,2,3] | [.[] | tostring] | join("")
+{"a":{"b":{"c":1}}} | [getpath(["a","b","c"], ["a","x"])]
+{"a":[1,2]} | [.a | .. ]
+{} | .a.b.c
+{"items":[{"n":"a","ok":true},{"n":"b","ok":false}]} | [.items[] | select(.ok) | .n]
+{"items":[{"n":"a","v":3},{"n":"b","v":1}]} | .items | sort_by(.v) | map(.n) | join(",")
+{"items":[{"n":"a","v":3},{"n":"b","v":1}]} | .items | map(.v) | add / length
+{"rates":{"BRL":5.1,"EUR":0.9}} | .rates | to_entries | map("\(.key)=\(.value)") | join(" ")
+{"cpu":[{"load":0.5},{"load":0.7}]} | [.cpu[].load] | max * 100 | floor
+{"t":"2015-03-05T23:51:47Z"} | .t | fromdate
+[1,2,3] | length as $n | add / $n
+"x" as $s | [range(3)] | map($s * (. + 1))
+[{"name":"a","tags":["x","y"]},{"name":"b","tags":["y"]}] | map(select(.tags | index("x"))) | map(.name)
+[{"name":"a","tags":["x","y"]},{"name":"b","tags":["y"]}] | map(select(any(.tags[]; . == "y"))) | length
+{"a":{"x":1},"b":{"x":2}} | to_entries | map({(.key): .value.x}) | add
+{"a":{"x":1},"b":{"x":2}} | with_entries(.value |= .x)
+{"a":1,"b":2} | to_entries | map(select(.value > 1)) | from_entries
+[{"k":"a"},{"k":"b"},{"k":"a"}] | group_by(.k) | map({key: .[0].k, count: length})
+{"a":null,"b":1} | del(..|nulls)
+{"a":[1,null,{"b":null}]} | del(.. | nulls)
+[1,[2,[3]]] | getpath([1,1,0])
+[1,[2]] | getpath([1,0,0])
+{"a":"x"} | getpath(["a", 0])
+
+## Dates (UTC)
+@null
+0 | todate
+1425599507 | todate
+1425599507 | todateiso8601
+"2015-03-05T23:51:47Z" | fromdate
+"2015-03-05T23:51:47Z" | fromdateiso8601
+"2015-03-05T23:51:47Z" | strptime("%Y-%m-%dT%H:%M:%SZ")
+"2015-03-05T23:51:47Z" | strptime("%Y-%m-%dT%H:%M:%SZ") | mktime
+1425599507 | gmtime
+1425599507 | gmtime | mktime
+1425599507.9 | gmtime
+1425599507 | gmtime | todate
+-1 | gmtime
+-1.5 | gmtime
+0 | gmtime
+951782400 | gmtime
+4102444800 | gmtime | todate
+[2015,2,5,23,51,47,4,63] | mktime
+[2015,14,40,25,61,61,0,0] | mktime
+[2015,2,5,23,51,47] | mktime
+[2015,2,5] | mktime
+"x" | mktime
+[2015,"a",5,23,51,47,4,63] | mktime
+1425599507 | strftime("%Y-%m-%d %H:%M:%S")
+1425599507 | strftime("%A, %B %d, %Y")
+1425599507 | strftime("%a %b %e %I:%M %p %j")
+1425599507 | strftime("%c|%D|%e|%j|%k|%l|%p|%r|%s|%u|%U|%V|%w|%W|%x|%X|%y|%Z|%z|%G|%g|%C|%h|%T|%F|%R|%%")
+0 | strftime("%V %G %U %W %u %w %j")
+1609459200 | strftime("%V %G %g %U %W")
+1609459200 | gmtime | strftime("%V %G")
+1704067200 | strftime("%V %G %U %W")
+1735603200 | strftime("%V %G %U %W")
+[2015,2,5,23,51,47,4,63] | strftime("%Y %H")
+"x" | strftime("%Y")
+[1] | strftime("%Y")
+"10:15 2015-03-05" | strptime("%H:%M %Y-%m-%d")
+"10:15 2015-03-05" | strptime("%H:%M %Y-%m-%d") | mktime
+"5 March 2015" | strptime("%d %B %Y")
+"  5 Mar 2015" | strptime("%e %b %Y")
+"Thu, 05 Mar 2015 23:51:47" | strptime("%a, %d %b %Y %H:%M:%S")
+"2015-03-05 " | strptime("%Y-%m-%d")
+"2015-03-05T23:51:47+0100" | strptime("%Y-%m-%dT%H:%M:%S%z") | mktime
+"15/03/05" | strptime("%y/%m/%d")
+"2015 070" | strptime("%Y %j")
+"2015-03-05 11:30 PM" | strptime("%Y-%m-%d %I:%M %p")
+"1425599507" | strptime("%s") | mktime
+"x" | strptime("%Y")
+"2015-03-05" | strptime("%Y-%m")
+1 | strptime("%Y")
+"2015-03-05T23:51:47.123Z" | fromdate
+"2015-13-05" | strptime("%Y-%m-%d")
+now | type
+now > 1600000000
+
+## Syntax and compile errors (checked as errors only)
+@null
+@loose
+1 +
+@loose
+(1
+@loose
+[1, 2
+@loose
+{a: 1 + 2}
+@loose
+.a.
+@loose
+if 1 then 2
+@loose
+"unterminated
+@loose
+1 == 1 == 1
+@loose
+.[
+@loose
+reduce . as $x (0)
+@loose
+{1: 2}
+@loose
+def f: 1
+@loose
+.a | | .b
+@loose
+"\q"
+@loose
+f(1, 2)
+@loose
+$__loc__ as $x | 1
+@loose
+@nope
+@loose
+import "a" as a; 1
+@loose
+input
+
+## jq 1.8 builtins
+@null
+@jq18
+" x " | trim, ltrim, rtrim
+@jq18
+"xabcx" | trimstr("x")
+@jq18
+[skip(2; range(5))]
+@jq18
+["true", "false", true] | map(toboolean)
+@jq18
+[1,2,3] | add(.[] * 10)
+@jq18
+add(1, 2, 3)
+@jq18
+[1,2] | add(.[])
+@jq18
+1 | trim
