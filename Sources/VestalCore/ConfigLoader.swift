@@ -49,11 +49,36 @@ public struct ConfigWarning: Equatable, Sendable, CustomStringConvertible {
     public var column: Int?
     /// Set when only the other platform's block triggers this warning.
     public var platform: ConfigPlatform?
+    /// The diagnostic code `check-config --json` reports (docs/EXTENSIBILITY.md
+    /// §11.2); nil means the kind's usual one (`code`).
+    public var specificCode: String?
+    /// Did-you-mean candidates, best first (at most 3).
+    public var suggestions: [String]
+    /// For a wrong type or value: what was expected and what was found.
+    public var expected: String?
+    public var found: String?
 
     public init(kind: Kind, path: String = "", message: String,
-                line: Int? = nil, column: Int? = nil, platform: ConfigPlatform? = nil) {
+                line: Int? = nil, column: Int? = nil, platform: ConfigPlatform? = nil,
+                code: String? = nil, suggestions: [String] = [], expected: String? = nil, found: String? = nil) {
         self.kind = kind; self.path = path; self.message = message
         self.line = line; self.column = column; self.platform = platform
+        self.specificCode = code; self.suggestions = suggestions; self.expected = expected; self.found = found
+    }
+
+    /// The diagnostic code (§11.2).
+    public var code: String {
+        if let specificCode { return specificCode }
+        switch kind {
+        case .unreadable: return "unreadable"
+        case .invalidJSON: return "json-syntax"
+        case .unknownKey: return "unknown-key"
+        case .unknownType: return "unknown-type"
+        case .wrongType: return "type-mismatch"
+        case .missingKey: return "missing-required"
+        case .invalidValue: return "invalid-value"
+        case .missingReference: return "unknown-source"
+        }
     }
 
     /// True for the kinds that make vestal ignore the file and run on the
@@ -151,8 +176,10 @@ public enum ConfigLoader {
         return load(data: data, path: path, platform: platform)
     }
 
-    /// The config from a file's contents.
-    public static func load(data: Data, path: String? = nil, platform: ConfigPlatform = .current) -> LoadedConfig {
+    /// The config from a file's contents. `otherPlatforms` also checks the
+    /// other OS's `platform` block (its warnings are tagged).
+    public static func load(data: Data, path: String? = nil, platform: ConfigPlatform = .current,
+                            otherPlatforms: Bool = true) -> LoadedConfig {
         let user: [String: AnyJSON]
         switch AnyJSON.parse(data) {
         case .failure(let error):
@@ -174,7 +201,7 @@ public enum ConfigLoader {
 
         // The other platform's block never reaches this machine's config,
         // but it is the same file: report its problems too, tagged.
-        for other in ConfigPlatform.allCases where other != platform {
+        for other in ConfigPlatform.allCases where otherPlatforms && other != platform {
             guard user["platform"]?.objectValue?[other.rawValue]?.objectValue != nil else { continue }
             let seen = Set(warnings.map(\.description))
             let otherMerged = layer(defaults: DefaultConfig.tree, user: user, platform: other)
