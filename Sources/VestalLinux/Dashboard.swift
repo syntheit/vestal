@@ -55,6 +55,8 @@ public final class LinuxDashboard {
     /// nothing (as the macOS app does).
     private var fadeGeneration = 0
     private var fadeTick: guint = 0
+    /// A screenshot is being taken (see `capture`).
+    private var capturing = false
 
     /// `send` receives every click (`invoke`) and key (`key`) the UI doesn't
     /// consume itself, and `hide` when the window goes away on its own.
@@ -186,6 +188,10 @@ public final class LinuxDashboard {
     private func show(animated: Bool) {
         fadeGeneration += 1
         isVisible = true
+        // A screenshot taken while hidden may have the window mapped
+        // invisibly and without input; showing ends that.
+        gtk_widget_set_opacity(window, 1)
+        setInputRegion(empty: false)
         if usesLayerShell {
             gtk_layer_set_keyboard_mode(gtkWindow, GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE)
         }
@@ -291,25 +297,107 @@ public final class LinuxDashboard {
     // MARK: Screenshot and frames
 
     /// Renders the window's content offscreen to a PNG at the window's scale,
-    /// over the palette's `bg` (the desktop and its blur can't be captured).
+    /// over the palette's `bg` (the desktop and its blur can't be captured),
+    /// or over the window's own tint without `solidBackground`. The window
+    /// must be mapped and laid out.
     public func screenshot(to path: String, solidBackground: Bool = true) -> Bool {
         let width = Double(gtk_widget_get_width(window)), height = Double(gtk_widget_get_height(window))
         guard width > 0, height > 0, let renderer = gtk_native_get_renderer(OpaquePointer(window)) else { return false }
         let scale = Double(gtk_widget_get_scale_factor(window))
-        let paintable = gtk_widget_paintable_new(window)
-        defer { g_object_unref(UnsafeMutableRawPointer(paintable)) }
         let snap = gtk_snapshot_new()
         gtk_snapshot_scale(snap, Float(scale), Float(scale))
-        if solidBackground {
-            fillRounded(snap!, Rect(x: 0, y: 0, width: width, height: height), radius: 0, color: context.theme.color("bg").withAlpha(1))
-        }
-        gdk_paintable_snapshot(paintable, snap, width, height)
+        let background = solidBackground ? context.theme.color("bg").withAlpha(1) : context.theme.windowBackground
+        fillRounded(snap!, Rect(x: 0, y: 0, width: width, height: height), radius: 0, color: background)
+        // The content only, drawn now: unlike a GtkWidgetPaintable of the
+        // window (which reuses the node of the last frame), this works while
+        // the window itself draws nothing (opacity 0, see `capture`).
+        gtk_widget_snapshot_child(window, stage.widget, snap)
         guard let node = gtk_snapshot_free_to_node(snap) else { return false }
         defer { gsk_render_node_unref(node) }
         var viewport = Rect(x: 0, y: 0, width: width * scale, height: height * scale).graphene
         guard let texture = gsk_renderer_render_texture(renderer, node, &viewport) else { return false }
         defer { g_object_unref(UnsafeMutableRawPointer(texture)) }
         return gdk_texture_save_to_png(texture, path) != 0
+    }
+
+    /// What `capture` drew.
+    public struct Capture {
+        /// The window's size in points, and its scale.
+        public var width: Double, height: Double, scale: Double
+        public var frames: [NodeFrame]
+    }
+
+    public struct CaptureError: Error, CustomStringConvertible {
+        public var description: String
+    }
+
+    /// `vestal screenshot`: writes the dashboard to `png` (nil: no image) and
+    /// hands back its frames. Shown, it is what is on screen, once a fade is
+    /// over (`model` is ignored). Hidden, `model` is drawn in the window
+    /// mapped with opacity 0 and an empty input region (the compositor
+    /// shows nothing and every click goes through; keyboard focus is never
+    /// taken), laid out, captured and unmapped again, about 0.3 s. A show
+    /// meanwhile wins: the window stays, and the capture is of what it shows.
+    public func capture(model: RenderSnapshot?, png: String?, completion: @escaping (Result<Capture, CaptureError>) -> Void) {
+        guard !capturing else { return completion(.failure(CaptureError(description: "a screenshot is being taken already"))) }
+        let offscreen = !isVisible
+        if offscreen {
+            guard let model else { return completion(.failure(CaptureError(description: "nothing to draw"))) }
+            apply(model)
+            gtk_widget_set_opacity(window, 0)
+            gtk_widget_set_opacity(stage.widget, 1)
+            gtk_widget_set_visible(window, 1)
+            setInputRegion(empty: true)
+        }
+        capturing = true
+        captureStep(attempt: 1, offscreen: offscreen, png: png, completion: completion)
+    }
+
+    /// Waits (100 ms steps, up to 3 s) until the window is mapped, laid out
+    /// and not fading; an offscreen capture waits at least 3 steps, so the
+    /// compositor has configured the surface and GTK has laid it out.
+    private func captureStep(attempt: Int, offscreen: Bool, png: String?,
+                             completion: @escaping (Result<Capture, CaptureError>) -> Void) {
+        afterMilliseconds(100) { [weak self] in
+            guard let self else { return }
+            let ready = gtk_widget_get_mapped(self.stage.widget) != 0 && gtk_widget_get_width(self.window) > 0
+                && self.fadeTick == 0 && (!offscreen || self.isVisible || attempt >= 3)
+            if !ready, attempt < 30 {
+                return self.captureStep(attempt: attempt + 1, offscreen: offscreen, png: png, completion: completion)
+            }
+            var result: Result<Capture, CaptureError>
+            if !ready {
+                result = .failure(CaptureError(description: "the window was not mapped and laid out within 3 s"))
+            } else if let png, !self.screenshot(to: png) {
+                result = .failure(CaptureError(description: "could not render or write \(png)"))
+            } else {
+                result = .success(Capture(width: Double(gtk_widget_get_width(self.window)),
+                                          height: Double(gtk_widget_get_height(self.window)),
+                                          scale: Double(gtk_widget_get_scale_factor(self.window)),
+                                          frames: self.frames()))
+            }
+            if offscreen, !self.isVisible {
+                gtk_widget_set_visible(self.window, 0)
+                gtk_widget_set_opacity(self.stage.widget, 0)
+                gtk_widget_set_opacity(self.window, 1)
+                self.setInputRegion(empty: false)
+            }
+            self.capturing = false
+            completion(result)
+        }
+    }
+
+    /// Empty: clicks go through the window (offscreen captures). Otherwise
+    /// the whole window takes input, GTK's default. Only while realized.
+    private func setInputRegion(empty: Bool) {
+        guard let surface = gtk_native_get_surface(OpaquePointer(window)) else { return }
+        if empty {
+            let region = cairo_region_create()
+            gdk_surface_set_input_region(surface, region)
+            cairo_region_destroy(region)
+        } else {
+            gdk_surface_set_input_region(surface, nil)
+        }
     }
 
     /// Every node's final frame in window coordinates, in tree order, with

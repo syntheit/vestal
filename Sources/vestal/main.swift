@@ -11,7 +11,8 @@ import VestalLinux
 //
 // `vestal` with a command is the CLI (VestalCore's `CLI` decides, this file
 // carries it out); with none, or with `daemon`, it becomes the resident app:
-// the dashboard on macOS, the headless app on Linux (no UI there yet).
+// the dashboard (SwiftUI on macOS, GTK on Linux), or with `--headless` (or
+// VESTAL_HEADLESS=1) the headless app, which runs the sources without a UI.
 // A running instance is found through its unix socket (VestalCore's IPC),
 // which also keeps it single: no pid files.
 
@@ -22,8 +23,7 @@ func emit(_ output: CLI.Output) -> Never {
 }
 
 /// `show`/`toggle` with nothing running: start the dashboard, which comes up
-/// shown. On Linux that is the headless app, started detached like bare
-/// `vestal`; its reply to the next command says there is no UI.
+/// shown. On Linux that is bare `vestal`, started detached.
 func launchInstance() throws {
     #if os(macOS)
     try VestalApp.launchInstance()
@@ -84,6 +84,9 @@ case .command(.eval(let arguments)):
 case .command(.render(let arguments)):
     emit(RenderCommands.render(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
 
+case .command(.screenshot(let arguments)):
+    emit(ScreenshotCommand.run(arguments, client: { try IPCClient.send($0, timeout: $1) }))
+
 case .command(.explain(let arguments)):
     emit(RenderCommands.explain(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
 
@@ -106,7 +109,8 @@ case .command(.send(let command)):
 case .command(.statusJSON):
     emit(CLI.send(.status, json: true, client: { try IPCClient.send($0) }, launch: launchInstance))
 
-case .command(.start(let hidden)):
+case .command(.start(let hidden, let headlessFlag)):
+    let headless = headlessFlag || ["1", "true", "yes"].contains(ProcessInfo.processInfo.environment["VESTAL_HEADLESS"]?.lowercased() ?? "")
     // Take the socket before any window exists, so a second `vestal` never
     // opens one. Commands that come in before the app is up wait in the
     // inbox; the handler runs on the main queue.
@@ -116,9 +120,11 @@ case .command(.start(let hidden)):
     switch CLI.claim(hidden: hidden, start: { try server.start() }, client: { try IPCClient.send($0) }) {
     case .run:
         #if os(macOS)
+        if headless { HeadlessApp.run(hidden: hidden, server: server, platform: HeadlessPlatform(sources: VestalApp.sourcePlatform)) }
         VestalApp.run(hidden: hidden, server: server)
         #elseif os(Linux)
-        HeadlessApp.run(hidden: hidden, server: server, platform: LinuxPlatform.headless())
+        if headless { HeadlessApp.run(hidden: hidden, server: server, platform: LinuxPlatform.headless()) }
+        LinuxApp.run(hidden: hidden, server: server)
         #else
         HeadlessApp.run(hidden: hidden, server: server, platform: HeadlessPlatform())
         #endif

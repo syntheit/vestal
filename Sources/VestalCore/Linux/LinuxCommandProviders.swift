@@ -80,6 +80,15 @@ public final class WirePlumberAudio: AudioProvider, @unchecked Sendable {
         fire(["wpctl", "set-mute", Self.sink, muted ? "1" : "0"])
     }
 
+    /// The `audio: toggleMute` action: wpctl flips the sink's own state, so
+    /// a stale reading here can't make it mute twice.
+    public func toggleMute() {
+        lock.lock()
+        if latest != nil { latest?.muted.toggle() }
+        lock.unlock()
+        fire(["wpctl", "set-mute", Self.sink, "toggle"])
+    }
+
     /// 5% up, at most 100% (`-l 1.0`: PipeWire would boost past it).
     public func volumeUp() {
         fire(["wpctl", "set-volume", "-l", "1.0", Self.sink, "5%+"])

@@ -77,6 +77,10 @@ public enum IPCCommand: String, CaseIterable, Sendable {
     /// v0.4: an expression's outputs with the instance's data (`vestal
     /// eval`); needs `expr`, takes `source`, `template` and `at`.
     case eval
+    /// v0.4: the dashboard drawn offscreen by the instance's UI (`vestal
+    /// screenshot`); takes `path` (the PNG), `frames` and `view`. A UI
+    /// that can't answers with `code: unsupported` (exit 5).
+    case screenshot
 }
 
 /// A command with its arguments. On the wire it is the bare command word
@@ -105,6 +109,10 @@ public struct IPCRequest: Equatable, Sendable {
     public var template: Bool?
     /// `render`, `eval`: the time `now` gives, in epoch seconds.
     public var at: Double?
+    /// `screenshot`: the PNG to write, an absolute path (nil: none).
+    public var path: String?
+    /// `screenshot`: the frames file to write, an absolute path.
+    public var frames: String?
 
     public init(_ command: IPCCommand, view: String? = nil, source: String? = nil, raw: Bool? = nil,
                 cached: Bool? = nil, timeout: Double? = nil) {
@@ -117,7 +125,7 @@ public struct IPCRequest: Equatable, Sendable {
     }
 
     /// The commands that take a `view`.
-    public static let viewCommands: Set<IPCCommand> = [.show, .toggle, .render]
+    public static let viewCommands: Set<IPCCommand> = [.show, .toggle, .render, .screenshot]
 
     /// The request line, without its newline.
     public var wireLine: String {
@@ -131,6 +139,8 @@ public struct IPCRequest: Equatable, Sendable {
         if let expression { object["expr"] = .string(expression) }
         if let template { object["template"] = .bool(template) }
         if let at { object["at"] = .double(at) }
+        if let path { object["path"] = .string(path) }
+        if let frames { object["frames"] = .string(frames) }
         guard object.count > 1 else { return command.rawValue }
         return AnyJSON.object(object).canonicalText()
     }
@@ -200,6 +210,9 @@ public struct IPCRequest: Equatable, Sendable {
         case .double(let seconds)?: request.at = seconds
         default: break
         }
+        // `screenshot`'s arguments.
+        if case .string(let path)? = object["path"] { request.path = path }
+        if case .string(let frames)? = object["frames"] { request.frames = frames }
         return .success(request)
     }
 }
@@ -366,6 +379,9 @@ public struct IPCResponse: Codable, Equatable, Sendable {
 
     /// `code` of a failure about something that doesn't exist (exit 4).
     public static let notFound = "not-found"
+    /// `code` of a request this instance can't carry out, such as a
+    /// screenshot without a UI (exit 5).
+    public static let unsupported = "unsupported"
 
     /// `{"error":message,"ok":false}`
     public static func failure(_ message: String) -> IPCResponse {
@@ -443,6 +459,8 @@ public enum IPC {
     public static let defaultFetchTimeout: TimeInterval = 30
     /// The most a `fetch` request may ask for.
     public static let maxFetchTimeout: TimeInterval = 300
+    /// How long the instance's UI gets to take a screenshot (§11.6: 10 s).
+    public static let screenshotTimeout: TimeInterval = 10
 
     /// Whether `$XDG_RUNTIME_DIR` is honoured: on Linux, not on macOS.
     #if os(macOS)
@@ -1063,9 +1081,13 @@ public final class IPCServer: @unchecked Sendable {
         connection.phase = .handling
         // A fetch may take as long as it asks for (a slow source), and a
         // little more to reply.
-        let wait = request.command == .fetch
-            ? max(replyTimeout, min((request.timeout ?? IPC.defaultFetchTimeout) + 2, IPC.maxFetchTimeout))
-            : replyTimeout
+        // A screenshot waits for the UI to lay out and draw.
+        let wait: TimeInterval
+        switch request.command {
+        case .fetch: wait = max(replyTimeout, min((request.timeout ?? IPC.defaultFetchTimeout) + 2, IPC.maxFetchTimeout))
+        case .screenshot: wait = max(replyTimeout, IPC.screenshotTimeout)
+        default: wait = replyTimeout
+        }
         connection.timer?.schedule(deadline: .now() + wait)
         let id = connection.id
         setAwaitingHandler(id, true)

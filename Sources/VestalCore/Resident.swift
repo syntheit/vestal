@@ -37,10 +37,26 @@ public protocol ResidentSurface: AnyObject {
     /// Said in the reply to `show`, `hide` and `toggle`: why nothing appears
     /// (a platform without a UI yet). Nil by default.
     var notice: String? { get }
+    /// `vestal show <view>`: put the dashboard on screen on `view` (nil:
+    /// as `show()`). Called instead of `show()` when a view is named; the
+    /// default ignores the view.
+    func show(view: String?)
+    /// The view on screen, for `vestal toggle <view>`; nil when the surface
+    /// doesn't know (then toggle hides whatever is shown).
+    var currentView: String? { get }
+    /// `vestal screenshot`: draw the dashboard offscreen to `request.path`
+    /// (and the frames to `request.frames`) and reply. The view, if named,
+    /// exists. The default says screenshots aren't supported (exit 5).
+    func screenshot(_ request: IPCRequest, reply: @escaping IPCReply)
 }
 
 extension ResidentSurface {
     public var notice: String? { nil }
+    public func show(view: String?) { show() }
+    public var currentView: String? { nil }
+    public func screenshot(_ request: IPCRequest, reply: @escaping IPCReply) {
+        reply(IPCResponse(ok: false, error: "this instance has no renderer for screenshots", code: IPCResponse.unsupported))
+    }
 }
 
 /// Registers the built-in hotkey (Carbon on macOS).
@@ -155,13 +171,13 @@ public final class Resident {
     public func handle(_ request: IPCRequest, reply: @escaping IPCReply) {
         switch request.command {
         case .show:
-            show()
+            show(view: request.view)
             reply(visibilityReply())
         case .hide:
             hide()
             reply(visibilityReply())
         case .toggle:
-            toggle()
+            toggle(view: request.view)
             reply(visibilityReply())
         case .reload:
             reply(reload())
@@ -178,26 +194,48 @@ public final class Resident {
             render(request, reply: reply)
         case .eval:
             evaluate(request, reply: reply)
+        case .screenshot:
+            screenshot(request, reply: reply)
         }
+    }
+
+    /// `vestal screenshot` against this instance: the surface draws it.
+    private func screenshot(_ request: IPCRequest, reply: @escaping IPCReply) {
+        if let view = request.view, RenderConfigModel(loaded: loaded).views[view] == nil {
+            return reply(IPCResponse(ok: false, error: "no view named \"\(view)\"", code: IPCResponse.notFound))
+        }
+        guard let surface, !stopped else { return reply(.failure("vestal is quitting")) }
+        surface.screenshot(request, reply: reply)
+    }
+
+    /// The render model of `view` (nil: the default view) with the runtime's
+    /// current data, evaluated off the main actor, as `vestal render` sees it.
+    /// For a surface that draws something other than what is on screen (a
+    /// screenshot while hidden). Nil for a view the config doesn't have.
+    public func renderSnapshot(view: String?, at now: Date = Date(), press: [String] = []) async -> RenderSnapshot? {
+        let model = RenderConfigModel(loaded: loaded)
+        if let view, model.views[view] == nil { return nil }
+        let inputs = RenderSources.inputs(runtime: runtime, names: model.sourceNames, definitions: model.sources)
+        return await Task.detached {
+            let data = RenderTransformCache().data(for: inputs, environment: model.environment, names: model.sourceNames)
+            let session = RenderSession(model: model, view: view)
+            var snapshot = session.render(data: data, now: now)
+            for key in press where session.key(key, data: data, now: now).contains(.changed) {
+                snapshot = session.render(data: data, now: now)
+            }
+            return snapshot
+        }.value
     }
 
     /// `vestal render` against this instance: the view rendered with the
     /// runtime's current data, off the main actor. The reply's `data` is the
     /// snapshot (§10.2).
     private func render(_ request: IPCRequest, reply: @escaping IPCReply) {
-        let model = RenderConfigModel(loaded: loaded)
-        if let view = request.view, model.views[view] == nil {
-            return reply(IPCResponse(ok: false, error: "no view named \"\(view)\"", code: IPCResponse.notFound))
-        }
-        let inputs = RenderSources.inputs(runtime: runtime, names: model.sourceNames, definitions: model.sources)
         let now = request.at.map { Date(timeIntervalSince1970: $0) } ?? Date()
-        let view = request.view, press = request.press ?? []
-        Task.detached {
-            let data = RenderTransformCache().data(for: inputs, environment: model.environment, names: model.sourceNames)
-            let session = RenderSession(model: model, view: view)
-            var snapshot = session.render(data: data, now: now)
-            for key in press where session.key(key, data: data, now: now).contains(.changed) {
-                snapshot = session.render(data: data, now: now)
+        let view = request.view
+        Task {
+            guard let snapshot = await renderSnapshot(view: view, at: now, press: request.press ?? []) else {
+                return reply(IPCResponse(ok: false, error: "no view named \"\(view ?? "")\"", code: IPCResponse.notFound))
             }
             let json = (try? RenderJSON.encoder.encode(snapshot)).flatMap(AnyJSON.decode)
             reply(IPCResponse(ok: json != nil, error: json == nil ? "render failed" : nil, data: json))
@@ -257,12 +295,13 @@ public final class Resident {
         }
     }
 
-    public func show() {
+    /// Also `vestal show <view>`: on `view` (nil: the surface's choice).
+    public func show(view: String? = nil) {
         guard !stopped else { return }
         isVisible = true
         // Whatever went stale while hidden refreshes at once.
         runtime.setVisible(true)
-        surface?.show()
+        if let view { surface?.show(view: view) } else { surface?.show() }
     }
 
     /// Also for Escape: the app stays, hidden.
@@ -274,9 +313,17 @@ public final class Resident {
         surface?.hide()
     }
 
-    /// The hotkey and `vestal toggle`.
-    public func toggle() {
-        isVisible ? hide() : show()
+    /// The hotkey and `vestal toggle [view]`: hides the dashboard when it
+    /// is shown on `view` (or on any view, with none named or a surface
+    /// that doesn't say), otherwise shows `view`, switching to it if another
+    /// one is on screen (EXTENSIBILITY.md §9.1).
+    public func toggle(view: String? = nil) {
+        guard isVisible else { return show(view: view) }
+        if let view, let current = surface?.currentView, current != view {
+            show(view: view)
+        } else {
+            hide()
+        }
     }
 
     /// `.ok`, with the surface's notice and the new state when it has one:

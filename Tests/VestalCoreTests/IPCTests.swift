@@ -184,7 +184,7 @@ final class IPCTests: XCTestCase {
             XCTAssertEqual(response, command == .status ? .status(status) : .ok, "\(command)")
         }
         XCTAssertEqual(seen.commands, IPCCommand.allCases)
-        XCTAssertEqual(IPCCommand.allCases.map(\.rawValue), ["toggle", "show", "hide", "reload", "status", "quit", "sources", "fetch", "render", "eval"])
+        XCTAssertEqual(IPCCommand.allCases.map(\.rawValue), ["toggle", "show", "hide", "reload", "status", "quit", "sources", "fetch", "render", "eval", "screenshot"])
     }
 
     func testFailureRepliesReachTheClient() throws {
@@ -303,7 +303,7 @@ final class IPCTests: XCTestCase {
         let unknown = try exchangeRaw("bogus\n", path: path)
         XCTAssertEqual(unknown.ok, false)
         XCTAssertEqual(unknown.error,
-                       "unknown command 'bogus' (expected one of toggle, show, hide, reload, status, quit, sources, fetch, render, eval)")
+                       "unknown command 'bogus' (expected one of toggle, show, hide, reload, status, quit, sources, fetch, render, eval, screenshot)")
         XCTAssertEqual(try exchangeRaw("STATUS\n", path: path).ok, false, "commands are lowercase")
         XCTAssertEqual(try exchangeRaw("\n", path: path).error?.hasPrefix("empty request"), true)
 

@@ -10,7 +10,7 @@ final class CLITests: XCTestCase {
     func testParse() {
         XCTAssertEqual(CLI.parse([]), .command(.start(hidden: false)))
         XCTAssertEqual(CLI.parse(["daemon"]), .command(.start(hidden: true)))
-        for command in IPCCommand.allCases where ![.sources, .fetch, .render, .eval].contains(command) {
+        for command in IPCCommand.allCases where ![.sources, .fetch, .render, .eval, .screenshot].contains(command) {
             XCTAssertEqual(CLI.parse([command.rawValue]), .command(.send(command)))
         }
         XCTAssertEqual(CLI.parse(["sources", "--json"]), .command(.sources(["--json"])))
@@ -26,6 +26,9 @@ final class CLITests: XCTestCase {
         XCTAssertEqual(CLI.parse(["toggle", "main"]), .command(.sendRequest(IPCRequest(.toggle, view: "main"))))
         // LaunchServices may add a process serial number.
         XCTAssertEqual(CLI.parse(["-psn_0_12345"]), .command(.start(hidden: false)))
+        XCTAssertEqual(CLI.parse(["--headless"]), .command(.start(hidden: false, headless: true)))
+        XCTAssertEqual(CLI.parse(["daemon", "--headless"]), .command(.start(hidden: true, headless: true)))
+        XCTAssertEqual(CLI.parse(["screenshot", "a.png", "--json"]), .command(.screenshot(["a.png", "--json"])))
     }
 
     func testUsageErrors() {
@@ -35,11 +38,12 @@ final class CLITests: XCTestCase {
         XCTAssertEqual(CLI.parse(["show", "--view"]), .usageError("'show' takes one view at most"))
         XCTAssertEqual(CLI.parse(["hide", "main"]), .usageError("'hide' takes no arguments"))
         XCTAssertEqual(CLI.parse(["daemon", "-x"]), .usageError("'daemon' takes no arguments"))
+        XCTAssertEqual(CLI.parse(["--headless", "daemon"]), .usageError("'--headless' takes no arguments"))
     }
 
     func testHelpListsEveryCommand() {
         for name in ["daemon", "toggle", "show", "hide", "reload", "status", "quit",
-                     "check-config", "print-config", "schema", "docs", "icons", "version", "help"] {
+                     "check-config", "print-config", "schema", "docs", "icons", "screenshot", "version", "help"] {
             XCTAssertTrue(CLI.usage.contains("\n  \(name) "), "help lacks \(name)")
         }
     }
@@ -286,4 +290,56 @@ private final class ScriptedClient {
 private struct Failure: Error, CustomStringConvertible {
     var description: String
     init(_ description: String) { self.description = description }
+}
+
+/// `vestal screenshot`: arguments, the request it sends, and exit codes.
+final class ScreenshotCommandTests: XCTestCase {
+    func testParse() {
+        let cwd = "/home/u/work"
+        XCTAssertEqual(ScreenshotCommand.parse(["out.png"], cwd: cwd)?.path, "/home/u/work/out.png")
+        XCTAssertEqual(ScreenshotCommand.parse(["/tmp/a.png", "--view", "focus", "--frames", "f.json", "--json"], cwd: cwd),
+                       ScreenshotCommand.Options(path: "/tmp/a.png", frames: "/home/u/work/f.json", view: "focus", json: true))
+        let framesOnly = ScreenshotCommand.parse(["-", "--frames", "../f.json"], cwd: cwd)
+        XCTAssertNil(framesOnly?.path)
+        XCTAssertEqual(framesOnly?.frames, "/home/u/f.json")
+        XCTAssertNil(ScreenshotCommand.parse([], cwd: cwd))
+        XCTAssertNil(ScreenshotCommand.parse(["-"], cwd: cwd), "- needs --frames")
+        XCTAssertNil(ScreenshotCommand.parse(["a.png", "b.png"], cwd: cwd))
+        XCTAssertNil(ScreenshotCommand.parse(["a.png", "--view"], cwd: cwd))
+        XCTAssertNil(ScreenshotCommand.parse(["--bogus"], cwd: cwd))
+    }
+
+    func testRequestAndOutput() {
+        var sent: IPCRequest?
+        let data = AnyJSON.object(["path": .string("/tmp/a.png"), "width": .int(1512)])
+        let output = ScreenshotCommand.run(["/tmp/a.png", "--view", "main"]) { request, _ in
+            sent = request
+            return IPCResponse(ok: true, data: data)
+        }
+        XCTAssertEqual(output, CLI.Output(status: 0, stdout: "/tmp/a.png\n"))
+        XCTAssertEqual(sent?.command, .screenshot)
+        XCTAssertEqual(sent?.view, "main")
+        XCTAssertEqual(sent?.path, "/tmp/a.png")
+        let json = ScreenshotCommand.run(["/tmp/a.png", "--json"]) { _, _ in IPCResponse(ok: true, data: data) }
+        XCTAssertEqual(json.stdout, data.canonicalText() + "\n")
+    }
+
+    func testExitCodes() {
+        func status(_ response: IPCResponse) -> Int32 {
+            ScreenshotCommand.run(["/tmp/a.png"]) { _, _ in response }.status
+        }
+        XCTAssertEqual(status(IPCResponse(ok: false, error: "no renderer", code: IPCResponse.unsupported)), 5)
+        XCTAssertEqual(status(IPCResponse(ok: false, error: "no view named \"x\"", code: IPCResponse.notFound)), 4)
+        XCTAssertEqual(status(.failure("unknown command 'screenshot' (expected one of toggle, show)")), 5, "an older instance")
+        XCTAssertEqual(status(.failure("could not write")), 1)
+        XCTAssertEqual(ScreenshotCommand.run(["/tmp/a.png"]) { _, _ in throw IPCError.notRunning(path: "/tmp/vestal.sock") }.status, 5)
+        XCTAssertEqual(ScreenshotCommand.run([]) { _, _ in .ok }.status, 2)
+    }
+
+    func testRequestRoundTripsOnTheWire() {
+        var request = IPCRequest(.screenshot, view: "main")
+        request.path = "/tmp/a.png"
+        request.frames = "/tmp/f.json"
+        XCTAssertEqual(try IPCRequest.parse(request.wireLine).get(), request)
+    }
 }

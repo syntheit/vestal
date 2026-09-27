@@ -86,13 +86,20 @@ in
           [ "$rc" = 4 ]
         ''
         + lib.optionalString isLinux ''
-          # The headless daemon (no UI on Linux yet): it takes the socket,
-          # answers status with stats, keeps the visibility show and hide
-          # set while saying there is no UI, reloads, refuses a second
-          # instance, and quits.
           export XDG_RUNTIME_DIR="$TMPDIR/run" XDG_CONFIG_HOME="$TMPDIR/config" XDG_CACHE_HOME="$TMPDIR/cache"
           mkdir -m 700 "$XDG_RUNTIME_DIR"
-          vestal daemon 2> daemon.log &
+          # No display in the sandbox: the GTK daemon says so and exits 1
+          # (so systemd restarts it), leaving the socket free.
+          rc=0
+          env -u WAYLAND_DISPLAY -u DISPLAY vestal daemon 2> nodisplay.err || rc=$?
+          [ "$rc" = 1 ]
+          grep -q "can't start the dashboard: no display" nodisplay.err
+          test ! -e "$XDG_RUNTIME_DIR/vestal.sock"
+          # The headless daemon (--headless): it takes the socket, answers
+          # status with stats, keeps the visibility show and hide set while
+          # saying there is no UI, has no renderer for screenshots (exit 5),
+          # reloads, refuses a second instance, and quits.
+          vestal daemon --headless 2> daemon.log &
           daemon=$!
           for _ in $(seq 100); do vestal status > /dev/null 2>&1 && break; sleep 0.1; done
           vestal status | tee status
@@ -105,6 +112,9 @@ in
           vestal status | grep -qx 'running: pid [0-9]*, shown'
           vestal toggle 2> /dev/null
           vestal status | grep -qx 'running: pid [0-9]*, hidden'
+          rc=0
+          vestal screenshot "$TMPDIR/shot.png" 2> /dev/null || rc=$?
+          [ "$rc" = 5 ]
           vestal reload
           # Same build: a second daemon leaves the first alone and exits 0.
           vestal daemon 2> second.err

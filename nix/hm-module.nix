@@ -455,6 +455,11 @@ in
             "|WAYLAND_DISPLAY"
             "|DISPLAY"
           ];
+          # Without a display the daemon exits 1 at once. Ten tries 2 s
+          # apart (about 20 s) cover a compositor that isn't accepting
+          # clients yet; systemd's default (5 in 10 s) gives up after 10 s.
+          StartLimitIntervalSec = 60;
+          StartLimitBurst = 10;
         };
         Service = {
           ExecStart = "${lib.getExe cfg.package} daemon";

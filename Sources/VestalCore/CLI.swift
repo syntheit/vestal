@@ -33,8 +33,9 @@ public enum CLI {
     public typealias Output = ConfigCommands.Output
 
     public enum Command: Equatable, Sendable {
-        /// Start the resident app: shown (bare `vestal`) or hidden (`daemon`).
-        case start(hidden: Bool)
+        /// Start the resident app: shown (bare `vestal`) or hidden (`daemon`);
+        /// `headless` (`--headless`) without a UI even where there is one.
+        case start(hidden: Bool, headless: Bool = false)
         /// A command for the running instance.
         case send(IPCCommand)
         /// `show <view>` or `toggle <view>`.
@@ -59,6 +60,8 @@ public enum CLI {
         case render([String])
         /// `vestal explain ...` (RenderCommands).
         case explain([String])
+        /// `vestal screenshot ...` (ScreenshotCommand).
+        case screenshot([String])
     }
 
     public enum Parsed: Equatable, Sendable {
@@ -72,9 +75,14 @@ public enum CLI {
     public static func parse(_ arguments: [String]) -> Parsed {
         let arguments = arguments.filter { !$0.hasPrefix("-psn_") }
         guard let name = arguments.first else { return .command(.start(hidden: false)) }
+        if name == "--headless" {
+            guard arguments.count == 1 else { return .usageError("'--headless' takes no arguments") }
+            return .command(.start(hidden: false, headless: true))
+        }
         let rest = Array(arguments.dropFirst())
         let command: Command
         switch name {
+        case "daemon" where rest == ["--headless"]: return .command(.start(hidden: true, headless: true))
         case "daemon": command = .start(hidden: true)
         case "version", "--version", "-v": command = .version
         case "help", "--help", "-h": command = .help
@@ -88,6 +96,7 @@ public enum CLI {
         case "eval": return .command(.eval(rest))
         case "render": return .command(.render(rest))
         case "explain": return .command(.explain(rest))
+        case "screenshot": return .command(.screenshot(rest))
         case "show" where !rest.isEmpty, "toggle" where !rest.isEmpty:
             guard rest.count == 1, !rest[0].hasPrefix("-") else { return .usageError("'\(name)' takes one view at most") }
             return .command(.sendRequest(IPCRequest(IPCCommand(rawValue: name)!, view: rest[0])))
@@ -107,8 +116,11 @@ public enum CLI {
         instance that is already running. It stays running while hidden.
 
         Commands:
-          daemon               Start hidden (the launch agent runs this). If vestal
-                               runs already: exit 0, or replace it if it is another build
+          daemon [--headless]  Start hidden (the launch agent runs this). If vestal
+                               runs already: exit 0, or replace it if it is another build.
+                               --headless (also for bare `vestal`, or
+                               VESTAL_HEADLESS=1): no UI, only the sources and
+                               these commands
           toggle [view]        Show or hide the dashboard; starts vestal if needed
           show [view]          Show the dashboard; starts vestal if needed. A view
                                must be one of the config's (exit 4 otherwise)
@@ -141,6 +153,11 @@ public enum CLI {
           explain <node id or widget key> [--view <name>] [--json]
                                Everything about one widget: template chain, source,
                                vars, when, fields as written and as resolved
+          screenshot <out.png|-> [--view <name>] [--frames <file.json>] [--json]
+                               The running dashboard drawn offscreen to a PNG (Linux),
+                               with the instance's data; while hidden, nothing
+                               appears on screen. --frames writes every node's frame
+                               with clipped/truncated flags. Exit 5 without a UI
           schema [--out <file>]
                                Print the config's JSON Schema
           docs [topic] [--list] [--search <text>] [--json]
@@ -162,10 +179,11 @@ public enum CLI {
         hide, reload, status and quit never start vestal: they exit 1 when it is
         not running. Exit codes: 0 ok, 1 error or not running, 2 usage, 3 the
         config has errors (check-config), 4 not found (a view, a docs topic, a
-        source, an icon).
-        The dashboard UI is macOS-only for now. On Linux vestal runs headless: it
-        fetches sources, serves these commands and reports stats, and show, hide
-        and toggle only change the visibility it reports.
+        source, an icon), 5 not supported here (a screenshot with no UI).
+        On Linux the dashboard is a GTK 4 layer-shell surface (Wayland; X11 gets a
+        fullscreen window). Without a display vestal exits 1; --headless runs
+        without a UI: it fetches sources, serves these commands and reports
+        stats, and show, hide and toggle only change the visibility it reports.
 
         The config is read from $VESTAL_CONFIG, else $XDG_CONFIG_HOME/vestal/config.json
         (default ~/.config/vestal/config.json); see docs/CONFIG.md.
