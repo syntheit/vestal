@@ -421,7 +421,7 @@ final class JQCompiler {
         } else {
             target = nil
         }
-        guard let target else { throw error(undefinedMessage(name, arity), offset) }
+        guard let target else { throw error(undefinedMessage(name, arity, offset: offset), offset) }
         calls.append(JQReferences.Call(name: name, arity: arity, arguments: args.map { arg in
             if case .literal(let v) = arg { return v }
             return nil
@@ -434,11 +434,23 @@ final class JQCompiler {
         "get_prog_origin", "get_jq_origin", "modulemeta",
     ]
 
-    func undefinedMessage(_ name: String, _ arity: Int) -> String {
+    func undefinedMessage(_ name: String, _ arity: Int, offset: Int) -> String {
         if JQCompiler.unsupported.contains(name) {
             return "\(name)/\(arity) is not available in vestal expressions (no input, environment or I/O)"
         }
         var message = "\(name)/\(arity) is not defined"
+        // `.foo-bar` parses as `.foo - bar`: suggest the quoted key.
+        if arity == 0, offset >= 3, offset <= source.count, source[offset - 1] == "-" {
+            var start = offset - 1
+            while start > 0, JQLexer.isIdentChar(source[start - 1]) { start -= 1 }
+            if start < offset - 1, start > 0, source[start - 1] == "." {
+                var key = String.UnicodeScalarView()
+                key.append(contentsOf: source[start..<offset])
+                var quoted = ""
+                JQValue.writeJSONString(String(key) + name, to: &quoted)
+                return message + "; for a key containing '-', write .\(quoted)"
+            }
+        }
         // Other arities of the same name.
         var arities: Set<Int> = []
         for entry in scope {
@@ -457,28 +469,38 @@ final class JQCompiler {
         let candidates = Set((Array(globals.keys) + Array(natives.keys) + Array(extensions.keys) + Array(extensionDefs.keys))
             .compactMap { $0.split(separator: "/").first.map(String.init) }
             .filter { !$0.hasPrefix("_") })
-        let close = candidates.filter { JQCompiler.editDistance($0, name) <= (name.count > 4 ? 2 : 1) }.sorted()
+        let distances = candidates.map { ($0, JQCompiler.editDistance($0, name)) }
+        let best = distances.map(\.1).min() ?? Int.max
+        let limit = name.count > 4 ? 2 : 1
+        let close = distances.filter { $0.1 == best && best <= limit }.map(\.0).sorted()
         if !close.isEmpty {
             message += "; did you mean \(close.prefix(3).joined(separator: ", "))?"
-        } else if arity == 0 {
-            message += "; to read a field, write .\(name)"
+        }
+        // A bare word is often a field name without its dot.
+        if arity == 0 && (close.isEmpty || best > 1) {
+            message += close.isEmpty ? "; to read a field, write .\(name)" : " To read a field, write .\(name)"
         }
         return message
     }
 
+    /// Edit distance counting a swap of neighbours as one edit.
     static func editDistance(_ a: String, _ b: String) -> Int {
         let a = Array(a), b = Array(b)
         if a.isEmpty { return b.count }
         if b.isEmpty { return a.count }
-        var prev = Array(0...b.count)
+        var d = [[Int]](repeating: [Int](repeating: 0, count: b.count + 1), count: a.count + 1)
+        for i in 0...a.count { d[i][0] = i }
+        for j in 0...b.count { d[0][j] = j }
         for i in 1...a.count {
-            var cur = [i] + Array(repeating: 0, count: b.count)
             for j in 1...b.count {
-                cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1))
+                let cost = a[i - 1] == b[j - 1] ? 0 : 1
+                d[i][j] = min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost)
+                if i > 1, j > 1, a[i - 1] == b[j - 2], a[i - 2] == b[j - 1] {
+                    d[i][j] = min(d[i][j], d[i - 2][j - 2] + 1)
+                }
             }
-            prev = cur
         }
-        return prev[b.count]
+        return d[a.count][b.count]
     }
 
     // MARK: References

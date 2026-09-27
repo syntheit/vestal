@@ -407,7 +407,7 @@ struct JSONTextParser {
     }
 
     mutating func parseValue() throws -> JQValue {
-        guard pos < bytes.count else { throw fail("Unfinished JSON term at EOF") }
+        guard pos < bytes.count else { throw fail("Unfinished JSON term") }
         switch bytes[pos] {
         case UInt8(ascii: "{"):
             depth += 1
@@ -419,7 +419,7 @@ struct JSONTextParser {
             if pos < bytes.count && bytes[pos] == UInt8(ascii: "}") { pos += 1; return .object(obj) }
             while true {
                 skipWhitespace()
-                guard pos < bytes.count else { throw fail("Unfinished JSON term at EOF") }
+                guard pos < bytes.count else { throw fail("Unfinished JSON term") }
                 guard bytes[pos] == UInt8(ascii: "\"") else { throw fail("Object keys must be strings") }
                 let key = try parseString()
                 skipWhitespace()
@@ -430,7 +430,7 @@ struct JSONTextParser {
                 skipWhitespace()
                 obj[key] = try parseValue()
                 skipWhitespace()
-                guard pos < bytes.count else { throw fail("Unfinished JSON term at EOF") }
+                guard pos < bytes.count else { throw fail("Unfinished JSON term") }
                 if bytes[pos] == UInt8(ascii: ",") { pos += 1; continue }
                 if bytes[pos] == UInt8(ascii: "}") { pos += 1; return .object(obj) }
                 throw fail("Expected separator between values")
@@ -447,7 +447,7 @@ struct JSONTextParser {
                 skipWhitespace()
                 arr.append(try parseValue())
                 skipWhitespace()
-                guard pos < bytes.count else { throw fail("Unfinished JSON term at EOF") }
+                guard pos < bytes.count else { throw fail("Unfinished JSON term") }
                 if bytes[pos] == UInt8(ascii: ",") { pos += 1; continue }
                 if bytes[pos] == UInt8(ascii: "]") { pos += 1; return .array(arr) }
                 throw fail("Expected separator between values")
@@ -559,7 +559,7 @@ struct JSONTextParser {
             }
             pos += 1
         }
-        throw fail("Unfinished JSON term at EOF")
+        throw fail("Unfinished JSON term")
     }
 
     mutating func hex4() throws -> UInt32 {

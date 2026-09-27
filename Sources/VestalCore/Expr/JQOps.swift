@@ -9,7 +9,7 @@ import Foundation
 enum JQOps {
     /// Largest array index that `setpath` may create (jq: "Array index too
     /// large"). Keeps `.[1e9] = 1` from allocating gigabytes.
-    static var maxArrayIndex = 10_000_000
+    static let maxArrayIndex = 10_000_000
 
     // MARK: Index
 
