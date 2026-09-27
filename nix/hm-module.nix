@@ -333,9 +333,19 @@ let
       mkdir -p "''${settings%/*}" || return 1
       tmp=$(mktemp "$settings.vestal.XXXXXX") || return 1
       if [[ -e "$settings" ]]; then
-        "$jq" --arg want "$want" "$filter" "$settings" > "$tmp" \
-          && ${pkgs.coreutils}/bin/chmod --reference="$settings" "$tmp" \
-          && mv "$tmp" "$settings" || { rm -f "$tmp"; return 1; }
+        # Edit a snapshot; replace the file only if Claude Code hasn't
+        # written it meanwhile, so none of its changes are lost.
+        local snapshot="$tmp.orig"
+        cp -p "$settings" "$snapshot" \
+          && "$jq" --arg want "$want" "$filter" "$snapshot" > "$tmp" \
+          && ${pkgs.coreutils}/bin/chmod --reference="$snapshot" "$tmp" || { rm -f "$tmp" "$snapshot"; return 1; }
+        if ! cmp -s "$snapshot" "$settings"; then
+          rm -f "$tmp" "$snapshot"
+          echo "vestal: $settings changed while it was being edited; the statusLine is added at the next activation" >&2
+          return 0
+        fi
+        mv "$tmp" "$settings" || { rm -f "$tmp" "$snapshot"; return 1; }
+        rm -f "$snapshot"
       else
         "$jq" -n --arg want "$want" "{} | $filter" > "$tmp" && chmod 600 "$tmp" \
           && mv "$tmp" "$settings" || { rm -f "$tmp"; return 1; }

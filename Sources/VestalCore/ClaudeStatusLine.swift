@@ -34,14 +34,14 @@ public enum ClaudeStatusLine {
 
     static let usage = "usage: vestal claude-statusline [--then <command...>]"
     /// How long a `--then` command may take.
-    static let chainTimeout: TimeInterval = 10
+    public static let chainTimeout: TimeInterval = 10
 
     public static func run(
         _ arguments: [String],
         input: Data,
         path: String = ClaudeRateLimits.path(),
         now: Date = Date(),
-        chain: Chain = ClaudeStatusLine.runChained
+        chain: Chain = { ClaudeStatusLine.runChained($0, input: $1) }
     ) -> Output {
         var then: [String]?
         if let first = arguments.first {
@@ -86,36 +86,42 @@ public enum ClaudeStatusLine {
     }
 
     /// `argv` with `input` on stdin, its stdout as text; nil if it can't
-    /// start or takes longer than `chainTimeout`. Its stderr is ours.
-    public static func runChained(_ argv: [String], input: Data) -> String? {
+    /// start or its output doesn't end within `timeout`. Its stderr is
+    /// ours.
+    public static func runChained(_ argv: [String], input: Data, timeout: TimeInterval = chainTimeout) -> String? {
         let command = argv.count == 1 ? ["/bin/sh", "-c", argv[0]] : argv
         let environment = ProcessInfo.processInfo.environment
         guard let executable = CommandRunner.resolveExecutable(command[0], environment: environment) else { return nil }
         // A command that exits without reading its input must not take this
         // process down with it.
-        signal(SIGPIPE, SIG_IGN)
+        _ = signal(SIGPIPE, SIG_IGN)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = Array(command.dropFirst())
         let stdin = Pipe(), stdout = Pipe()
         process.standardInput = stdin
         process.standardOutput = stdout
+        let exited = DispatchSemaphore(value: 0)
+        process.terminationHandler = { _ in exited.signal() }
         do { try process.run() } catch { return nil }
         DispatchQueue.global().async {
             try? stdin.fileHandleForWriting.write(contentsOf: input)
             try? stdin.fileHandleForWriting.close()
         }
         let collected = Collected()
-        let done = DispatchSemaphore(value: 0)
+        let read = DispatchSemaphore(value: 0)
         DispatchQueue.global().async {
             collected.set(stdout.fileHandleForReading.readDataToEndOfFile())
-            done.signal()
+            read.signal()
         }
-        guard done.wait(timeout: .now() + chainTimeout) == .success else {
+        // One deadline for both: its output ends and it exits. A command
+        // that closes stdout but keeps running is stopped, its output kept.
+        let deadline = DispatchTime.now() + timeout
+        guard read.wait(timeout: deadline) == .success else {
             process.terminate()
             return nil
         }
-        process.waitUntilExit()
+        if exited.wait(timeout: deadline) != .success { process.terminate() }
         return String(decoding: collected.get(), as: UTF8.self)
     }
 

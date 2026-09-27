@@ -131,8 +131,8 @@ public enum CommandRunner {
     ///
     /// `input` goes to the child's stdin, which then stays open (a server
     /// that exits at the end of its input, such as `codex app-server`, keeps
-    /// running); it must fit in a pipe's buffer (64 KiB). Without it stdin
-    /// is /dev/null. `stopWhen` is asked after each piece of stdout: once it
+    /// running); it must fit in a pipe's buffer (a few KiB are always safe),
+    /// or the run fails with `launchFailed`. Without it stdin is /dev/null. `stopWhen` is asked after each piece of stdout: once it
     /// returns true the run ends with what arrived so far (status 0) and the
     /// child is stopped.
     public static func run(
@@ -302,10 +302,12 @@ private final class CommandExecution {
             self.queue.async { self.childExited(status) }
         }
         // Written before the child exists, while this process holds the read
-        // end too: the write can't raise SIGPIPE, and it fits in the pipe's
-        // buffer, so it doesn't block.
-        if let input, let stdinPipe, !input.isEmpty {
-            stdinPipe.fileHandleForWriting.write(input)
+        // end too, so the write can't raise SIGPIPE; non-blocking, so input
+        // that doesn't fit in the pipe's buffer fails the run instead of
+        // blocking this queue.
+        if let input, let stdinPipe, !input.isEmpty, !Self.writeAll(input, to: stdinPipe.fileHandleForWriting) {
+            finish(.failure(CommandError.launchFailed(name, "its input (\(input.count) bytes) doesn't fit in a pipe")))
+            return
         }
         do {
             try process.run()
@@ -325,6 +327,23 @@ private final class CommandExecution {
         timer.setEventHandler { self.timedOut() }
         timer.resume()
         self.timer = timer
+    }
+
+    /// Writes all of `data` without blocking; false if the pipe is full.
+    private static func writeAll(_ data: Data, to handle: FileHandle) -> Bool {
+        let fd = handle.fileDescriptor
+        _ = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)
+        return data.withUnsafeBytes { buffer -> Bool in
+            guard let base = buffer.baseAddress else { return true }
+            var offset = 0
+            while offset < buffer.count {
+                let count = write(fd, base + offset, buffer.count - offset)
+                if count > 0 { offset += count; continue }
+                if count < 0 && errno == EINTR { continue }
+                return false
+            }
+            return true
+        }
     }
 
     private func makeReader(_ handle: FileHandle, isStdout: Bool) -> DispatchSourceRead {

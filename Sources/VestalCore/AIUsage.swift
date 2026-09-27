@@ -40,7 +40,7 @@ public enum AIUsage {
                 return
             }
             let rounded = percent.isFinite ? Int(min(max(percent, 0), 100).rounded()) : 0
-            self.init(percent: rounded, resetsAt: resetsAt.flatMap { $0.isFinite ? Int($0) : nil })
+            self.init(percent: rounded, resetsAt: resetsAt.flatMap(AIUsage.int))
         }
 
         var json: AnyJSON {
@@ -78,11 +78,12 @@ public enum AIUsage {
         public init?(_ data: AnyJSON) {
             guard case .object(let o) = data, let source = o["source"]?.stringValue else { return nil }
             func window(_ value: AnyJSON?) -> Window? {
-                guard let w = value?.objectValue, let percent = AIUsage.number(w["percent"]) else { return nil }
-                return Window(percent: Int(percent), resetsAt: AIUsage.number(w["resetsAt"]).map { Int($0) })
+                guard let w = value?.objectValue, let percent = AIUsage.number(w["percent"]).flatMap(AIUsage.int)
+                else { return nil }
+                return Window(percent: percent, resetsAt: AIUsage.number(w["resetsAt"]).flatMap(AIUsage.int))
             }
             self.init(session: window(o["session"]), weekly: window(o["weekly"]),
-                      updatedAt: AIUsage.number(o["updatedAt"]).map { Int($0) } ?? 0,
+                      updatedAt: AIUsage.number(o["updatedAt"]).flatMap(AIUsage.int) ?? 0,
                       source: source, plan: o["plan"]?.stringValue)
         }
     }
@@ -94,6 +95,12 @@ public enum AIUsage {
         case .double(let d)?: return d.isFinite ? d : nil
         default: return nil
         }
+    }
+
+    /// `value` truncated to an Int; nil when it doesn't fit (Int(_:) would
+    /// trap on a huge number from a file or a reply).
+    static func int(_ value: Double) -> Int? {
+        value.isFinite && abs(value) < 9e15 ? Int(value) : nil
     }
 }
 
@@ -146,7 +153,7 @@ public enum ClaudeRateLimits {
         }
         return AIUsage.Reading(session: Stored(o["five_hour"])?.window(now: now),
                                weekly: Stored(o["seven_day"])?.window(now: now),
-                               updatedAt: AIUsage.number(o["updatedAt"]).map { Int($0) } ?? 0,
+                               updatedAt: AIUsage.number(o["updatedAt"]).flatMap(AIUsage.int) ?? 0,
                                source: "claude").json
     }
 }

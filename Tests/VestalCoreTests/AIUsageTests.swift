@@ -40,6 +40,10 @@ final class AIUsageTests: XCTestCase {
         XCTAssertEqual(AIUsage.Window(percent: -3, resetsAt: nil, now: now).percent, 0)
         XCTAssertEqual(AIUsage.Window(percent: 80, resetsAt: now.timeIntervalSince1970, now: now),
                        AIUsage.Window(percent: 0, resetsAt: nil), "a passed reset is a new, unknown window")
+        XCTAssertEqual(AIUsage.Window(percent: 5, resetsAt: 1e300, now: now), AIUsage.Window(percent: 5, resetsAt: nil),
+                       "a reset time too large for an Int doesn't trap")
+        XCTAssertEqual(AIUsage.Reading(.object(["source": .string("claude"), "updatedAt": .double(1e300),
+                                                "session": .object(["percent": .double(-1e300)])]))?.session, nil)
     }
 
     func testReadingRoundTrips() {
@@ -200,6 +204,19 @@ final class AIUsageTests: XCTestCase {
         } catch let error as CommandError {
             guard case .timedOut = error else { return XCTFail("\(error)") }
         }
+        // Input larger than any pipe's buffer fails at once, never blocks.
+        do {
+            _ = try await CommandRunner.run(["cat"], timeout: 10, input: Data(count: 4 * 1024 * 1024))
+            XCTFail("expected an error")
+        } catch let error as CommandError {
+            guard case .launchFailed = error else { return XCTFail("\(error)") }
+        }
+    }
+
+    func testRunChainedStopsACommandThatOutlivesItsOutput() {
+        let started = Date()
+        XCTAssertEqual(ClaudeStatusLine.runChained(["printf x; exec >&-; sleep 30"], input: Data(), timeout: 1), "x")
+        XCTAssertLessThan(Date().timeIntervalSince(started), 5)
     }
 
     // MARK: Runtime
