@@ -47,7 +47,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 | `calendar` | `30m` | `always` | EventKit (macOS) or `.ics` (both) |
 | `system` | `3s` | `visible` | this machine |
 | `media` | `3s` | `visible` | a music player |
-| `claude` | `30s` | `visible` | the Claude plan's usage, as Claude Code reports it |
+| `claude` | `5m` | `visible` | the Claude plan's usage, from `claude -p /usage` |
 | `codex` | `5m` | `visible` | the Codex plan's usage, from `codex app-server` |
 
 **Built-in sources.** The defaults define `system`, `media` (`player: "auto"`), `claude`, `codex`, `calendar` and `weather` (wttr.in). A `visible` source that nothing on screen reads is never fetched, so unused ones cost nothing.
@@ -135,7 +135,7 @@ A `parse: "feed"` source (on `http`, `command` or `file`) reads RSS 2.0, Atom 1.
 
 ### `command`
 
-Runs a program **without a shell** and reads its standard output. `argv[0]` is looked up on `PATH` and the usual Nix and Homebrew directories; under Home Manager, add the program to `programs.vestal.extraPackages`. Pipes, globs and `$VARS` don't work; to use a shell, say so: `["sh", "-c", "…"]`.
+Runs a program **without a shell** and reads its standard output. `argv[0]` is looked up on `PATH`, the usual Nix and Homebrew directories and `~/.local/bin`; under Home Manager, add the program to `programs.vestal.extraPackages`. Pipes, globs and `$VARS` don't work; to use a shell, say so: `["sh", "-c", "…"]`.
 
 | Key | Default | |
 |---|---|---|
@@ -219,17 +219,24 @@ One music player.
 
 ### `claude`
 
-The Claude plan's usage (Pro and Max) as Claude Code reports it: `session` is the 5-hour window, `weekly` the 7-day one. No keys of its own (v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an info finding).
+The Claude plan's usage (Pro and Max) as `claude -p /usage` prints it: `session` is the 5-hour window, `weekly` the week's (all models), `extra` the per-model weekly limits Claude Code lists (`label` is the name in parentheses). v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an info finding.
 
 ```jsonc
-{ "session": { "percent": 35, "resetsAt": 1790546843 }, "weekly": { "percent": 50, "resetsAt": 1790831843 }, "updatedAt": 1790531843, "source": "claude", "plan": null }
+{ "session": { "percent": 25, "resetsAt": 1790547000, "resetsText": "Sep 27 at 7:10pm (America/Buenos_Aires)" },
+  "weekly": { "percent": 59, "resetsAt": 1791064800, "resetsText": "Oct 3 at 7pm (America/Buenos_Aires)" },
+  "extra": [{ "label": "Fable", "percent": 0, "resetsAt": 1791064800, "resetsText": "Oct 3 at 7pm (America/Buenos_Aires)" }],
+  "updatedAt": 1790528602, "source": "cli", "plan": null }
 ```
 
-`percent` is a whole number 0-100, `resetsAt` and `updatedAt` epoch seconds. A window may be `null`; one whose reset has passed reads `{"percent": 0, "resetsAt": null}` until Claude Code reports the new one. The data comes from `vestal claude-statusline` run as Claude Code's `statusLine` command; until it has run, the source fails with a hint. See `vestal docs ai-usage`.
+`percent` is a whole number 0-100, `resetsAt` and `updatedAt` epoch seconds, `resetsText` the reset as printed (a reset vestal can't read has `resetsAt: null`). A window may be `null`; one whose reset has passed reads `{"percent": 0, "resetsAt": null}` until the next fetch. vestal runs `claude -p --no-session-persistence /usage` in its cache directory (no model call, no transcript); Claude Code's own login is used, and nothing of it is read. It refreshes every `5m` while shown, and on a show when its data is over a minute old. See `vestal docs ai-usage`.
+
+| Key | Default | |
+|---|---|---|
+| `argv` | `["claude", "-p", "--no-session-persistence", "/usage"]` | The command, when `claude` isn't on `PATH`. |
 
 ### `codex`
 
-The Codex plan's usage, in the same shape as `claude`, with `source: "codex"` and `plan` the plan's name. vestal runs `codex app-server`, asks `account/rateLimits/read` over JSON-RPC and stops it; Codex's own login is used, and nothing of it is read. Windows are placed by length: up to a day is `session`, longer is `weekly`; a plan without a 5-hour window has `session: null`. It refreshes every `5m` while shown, and on a show when its data is over a minute old.
+The Codex plan's usage, in the same shape as `claude`, with `source: "codex"`, `plan` the plan's name, `resetsText` `null` and `extra` empty. vestal runs `codex app-server`, asks `account/rateLimits/read` over JSON-RPC and stops it; Codex's own login is used, and nothing of it is read. Windows are placed by length: up to a day is `session`, longer is `weekly`; a plan without a 5-hour window has `session: null`. It refreshes every `5m` while shown, and on a show when its data is over a minute old.
 
 | Key | Default | |
 |---|---|---|

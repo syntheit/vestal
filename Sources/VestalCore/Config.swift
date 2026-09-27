@@ -122,7 +122,7 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 //   file      path, parse
 //   system    disks, interfaces
 //   media     player
-//   claude    (none; path, fiveHourLimit and weeklyLimit are accepted and ignored)
+//   claude    argv (path, fiveHourLimit and weeklyLimit are accepted and ignored)
 //   codex     argv
 // docs/EXTENSIBILITY.md section 5 is the reference.
 
@@ -148,8 +148,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public static func defaultRefresh(for type: String) -> String {
         switch canonicalType(type) {
         case "system", "media": return "3s"
-        case "file", "claude": return "30s"
-        case "codex": return "5m"
+        case "file": return "30s"
+        case "claude", "codex": return "5m"
         default: return defaultRefresh
         }
     }
@@ -165,17 +165,17 @@ public struct SourceConfig: Codable, Equatable, Sendable {
 
     /// A visible-only source whose data is older than this when the
     /// dashboard is shown fetches at once, though its `refresh` hasn't
-    /// passed: `codex`, whose refresh is long, after a minute. Nil: only
-    /// `refresh` counts.
+    /// passed: `claude` and `codex`, whose refresh is long, after a minute.
+    /// Nil: only `refresh` counts.
     public var showRefreshSeconds: TimeInterval? {
-        type == "codex" ? min(60, refreshSeconds) : nil
+        type == "claude" || type == "codex" ? min(60, refreshSeconds) : nil
     }
 
     public var type: String                 // a key of `keysByType` (aliases resolved)
     public var url: String?                 // http
     public var refresh: String              // duration: "30s", "5m", "1h", "4h"; per type by default
     public var parse: String = "json"       // http, command, file: see `parseModes`
-    public var argv: [String]?              // command; codex (default codex app-server)
+    public var argv: [String]?              // command; claude, codex (default claude -p ... /usage, codex app-server)
     public var timeout: String = SourceConfig.defaultTimeout // command, http, calendar (ics URLs)
     public var env: [String: String]?       // command: extra environment
     public var days: Int = SourceConfig.defaultDays          // calendar: lookahead in days
@@ -445,7 +445,7 @@ public struct WidgetConfig: Codable, Equatable, Sendable {
     public var units: String?                          // "metric" | "imperial"
 
     // ClaudeUsage: `path`, `fiveHourLimit` and `weeklyLimit` are accepted and
-    // ignored (the claude source reads what Claude Code reports).
+    // ignored (the claude source reads `claude -p /usage`).
 
     enum CodingKeys: String, CodingKey {
         case type, title, source, worldClocks, show, privacy, player, hideWhenOff, maxEvents,

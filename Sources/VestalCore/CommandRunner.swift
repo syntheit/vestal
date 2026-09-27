@@ -12,8 +12,9 @@ import Glibc
 // so values from the config are never spliced into a command line, and nothing
 // assumes a bash at a fixed path (NixOS doesn't have one).
 //
-// The executable is resolved on $PATH plus the Nix and Homebrew profile dirs:
-// a launchd agent starts with a minimal PATH that contains none of them. The
+// The executable is resolved on $PATH plus the Nix and Homebrew profile dirs
+// and ~/.local/bin: a launchd agent starts with a minimal PATH that contains
+// none of them. The
 // child gets the same augmented PATH so its own lookups work too. A leading
 // `~` expands in every element (there is no shell to do it), so a script path
 // handed to an interpreter works as well as the program itself.
@@ -78,6 +79,8 @@ public enum CommandRunner {
             "/run/current-system/sw/bin",
             "/opt/homebrew/bin",
             "/usr/local/bin",
+            // Per-user installers (Claude Code's native one).
+            "\(home)/.local/bin",
         ]
     }
 
@@ -134,7 +137,8 @@ public enum CommandRunner {
     /// running); it must fit in a pipe's buffer (a few KiB are always safe),
     /// or the run fails with `launchFailed`. Without it stdin is /dev/null. `stopWhen` is asked after each piece of stdout: once it
     /// returns true the run ends with what arrived so far (status 0) and the
-    /// child is stopped.
+    /// child is stopped. `currentDirectory` is the child's working directory
+    /// (nil: this process's).
     public static func run(
         _ argv: [String],
         timeout: TimeInterval = 10,
@@ -142,7 +146,8 @@ public enum CommandRunner {
         maxStdout: Int? = nil,
         maxStderr: Int? = nil,
         input: Data? = nil,
-        stopWhen: (@Sendable (Data) -> Bool)? = nil
+        stopWhen: (@Sendable (Data) -> Bool)? = nil,
+        currentDirectory: String? = nil
     ) async throws -> CommandResult {
         guard let name = argv.first else { throw CommandError.emptyArgv }
         var env = ProcessInfo.processInfo.environment
@@ -162,7 +167,8 @@ public enum CommandRunner {
             maxStdout: maxStdout,
             maxStderr: maxStderr,
             input: input,
-            stopWhen: stopWhen
+            stopWhen: stopWhen,
+            currentDirectory: currentDirectory
         )
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
@@ -253,7 +259,7 @@ private final class CommandExecution {
 
     init(name: String, executable: String, arguments: [String],
          environment: [String: String], timeout: TimeInterval, maxStdout: Int?, maxStderr: Int?,
-         input: Data?, stopWhen: (@Sendable (Data) -> Bool)?) {
+         input: Data?, stopWhen: (@Sendable (Data) -> Bool)?, currentDirectory: String?) {
         self.name = name
         self.timeout = timeout
         self.maxStdout = maxStdout
@@ -264,6 +270,7 @@ private final class CommandExecution {
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
         process.environment = environment
+        if let currentDirectory { process.currentDirectoryURL = URL(fileURLWithPath: currentDirectory, isDirectory: true) }
         if let stdinPipe {
             process.standardInput = stdinPipe
         } else {

@@ -38,7 +38,8 @@ final class AgentCommandsTests: XCTestCase {
               "secrets": { "gh": { "command": ["gh", "auth", "token"] } },
               "sources": {
                 "prs": { "type": "command", "argv": ["gh", "search", "prs"] },
-                "cal": { "type": "calendar", "ics": ["~/cal.ics"] }
+                "cal": { "type": "calendar", "ics": ["~/cal.ics"] },
+                "claude": { "type": "claude", "argv": ["no-such-claude-xyz", "-p", "/usage"] }
               },
               "widgets": {
                 "t": { "type": "text", "text": "x", "action": { "run": ["definitely-not-a-program-xyz", "a"] } }
@@ -63,6 +64,7 @@ final class AgentCommandsTests: XCTestCase {
         XCTAssertEqual(Set(sources.keys), ["system", "media", "calendar", "audio", "claude", "codex"])
         XCTAssertEqual(sources["calendar"]?.objectValue?["backend"], .string("ics"))
         XCTAssertEqual(sources["claude"]?.objectValue?["ok"], .bool(false))
+        XCTAssertEqual(sources["claude"]?.objectValue?["backend"], .string("claude -p /usage"))
         XCTAssertEqual(top["screenshot"]?.objectValue?["supported"], .bool(false))
         let programs = try XCTUnwrap(top["programs"]?.arrayValue).compactMap(\.objectValue)
         let byName = Dictionary(uniqueKeysWithValues: programs.map { ($0["program"]?.stringValue ?? "", $0) })

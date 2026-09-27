@@ -218,7 +218,7 @@ Your own jq functions, with no arguments, callable from every expression:
 
 `sources` maps a name to a source. Widgets refer to sources by name, and every widget reading the same source shares one fetch.
 
-- **When sources run.** An `"always"` source (`http`, `command`, `calendar`, `file` by default) refreshes whether or not the dashboard is shown. A `"visible"` source (`system`, `media`, `claude`, `codex` by default) is fetched only while the dashboard is shown and a widget of the current view reads it, `refresh` after its previous fetch ended; showing the dashboard fetches it at once when it is stale (a `codex` source also when its data is a minute old), and hiding the dashboard or reloading the config cancels a fetch in flight. So the built-in `media`, `claude` and `codex` sources cost nothing until a widget uses them.
+- **When sources run.** An `"always"` source (`http`, `command`, `calendar`, `file` by default) refreshes whether or not the dashboard is shown. A `"visible"` source (`system`, `media`, `claude`, `codex` by default) is fetched only while the dashboard is shown and a widget of the current view reads it, `refresh` after its previous fetch ended; showing the dashboard fetches it at once when it is stale (a `claude` or `codex` source also when its data is a minute old), and hiding the dashboard or reloading the config cancels a fetch in flight. So the built-in `media`, `claude` and `codex` sources cost nothing until a widget uses them.
 - **The cache.** The last good result of each source is kept on disk: `~/Library/Caches/Vestal/<name>.json` on macOS, `$XDG_CACHE_HOME/vestal/<name>.json` (default `~/.cache/vestal`) on Linux. When vestal starts it shows that result at once (unless it is older than `maxAge`), and fetches again only when it is older than `refresh`, or when the source's definition has changed since. The directory is private (`0700`, files `0600`), holds a hash of each source's definition rather than the definition, and is trimmed to 256 MiB, oldest files first. `"cache": false` keeps a source's data in memory only.
 - **Failures.** A failed fetch keeps the last good result on screen, logs the error, and tries again after `refresh` or 60 seconds, whichever is shorter, give or take 10%. A fetch fails when HTTP answers other than 2xx, when a command exits non-zero, when a `"json"` source's output is not valid JSON, or when an HTTP body, a command's output or a file is larger than 10 MiB. A source vestal cannot run at all (an unknown `type`, an `http` source without a usable `url`, a `command` without `argv`, a `file` without `path`) reports an error and is never fetched. It does not stop vestal.
 - **Inline sources.** A widget's `source` may be a source object instead of a name, such as `"source": { "type": "file", "path": "~/notes.json" }`. It becomes a source named `inline:<8 hex digits>` after its definition, so identical definitions share one fetch.
@@ -229,7 +229,7 @@ Every source takes:
 | Key | Type | Default | |
 |---|---|---|---|
 | `type` | string | required | `"http"`, `"command"`, `"calendar"` (`"eventkit"` is an alias), `"file"`, `"system"`, `"media"`, `"claude"`, `"codex"`, or a source template such as `"foyer"`. |
-| `refresh` | duration | per type | How often to fetch: `"30m"` for `http`, `command` and `calendar`; `"5m"` for `codex`; `"30s"` for `file` and `claude`; `"3s"` for `system` and `media`. |
+| `refresh` | duration | per type | How often to fetch: `"30m"` for `http`, `command` and `calendar`; `"5m"` for `claude` and `codex`; `"30s"` for `file`; `"3s"` for `system` and `media`. |
 | `when` | string | per type | `"always"` or `"visible"`, see above. |
 | `transform` | expr | none | A jq expression applied to the data before widgets see it. The cache keeps the data untransformed, so editing a transform needs no refetch. |
 | `history` | object | none | Named number histories, see below. |
@@ -326,15 +326,19 @@ One music player: `{player, state, title, artist, album, position, duration, pla
 
 ### `claude`
 
-Claude plan usage (Pro and Max), as Claude Code itself reports it: `{session, weekly, updatedAt, source, plan}`, where `session` is the 5-hour window and `weekly` the 7-day one, each `{percent, resetsAt}` (a whole percent 0 to 100, and epoch seconds) or `null`. A window whose reset time has passed reads `{"percent": 0, "resetsAt": null}`. `updatedAt` is when Claude Code last reported, `source` is `"claude"` and `plan` is `null`.
+Claude plan usage (Pro and Max), as Claude Code's `/usage` shows it: `{session, weekly, extra, updatedAt, source, plan}`, where `session` is the 5-hour window and `weekly` the week's (all models), each `{percent, resetsAt, resetsText}` (a whole percent 0 to 100, epoch seconds, and the reset as printed) or `null`, and `extra` the per-model weekly limits, each with its `label` (`"Fable"`). A reset vestal can't read has `resetsAt` `null` and keeps `resetsText`; a window whose reset time has passed reads `{"percent": 0, "resetsAt": null}`. `updatedAt` is when it was fetched, `source` is `"cli"` and `plan` is `null`.
 
-The numbers come from Claude Code's status line: set its `statusLine` command to `vestal claude-statusline` (the Home Manager module's `programs.vestal.claudeStatusLine.enable` does it), which keeps them in `claude-rate-limits.json` in the cache directory, and nothing else of what Claude Code passes it. vestal reads no credentials and makes no network requests for them. Until Claude Code has run once with it, the source fails with a hint. `vestal docs ai-usage` has the setup, including how to keep a status line you already have.
+vestal runs `claude -p --no-session-persistence /usage` (no model call; the flag is dropped for a Claude Code that doesn't know it) in the cache directory, so no transcript is written and nothing lands in a project, and reads its `Current session`, `Current week (all models)` and `Current week (<model>)` lines. Claude Code uses its own login; vestal reads no credentials and makes no network requests for them. It refreshes every 5 minutes while shown, and when the dashboard is shown with data older than a minute. A missing `claude`, a logged-out one or an API-key login fails with a hint. No status line is needed; `vestal docs ai-usage` has the details, including what became of `vestal claude-statusline`.
 
-It takes no keys of its own. v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an `info` finding.
+| Key | Type | Default | |
+|---|---|---|---|
+| `argv` | list of strings | `["claude", "-p", "--no-session-persistence", "/usage"]` | The command to run, when `claude` is not on `PATH`, in the Nix and Homebrew directories or in `~/.local/bin` (Claude Code's native installer). A draft config (`--config`) runs a custom one only with `--allow-commands`. |
+
+v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an `info` finding.
 
 ### `codex`
 
-Codex plan usage, in the same shape as [`claude`](#claude), with `source` `"codex"` and `plan` the plan's name (`"plus"`, `"pro"`, ...). A plan without a 5-hour window has `session` `null`. vestal asks `codex app-server` (JSON-RPC over stdin and stdout: `initialize`, then `account/rateLimits/read`) and stops it once it has answered; Codex uses its own login, and vestal never reads it. It refreshes every 5 minutes while shown, and when the dashboard is shown with data older than a minute.
+Codex plan usage, in the same shape as [`claude`](#claude), with `source` `"codex"`, `plan` the plan's name (`"plus"`, `"pro"`, ...), `resetsText` `null` and `extra` empty. A plan without a 5-hour window has `session` `null`. vestal asks `codex app-server` (JSON-RPC over stdin and stdout: `initialize`, then `account/rateLimits/read`) and stops it once it has answered; Codex uses its own login, and vestal never reads it. It refreshes every 5 minutes while shown, and when the dashboard is shown with data older than a minute.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -725,7 +729,7 @@ The Claude plan's usage from the [`claude` source](#claude): an hourglass and `s
 
 ### `aiUsage`
 
-Claude and Codex plan usage in one row: for each, the 5-hour and weekly windows as small bars with their percentage, and when each resets on a faint line under it (`resets 4h`). A bar turns red from 90%. A Codex plan without a 5-hour window shows only the weekly one, and a service whose source has no data yet (no status line set up, `codex` missing) is left out. New in 0.4; `vestal docs ai-usage` has the setup.
+Claude and Codex plan usage in one row: for each, the 5-hour and weekly windows as small bars with their percentage, and when each resets on a faint line under it (`resets 4h`). A bar turns red from 90%. A Codex plan without a 5-hour window shows only the weekly one, and a service whose source has no data yet (`claude` or `codex` missing or logged out) is left out. New in 0.4; `vestal docs ai-usage` has the setup.
 
 | Key | Type | Default | |
 |---|---|---|---|

@@ -1130,8 +1130,28 @@
     },
     "source.claude": {
       "additionalProperties": false,
-      "description": "Claude plan usage (5-hour and weekly windows) as Claude Code reports it to `vestal claude-statusline`.",
+      "description": "Claude plan usage (session, weekly and per-model windows) from `claude -p /usage`.",
       "properties": {
+        "argv": {
+          "description": "The command to run. Default: claude -p --no-session-persistence /usage, claude found on PATH; set it when it isn't.",
+          "examples": [
+            [
+              "~/.local/bin/claude",
+              "-p",
+              "--no-session-persistence",
+              "/usage"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "cache": {
           "default": true,
           "description": "false: never written to disk.",
@@ -1223,7 +1243,7 @@
               "type": "null"
             }
           ],
-          "default": "30s",
+          "default": "5m",
           "description": "How often to fetch.",
           "examples": [
             "5m",
@@ -2330,11 +2350,13 @@
       },
       "properties": {
         "argv": {
-          "description": "The app server to ask. Default: codex app-server, codex found on PATH; set it when it isn't.",
+          "description": "The command to run. Default: claude -p --no-session-persistence /usage, claude found on PATH; set it when it isn't.",
           "examples": [
             [
-              "~/.local/bin/codex",
-              "app-server"
+              "~/.local/bin/claude",
+              "-p",
+              "--no-session-persistence",
+              "/usage"
             ]
           ],
           "items": {

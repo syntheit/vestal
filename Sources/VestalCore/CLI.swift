@@ -24,7 +24,8 @@ import Foundation
 //                           local; no instance needed
 //   vestal sources | fetch   the instance if one runs, else local
 //                           (SourceCommands)
-//   vestal claude-statusline Claude Code's statusLine command (ClaudeStatusLine)
+//   vestal claude-statusline a Claude Code statusLine showing the cached usage
+//                           (ClaudeStatusLine)
 //   vestal subscribe        stream the running instance's render model
 //                           (SubscribeCommand)
 //   vestal capabilities     what this machine supports (CapabilitiesCommand)
@@ -211,10 +212,10 @@ public enum CLI {
                                data without fetching, --local fetches in this
                                process, --timeout <duration>. See docs/CONFIG.md
           claude-statusline [--then <command...>]
-                               Claude Code's statusLine command: keeps the plan's
-                               rate limits from its input for the claude source and
-                               prints "5h 35% · wk 50%"; --then chains another
-                               statusLine command (vestal docs ai-usage)
+                               A Claude Code statusLine command: prints the claude
+                               source's cached usage, "5h 25% · wk 59%" (optional;
+                               the source runs claude -p /usage); --then chains
+                               another statusLine command (vestal docs ai-usage)
           version             Print the version and build
           help                 Show this message
 

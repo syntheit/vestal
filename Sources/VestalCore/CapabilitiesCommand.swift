@@ -169,11 +169,11 @@ public enum CapabilitiesCommand {
         }
         sources["audio"] = entry(backend: linux ? "wpctl" : "CoreAudio", audioCheck)
 
-        // claude: what `vestal claude-statusline` keeps; codex: the app server.
-        let claudeFile = ClaudeRateLimits.path(home: home, environment: environment)
-        let hasLimits = FileManager.default.fileExists(atPath: claudeFile)
-        sources["claude"] = entry(backend: "Claude Code statusLine",
-                                  Check(hasLimits, hasLimits ? claudeFile : "no \(claudeFile) yet: \(ClaudeRateLimits.hint)"))
+        // claude: `claude -p /usage`; codex: the app server.
+        let claudeArgv = loaded.config.sources.values.first { $0.type == "claude" && $0.argv != nil }?.argv ?? ClaudeUsage.defaultArgv
+        let claude = claudeArgv.first.flatMap { found(CommandRunner.expandTilde($0, home: home)) }
+        sources["claude"] = entry(backend: "claude -p /usage",
+                                  Check(claude != nil, claude ?? "\(claudeArgv.first ?? "claude") not found on PATH"))
         let codexArgv = loaded.config.sources.values.first { $0.type == "codex" }?.argv ?? CodexRateLimits.defaultArgv
         let codex = codexArgv.first.flatMap { found(CommandRunner.expandTilde($0, home: home)) }
         sources["codex"] = entry(backend: "codex app-server",

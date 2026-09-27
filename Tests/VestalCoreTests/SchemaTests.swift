@@ -17,7 +17,7 @@ final class SchemaTests: XCTestCase {
             "file": common.union(["path", "parse"]),
             "system": common.union(["disks", "interfaces"]),
             "media": common.union(["player"]),
-            "claude": common.union(["path", "fiveHourLimit", "weeklyLimit"]),
+            "claude": common.union(["argv", "path", "fiveHourLimit", "weeklyLimit"]),
             "codex": common.union(["argv"]),
         ])
         XCTAssertEqual(SourceConfig.aliases, ["eventkit": "calendar"])

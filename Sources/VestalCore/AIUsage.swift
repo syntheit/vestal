@@ -6,19 +6,22 @@ import Foundation
 // plan's rate limits is used, as the services themselves report it. Both
 // yield the same shape:
 //
-//   {session: {percent, resetsAt} | null, weekly: {percent, resetsAt} | null,
+//   {session: {percent, resetsAt, resetsText} | null,
+//    weekly: {percent, resetsAt, resetsText} | null,
+//    extra: [{label, percent, resetsAt, resetsText}],
 //    updatedAt, source, plan}
 //
 // `percent` is a whole number 0-100, `resetsAt` and `updatedAt` are epoch
-// seconds, `source` is "claude" or "codex", `plan` the plan's name when the
-// service says it (else null). A window whose reset time has passed reads
-// as percent 0 with resetsAt null: a new window started and nothing says
-// what it holds yet.
+// seconds, `resetsText` the reset time as the service wrote it (claude;
+// null for codex), `extra` further windows (claude's per-model weekly
+// limits; empty for codex), `source` is "cli" (claude: `claude -p /usage`)
+// or "codex", `plan` the plan's name when the service says it (else null).
+// A window whose reset time has passed reads as percent 0 with resetsAt
+// null: a new window started and nothing says what it holds yet.
 //
-// Neither reads a credential. Claude's numbers come from Claude Code itself:
-// its statusLine command gets them on stdin, and `vestal claude-statusline`
-// (ClaudeStatusLine) keeps them in the cache directory, where the `claude`
-// source reads them. Codex's come from `codex app-server`, which uses its
+// Neither reads a credential. Claude's numbers come from Claude Code
+// itself: `claude -p /usage` prints the account's usage without a model
+// call (ClaudeUsage). Codex's come from `codex app-server`, which uses its
 // own login; vestal only talks JSON-RPC to it over stdio.
 
 public enum AIUsage {
@@ -26,40 +29,73 @@ public enum AIUsage {
     public struct Window: Equatable, Sendable {
         public var percent: Int
         public var resetsAt: Int?
+        /// The reset time as the service wrote it, when it did.
+        public var resetsText: String?
 
-        public init(percent: Int, resetsAt: Int?) {
-            self.percent = percent; self.resetsAt = resetsAt
+        public init(percent: Int, resetsAt: Int?, resetsText: String? = nil) {
+            self.percent = percent; self.resetsAt = resetsAt; self.resetsText = resetsText
         }
 
         /// From a reported percentage and reset time: rounded and kept in
         /// 0...100; a reset time at or before `now` means a new, unknown
         /// window (0%).
-        public init(percent: Double, resetsAt: Double?, now: Date) {
+        public init(percent: Double, resetsAt: Double?, resetsText: String? = nil, now: Date) {
             if let resetsAt, resetsAt <= now.timeIntervalSince1970 {
                 self.init(percent: 0, resetsAt: nil)
                 return
             }
             let rounded = percent.isFinite ? Int(min(max(percent, 0), 100).rounded()) : 0
-            self.init(percent: rounded, resetsAt: resetsAt.flatMap(AIUsage.int))
+            self.init(percent: rounded, resetsAt: resetsAt.flatMap(AIUsage.int), resetsText: resetsText)
+        }
+
+        /// The fields back; nil without a numeric percent.
+        init?(_ value: AnyJSON?) {
+            guard let w = value?.objectValue, let percent = AIUsage.number(w["percent"]).flatMap(AIUsage.int)
+            else { return nil }
+            self.init(percent: percent, resetsAt: AIUsage.number(w["resetsAt"]).flatMap(AIUsage.int),
+                      resetsText: w["resetsText"]?.stringValue)
+        }
+
+        var fields: [String: AnyJSON] {
+            ["percent": .int(percent), "resetsAt": resetsAt.map(AnyJSON.int) ?? .null,
+             "resetsText": resetsText.map(AnyJSON.string) ?? .null]
+        }
+
+        var json: AnyJSON { .object(fields) }
+    }
+
+    /// A window beyond the two, with its name: claude's per-model weekly
+    /// limits ("Fable", "Sonnet only").
+    public struct Extra: Equatable, Sendable {
+        public var label: String
+        public var window: Window
+
+        public init(label: String, window: Window) {
+            self.label = label; self.window = window
         }
 
         var json: AnyJSON {
-            .object(["percent": .int(percent), "resetsAt": resetsAt.map(AnyJSON.int) ?? .null])
+            var fields = window.fields
+            fields["label"] = .string(label)
+            return .object(fields)
         }
     }
 
     public struct Reading: Equatable, Sendable {
         /// The short window (5 hours).
         public var session: Window?
-        /// The weekly window.
+        /// The weekly window (all models).
         public var weekly: Window?
+        /// Further windows, in the order the service lists them.
+        public var extra: [Extra]
         public var updatedAt: Int
-        /// "claude" or "codex".
+        /// "cli" (claude) or "codex".
         public var source: String
         public var plan: String?
 
-        public init(session: Window?, weekly: Window?, updatedAt: Int, source: String, plan: String? = nil) {
-            self.session = session; self.weekly = weekly
+        public init(session: Window?, weekly: Window?, extra: [Extra] = [], updatedAt: Int, source: String,
+                    plan: String? = nil) {
+            self.session = session; self.weekly = weekly; self.extra = extra
             self.updatedAt = updatedAt; self.source = source; self.plan = plan
         }
 
@@ -68,6 +104,7 @@ public enum AIUsage {
             .object([
                 "session": session?.json ?? .null,
                 "weekly": weekly?.json ?? .null,
+                "extra": .array(extra.map(\.json)),
                 "updatedAt": .int(updatedAt),
                 "source": .string(source),
                 "plan": plan.map(AnyJSON.string) ?? .null,
@@ -77,12 +114,14 @@ public enum AIUsage {
         /// The data back (the v0.3 views); nil if it isn't this shape.
         public init?(_ data: AnyJSON) {
             guard case .object(let o) = data, let source = o["source"]?.stringValue else { return nil }
-            func window(_ value: AnyJSON?) -> Window? {
-                guard let w = value?.objectValue, let percent = AIUsage.number(w["percent"]).flatMap(AIUsage.int)
-                else { return nil }
-                return Window(percent: percent, resetsAt: AIUsage.number(w["resetsAt"]).flatMap(AIUsage.int))
+            var extra: [Extra] = []
+            if case .array(let items)? = o["extra"] {
+                for item in items {
+                    guard let label = item.objectValue?["label"]?.stringValue, let window = Window(item) else { continue }
+                    extra.append(Extra(label: label, window: window))
+                }
             }
-            self.init(session: window(o["session"]), weekly: window(o["weekly"]),
+            self.init(session: Window(o["session"]), weekly: Window(o["weekly"]), extra: extra,
                       updatedAt: AIUsage.number(o["updatedAt"]).flatMap(AIUsage.int) ?? 0,
                       source: source, plan: o["plan"]?.stringValue)
         }
@@ -101,60 +140,6 @@ public enum AIUsage {
     /// trap on a huge number from a file or a reply).
     static func int(_ value: Double) -> Int? {
         value.isFinite && abs(value) < 9e15 ? Int(value) : nil
-    }
-}
-
-// MARK: - Claude
-
-/// What Claude Code reports to its statusLine command, kept in the cache
-/// directory: `{five_hour, seven_day, updatedAt}`, each window
-/// `{used_percentage, resets_at}` as Claude Code sent it. Nothing else from
-/// the status line's input is stored.
-public enum ClaudeRateLimits {
-    public static let fileName = "claude-rate-limits.json"
-    /// The docs topic that explains the setup.
-    public static let hint = "set Claude Code's statusLine to `vestal claude-statusline` (vestal docs ai-usage)"
-
-    /// The file, in the cache directory (SnapshotCache.platformDirectory).
-    public static func path(home: String = NSHomeDirectory(),
-                            environment: [String: String] = ProcessInfo.processInfo.environment) -> String {
-        "\(SnapshotCache.platformDirectory(environment: environment, home: home))/\(fileName)"
-    }
-
-    /// One stored window: the two fields, when the percentage is a number.
-    struct Stored: Equatable {
-        var usedPercentage: Double
-        var resetsAt: Double?
-
-        init?(_ value: AnyJSON?) {
-            guard let w = value?.objectValue, let used = AIUsage.number(w["used_percentage"]) else { return nil }
-            usedPercentage = used
-            resetsAt = AIUsage.number(w["resets_at"])
-        }
-
-        var json: AnyJSON {
-            .object(["used_percentage": .double(usedPercentage), "resets_at": resetsAt.map(AnyJSON.double) ?? .null])
-        }
-
-        func window(now: Date) -> AIUsage.Window {
-            AIUsage.Window(percent: usedPercentage, resetsAt: resetsAt, now: now)
-        }
-    }
-
-    /// The `claude` source: the stored file as the common shape. Throws when
-    /// there is no file yet (the statusLine isn't set up, or Claude Code
-    /// hasn't answered since) or it can't be read.
-    public static func read(path: String, now: Date = Date()) throws -> AnyJSON {
-        guard let raw = FileManager.default.contents(atPath: path) else {
-            throw SourceError("no Claude usage yet (\(path) doesn't exist): \(hint)")
-        }
-        guard case .object(let o)? = AnyJSON.decode(raw) else {
-            throw SourceError("\(path) is not a JSON object; the next status line update rewrites it")
-        }
-        return AIUsage.Reading(session: Stored(o["five_hour"])?.window(now: now),
-                               weekly: Stored(o["seven_day"])?.window(now: now),
-                               updatedAt: AIUsage.number(o["updatedAt"]).flatMap(AIUsage.int) ?? 0,
-                               source: "claude").json
     }
 }
 

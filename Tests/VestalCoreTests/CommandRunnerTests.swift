@@ -130,7 +130,7 @@ final class CommandRunnerTests: XCTestCase {
         XCTAssertEqual(CommandRunner.searchPath(environment: env), [
             "/a", "/b", "/usr/local/bin",
             "/home/u/.nix-profile/bin", "/etc/profiles/per-user/u/bin",
-            "/run/current-system/sw/bin", "/opt/homebrew/bin",
+            "/run/current-system/sw/bin", "/opt/homebrew/bin", "/home/u/.local/bin",
         ])
     }
 
