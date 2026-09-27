@@ -72,12 +72,15 @@ public struct JSONPositions: Equatable, Sendable {
         }
 
         /// Moves past one byte, counting lines and columns (a UTF-8
-        /// continuation byte takes no column).
+        /// continuation byte takes no column). LF, CRLF and a lone CR each
+        /// end a line.
         mutating func advance() {
             guard index < bytes.count else { return }
             let byte = bytes[index]
             index += 1
-            if byte == 0x0A {
+            if byte == 0x0D && peek == 0x0A {
+                // The LF ends the line.
+            } else if byte == 0x0A || byte == 0x0D {
                 line += 1
                 column = 1
             } else if byte & 0xC0 != 0x80 {

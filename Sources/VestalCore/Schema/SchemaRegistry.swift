@@ -24,8 +24,8 @@ public enum SchemaKind: String, Sendable {
 /// The JSON a key takes.
 public indirect enum SchemaType: Equatable, Sendable {
     case string
-    /// A whole number, at least `minimum` when set.
-    case integer(minimum: Int?)
+    /// A whole number, at least `minimum` and at most `maximum` when set.
+    case integer(minimum: Int?, maximum: Int? = nil)
     case boolean
     /// A duration string: "30s", "5m", "4h", "1d".
     case duration
@@ -138,7 +138,7 @@ public enum SchemaRegistry {
 
     public static let shapes: [SchemaShape] = [
         SchemaShape("config", "A vestal config file. Every key is optional: the file is merged over the built-in defaults.", keys: [
-            SchemaKey("version", .integer(minimum: 1), default: .int(1), examples: [.int(1)],
+            SchemaKey("version", .integer(minimum: 1, maximum: 1), default: .int(1), examples: [.int(1)],
                       "Schema version. Only 1 exists."),
             SchemaKey("hotkey", .string, default: .null, nullable: true, examples: [.string("f3"), .string("cmd+shift+space"), .null],
                       "Built-in toggle hotkey: f1-f20, letters, digits, space, escape, home or end, with cmd, ctrl, alt (opt) "

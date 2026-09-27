@@ -36,7 +36,7 @@ public enum ConfigCommands {
         home: String = NSHomeDirectory(),
         stdin: () -> Data = { FileHandle.standardInput.readDataToEndOfFile() }
     ) -> Output {
-        let json = arguments.contains("--json")
+        let json = arguments.prefix { $0 != "--" }.contains("--json")
         let options: Options
         switch Options.parse(arguments, flags: ["json", "strict", "commands"], valued: ["platform", "config"]) {
         case .success(let parsed): options = parsed
@@ -363,7 +363,9 @@ public enum ConfigCommands {
     // MARK: Options
 
     /// Parsed arguments: flags (`--json`), options with a value (`--out f`
-    /// or `--out=f`) and positional arguments (`-` is one).
+    /// or `--out=f`) and positional arguments (`-` is one). After `--`,
+    /// everything is positional, so `check-config -- --odd-name.json` reads
+    /// that file.
     struct Options {
         var positional: [String] = []
         var flags: Set<String> = []
@@ -386,6 +388,10 @@ public enum ConfigCommands {
             while i < arguments.count {
                 let argument = arguments[i]
                 i += 1
+                if argument == "--" {
+                    options.positional += arguments[i...]
+                    break
+                }
                 guard argument.hasPrefix("--") else {
                     options.positional.append(argument)
                     continue

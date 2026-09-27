@@ -118,16 +118,27 @@ final class SchemaTests: XCTestCase {
         // A list element replaces the lower layer's list, so it can require its keys.
         XCTAssertEqual(defs["worldClock"]?.objectValue?["required"], .array([.string("label"), .string("tz")]))
         XCTAssertNil(defs["theme"]?.objectValue?["required"])
+        // null deletes a lower layer's key, except in a list, where the merge
+        // keeps it and the decoder drops the element.
+        func type(_ def: String, _ key: String) -> AnyJSON? {
+            defs[def]?.objectValue?["properties"]?.objectValue?[key]?.objectValue?["type"]
+        }
+        XCTAssertEqual(type("theme", "palette"), .array([.string("string"), .string("null")]))
+        XCTAssertEqual(type("worldClock", "label"), .string("string"))
+        XCTAssertEqual(type("picks", "buy"), .string("string"), "inside an item, inside a list")
+        XCTAssertEqual(ConfigSchema.listElementShapes, ["worldClock", "host", "item", "picks"])
+        let version = try XCTUnwrap(schema["properties"]?.objectValue?["version"]?.objectValue)
+        XCTAssertEqual(version["minimum"], .int(1))
+        XCTAssertEqual(version["maximum"], .int(1))
 
         // Every property is annotated.
         func check(_ properties: AnyJSON?, _ place: String) {
             for (name, property) in properties?.objectValue ?? [:] {
                 let p = property.objectValue ?? [:]
-                if name == "type" { continue }
                 XCTAssertNotNil(p["description"], "\(place).\(name)")
                 XCTAssertNotNil(p["examples"], "\(place).\(name)")
                 XCTAssertNotNil(p["x-vestal-kind"], "\(place).\(name)")
-                XCTAssertEqual(p["x-vestal-since"], .string("0.3"), "\(place).\(name)")
+                XCTAssertEqual(p["x-vestal-since"], .string(place == "widget.template" ? "0.4" : "0.3"), "\(place).\(name)")
             }
         }
         check(schema["properties"], "top")

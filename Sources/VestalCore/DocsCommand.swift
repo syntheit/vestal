@@ -39,7 +39,7 @@ public enum DocsCommand {
     }
 
     public static func run(_ arguments: [String]) -> Output {
-        let json = arguments.contains("--json")
+        let json = arguments.prefix { $0 != "--" }.contains("--json")
         let options: ConfigCommands.Options
         switch ConfigCommands.Options.parse(arguments, flags: ["json", "list"], valued: ["search"]) {
         case .success(let parsed): options = parsed
@@ -160,7 +160,9 @@ public enum DocsCommand {
     static func describe(_ type: SchemaType) -> String {
         switch type {
         case .string: return "string"
-        case .integer(let minimum): return minimum.map { "integer ≥ \($0)" } ?? "integer"
+        case .integer(let minimum, let maximum):
+            if let minimum, minimum == maximum { return "`\(minimum)`" }
+            return minimum.map { "integer ≥ \($0)" } ?? "integer"
         case .boolean: return "boolean"
         case .duration: return "duration"
         case .oneOf(let values): return values.map { "`\($0)`" }.joined(separator: ", ")

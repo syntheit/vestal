@@ -70,6 +70,18 @@ final class CheckConfigTests: XCTestCase {
         XCTAssertEqual(diagnose(platformConfig, platform: .macos, otherPlatforms: false).map(\.pointer), ["/widgets/clock/zone"])
     }
 
+    /// A finding the other OS's block causes by setting a value itself is
+    /// reported there, even when the base file has the same one.
+    func testTheOtherBlockKeepsItsOwnFinding() {
+        let text = #"{"sources": {"weather": {"url": "ftp://x"}}, "platform": {"linux": {"sources": {"weather": {"url": "ftp://x"}}}}}"#
+        let found = diagnose(text, platform: .macos)
+        XCTAssertEqual(found.map(\.pointer), ["/sources/weather/url", "/platform/linux/sources/weather/url"])
+        XCTAssertEqual(found.map(\.warning.platform), [nil, .linux])
+        // One the base file causes on both OSes is reported once.
+        XCTAssertEqual(diagnose(#"{"sources": {"weather": {"url": "ftp://x"}}, "platform": {"linux": {}}}"#, platform: .macos)
+            .map(\.pointer), ["/sources/weather/url"])
+    }
+
     func testTheBlockItselfIsInTheUserLayer() {
         let found = diagnose(#"{"platform": {"linux": {"platform": {}}, "macOS": {}}}"#, platform: .linux)
         XCTAssertEqual(found.map(\.pointer), ["/platform/linux/platform", "/platform/macOS"])
@@ -224,6 +236,16 @@ final class CheckConfigTests: XCTestCase {
         XCTAssertEqual(usage.stdout, "")
         XCTAssertEqual(usage.stderr,
                        #"{"error":{"code":"usage","message":"unknown option '--platfrom'; did you mean \"--platform\"?"}}"# + "\n")
+    }
+
+    /// `--` ends the options, so a path that looks like one still works.
+    func testDoubleDashEndsTheOptions() throws {
+        let (output, path) = try check(["--json", "--", "PATH"], #"{"hotkey": "f3"}"#)
+        XCTAssertEqual(output.status, 0)
+        XCTAssertEqual(try json(output.stdout)["file"], .string(path))
+        let missing = try check(["--", "--json"], nil).0
+        XCTAssertEqual(missing.status, 1, "--json is a file name here, and it doesn't exist")
+        XCTAssertTrue(missing.stdout.hasPrefix("--json: "), missing.stdout)
     }
 
     func testStdinAndConfigOption() throws {

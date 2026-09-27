@@ -14,7 +14,7 @@ The same for every command:
 | 3 | The config has errors (`check-config`; with `--strict`, warnings too). |
 | 4 | Not found: an unknown docs topic or view. A did-you-mean goes to stderr. |
 
-With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "...", "message": "...", "suggestion": "..."}}`.
+With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "...", "message": "...", "suggestion": "..."}}`. `--` ends the options: `vestal check-config -- --odd-name.json` reads that file.
 
 ## The running instance
 

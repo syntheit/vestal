@@ -55,6 +55,14 @@ final class JSONPositionsTests: XCTestCase {
         XCTAssertEqual(found.positions["/z"], at(1, 87))
     }
 
+    func testEveryLineEndingEndsALine() {
+        for newline in ["\n", "\r\n", "\r"] {
+            let found = positions("{" + newline + "  \"a\": [1," + newline + "    2]" + newline + "}")
+            XCTAssertEqual(found.positions["/a"], at(2, 3), newline.debugDescription)
+            XCTAssertEqual(found.positions["/a/1"], at(3, 5), newline.debugDescription)
+        }
+    }
+
     func testNearestAncestorForAMissingPointer() {
         let found = positions("{\n  \"widgets\": {\n    \"clock\": {}\n  }\n}")
         XCTAssertEqual(found.position(of: "/widgets/clock/zone"), at(3, 5))

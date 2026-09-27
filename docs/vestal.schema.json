@@ -16,14 +16,7 @@
       "description": "A host of a systemHealth widget. It needs url or source.",
       "properties": {
         "interval": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/duration"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/duration",
           "default": "5s",
           "description": "How often a url host is polled while the dashboard is shown.",
           "examples": [
@@ -37,10 +30,7 @@
           "examples": [
             "w"
           ],
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         },
@@ -49,10 +39,7 @@
           "examples": [
             "web"
           ],
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "x-vestal-kind": "text",
           "x-vestal-since": "0.3"
         },
@@ -62,10 +49,7 @@
             "local",
             "health"
           ],
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         },
@@ -74,10 +58,7 @@
           "examples": [
             "https://web.example.com"
           ],
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "x-vestal-kind": "text",
           "x-vestal-since": "0.3"
         }
@@ -94,17 +75,13 @@
             "int",
             "integer",
             "decimal",
-            "%.2f",
-            null
+            "%.2f"
           ],
           "examples": [
             "int",
             "decimal"
           ],
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         },
@@ -113,10 +90,7 @@
           "examples": [
             "EUR"
           ],
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "x-vestal-kind": "text",
           "x-vestal-since": "0.3"
         },
@@ -128,10 +102,7 @@
               "casa": "blue"
             }
           ],
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         },
@@ -140,22 +111,12 @@
           "examples": [
             "rates.EUR"
           ],
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         },
         "picks": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/picks"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "$ref": "#/$defs/picks",
           "description": "Paths of two values, shown as buy / sell.",
           "examples": [
             {
@@ -171,10 +132,7 @@
           "examples": [
             "rates"
           ],
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         }
@@ -272,6 +230,7 @@
           "examples": [
             1
           ],
+          "maximum": 1,
           "minimum": 1,
           "type": [
             "integer",
@@ -403,10 +362,7 @@
           "examples": [
             "compra"
           ],
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         },
@@ -415,10 +371,7 @@
           "examples": [
             "venta"
           ],
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         }
@@ -581,6 +534,9 @@
             "calendar",
             "eventkit"
           ],
+          "examples": [
+            "calendar"
+          ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         }
@@ -692,6 +648,9 @@
           "enum": [
             "command"
           ],
+          "examples": [
+            "command"
+          ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         }
@@ -745,6 +704,9 @@
         "type": {
           "description": "The source type.",
           "enum": [
+            "http"
+          ],
+          "examples": [
             "http"
           ],
           "x-vestal-kind": "literal",
@@ -1162,6 +1124,9 @@
           "enum": [
             "agendaList"
           ],
+          "examples": [
+            "agendaList"
+          ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         }
@@ -1208,6 +1173,9 @@
           "enum": [
             "claudeUsage"
           ],
+          "examples": [
+            "claudeUsage"
+          ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         },
@@ -1239,6 +1207,9 @@
         "type": {
           "description": "The widget type.",
           "enum": [
+            "clock"
+          ],
+          "examples": [
             "clock"
           ],
           "x-vestal-kind": "literal",
@@ -1325,6 +1296,9 @@
           "enum": [
             "keyValueList"
           ],
+          "examples": [
+            "keyValueList"
+          ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         }
@@ -1370,6 +1344,9 @@
           "enum": [
             "media",
             "spotify"
+          ],
+          "examples": [
+            "media"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
@@ -1720,6 +1697,9 @@
           "enum": [
             "systemBar"
           ],
+          "examples": [
+            "systemBar"
+          ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         }
@@ -1792,6 +1772,9 @@
           "enum": [
             "systemHealth"
           ],
+          "examples": [
+            "systemHealth"
+          ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         }
@@ -1807,6 +1790,9 @@
       "properties": {
         "type": {
           "description": "A template's name.",
+          "examples": [
+            "metric"
+          ],
           "not": {
             "enum": [
               "agendaList",
@@ -1820,7 +1806,9 @@
               "weatherCard"
             ]
           },
-          "type": "string"
+          "type": "string",
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
         }
       },
       "required": [
@@ -1880,6 +1868,9 @@
           "enum": [
             "weatherCard"
           ],
+          "examples": [
+            "weatherCard"
+          ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         },
@@ -1917,10 +1908,7 @@
           "examples": [
             "NYC"
           ],
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "x-vestal-kind": "text",
           "x-vestal-since": "0.3"
         },
@@ -1929,10 +1917,7 @@
           "examples": [
             "America/New_York"
           ],
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         }
@@ -2053,6 +2038,7 @@
       "examples": [
         1
       ],
+      "maximum": 1,
       "minimum": 1,
       "type": [
         "integer",

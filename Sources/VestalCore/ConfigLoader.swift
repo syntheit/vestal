@@ -205,7 +205,16 @@ public enum ConfigLoader {
             guard user["platform"]?.objectValue?[other.rawValue]?.objectValue != nil else { continue }
             let seen = Set(warnings.map(\.description))
             let otherMerged = layer(defaults: DefaultConfig.tree, user: user, platform: other)
-            for var warning in ConfigValidator.validate(otherMerged) where !seen.contains(warning.description) {
+            for var warning in ConfigValidator.validate(otherMerged) {
+                // One this OS reports too is left out, unless the other
+                // block itself sets the value: then it is its own finding,
+                // in that block.
+                if seen.contains(warning.description) {
+                    let segments = ConfigDiagnostics.segments(of: warning.path, in: otherMerged)
+                    guard !segments.isEmpty,
+                          ConfigDiagnostics.origin(of: segments, user: user, platform: other).layer == .platform(other)
+                    else { continue }
+                }
                 warning.platform = other
                 warnings.append(warning)
             }

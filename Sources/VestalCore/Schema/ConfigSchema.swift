@@ -8,7 +8,8 @@ import Foundation
 //
 // It describes one file, not the merged config, so:
 // - every object member may be `null`, which deletes the key from a lower
-//   layer (the built-in defaults);
+//   layer (the built-in defaults), except inside list elements, where the
+//   merge keeps nulls and the decoder drops what they null;
 // - keys a source or widget needs (`url`, `source`, ...) aren't required,
 //   since the defaults may hold them; only list elements, which replace a
 //   lower layer's list whole, require theirs;
@@ -44,7 +45,7 @@ public enum ConfigSchema {
         ]
         let listed = listElementShapes
         for shape in SchemaRegistry.shapes where shape.name != top.name {
-            defs[shape.name] = object(shape.description, shape.keys, requireKeys: listed.contains(shape.name))
+            defs[shape.name] = object(shape.description, shape.keys, inList: listed.contains(shape.name))
         }
         entities("source", SchemaRegistry.sourceTypes, templates: false, into: &defs)
         entities("widget", SchemaRegistry.widgetTypes, templates: true, into: &defs)
@@ -73,12 +74,13 @@ public enum ConfigSchema {
             let names = [type.name] + type.aliases
             let typeKey: [String: AnyJSON] = [
                 "enum": .array(names.map(AnyJSON.string)),
+                "examples": .array([.string(type.name)]),
                 "description": .string("The \(what) type" + (type.aliases.isEmpty ? "." : "; " +
                     type.aliases.map { "\($0) is an alias" }.joined(separator: ", ") + ".")),
                 "x-vestal-kind": .string(SchemaKind.literal.rawValue),
                 "x-vestal-since": .string(type.since),
             ]
-            var branch = object(type.description, type.keys, requireKeys: false).objectValue!
+            var branch = object(type.description, type.keys).objectValue!
             var props = branch["properties"]!.objectValue!
             props["type"] = .object(typeKey)
             branch["properties"] = .object(props)
@@ -102,14 +104,16 @@ public enum ConfigSchema {
                     "type": .string("string"),
                     "not": .object(["enum": .array(builtIn.map(AnyJSON.string))]),
                     "description": .string("A template's name."),
+                    "examples": .array([.string("metric")]),
+                    "x-vestal-kind": .string(SchemaKind.literal.rawValue),
+                    "x-vestal-since": .string("0.4"),
                 ])]),
                 "required": .array([.string("type")]),
             ])
             branches.append(.object(["$ref": .string("#/$defs/\(what).template")]))
         }
         var override = object("Changes to a \(what) of the same name in a lower layer (the built-in defaults): "
-                              + "any of its keys, without type.", union.sorted { $0.name < $1.name },
-                              requireKeys: false).objectValue!
+                              + "any of its keys, without type.", union.sorted { $0.name < $1.name }).objectValue!
         override["not"] = .object(["required": .array([.string("type")])])
         defs["\(what).override"] = .object(override)
         branches.append(.object(["$ref": .string("#/$defs/\(what).override")]))
@@ -122,42 +126,51 @@ public enum ConfigSchema {
 
     // MARK: Keys
 
-    /// Shapes used as list elements. A list replaces a lower layer's whole,
-    /// so their required keys can be required.
-    private static var listElementShapes: Set<String> {
+    /// Shapes inside list elements, and the shapes inside those. A list
+    /// replaces a lower layer's whole and the merge keeps nulls in it, so
+    /// their keys can be required and are never null.
+    public static var listElementShapes: Set<String> {
         var names = Set<String>()
-        func visit(_ type: SchemaType) {
+        func visit(_ type: SchemaType, inList: Bool) {
             switch type {
-            case .list(.shape(let name)): names.insert(name)
-            case .list(let inner), .map(let inner): visit(inner)
-            default: break
+            case .shape(let name):
+                guard inList, names.insert(name).inserted else { return }
+                SchemaRegistry.shape(name).keys.forEach { visit($0.type, inList: true) }
+            case .list(let inner):
+                visit(inner, inList: true)
+            case .map(let inner):
+                visit(inner, inList: inList)
+            default:
+                break
             }
         }
-        for shape in SchemaRegistry.shapes { shape.keys.forEach { visit($0.type) } }
-        for type in SchemaRegistry.sourceTypes + SchemaRegistry.widgetTypes { type.keys.forEach { visit($0.type) } }
+        for shape in SchemaRegistry.shapes { shape.keys.forEach { visit($0.type, inList: false) } }
+        for type in SchemaRegistry.sourceTypes + SchemaRegistry.widgetTypes { type.keys.forEach { visit($0.type, inList: false) } }
         return names
     }
 
-    private static func object(_ description: String, _ keys: [SchemaKey], requireKeys: Bool) -> AnyJSON {
+    /// An object of `keys`. `inList`: it is (inside) a list element.
+    private static func object(_ description: String, _ keys: [SchemaKey], inList: Bool = false) -> AnyJSON {
         var object: [String: AnyJSON] = [
             "type": .string("object"),
             "description": .string(description),
-            "properties": properties(keys),
+            "properties": properties(keys, nullable: !inList),
             "additionalProperties": .bool(false),
         ]
         let required = keys.filter(\.required).map(\.name)
-        if requireKeys && !required.isEmpty { object["required"] = .array(required.map(AnyJSON.string)) }
+        if inList && !required.isEmpty { object["required"] = .array(required.map(AnyJSON.string)) }
         return .object(object)
     }
 
-    private static func properties(_ keys: [SchemaKey]) -> AnyJSON {
-        .object(Dictionary(uniqueKeysWithValues: keys.map { ($0.name, property($0)) }))
+    private static func properties(_ keys: [SchemaKey], nullable: Bool = true) -> AnyJSON {
+        .object(Dictionary(uniqueKeysWithValues: keys.map { ($0.name, property($0, nullable: nullable)) }))
     }
 
-    /// A key's schema: its type (null allowed, which deletes it) and its
-    /// annotations.
-    private static func property(_ key: SchemaKey) -> AnyJSON {
-        var schema = nullable(typeSchema(key.type))
+    /// A key's schema: its type (with `nullable`, null too, which deletes
+    /// it) and its annotations.
+    private static func property(_ key: SchemaKey, nullable allowNull: Bool = true) -> AnyJSON {
+        let type = typeSchema(key.type)
+        var schema = allowNull || key.nullable ? nullable(type) : type
         schema["description"] = .string(key.description)
         if let value = key.defaultValue { schema["default"] = value }
         if !key.examples.isEmpty { schema["examples"] = .array(key.examples) }
@@ -170,9 +183,10 @@ public enum ConfigSchema {
         switch type {
         case .string:
             return ["type": .string("string")]
-        case .integer(let minimum):
+        case .integer(let minimum, let maximum):
             var schema: [String: AnyJSON] = ["type": .string("integer")]
             if let minimum { schema["minimum"] = .int(minimum) }
+            if let maximum { schema["maximum"] = .int(maximum) }
             return schema
         case .boolean:
             return ["type": .string("boolean")]
