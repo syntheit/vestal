@@ -263,8 +263,10 @@ public enum ConfigLoader {
                 return warning.path == base || warning.path.hasPrefix(base + ".") || warning.path.hasPrefix(base + "[")
             }
         }
-        return LoadedConfig(path: path, config: config, merged: merged, warnings: warnings + expansionWarnings,
-                            notes: expanded.notes, expanded: expanded)
+        // Info findings (a hotkey on Linux) are notes, never warnings.
+        let all = warnings + expansionWarnings
+        return LoadedConfig(path: path, config: config, merged: merged, warnings: all.filter { $0.severity != .info },
+                            notes: expanded.notes + all.filter { $0.severity == .info }, expanded: expanded)
     }
 
     // MARK: Layering

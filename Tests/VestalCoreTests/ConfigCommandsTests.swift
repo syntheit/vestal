@@ -14,7 +14,7 @@ final class ConfigCommandsTests: XCTestCase {
             return ConfigCommands.checkConfig([path], environment: [:], home: dir.path)
         }
 
-        let ok = check(#"{"hotkey": "f3"}"#)
+        let ok = check(#"{"version": 1}"#)
         XCTAssertEqual(ok.status, 0)
         XCTAssertTrue(ok.stdout.hasSuffix(": ok\n"), ok.stdout)
 
