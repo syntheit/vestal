@@ -76,7 +76,7 @@ public enum AsyncData {
     }
 
     /// Convert "06:15 AM" / "07:30 PM" / "06:44:45" to 24h "6:15" / "19:30" (strips seconds)
-    private static func cleanTime(_ raw: String) -> String {
+    static func cleanTime(_ raw: String) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespaces)
         let tokens = trimmed.components(separatedBy: " ")
         guard let timePart = tokens.first else { return trimmed }
@@ -133,7 +133,7 @@ public enum AsyncData {
     /// Apply a PickItem against parsed JSON. Handles array-of-objects with
     /// match selector + dict-keyed extraction (single via `pick`, multi via
     /// `picks`), then formats per `format`.
-    private static func resolveExchangeItem(_ item: PickItem, against root: Any) -> ExchangeRate? {
+    static func resolveExchangeItem(_ item: PickItem, against root: Any) -> ExchangeRate? {
         // Step 1: locate the element. If `match` is set + root is an array,
         // find the first element whose fields match all entries.
         let element: Any
@@ -170,7 +170,7 @@ public enum AsyncData {
 
     /// Format a raw JSON value per format hint. Coerces Int/Double/String
     /// numeric values; falls back to default string rep for non-numeric.
-    private static func formatValue(_ value: Any?, format: String?) -> String {
+    static func formatValue(_ value: Any?, format: String?) -> String {
         guard let value = value else { return "" }
         var asDouble: Double?
         if let d = value as? Double { asDouble = d }
