@@ -12,8 +12,9 @@ import Glibc
 // so values from the config are never spliced into a command line, and nothing
 // assumes a bash at a fixed path (NixOS doesn't have one).
 //
-// The executable is resolved on $PATH plus the Nix and Homebrew profile dirs:
-// a launchd agent starts with a minimal PATH that contains none of them. The
+// The executable is resolved on $PATH plus the Nix and Homebrew profile dirs
+// and ~/.local/bin: a launchd agent starts with a minimal PATH that contains
+// none of them. The
 // child gets the same augmented PATH so its own lookups work too. A leading
 // `~` expands in every element (there is no shell to do it), so a script path
 // handed to an interpreter works as well as the program itself.
@@ -78,6 +79,8 @@ public enum CommandRunner {
             "/run/current-system/sw/bin",
             "/opt/homebrew/bin",
             "/usr/local/bin",
+            // Per-user installers (Claude Code's native one).
+            "\(home)/.local/bin",
         ]
     }
 

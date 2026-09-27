@@ -186,10 +186,10 @@ public enum ClaudeUsage {
 
     private static let zoned = regex(#"^(.*?)\s*\(([^()]*)\)\s*\.?$"#)
     private static let relative = regex(#"^in\s+(.+)$"#)
-    private static let span = regex(#"(\d+)\s*(days?|d|hours?|hrs?|h|minutes?|mins?|m|seconds?|secs?|s)\b"#)
+    private static let span = regex(#"(\d+)\s*(days?|d|hours?|hrs?|h|minutes?|mins?|m|seconds?|secs?|s)(?![a-z])"#)
     private static let absolute = regex(
         #"^(?:(today|tomorrow)|([a-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?)?"#
-            + #"\s*(?:,|at)?\s*(?:(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?)?$"#)
+            + #"\s*(?:,|at)?\s*(?:(\d{1,2})(?:[:.](\d{2}))?\s*([ap]\.?m\.?)?)?$"#)
     private static let months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 
     /// `text` ("Sep 27 at 7:10pm (America/Buenos_Aires)", "Oct 3, 7pm",
@@ -214,12 +214,14 @@ public enum ClaudeUsage {
                 guard let number = Range(match.range(at: 1), in: rest).flatMap({ Int(rest[$0]) }),
                       let unit = Range(match.range(at: 2), in: rest).map({ rest[$0] }) else { return nil }
                 let scale = unit.hasPrefix("d") ? 86_400 : unit.hasPrefix("h") ? 3600 : unit.hasPrefix("m") ? 60 : 1
+                // Garbled output must not trap: anything past ~a century is unreadable.
+                guard number <= 100 * 365 * 86_400 / scale else { return nil }
                 seconds += number * scale
             }
             let leftover = span.stringByReplacingMatches(in: rest, range: range, withTemplate: "")
                 .replacingOccurrences(of: "and", with: "")
                 .trimmingCharacters(in: CharacterSet(charactersIn: ",").union(.whitespaces))
-            guard !spans.isEmpty, leftover.isEmpty else { return nil }
+            guard !spans.isEmpty, leftover.isEmpty, seconds <= 100 * 365 * 86_400 else { return nil }
             return Int(now.timeIntervalSince1970) + seconds
         }
 

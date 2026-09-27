@@ -842,7 +842,7 @@ User: *"Show how much of my Claude and Codex limits I've used."*
 ```
 
 - `aiUsage` draws Claude's and Codex's 5-hour and weekly windows as bars, with `resets 4h` under each; a service with no data yet is left out. The numbers are the services' own: vestal reads no credentials.
-- Claude's come from `claude -p /usage` (the user's Claude Code login, Pro or Max; no model call, no transcript); `vestal fetch claude` checks it. No status line is needed: don't set one up for vestal. If `claude` isn't on the dashboard's `PATH` (a native install in `~/.local/bin`), set `"argv": ["~/.local/bin/claude", "-p", "--no-session-persistence", "/usage"]` on the `claude` source. Per-model weekly limits are in `.extra`.
+- Claude's come from `claude -p /usage` (the user's Claude Code login, Pro or Max; no model call, no transcript); `vestal fetch claude` checks it. No status line is needed: don't set one up for vestal. If `claude` is somewhere other than `PATH`, the Nix and Homebrew directories or `~/.local/bin`, set `"argv": ["/path/to/claude", "-p", "--no-session-persistence", "/usage"]` on the `claude` source. Per-model weekly limits are in `.extra`.
 - Codex's come from `codex app-server` (the user's `codex login`); `vestal fetch codex` checks it. For the system bar instead: `"show": [..., "claudeUsage", "codexUsage", ...]`. Details: `vestal docs ai-usage`.
 
 ### Recipe `disk-table`: disks as a table

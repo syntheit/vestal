@@ -331,7 +331,7 @@ vestal runs `claude -p --no-session-persistence /usage` (no model call; the flag
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `argv` | list of strings | `["claude", "-p", "--no-session-persistence", "/usage"]` | The command to run, when `claude` is not on `PATH` (a native install is in `~/.local/bin`, which the launch agent's `PATH` lacks). A draft config (`--config`) runs a custom one only with `--allow-commands`. |
+| `argv` | list of strings | `["claude", "-p", "--no-session-persistence", "/usage"]` | The command to run, when `claude` is not on `PATH`, in the Nix and Homebrew directories or in `~/.local/bin` (Claude Code's native installer). A draft config (`--config`) runs a custom one only with `--allow-commands`. |
 
 v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an `info` finding.
 

@@ -899,7 +899,7 @@ User: *"Show how much of my Claude and Codex limits I've used."*
 ```
 
 - `aiUsage` draws Claude's and Codex's 5-hour and weekly windows as bars, with `resets 4h` under each; a service with no data yet is left out. The numbers are the services' own: vestal reads no credentials.
-- Claude's come from `claude -p /usage` (the user's Claude Code login, Pro or Max; no model call, no transcript); `vestal fetch claude` checks it. No status line is needed: don't set one up for vestal. If `claude` isn't on the dashboard's `PATH` (a native install in `~/.local/bin`), set `"argv": ["~/.local/bin/claude", "-p", "--no-session-persistence", "/usage"]` on the `claude` source. Per-model weekly limits are in `.extra`.
+- Claude's come from `claude -p /usage` (the user's Claude Code login, Pro or Max; no model call, no transcript); `vestal fetch claude` checks it. No status line is needed: don't set one up for vestal. If `claude` is somewhere other than `PATH`, the Nix and Homebrew directories or `~/.local/bin`, set `"argv": ["/path/to/claude", "-p", "--no-session-persistence", "/usage"]` on the `claude` source. Per-model weekly limits are in `.extra`.
 - Codex's come from `codex app-server` (the user's `codex login`); `vestal fetch codex` checks it. For the system bar instead: `"show": [..., "claudeUsage", "codexUsage", ...]`. Details: `vestal docs ai-usage`.
 
 ### Recipe `disk-table`: disks as a table
@@ -966,7 +966,7 @@ Current week (Fable): 0% used · resets Oct 3 at 7pm (America/Buenos_Aires)
 
 vestal reads those lines: `Current session` is `session`, `Current week (all models)` is `weekly`, and any other `Current week (<name>)` goes to `extra` with that name as its `label`. A reset time is read in the zone in parentheses (`Sep 27 at 7:10pm`, `Oct 3, 7pm`, `7:10pm`, `in 3h 20m`); one vestal can't read keeps its text in `resetsText` with `resetsAt` null. Colour codes, notices and the rest of the output are ignored.
 
-Claude Code uses its own login (Pro or Max). It runs in vestal's cache directory (`~/Library/Caches/Vestal` on macOS, `$XDG_CACHE_HOME/vestal` or `~/.cache/vestal` on Linux), and `--no-session-persistence` keeps it from writing a transcript at every refresh (vestal drops the flag for a Claude Code too old to know it). It refreshes every 5 minutes while the dashboard is shown, and when you show the dashboard with data older than a minute. `vestal fetch claude` runs it and shows the data. If `claude` isn't on the dashboard's `PATH` (a native install lives in `~/.local/bin`, which a launchd agent doesn't search), set `"argv": ["~/.local/bin/claude", "-p", "--no-session-persistence", "/usage"]` on the source.
+Claude Code uses its own login (Pro or Max). It runs in vestal's cache directory (`~/Library/Caches/Vestal` on macOS, `$XDG_CACHE_HOME/vestal` or `~/.cache/vestal` on Linux), and `--no-session-persistence` keeps it from writing a transcript at every refresh (vestal drops the flag for a Claude Code too old to know it). It refreshes every 5 minutes while the dashboard is shown, and when you show the dashboard with data older than a minute. `vestal fetch claude` runs it and shows the data. vestal looks for `claude` on `PATH`, in the Nix and Homebrew directories and in `~/.local/bin` (Claude Code's native installer); anywhere else, set `"argv": ["~/.local/bin/claude", "-p", "--no-session-persistence", "/usage"]` on the source.
 
 No status line is needed. Earlier versions read Claude's numbers from Claude Code's `statusLine` input, but those are the session's, not the account's. `vestal claude-statusline` still works as a status line that shows the `claude` source's cached numbers (`5h 25% · wk 59%`, nothing before the first fetch), with `--then <command>` to chain another one; it writes nothing. Under Home Manager, `programs.vestal.claudeStatusLine.enable` (off by default) sets it up; while it is off, activation removes a `statusLine` from `~/.claude/settings.json` only when it is exactly vestal's own (`/nix/store/…/bin/vestal claude-statusline`), leaves one that chains another command with a warning, and touches nothing else. A status line you set by hand stays until you remove it.
 
@@ -1953,7 +1953,7 @@ A `parse: "feed"` source (on `http`, `command` or `file`) reads RSS 2.0, Atom 1.
 
 ### `command`
 
-Runs a program **without a shell** and reads its standard output. `argv[0]` is looked up on `PATH` and the usual Nix and Homebrew directories; under Home Manager, add the program to `programs.vestal.extraPackages`. Pipes, globs and `$VARS` don't work; to use a shell, say so: `["sh", "-c", "…"]`.
+Runs a program **without a shell** and reads its standard output. `argv[0]` is looked up on `PATH`, the usual Nix and Homebrew directories and `~/.local/bin`; under Home Manager, add the program to `programs.vestal.extraPackages`. Pipes, globs and `$VARS` don't work; to use a shell, say so: `["sh", "-c", "…"]`.
 
 | Key | Default | |
 |---|---|---|

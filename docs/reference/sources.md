@@ -135,7 +135,7 @@ A `parse: "feed"` source (on `http`, `command` or `file`) reads RSS 2.0, Atom 1.
 
 ### `command`
 
-Runs a program **without a shell** and reads its standard output. `argv[0]` is looked up on `PATH` and the usual Nix and Homebrew directories; under Home Manager, add the program to `programs.vestal.extraPackages`. Pipes, globs and `$VARS` don't work; to use a shell, say so: `["sh", "-c", "…"]`.
+Runs a program **without a shell** and reads its standard output. `argv[0]` is looked up on `PATH`, the usual Nix and Homebrew directories and `~/.local/bin`; under Home Manager, add the program to `programs.vestal.extraPackages`. Pipes, globs and `$VARS` don't work; to use a shell, say so: `["sh", "-c", "…"]`.
 
 | Key | Default | |
 |---|---|---|

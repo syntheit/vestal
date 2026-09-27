@@ -138,6 +138,9 @@ final class AIUsageTests: XCTestCase {
             ("Sep 20 at 7pm (UTC)", utc("2026-09-20T19:00:00Z")),       // the nearest year, though past
             ("in 45m", Int(sep27.timeIntervalSince1970) + 2700),
             ("in 1 day and 2 hours", Int(sep27.timeIntervalSince1970) + 93_600),
+            ("in 1h30m", Int(sep27.timeIntervalSince1970) + 5400),
+            ("7 a.m. \(buenosAires)", utc("2026-09-28T10:00:00Z")),
+            ("in 200000000000000 days", nil),
             ("Feb 30 at 1pm (UTC)", nil), ("soon", nil), ("25:00 (UTC)", nil), ("13pm (UTC)", nil),
             ("in a while", nil), ("Foo 3 at 7pm (UTC)", nil), ("", nil),
         ]
@@ -170,8 +173,8 @@ final class AIUsageTests: XCTestCase {
                                                directory: cache, now: sep27)
         XCTAssertEqual(AIUsage.Reading(data)?.weekly?.percent, 59)
         let cwd = try String(contentsOfFile: "\(directory)/cwd", encoding: .utf8)
-        XCTAssertEqual(cwd.trimmingCharacters(in: .whitespacesAndNewlines),
-                       URL(fileURLWithPath: cache).resolvingSymlinksInPath().path)
+        // pwd -P resolves /var to /private/var on macOS; the tail is enough.
+        XCTAssertTrue(cwd.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("/cache/vestal"), cwd)
         let mode = try XCTUnwrap(FileManager.default.attributesOfItem(atPath: cache)[.posixPermissions] as? NSNumber)
         XCTAssertEqual(mode.intValue & 0o777, 0o700)
         XCTAssertEqual(ClaudeUsage.defaultArgv, ["claude", "-p", "--no-session-persistence", "/usage"])
