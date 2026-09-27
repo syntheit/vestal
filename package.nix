@@ -2,8 +2,10 @@
 # `swift build -c release`). flake.nix calls this with callPackage.
 #
 # darwin: $out/Applications/Vestal.app, plus $out/bin/vestal for the CLI.
-# Linux: $out/bin/vestal only. It runs the CLI commands; the Linux UI does not
-# exist yet.
+# Linux: $out/bin/vestal, the CLI and a headless `vestal daemon` (sources,
+# socket, reload, stats); the Linux UI does not exist yet. Its wrapper puts
+# wpctl (WirePlumber) and playerctl on PATH, after the caller's own, for the
+# volume and media providers.
 {
   lib,
   stdenv,
@@ -12,6 +14,9 @@
   swiftPackages,
   makeBinaryWrapper,
   writeText,
+  # Linux runtime tools: `wpctl get-volume` and `playerctl`.
+  wireplumber,
+  playerctl,
   # Short commit hash shown in the info popup (BuildInfo.commit).
   commit ? "dev",
 }:
@@ -71,8 +76,8 @@ stdenv.mkDerivation {
   nativeBuildInputs = [
     swift
     swiftpm
-  ]
-  ++ lib.optionals stdenv.hostPlatform.isDarwin [ makeBinaryWrapper ];
+    makeBinaryWrapper
+  ];
 
   # SwiftPM compiles and runs Package.swift, which on Linux needs libdispatch
   # on the library path (nixpkgs' own swift-format does the same).
@@ -120,8 +125,16 @@ stdenv.mkDerivation {
         makeBinaryWrapper "$app/Contents/MacOS/vestal" "$out/bin/vestal"
       ''
     else
+      # --suffix: a wpctl or playerctl the user has on PATH comes first.
       ''
-        install -Dm755 "$(swiftpmBinPath)/vestal" "$out/bin/vestal"
+        install -Dm755 "$(swiftpmBinPath)/vestal" "$out/libexec/vestal/vestal"
+        makeBinaryWrapper "$out/libexec/vestal/vestal" "$out/bin/vestal" \
+          --suffix PATH : ${
+            lib.makeBinPath [
+              wireplumber
+              playerctl
+            ]
+          }
       ''
   )
   + ''
@@ -131,8 +144,9 @@ stdenv.mkDerivation {
   passthru = {
     inherit infoPlist;
     # Whether `vestal daemon` runs on this platform; the Home Manager module
-    # only installs a login service when it does. Linux gets one with its UI.
-    supportsDaemon = stdenv.hostPlatform.isDarwin;
+    # only installs a login service when it does. On Linux it runs headless
+    # until the UI exists.
+    supportsDaemon = true;
   };
 
   meta = {

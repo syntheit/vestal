@@ -4,8 +4,9 @@ import Foundation
 //
 // What the dashboard needs from the operating system, as protocols. VestalMac
 // implements them with Mach, SMC/IOKit, CoreAudio, AppleScript and EventKit;
-// a Linux implementation (/proc, /sys, PipeWire, MPRIS) comes later. The value
-// types they return are plain data, so they are portable and testable.
+// VestalCore's Linux/ directory with /proc, /sys, wpctl (PipeWire) and
+// playerctl (MPRIS). The value types they return are plain data, so they are
+// portable and testable.
 //
 // The synchronous reads are cheap (well under 1ms each) and may run on the
 // main actor. Anything that can block (Apple Events, calendar queries) is
@@ -71,6 +72,58 @@ public protocol SystemStatsProvider {
     func disk() -> DiskUsage?
     /// Seconds since boot.
     func uptime() -> TimeInterval
+    /// The file systems the local host's popup lists, "/" first. By default
+    /// the root volume alone (as on macOS).
+    func mounts() -> [MountUsage]
+}
+
+extension SystemStatsProvider {
+    public func mounts() -> [MountUsage] {
+        disk().map { [MountUsage(mountpoint: "/", totalBytes: $0.totalBytes, freeBytes: $0.freeBytes)] } ?? []
+    }
+}
+
+/// Everything a `SystemStatsProvider` reports, read at once: what
+/// `vestal status` shows (`IPCStatus.stats`) and what a UI in another process
+/// could draw the system bar and the local host from. Rates are since the
+/// provider's previous reading.
+public struct SystemStatsSample: Codable, Equatable, Sendable {
+    public var cpuPercent: Int
+    public var memory: MemoryInfo
+    /// °C, 0 if unknown.
+    public var temperature: Int
+    public var battery: BatteryInfo?
+    public var network: NetworkRate
+    public var disk: DiskUsage?
+    public var mounts: [MountUsage]
+    /// Seconds since boot.
+    public var uptime: TimeInterval
+    /// The default output; nil when it can't be read.
+    public var volume: VolumeInfo?
+
+    public init(
+        cpuPercent: Int, memory: MemoryInfo, temperature: Int, battery: BatteryInfo?,
+        network: NetworkRate, disk: DiskUsage?, mounts: [MountUsage], uptime: TimeInterval,
+        volume: VolumeInfo?
+    ) {
+        self.cpuPercent = cpuPercent
+        self.memory = memory
+        self.temperature = temperature
+        self.battery = battery
+        self.network = network
+        self.disk = disk
+        self.mounts = mounts
+        self.uptime = uptime
+        self.volume = volume
+    }
+
+    /// Reads every value from `stats` once.
+    public static func read(_ stats: SystemStatsProvider, volume: VolumeInfo? = nil) -> SystemStatsSample {
+        SystemStatsSample(
+            cpuPercent: stats.cpuPercent(), memory: stats.memory(), temperature: stats.temperature(),
+            battery: stats.battery(), network: stats.networkRate(), disk: stats.disk(),
+            mounts: stats.mounts(), uptime: stats.uptime(), volume: volume)
+    }
 }
 
 // MARK: Media

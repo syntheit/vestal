@@ -46,6 +46,14 @@ public struct LiveFetcher: SourceFetcher {
     /// Where a calendar source's range starts.
     public var now: @Sendable () -> Date
 
+    /// Why a calendar source fails where the platform has no calendar
+    /// (Linux, for now), and what to use instead.
+    public static let noCalendarBackend = "calendar sources are not supported on this platform yet. "
+        + "For an ICS feed or CalDAV, use a \"command\" source (a script, e.g. around `khal list`) "
+        + "or an \"http\" source that returns the events as JSON: a list of "
+        + "{\"title\", \"start\", \"end\", \"allDay\", \"calendar\"}, dates in seconds since 1970; "
+        + "an agendaList widget reads it like a calendar source (docs/CONFIG.md, calendar)"
+
     public init(calendar: CalendarProvider? = nil, now: @escaping @Sendable () -> Date = { Date() }) {
         self.calendar = calendar
         self.now = now
@@ -58,7 +66,7 @@ public struct LiveFetcher: SourceFetcher {
         case "command":
             return (source.argv ?? []).isEmpty ? "needs a non-empty \"argv\"" : nil
         case "calendar":
-            return calendar == nil ? "calendar sources are not supported on this platform yet" : nil
+            return calendar == nil ? Self.noCalendarBackend : nil
         default:
             return "unknown source type \"\(source.type)\""
         }
@@ -111,7 +119,7 @@ public struct LiveFetcher: SourceFetcher {
     // MARK: Calendar
 
     private func readCalendar(_ source: SourceConfig) async throws -> Data {
-        guard let calendar else { throw SourceError("calendar sources are not supported on this platform yet") }
+        guard let calendar else { throw SourceError(Self.noCalendarBackend) }
         guard await calendar.requestAccess() else { throw SourceError("no access to the calendar") }
         let range = Self.calendarRange(days: source.days, now: now())
         let entries = try await calendar.events(from: range.start, to: range.end, calendars: source.calendars)

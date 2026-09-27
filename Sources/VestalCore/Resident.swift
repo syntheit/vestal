@@ -34,6 +34,13 @@ public protocol ResidentSurface: AnyObject {
     func apply(_ loaded: LoadedConfig)
     /// End the app. The reply to `quit` has been sent.
     func quit()
+    /// Said in the reply to `show`, `hide` and `toggle`: why nothing appears
+    /// (a platform without a UI yet). Nil by default.
+    var notice: String? { get }
+}
+
+extension ResidentSurface {
+    public var notice: String? { nil }
 }
 
 /// Registers the built-in hotkey (Carbon on macOS).
@@ -71,6 +78,7 @@ public final class Resident {
     private let load: () -> LoadedConfig
     private let watchedPath: () -> String
     private let reloadDelay: TimeInterval
+    private let stats: (@MainActor () -> SystemStatsSample)?
     private var pendingReload: Task<Void, Never>?
     /// Why the last reload kept the running config; nil after one that
     /// worked.
@@ -88,6 +96,7 @@ public final class Resident {
     ///   - watcher: nil watches nothing.
     ///   - load: reads the config again, for a reload.
     ///   - watchedPath: the config file to watch.
+    ///   - stats: this machine's stats for `vestal status`; nil reports none.
     public init(
         loaded: LoadedConfig,
         runtime: AppRuntime,
@@ -96,7 +105,8 @@ public final class Resident {
         watcher: ConfigWatcher? = nil,
         reloadDelay: TimeInterval = Resident.reloadDelay,
         load: @escaping () -> LoadedConfig = { ConfigLoader.load() },
-        watchedPath: @escaping () -> String = { ConfigLoader.watchedPath() }
+        watchedPath: @escaping () -> String = { ConfigLoader.watchedPath() },
+        stats: (@MainActor () -> SystemStatsSample)? = nil
     ) {
         self.loaded = loaded
         self.runtime = runtime
@@ -106,6 +116,7 @@ public final class Resident {
         self.reloadDelay = reloadDelay
         self.load = load
         self.watchedPath = watchedPath
+        self.stats = stats
     }
 
     // MARK: Lifecycle
@@ -140,13 +151,13 @@ public final class Resident {
         switch command {
         case .show:
             show()
-            reply(.ok)
+            reply(visibilityReply())
         case .hide:
             hide()
-            reply(.ok)
+            reply(visibilityReply())
         case .toggle:
             toggle()
-            reply(.ok)
+            reply(visibilityReply())
         case .reload:
             reply(reload())
         case .status:
@@ -177,6 +188,14 @@ public final class Resident {
     /// The hotkey and `vestal toggle`.
     public func toggle() {
         isVisible ? hide() : show()
+    }
+
+    /// `.ok`, with the surface's notice and the new state when it has one:
+    /// without a UI the state still changes (the runtime polls accordingly,
+    /// and a UI that attaches later starts from it).
+    private func visibilityReply() -> IPCResponse {
+        guard let notice = surface?.notice else { return .ok }
+        return IPCResponse(ok: true, message: "\(notice); the dashboard is now \(isVisible ? "shown" : "hidden")")
     }
 
     // MARK: Reload
@@ -279,7 +298,8 @@ public final class Resident {
             configPath: loaded.path,
             hotkey: hotkeyProblem == nil ? hotkey?.description : nil,
             warnings: warnings,
-            sources: sources)
+            sources: sources,
+            stats: stats?())
     }
 }
 

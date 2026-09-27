@@ -62,7 +62,7 @@ public struct SnapshotCache: Sendable {
     /// Stores `snapshot`'s data and time (never its error) as the result of
     /// `source`.
     public func save(_ snapshot: SourceSnapshot, source: SourceConfig, as name: String) {
-        try? FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+        makeDirectory()
         let file = File(data: snapshot.data, fetchedAt: snapshot.fetchedAt, lastFetch: nil,
                         source: Self.fingerprint(source))
         guard let raw = try? JSONEncoder().encode(file) else { return }
@@ -78,12 +78,22 @@ public struct SnapshotCache: Sendable {
     }
 
     public func saveNowPlaying(_ playing: NowPlaying, player: String) {
-        try? FileManager.default.createDirectory(atPath: directory, withIntermediateDirectories: true)
+        makeDirectory()
         guard let raw = try? JSONEncoder().encode(playing) else { return }
         try? raw.write(to: URL(fileURLWithPath: path(for: Self.mediaName(player))), options: .atomic)
     }
 
     private static func mediaName(_ player: String) -> String { "media:\(player)" }
+
+    /// The cache holds fetched data and each source's definition (its `env`
+    /// included), so only the owner may read it: 0700, also when it exists
+    /// already (~/.cache is often world-readable on Linux).
+    private func makeDirectory() {
+        let manager = FileManager.default
+        try? manager.createDirectory(atPath: directory, withIntermediateDirectories: true,
+                                     attributes: [.posixPermissions: 0o700])
+        try? manager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory)
+    }
 
     /// A source definition as a string that is the same in every run (JSON
     /// with sorted keys, defaults included).

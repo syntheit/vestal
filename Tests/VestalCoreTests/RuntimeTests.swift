@@ -335,7 +335,7 @@ final class RuntimeTests: XCTestCase {
         ]), fetcher: LiveFetcher(calendar: nil), cache: nil, now: { clock.now })
         let expected = [
             "ftp": "unknown source type \"ftp\"",
-            "cal": "calendar sources are not supported on this platform yet",
+            "cal": LiveFetcher.noCalendarBackend,
             "nourl": "needs an http(s) \"url\"",
             "noargv": "needs a non-empty \"argv\"",
         ]

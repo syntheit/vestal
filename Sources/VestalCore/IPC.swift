@@ -16,6 +16,7 @@ import Glibc
 //     {"ok":true}
 //     {"error":"unknown command 'x' ...","ok":false}
 //     {"ok":true,"status":{"pid":4242,"visible":false,...}}
+//     {"message":"no UI on this platform yet; ...","ok":true}
 //
 // Keys are sorted and dates are seconds since 1970. Decoding ignores unknown
 // keys and fills in missing ones, so a CLI and a resident app from different
@@ -111,6 +112,9 @@ public struct IPCStatus: Codable, Equatable, Sendable {
     /// Config warnings (unknown keys, parse errors, ...).
     public var warnings: [String]
     public var sources: [IPCSourceStatus]
+    /// This machine's stats when the status was taken; nil from an app that
+    /// doesn't report them (or an older build).
+    public var stats: SystemStatsSample?
 
     public init(
         pid: Int32,
@@ -119,7 +123,8 @@ public struct IPCStatus: Codable, Equatable, Sendable {
         configPath: String? = nil,
         hotkey: String? = nil,
         warnings: [String] = [],
-        sources: [IPCSourceStatus] = []
+        sources: [IPCSourceStatus] = [],
+        stats: SystemStatsSample? = nil
     ) {
         self.pid = pid
         self.version = version
@@ -128,10 +133,11 @@ public struct IPCStatus: Codable, Equatable, Sendable {
         self.hotkey = hotkey
         self.warnings = warnings
         self.sources = sources
+        self.stats = stats
     }
 
     enum CodingKeys: String, CodingKey {
-        case pid, version, visible, configPath, hotkey, warnings, sources
+        case pid, version, visible, configPath, hotkey, warnings, sources, stats
     }
 
     public init(from decoder: Decoder) throws {
@@ -143,20 +149,27 @@ public struct IPCStatus: Codable, Equatable, Sendable {
         hotkey     = try c.decodeIfPresent(String.self, forKey: .hotkey)
         warnings   = try c.decodeIfPresent([String].self, forKey: .warnings) ?? []
         sources    = try c.decodeIfPresent([IPCSourceStatus].self, forKey: .sources) ?? []
+        // Stats from another build may not decode; the rest of the status
+        // still does.
+        stats      = try? c.decodeIfPresent(SystemStatsSample.self, forKey: .stats)
     }
 }
 
-/// A reply: `ok`, plus `error` when it failed or `status` for `status`.
-/// New kinds of payload go in as further optional fields.
+/// A reply: `ok`, plus `error` when it failed or `status` for `status`, and
+/// `message`, something the CLI should tell the user although it worked (on
+/// a platform without a UI, `show` says so). New kinds of payload go in as
+/// further optional fields.
 public struct IPCResponse: Codable, Equatable, Sendable {
     public var ok: Bool
     public var error: String?
     public var status: IPCStatus?
+    public var message: String?
 
-    public init(ok: Bool, error: String? = nil, status: IPCStatus? = nil) {
+    public init(ok: Bool, error: String? = nil, status: IPCStatus? = nil, message: String? = nil) {
         self.ok = ok
         self.error = error
         self.status = status
+        self.message = message
     }
 
     /// `{"ok":true}`

@@ -109,7 +109,20 @@ Every source takes:
 
 ### `calendar`
 
-Events from the system calendar: EventKit on macOS (vestal asks for calendar access the first time). There is no Linux backend yet, so on Linux a calendar source reports an error. The source's data is a list of events: `title`, `start` and `end` (seconds since 1970), `allDay` and `calendar` (the calendar's name).
+Events from the system calendar: EventKit on macOS (vestal asks for calendar access the first time). The source's data is a list of events: `title`, `start` and `end` (seconds since 1970), `allDay` and `calendar` (the calendar's name).
+
+There is no Linux backend yet: on Linux a calendar source reports an error (in `vestal status`) that says what to use instead. An [`agendaList`](#agendalist) also reads a `command` or `http` source whose JSON is that same list, so an ICS feed or CalDAV calendar works through a script of your own, for example one around `khal list` or one that downloads and converts an ICS file:
+
+```json
+{
+  "sources": {
+    "events": { "type": "command", "argv": ["~/.local/bin/events-json", "--days", "1"], "refresh": "5m" }
+  },
+  "widgets": {
+    "agenda": { "type": "agendaList", "source": "events" }
+  }
+}
+```
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -147,7 +160,7 @@ What a music player is playing, with play/pause and the output volume.
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `player` | string | `"Spotify"` | The player application, by name. On macOS vestal asks it over AppleScript (`player state`, `current track`), which Spotify and Music understand. |
+| `player` | string | `"Spotify"` | The player application, by name. On macOS vestal asks it over AppleScript (`player state`, `current track`), which Spotify and Music understand. On Linux it asks the MPRIS player through `playerctl -p <player>`, with the name in lowercase (`"Spotify"` asks `spotify`; `playerctl -l` lists the names), and reads the volume with `wpctl` (PipeWire); the Nix package brings both. |
 | `hideWhenOff` | boolean | `true` | Hide the row while the player is not running or has nothing loaded. With `false` the row stays and shows the player's name. |
 
 ### `agendaList`
@@ -156,7 +169,7 @@ The next events from a calendar source.
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `source` | string | required | A `calendar` source. |
+| `source` | string | required | A `calendar` source, or a `command` or `http` source whose JSON is the same list of events (see [calendar](#calendar)). |
 | `maxEvents` | integer, at least 1 | `5` | At most this many events. |
 | `title` | string | `"Today"` | Section title. |
 
@@ -176,7 +189,7 @@ A host:
 |---|---|---|---|
 | `name` | string | required, except for a local host | Display name. A local host without one is named after the machine's short hostname (`swift` for `swift.local`), so one config serves every machine. |
 | `url` | string | none | The host's foyer base URL, such as `"https://box.example.com"`. |
-| `source` | string | none | `"local"`: this machine, read in-process. Any other value names a source whose JSON is a foyer `/api/health` payload, used instead of `url`. |
+| `source` | string | none | `"local"`: this machine, read in-process. Its popup lists the root volume on macOS, and every disk-backed file system on Linux. Any other value names a source whose JSON is a foyer `/api/health` payload, used instead of `url`. |
 | `key` | string | first free letter of the name | Shortcut letter, `a` to `z`. `p` and `i` are reserved. Hosts with a usable `key` get it first (the first host naming a letter keeps it); then every other host, in dashboard order, gets the first free letter of its name. One keyboard serves every systemHealth widget in `views.main.order`. |
 | `interval` | duration | `"5s"` | How often a `url` host's health is polled, counted from the end of the previous poll. Only while the dashboard is visible. The last good result is kept on disk (as `host:<name>.json` next to the sources') and shown at startup if it is less than 30 minutes old. A `source` host follows its source's `refresh`. |
 
