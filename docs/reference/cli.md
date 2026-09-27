@@ -12,7 +12,7 @@ The same for every command:
 | 1 | Runtime failure: the config is unreadable or not JSON, or no instance runs where one is required. |
 | 2 | Usage error. |
 | 3 | The config has errors (`check-config`; with `--strict`, warnings too). |
-| 4 | Not found: an unknown docs topic or view. A did-you-mean goes to stderr. |
+| 4 | Not found: an unknown docs topic, view or icon. A did-you-mean goes to stderr. |
 
 With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "...", "message": "...", "suggestion": "..."}}`. `--` ends the options: `vestal check-config -- --odd-name.json` reads that file.
 
@@ -51,6 +51,10 @@ The JSON Schema (draft 2020-12, `$id` `urn:vestal:config:1`) of the config file.
 `vestal docs [topic] [--list] [--json] [--search <text>]`
 
 The documentation built into the binary. With no topic, a short index. `--list` lists the topics, `--search` finds lines in all of them, `--json` gives either as data. An unknown topic exits 4 with a suggestion.
+
+`vestal icons [query] [--limit <n>] [--json]`
+
+Searches the bundled icon set (Phosphor, `regular` and `fill` weights), whose names go in `icon` fields. Each line is `name  weights  code point`. With a query, the icons whose name contains every word of it (split on spaces and hyphens), names that start with it first, at most 50 unless `--limit` says otherwise (`--limit 0`: all); with none, every icon. `--json` gives `[{"name", "weights", "codePoints": {"regular", "fill"}}]`. When no name contains the query it exits 4 with a did-you-mean.
 
 ## Other
 

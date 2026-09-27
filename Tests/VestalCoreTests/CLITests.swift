@@ -39,7 +39,7 @@ final class CLITests: XCTestCase {
 
     func testHelpListsEveryCommand() {
         for name in ["daemon", "toggle", "show", "hide", "reload", "status", "quit",
-                     "check-config", "print-config", "schema", "docs", "version", "help"] {
+                     "check-config", "print-config", "schema", "docs", "icons", "version", "help"] {
             XCTAssertTrue(CLI.usage.contains("\n  \(name) "), "help lacks \(name)")
         }
     }

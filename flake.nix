@@ -53,10 +53,10 @@
             # Where a dev build of the Linux UI finds Inter, JetBrains Mono and
             # the Phosphor icon fonts (the package installs them next to the
             # binary instead).
-            VESTAL_FONT_DIRS = lib.concatMapStringsSep ":" (p: "${p}/share/fonts") [
-              pkgs.inter
-              pkgs.jetbrains-mono
-              (pkgs.callPackage ./nix/phosphor-fonts.nix { })
+            VESTAL_FONT_DIRS = lib.concatStringsSep ":" [
+              "${pkgs.inter}/share/fonts"
+              "${pkgs.jetbrains-mono}/share/fonts"
+              "${./Resources/icons}"
             ];
           }
         );

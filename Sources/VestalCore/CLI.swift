@@ -20,7 +20,7 @@ import Foundation
 //                           exit 1 (reload never starts one)
 //   vestal status --json    the running instance's status as JSON, stats
 //                           included
-//   vestal version | help | check-config | print-config | schema | docs
+//   vestal version | help | check-config | print-config | schema | docs | icons
 //                           local; no instance needed
 //   vestal sources | fetch   the instance if one runs, else local
 //                           (SourceCommands)
@@ -51,6 +51,8 @@ public enum CLI {
         case fetch([String])
         case schema([String])
         case docs([String])
+        /// `vestal icons ...` (IconsCommand).
+        case icons([String])
     }
 
     public enum Parsed: Equatable, Sendable {
@@ -76,6 +78,7 @@ public enum CLI {
         case "fetch": return .command(.fetch(rest))
         case "schema": return .command(.schema(rest))
         case "docs": return .command(.docs(rest))
+        case "icons": return .command(.icons(rest))
         case "show" where !rest.isEmpty, "toggle" where !rest.isEmpty:
             guard rest.count == 1, !rest[0].hasPrefix("-") else { return .usageError("'\(name)' takes one view at most") }
             return .command(.sendRequest(IPCRequest(IPCCommand(rawValue: name)!, view: rest[0])))
@@ -120,6 +123,9 @@ public enum CLI {
                                Print the config's JSON Schema
           docs [topic] [--list] [--search <text>] [--json]
                                The built-in documentation; start with `docs agents`
+          icons [query] [--limit <n>] [--json]
+                               Search the bundled icon names (Phosphor): name,
+                               weights and code point; at most 50 per query
           sources [--json]     Every source: type, refresh, when, age, status and the
                                widgets that read it (from the running instance, or
                                the disk cache when none runs)
@@ -134,7 +140,7 @@ public enum CLI {
         hide, reload, status and quit never start vestal: they exit 1 when it is
         not running. Exit codes: 0 ok, 1 error or not running, 2 usage, 3 the
         config has errors (check-config), 4 not found (a view, a docs topic, a
-        source).
+        source, an icon).
         The dashboard UI is macOS-only for now. On Linux vestal runs headless: it
         fetches sources, serves these commands and reports stats, and show, hide
         and toggle only change the visibility it reports.
