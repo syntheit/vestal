@@ -31,6 +31,8 @@ public struct RenderStageView: View {
                     .transition(.opacity)
                     .layoutValue(key: StageRoleKey.self, value: .scrim)
                 RenderNodeView(handle: popup.handle, parentAxis: nil)
+                    // Content stays inside the rounded card, as on Linux.
+                    .clipShape(RoundedRectangle(cornerRadius: PopupCard.radius))
                     .background(PopupCard())
                     .shadow(color: .black.opacity(0.5), radius: 24, y: 12)
                     // A click inside the card that hits nothing is not Esc.
