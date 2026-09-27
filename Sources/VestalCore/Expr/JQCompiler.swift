@@ -457,7 +457,11 @@ final class JQCompiler {
             if case .function(let n, let a, _) = entry, n == name { arities.insert(a) }
             if case .param(let n, _) = entry, n == name { arities.insert(0) }
         }
-        for key in Array(globals.keys) + Array(natives.keys) + Array(extensions.keys) + Array(preludeDefs.keys) + Array(extensionDefs.keys) {
+        var allKeys: [String] = Array(globals.keys)
+        allKeys.append(contentsOf: natives.keys)
+        allKeys.append(contentsOf: extensions.keys)
+        allKeys.append(contentsOf: extensionDefs.keys)
+        for key in allKeys + Array(preludeDefs.keys) {
             let parts = key.split(separator: "/")
             if parts.count == 2, parts[0] == name, let a = Int(parts[1]), !key.hasPrefix("_") { arities.insert(a) }
         }
@@ -466,9 +470,10 @@ final class JQCompiler {
             return message + " (defined: \(list))"
         }
         // Near misses among public builtins.
-        let candidates = Set((Array(globals.keys) + Array(natives.keys) + Array(extensions.keys) + Array(extensionDefs.keys))
-            .compactMap { $0.split(separator: "/").first.map(String.init) }
-            .filter { !$0.hasPrefix("_") })
+        var candidates = Set<String>()
+        for key in allKeys where !key.hasPrefix("_") {
+            if let base = key.split(separator: "/").first { candidates.insert(String(base)) }
+        }
         let distances = candidates.map { ($0, JQCompiler.editDistance($0, name)) }
         let best = distances.map(\.1).min() ?? Int.max
         let limit = name.count > 4 ? 2 : 1
