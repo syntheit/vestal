@@ -7,7 +7,8 @@ import VestalMac
 // MARK: - Entry
 //
 // `vestal` with a command is the CLI (VestalCore's `CLI` decides, this file
-// carries it out); with none, or with `daemon`, it becomes the resident app.
+// carries it out); with none, or with `daemon`, it becomes the resident app:
+// the dashboard on macOS, the headless app on Linux (no UI there yet).
 // A running instance is found through its unix socket (VestalCore's IPC),
 // which also keeps it single: no pid files.
 
@@ -18,17 +19,14 @@ func emit(_ output: CLI.Output) -> Never {
 }
 
 /// `show`/`toggle` with nothing running: start the dashboard, which comes up
-/// shown.
+/// shown. On Linux that is the headless app, started detached like bare
+/// `vestal`; its reply to the next command says there is no UI.
 func launchInstance() throws {
     #if os(macOS)
     try VestalApp.launchInstance()
     #else
-    throw CLIUnsupported()
+    try CLI.spawnDetached(executable: CLI.executablePath)
     #endif
-}
-
-struct CLIUnsupported: Error, CustomStringConvertible {
-    var description: String { "the dashboard is macOS-only for now; see 'vestal help'" }
 }
 
 switch CLI.parse(Array(CommandLine.arguments.dropFirst())) {
@@ -50,8 +48,10 @@ case .command(.printConfig(let arguments)):
 case .command(.send(let command)):
     emit(CLI.send(command, client: { try IPCClient.send($0) }, launch: launchInstance))
 
+case .command(.statusJSON):
+    emit(CLI.send(.status, json: true, client: { try IPCClient.send($0) }, launch: launchInstance))
+
 case .command(.start(let hidden)):
-    #if os(macOS)
     // Take the socket before any window exists, so a second `vestal` never
     // opens one. Commands that come in before the app is up wait in the
     // inbox; the handler runs on the main queue.
@@ -60,12 +60,14 @@ case .command(.start(let hidden)):
     }
     switch CLI.claim(hidden: hidden, start: { try server.start() }, client: { try IPCClient.send($0) }) {
     case .run:
+        #if os(macOS)
         VestalApp.run(hidden: hidden, server: server)
+        #elseif os(Linux)
+        HeadlessApp.run(hidden: hidden, server: server, platform: LinuxPlatform.headless())
+        #else
+        HeadlessApp.run(hidden: hidden, server: server, platform: HeadlessPlatform())
+        #endif
     case .exit(let output):
         emit(output)
     }
-    #else
-    _ = hidden
-    emit(CLI.Output(status: 1, stderr: "vestal: \(CLIUnsupported())\n"))
-    #endif
 }

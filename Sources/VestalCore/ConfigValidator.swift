@@ -228,8 +228,10 @@ private struct Walker {
         }
     }
 
-    /// A widget's `source`: it must exist, and be a calendar exactly when the
-    /// widget shows events.
+    /// A widget's `source`: it must exist. A widget that shows events reads a
+    /// calendar source, or a command or http source that returns the same
+    /// JSON (on Linux, which has no calendar backend yet); the others read
+    /// JSON, never a calendar source.
     private mutating func widgetSource(_ widget: [String: AnyJSON], _ path: String, required: Bool, calendar: Bool) {
         guard let source = string(widget["source"], "\(path).source") else {
             if required && isAbsent(widget["source"]) { add(.missingKey, path, "missing \"source\"") }
@@ -239,8 +241,8 @@ private struct Walker {
             add(.missingReference, "\(path).source", "no source named \"\(source)\"")
             return
         }
-        if calendar && type != "calendar" {
-            add(.invalidValue, "\(path).source", "\"\(source)\" is not a calendar source")
+        if calendar && !["calendar", "command", "http"].contains(type) {
+            add(.invalidValue, "\(path).source", "\"\(source)\" is not a calendar, command or http source")
         } else if !calendar && type == "calendar" {
             add(.invalidValue, "\(path).source", "\"\(source)\" is a calendar source; this widget reads JSON")
         }

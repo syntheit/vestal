@@ -148,7 +148,7 @@ final class LiveFetcherTests: XCTestCase {
     func testSourcesThatCanNeverRun() {
         let fetcher = LiveFetcher()
         XCTAssertEqual(fetcher.problem(with: SourceConfig(type: "calendar")),
-                       "calendar sources are not supported on this platform yet")
+                       LiveFetcher.noCalendarBackend)
         XCTAssertNil(LiveFetcher(calendar: FakeCalendar(entries: [])).problem(with: SourceConfig(type: "calendar")))
         XCTAssertEqual(fetcher.problem(with: SourceConfig(type: "http")), "needs an http(s) \"url\"")
         XCTAssertEqual(fetcher.problem(with: SourceConfig(type: "http", url: "ftp://x.example/a")), "needs an http(s) \"url\"")

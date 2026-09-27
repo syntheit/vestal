@@ -117,9 +117,12 @@ final class ConfigValidatorTests: XCTestCase {
     }
 
     func testSourceKindsMustFitTheWidget() {
+        // An agenda may read an http or command source that returns events
+        // (Linux has no calendar backend yet); the other widgets read JSON,
+        // never a calendar source.
         let found = warnings(#"{"widgets": {"agenda": {"source": "weather"}, "weather": {"source": "calendar"}}}"#)
-        XCTAssertEqual(found.map(\.path), ["widgets.agenda.source", "widgets.weather.source"])
-        XCTAssertEqual(found.map(\.kind), [.invalidValue, .invalidValue])
+        XCTAssertEqual(found.map(\.path), ["widgets.weather.source"])
+        XCTAssertEqual(found.map(\.kind), [.invalidValue])
     }
 
     func testMissingMainView() {

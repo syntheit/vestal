@@ -16,6 +16,8 @@ import Foundation
 //   vestal hide | reload | status | quit
 //                           tell the running instance; with none, say so and
 //                           exit 1 (reload never starts one)
+//   vestal status --json    the running instance's status as JSON, stats
+//                           included
 //   vestal version | help | check-config [path] | print-config [path]
 //                           local; no instance needed
 //
@@ -29,6 +31,8 @@ public enum CLI {
         case start(hidden: Bool)
         /// A command for the running instance.
         case send(IPCCommand)
+        /// `status --json`.
+        case statusJSON
         case version
         case help
         case checkConfig([String])
@@ -54,6 +58,7 @@ public enum CLI {
         case "help", "--help", "-h": command = .help
         case "check-config": return .command(.checkConfig(rest))
         case "print-config": return .command(.printConfig(rest))
+        case "status" where rest == ["--json"]: return .command(.statusJSON)
         default:
             guard let ipc = IPCCommand(rawValue: name) else { return .usageError("unknown command '\(name)'") }
             command = .send(ipc)
@@ -75,8 +80,11 @@ public enum CLI {
           show                 Show the dashboard; starts vestal if needed
           hide                 Hide the dashboard
           reload               Read the config file again (it is also watched)
-          status               The running instance: pid, build, config file,
-                               warnings, and each source's age and last error
+          status [--json]      The running instance: pid, build, config file,
+                               warnings, each source's age and last error, and
+                               this machine's stats (CPU, memory, temperature,
+                               disks, battery, volume, uptime, network); --json
+                               prints the same as JSON
           quit                 Quit the running instance
           check-config [path]  Check a config file (default: the one vestal loads)
           print-config [path]  Print the effective config as JSON, defaults merged in
@@ -85,7 +93,9 @@ public enum CLI {
 
         hide, reload, status and quit never start vestal: they exit 1 when it is
         not running. Exit codes: 0 ok, 1 error or not running, 2 usage.
-        The dashboard is macOS-only for now; on Linux, starting it exits 1.
+        The dashboard UI is macOS-only for now. On Linux vestal runs headless: it
+        fetches sources, serves these commands and reports stats, and show, hide
+        and toggle only change the visibility it reports.
 
         The config is read from $VESTAL_CONFIG, else $XDG_CONFIG_HOME/vestal/config.json
         (default ~/.config/vestal/config.json); see docs/CONFIG.md.
@@ -94,9 +104,12 @@ public enum CLI {
     // MARK: Commands for the running instance
 
     /// Sends `command` with `client`. With no instance running, `show` and
-    /// `toggle` call `launch` to start one, and the others fail.
+    /// `toggle` call `launch` to start one, and the others fail. `json`
+    /// prints a status as JSON (`status --json`). A reply's message goes to
+    /// stderr; it doesn't change the exit status.
     public static func send(
         _ command: IPCCommand,
+        json: Bool = false,
         client: (IPCCommand) throws -> IPCResponse,
         launch: () throws -> Void,
         now: Date = Date()
@@ -106,11 +119,15 @@ public enum CLI {
             guard response.ok else {
                 return Output(status: 1, stderr: "vestal: \(response.error ?? "\(command.rawValue) failed")\n")
             }
-            guard command == .status else { return Output(status: 0) }
+            let notes = response.message.map { "vestal: \($0)\n" } ?? ""
+            guard command == .status else { return Output(status: 0, stderr: notes) }
             guard let status = response.status else {
                 return Output(status: 1, stderr: "vestal: the reply to status has no status in it\n")
             }
-            return Output(status: 0, stdout: format(status, now: now))
+            if json {
+                return Output(status: 0, stdout: jsonText(status), stderr: notes)
+            }
+            return Output(status: 0, stdout: format(status, now: now), stderr: notes)
         } catch IPCError.notRunning {
             guard command == .show || command == .toggle else {
                 return Output(status: 1, stderr: "vestal: not running\n")
@@ -260,7 +277,53 @@ public enum CLI {
                 lines.append(line)
             }
         }
+        if let stats = status.stats { lines += format(stats) }
         return lines.joined(separator: "\n") + "\n"
+    }
+
+    /// The stats block of `vestal status`. Rates (CPU, network) are since
+    /// the instance's previous reading: its start or the previous status.
+    public static func format(_ stats: SystemStatsSample) -> [String] {
+        var lines = ["stats:"]
+        lines.append("  cpu: \(stats.cpuPercent)%")
+        lines.append("  memory: \(stats.memory.ramPercent)% used, \(stats.memory.pressurePercent)% compressed")
+        lines.append("  temperature: " + (stats.temperature > 0 ? "\(stats.temperature)°C" : "unknown"))
+        if stats.mounts.isEmpty {
+            lines.append("  disks: " + (stats.disk.map { "/ \(usedPercent($0.totalBytes, $0.freeBytes))% used of \(Format.bytes($0.totalBytes))" } ?? "unknown"))
+        } else {
+            lines.append("  disks:")
+            let width = stats.mounts.map(\.mountpoint.count).max() ?? 0
+            for mount in stats.mounts {
+                lines.append("    \(pad(mount.mountpoint, width))  \(usedPercent(mount.totalBytes, mount.freeBytes))% used of \(Format.bytes(mount.totalBytes))")
+            }
+        }
+        if let battery = stats.battery {
+            var line = "  battery: \(battery.percent)%"
+            if battery.charging { line += ", charging" }
+            line += battery.acPower ? ", on AC" : ", on battery"
+            if let minutes = battery.timeRemaining { line += ", \(Format.batteryRemaining(minutes: minutes)) left" }
+            lines.append(line)
+        } else {
+            lines.append("  battery: none")
+        }
+        lines.append("  volume: " + (stats.volume.map { "\($0.level)%" + ($0.muted ? " (muted)" : "") } ?? "unknown"))
+        lines.append("  uptime: \(Format.uptimeLong(Int(stats.uptime)))")
+        lines.append("  network: in \(Format.rate(stats.network.bytesIn))/s, out \(Format.rate(stats.network.bytesOut))/s")
+        return lines
+    }
+
+    private static func usedPercent(_ total: Int64, _ free: Int64) -> Int {
+        total > 0 ? Int(Double(total - free) * 100 / Double(total)) : 0
+    }
+
+    /// `vestal status --json`: the status object, pretty-printed with sorted
+    /// keys, dates in seconds since 1970 (as on the socket).
+    public static func jsonText(_ status: IPCStatus) -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        encoder.dateEncodingStrategy = .secondsSince1970
+        guard let data = try? encoder.encode(status) else { return "{}\n" }
+        return String(decoding: data, as: UTF8.self) + "\n"
     }
 
     /// "42s", "5m", "3h 12m", "2d 4h".

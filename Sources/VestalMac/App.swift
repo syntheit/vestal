@@ -156,8 +156,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
             forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
         ) { _ in server.checkSocket() }
 
+        // `vestal status` reports stats from a provider of its own: CPU and
+        // network are rates since the previous reading, and the dashboard's
+        // tickers keep theirs. Read once now, so the first status has rates
+        // since the start.
+        let statusStats = MacSystemStats()
+        _ = statusStats.cpuPercent()
+        _ = statusStats.networkRate()
         let resident = Resident(loaded: loaded, runtime: runtime, surface: self,
-                                hotkeys: hotkeys, watcher: watcher)
+                                hotkeys: hotkeys, watcher: watcher,
+                                stats: { SystemStatsSample.read(statusStats, volume: MacPlatform.audio.volume()) })
         self.resident = resident
         resident.start(hidden: startHidden)
         ResidentInbox.shared.attach(resident)
