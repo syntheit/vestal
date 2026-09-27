@@ -155,7 +155,8 @@ final class RenderPass {
                 axis: spec.layout == "row" ? .h : .v, gap: spec.gap,
                 align: RenderAlign(rawValue: spec.align) ?? .center, children: nodes)))
         }
-        node.maxWidth = spec.maxWidth
+        // A fixed size: `theme.scale` multiplies it (§8.1).
+        node.maxWidth = spec.maxWidth * model.scale
         node.padding = RenderInsets(top: spec.padding[0], right: spec.padding[1], bottom: spec.padding[2], left: spec.padding[3])
         node.width = .fill
         return node
@@ -338,7 +339,7 @@ final class RenderPass {
                 switch object["width"] {
                 case .string("fill")?: width = .fill
                 case .string("fit")?, nil: width = object["fill"] == .bool(true) ? .fill : .fit
-                case let other?: width = TextStyle.size(other).map { .points($0) } ?? .fit
+                case let other?: width = TextStyle.size(other).map { .points($0 * scope.style.scale) } ?? .fit
                 }
                 let align = RenderTextAlign(rawValue: object["align"]?.stringValue ?? "start") ?? .start
                 return RenderNode.Grid.Column(width: width, align: align)
@@ -516,7 +517,7 @@ final class RenderPass {
             let width: RenderNode.Grid.Column.Width
             switch spec["width"] {
             case .string("fill")?: width = .fill
-            case let other?: width = TextStyle.size(other).map { .points($0) } ?? .fit
+            case let other?: width = TextStyle.size(other).map { .points($0 * scope.style.scale) } ?? .fit
             case nil: width = spec["fill"] == .bool(true) ? .fill : .fit
             }
             return .init(width: width, align: RenderTextAlign(rawValue: spec["align"]?.stringValue ?? "start") ?? .start)
@@ -657,7 +658,7 @@ final class RenderPass {
             labelStyle = style(w["labelStyle"], over: labelStyle, id: id, scope: s, value: nil)
             var node = textNode(id: "\(id)/0", text: renderText(label, id: id, field: "label", scope: s),
                                 style: labelStyle, lines: 1, align: .end)
-            node.width = length(w["labelWidth"], id: id, field: "labelWidth", scope: s)
+            node.minWidth = minimumWidth(w["labelWidth"], id: id, field: "labelWidth", scope: s)
             children.append(node)
         }
         children.append(barNode)
@@ -671,7 +672,7 @@ final class RenderPass {
             textStyle = style(w["textStyle"], over: textStyle, id: id, scope: s, value: s.vars["value"])
             let content = value == nil ? "–" : renderText(textTemplate, id: id, field: "text", scope: s)
             var node = textNode(id: "\(id)/2", text: content, style: textStyle, lines: 1, align: .start)
-            node.width = length(w["textWidth"], id: id, field: "textWidth", scope: s)
+            node.minWidth = minimumWidth(w["textWidth"], id: id, field: "textWidth", scope: s)
             children.append(node)
         }
         return RenderNode(id: id, .stack(.init(axis: .h, gap: number(w["gap"], id: id, field: "gap", scope: s) ?? 4,
@@ -825,10 +826,11 @@ final class RenderPass {
             if let width = length(w["width"], id: id, field: "width", scope: scope) { node.width = width }
             if let height = length(w["height"], id: id, field: "height", scope: scope) { node.height = height }
         }
-        if let v = number(w["minWidth"], id: id, field: "minWidth", scope: scope) { node.minWidth = v }
-        if let v = number(w["maxWidth"], id: id, field: "maxWidth", scope: scope) { node.maxWidth = v }
-        if let v = number(w["minHeight"], id: id, field: "minHeight", scope: scope) { node.minHeight = v }
-        if let v = number(w["maxHeight"], id: id, field: "maxHeight", scope: scope) { node.maxHeight = v }
+        let scale = scope.style.scale
+        if let v = number(w["minWidth"], id: id, field: "minWidth", scope: scope) { node.minWidth = v * scale }
+        if let v = number(w["maxWidth"], id: id, field: "maxWidth", scope: scope) { node.maxWidth = v * scale }
+        if let v = number(w["minHeight"], id: id, field: "minHeight", scope: scope) { node.minHeight = v * scale }
+        if let v = number(w["maxHeight"], id: id, field: "maxHeight", scope: scope) { node.maxHeight = v * scale }
         switch literal(w["padding"], id: id, field: "padding", scope: scope) {
         case .array(let items)? where items.count == 4:
             let p = items.map { TextStyle.size($0) ?? 0 }
@@ -1002,12 +1004,22 @@ final class RenderPass {
         }
     }
 
+    /// A `width` or `height`: `fill`, fit (nil), or a fixed size, which
+    /// `theme.scale` and `style.scale` multiply like text and icons (§8.1).
     private func length(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> RenderLength? {
         switch literal(value, id: id, field: field, scope: scope) {
         case .string("fill")?: return .fill
         case .string("fit")?, nil: return nil
-        case let other?: return TextStyle.size(other).map { .points($0) }
+        case let other?: return TextStyle.size(other).map { .points($0 * scope.style.scale) }
         }
+    }
+
+    /// A minimum width (a progress widget's `labelWidth` and `textWidth`),
+    /// scaled like `length`: the text is at least this wide and grows
+    /// rather than truncating when a font sets it wider.
+    private func minimumWidth(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> Double? {
+        if case .points(let w)? = length(value, id: id, field: field, scope: scope) { return w }
+        return nil
     }
 
     private func align(_ value: AnyJSON?, id: String, scope: Scope) -> RenderAlign? {

@@ -95,7 +95,7 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 | `colors` | object | none | Colours added to, or overriding, the chosen palette: name → colour. |
 | `fonts` | object | platform defaults | A family per role: `{"sans": …, "mono": …, "rounded": …}`. `null` (or absent) is the platform's default: SF Pro, SF Mono and SF Pro Rounded on macOS; Geist and Geist Mono on Linux (shipped by the Nix package; fontconfig's `sans-serif` and `monospace` without them; `rounded` is `sans` there). A family that isn't installed falls back to the default. |
 | `font` | string | none | Shorthand for `fonts.sans`. |
-| `scale` | number | `1` | Multiplies every text, icon and fixed size (not gaps), for large screens or reading distance. |
+| `scale` | number | `1` | Multiplies every text, icon and fixed size (numeric widths and heights, min/max sizes, column widths, the view's `maxWidth`; not gaps or padding), for large screens or reading distance. |
 | `icons` | string | `"native"` on macOS | `"native"`: the macOS UI draws the icons the presets use as the SF Symbols v0.3 drew. `"phosphor"`: the bundled Phosphor font everywhere. Linux always uses Phosphor. |
 
 ```json
@@ -424,7 +424,7 @@ The tables below give each type's main fields. `vestal docs config` lists every 
 |---|---|---|
 | `text` | `text` (text), or `value` (expr) with `format`, `prefix`, `suffix`, `placeholder` (`–`); `icon`, `iconColor`, `iconSize` (0.8 × size), `iconWeight`, `gap` (5); `lines` (unlimited), `align` (`start`); `size`, `weight`, `color` | Text, with an optional leading icon. |
 | `icon` | `name`, `weight` (`regular` or `fill`), `size` (13), `color` (inherited) | A Phosphor glyph. |
-| `progress` | `value`, `max` (100), `min` (0), `overlay`, `overlayPosition` (`above`; `below`), `label`, `labelWidth`, `text` (`{{ $value \| round }}%`; `""` for none), `textWidth`, `width` (`fill`), `height` (6), `radius` (2), `color` (`accent`), `trackColor` (`color` at 15%), `overlayColor` (`#ffffff33`), `labelStyle`, `textStyle`, `gap` (4) | A horizontal bar with a label before and a value after. |
+| `progress` | `value`, `max` (100), `min` (0), `overlay`, `overlayPosition` (`above`; `below`), `label`, `labelWidth` (a minimum), `text` (`{{ $value \| round }}%`; `""` for none), `textWidth` (a minimum), `width` (`fill`), `height` (6), `radius` (2), `color` (`accent`), `trackColor` (`color` at 15%), `overlayColor` (`#ffffff33`), `labelStyle`, `textStyle`, `gap` (4) | A horizontal bar with a label before and a value after. |
 | `gauge` | `value`, `max`, `min`, `text` (`{{ $value \| round }}`), `label`, `size` (64), `thickness` (6), `sweep` (270), `color`, `trackColor`, `textStyle`, `labelStyle` | A ring with centre text and a label under it. |
 | `sparkline` | `values` (expr: an array of numbers), or `value` + `history` (`{size, every}`); `min`, `max` (the data's own), `width` (`fill`), `height` (24), `color` (`accent`; may use `$value`, the last point), `fill`, `strokeWidth` (1.5), `dot` (false) | A line. Fewer than two points draws nothing. |
 | `keyValue` | `items` (a list of `{label, value` + `format` or `text, color, source, vars, when, action, key}`), `gap` (24), `align` (`center`), `labelStyle`, `valueStyle` | Labelled values side by side. An item whose source has no data, whose `when` is false, or whose value is `null` is skipped; with none left the widget is hidden. |

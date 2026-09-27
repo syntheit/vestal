@@ -205,7 +205,7 @@ public enum SchemaRegistry {
             SchemaKey("font", .string, since: "0.4", examples: [.string("Inter")],
                       "Shorthand for fonts.sans (§16.1)."),
             SchemaKey("scale", .number, default: .int(1), since: "0.4", examples: [.double(1.25)],
-                      "Multiplies every text, icon and fixed size (not gaps)."),
+                      "Multiplies every text, icon and fixed size (not gaps or padding)."),
             SchemaKey("icons", .oneOf(["native", "phosphor"]), since: "0.4", examples: [.string("phosphor")],
                       "native: the macOS UI draws the presets' icons as SF Symbols (the default on macOS). phosphor: the bundled "
                       + "Phosphor font everywhere."),

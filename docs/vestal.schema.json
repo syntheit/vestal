@@ -3303,7 +3303,7 @@
         },
         "scale": {
           "default": 1,
-          "description": "Multiplies every text, icon and fixed size (not gaps).",
+          "description": "Multiplies every text, icon and fixed size (not gaps or padding).",
           "examples": [
             1.25
           ],
@@ -11047,7 +11047,7 @@
               "type": "null"
             }
           ],
-          "description": "The label's width; it aligns to its end.",
+          "description": "The label's minimum width; it aligns to its end, and a wider label widens it.",
           "examples": [
             24
           ],
@@ -11702,7 +11702,7 @@
               "type": "null"
             }
           ],
-          "description": "The text's width.",
+          "description": "The text's minimum width.",
           "examples": [
             30
           ],
@@ -12173,7 +12173,7 @@
               "type": "null"
             }
           ],
-          "description": "The label's width; it aligns to its end.",
+          "description": "The label's minimum width; it aligns to its end, and a wider label widens it.",
           "examples": [
             24
           ],
@@ -12475,7 +12475,7 @@
               "type": "null"
             }
           ],
-          "description": "The text's width.",
+          "description": "The text's minimum width.",
           "examples": [
             30
           ],

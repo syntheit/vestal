@@ -346,7 +346,11 @@ public enum DefaultPresets {
           "children": [
             {
               "type": "list", "gap": 8, "width": "fill",
-              "items": "$hosts | map(select(.name != null)) | uniq_by(.name) | map(. + host_health(.; $provider)) | map(select(.seen))",
+              "vars": {
+                "rows": "$hosts | map(select(.name != null)) | uniq_by(.name) | map(. + host_health(.; $provider)) | map(select(.seen))",
+                "nameWidth": "[60, ($rows | map(.name | tostring | length) | max // 0) * 8 | ceil] | max"
+              },
+              "items": "$rows",
               "rowId": ".name",
               "row": {
                 "type": "row", "gap": 10, "width": "fill",
@@ -354,7 +358,7 @@ public enum DefaultPresets {
                 "action": { "popup": { "type": "hostDetail", "host": { "expr": "." }, "provider": "{{ $provider }}" } },
                 "children": [
                   { "type": "icon", "name": "circle", "weight": "fill", "size": 6, "color": "bad", "when": ".ok | not" },
-                  { "type": "text", "text": "{{ .name }}", "width": 60, "style": { "size": 13, "weight": "semibold", "font": "mono" } },
+                  { "type": "text", "text": "{{ .name }}", "lines": 1, "minWidth": { "expr": "$nameWidth" }, "style": { "size": 13, "weight": "semibold", "font": "mono" } },
                   { "type": "row", "gap": 10, "input": ".data", "when": ".cpu.percent != null and .memory.percent != null", "children": [
                     { "type": "progress", "label": "CPU", "labelWidth": 24, "value": ".cpu.percent", "width": 48, "height": 6, "textWidth": 30, "color": "cyan" },
                     { "type": "progress", "label": "RAM", "labelWidth": 24, "value": ".memory.percent", "overlay": ".memory.pressure", "width": 48, "height": 6, "textWidth": 30, "color": "purple" },
@@ -395,7 +399,8 @@ public enum DefaultPresets {
               ] },
               { "type": "stack", "gap": 6, "width": "fill", "when": ".gpu != null", "children": [
                 @METRIC(GPU§.gpu.percent§teal§null§"\(.gpu.temperature // 0)° · \(.gpu.power // 0 | floor)W")@,
-                { "type": "row", "width": "fill", "padding": [0, 0, 0, 94], "children": [
+                { "type": "row", "gap": 10, "width": "fill", "children": [
+                  { "type": "spacer", "width": 84 },
                   { "type": "text", "text": "{{ .gpu.name }}", "style": { "size": 11, "font": "mono", "color": "dim" } },
                   { "type": "spacer" },
                   { "type": "text", "text": "{{ .gpu.memUsed // 0 | @MB@ }} / {{ .gpu.memTotal // 0 | @MB@ }}", "style": { "size": 11, "font": "mono", "color": "subtle" } }
@@ -410,7 +415,7 @@ public enum DefaultPresets {
                 "items": "(.disks // []) | map(select(.pool != true))", "rowId": ".mount",
                 "row": @METRIC({{ .mount }}§.percent§cyan§null§"\(.used // 0 | @GB@) / \(.total // 0 | @GB@)")@ },
               { "type": "row", "gap": 12, "width": "fill", "children": [
-                { "type": "text", "text": "net", "width": 84, "style": { "size": 11, "weight": "semibold", "font": "mono", "color": "dim" } },
+                { "type": "text", "text": "net", "lines": 1, "minWidth": 84, "style": { "size": 11, "weight": "semibold", "font": "mono", "color": "dim" } },
                 { "type": "icon", "name": "arrow-down", "size": 9, "color": "dim" },
                 { "type": "text", "text": "{{ .network.rx // 0 | fmt_rate }}", "style": { "size": 12, "font": "mono", "color": "subtle" } },
                 { "type": "icon", "name": "arrow-up", "size": 9, "color": "dim" },
@@ -451,19 +456,19 @@ public enum DefaultPresets {
         let overlayField = overlay == "null" ? "" : #", "overlay": "\#(overlay)""#
         return #"""
         { "type": "row", "gap": 10, "width": "fill", "vars": { "note": "\#(jsonEscaped(trailing))" }, "children": [
-          { "type": "text", "text": "\#(label)", "width": 84, "style": { "size": 11, "weight": "semibold", "font": "mono", "color": "dim" } },
+          { "type": "text", "text": "\#(label)", "lines": 1, "minWidth": 84, "style": { "size": 11, "weight": "semibold", "font": "mono", "color": "dim" } },
           { "type": "progress", "value": "\#(value)"\#(overlayField), "width": "fill", "height": 6, "text": "", "trackColor": "track", "overlayPosition": "below", "overlayColor": "bad@0.4", "color": "\#(color)" },
-          { "type": "text", "text": "{{ \#(value) // 0 | floor }}%", "width": 38, "align": "end", "style": { "size": 11, "font": "mono", "color": "subtle" } },
+          { "type": "text", "text": "{{ \#(value) // 0 | floor }}%", "lines": 1, "minWidth": 38, "align": "end", "style": { "size": 11, "font": "mono", "color": "subtle" } },
           { "type": "text", "text": "{{ $note }}", "when": "$note != null", "style": { "size": 11, "font": "mono", "color": "dim" } }
         ] }
         """#
     }
 
-    /// A label 84 points wide and a value (v0.3 SystemDetailView.labeledRow).
+    /// A label at least 84 points wide and a value (v0.3 SystemDetailView.labeledRow).
     static func labeledRow(_ label: String, _ when: String, _ text: String) -> String {
         #"""
         { "type": "row", "width": "fill", "when": "\#(jsonEscaped(when))", "children": [
-          { "type": "text", "text": "\#(label)", "width": 84, "style": { "size": 11, "weight": "semibold", "font": "mono", "color": "dim" } },
+          { "type": "text", "text": "\#(label)", "lines": 1, "minWidth": 84, "style": { "size": 11, "weight": "semibold", "font": "mono", "color": "dim" } },
           { "type": "text", "text": "\#(text)", "style": { "size": 12, "font": "mono", "color": "subtle" } },
           { "type": "spacer" }
         ] }

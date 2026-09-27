@@ -72,6 +72,7 @@ public enum RenderText {
         }
         if let w = node.width { parts.append("w=\(length(w))") }
         if let h = node.height { parts.append("h=\(length(h))") }
+        if let m = node.minWidth { parts.append("minWidth=\(number(m))") }
         if let m = node.maxWidth { parts.append("maxWidth=\(number(m))") }
         if let s = node.spaceBefore { parts.append("spaceBefore=\(number(s))") }
         if node.action { parts.append("action") }

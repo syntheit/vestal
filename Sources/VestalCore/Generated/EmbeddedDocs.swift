@@ -1975,7 +1975,7 @@ A built-in source template: `{"type": "foyer", "url": "https://box.example.com"}
 | `colors` | none | Colours added to, or replacing, the chosen palette's. |
 | `fonts` | platform | `{ "sans": family, "mono": family, "rounded": family }`; `null` means the platform default. |
 | `font` | none | Shorthand for `fonts.sans`. |
-| `scale` | `1` | Multiplies every text, icon and fixed size (not gaps): for large screens or reading from afar. |
+| `scale` | `1` | Multiplies every text, icon and fixed size (numeric widths and heights, min/max sizes, column widths, the view's `maxWidth`; not gaps or padding): for large screens or reading from afar. |
 | `icons` | platform | `native`: the macOS UI draws the presets' icons as SF Symbols (the default on macOS). `phosphor`: the bundled Phosphor font everywhere (`vestal docs icons`). |
 
 Fonts are the usual reason for a `platform` block:

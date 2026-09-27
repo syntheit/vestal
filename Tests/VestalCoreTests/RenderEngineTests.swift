@@ -248,7 +248,11 @@ final class RenderEngineTests: XCTestCase {
         XCTAssertEqual(outer?.axis, .h)
         XCTAssertEqual(outer?.gap, 4)
         XCTAssertEqual(text(node(s, "main/w/0")), RenderNode.Text(text: "RAM", size: 9, weight: 600, color: "dim", lines: 1, textAlign: .end))
-        XCTAssertEqual(node(s, "main/w/0")?.width, .points(24))
+        // labelWidth and textWidth are minimums: a wider font widens the frame.
+        XCTAssertNil(node(s, "main/w/0")?.width)
+        XCTAssertEqual(node(s, "main/w/0")?.minWidth, 24)
+        XCTAssertNil(node(s, "main/w/2")?.width)
+        XCTAssertEqual(node(s, "main/w/2")?.minWidth, 30)
         guard case .bar(let bar)? = node(s, "main/w/1")?.content else { return XCTFail("no bar") }
         XCTAssertEqual(bar.value, 0.61, accuracy: 1e-9)
         XCTAssertEqual(bar.overlay ?? 0, 0.12, accuracy: 1e-9)
@@ -265,6 +269,70 @@ final class RenderEngineTests: XCTestCase {
         XCTAssertNil(none.overlay)
         XCTAssertEqual(node(empty, "main/w")?.children.count, 1)
         XCTAssertEqual(node(empty, "main/w")?.width, .fill)  // the fill bar, propagated
+    }
+
+    func testThemeScaleMultipliesFixedSizes() {
+        // §8.1: text, icons and fixed sizes, not gaps or padding.
+        let s = render("""
+            { "theme": { "scale": 1.5 },
+              "sources": { "s": { "type": "file", "path": "/s" } },
+              "widgets": {
+                "r": { "type": "row", "gap": 10, "padding": 4, "children": [
+                  { "type": "text", "text": "a", "width": 60, "minHeight": 10, "maxWidth": 80 },
+                  { "type": "spacer", "width": 84 },
+                  { "type": "row", "style": { "scale": 2 }, "children": [ { "type": "text", "text": "c", "width": 10 } ] }
+                ] },
+                "p": { "type": "progress", "source": "s", "value": ".p", "label": "CPU", "labelWidth": 24, "width": 48, "textWidth": 30 },
+                "g": { "type": "grid", "columns": [ { "width": 40 }, { "width": "fit" } ], "children": [] }
+              },
+              "views": { "main": { "maxWidth": 600, "children": ["r", "p", "g"] } } }
+            """, sources: ["s": #"{"p": 50}"#])
+        XCTAssertEqual(s.root.maxWidth, 900)
+        XCTAssertEqual(s.root.padding, RenderInsets(top: 48, right: 48, bottom: 48, left: 48))
+        XCTAssertEqual(stack(node(s, "main/r"))?.gap, 10)
+        XCTAssertEqual(node(s, "main/r")?.padding, RenderInsets(top: 4, right: 4, bottom: 4, left: 4))
+        XCTAssertEqual(node(s, "main/r/0")?.width, .points(90))
+        XCTAssertEqual(node(s, "main/r/0")?.minHeight, 15)
+        XCTAssertEqual(node(s, "main/r/0")?.maxWidth, 120)
+        XCTAssertEqual(text(node(s, "main/r/0"))?.size, 19.5)
+        XCTAssertEqual(node(s, "main/r/1")?.width, .points(126))
+        XCTAssertEqual(node(s, "main/r/2/0")?.width, .points(30))
+        XCTAssertEqual(node(s, "main/p/0")?.minWidth, 36)
+        XCTAssertEqual(node(s, "main/p/1")?.width, .points(72))
+        XCTAssertEqual(node(s, "main/p/1")?.height, .points(9))
+        XCTAssertEqual(node(s, "main/p/2")?.minWidth, 45)
+        guard case .grid(let grid)? = node(s, "main/g")?.content else { return XCTFail("no grid") }
+        XCTAssertEqual(grid.columns.map(\.width), [.points(60), .fit])
+    }
+
+    func testSystemHealthNameColumnFitsTheWidestName() {
+        // One line per name, at least 60 wide (v0.3's column), wider for a
+        // longer name, the same in every row.
+        func names(_ hosts: [String]) -> [RenderNode] {
+            let list = hosts.map { #"{ "name": "\#($0)", "source": "h" }"# }.joined(separator: ", ")
+            let m = model("""
+                { "sources": { "h": { "type": "file", "path": "/h" } },
+                  "widgets": { "systems": { "type": "systemHealth", "hosts": [\(list)] } },
+                  "views": { "main": { "children": ["systems"] } } }
+                """)
+            let s = session(m).render(data: data(m, ["h": #"{"cpu": {"usage_percent": 5}, "memory": {"usage_percent": 40}}"#],
+                                                 metas: ["h": #"{"ok": true, "loaded": true}"#]), now: Self.now)
+            var found: [RenderNode] = []
+            func walk(_ n: RenderNode) {
+                if case .text(let t) = n.content, t.font == "mono", t.weight == 600, t.size == 13 { found.append(n) }
+                n.children.forEach(walk)
+            }
+            walk(s.root)
+            return found
+        }
+        let short = names(["harbor", "raven", "conduit"])
+        XCTAssertEqual(short.map { text($0)?.text }, ["harbor", "raven", "conduit"])
+        for n in short {
+            XCTAssertNil(n.width)
+            XCTAssertEqual(n.minWidth, 60)
+            XCTAssertEqual(text(n)?.lines, 1)
+        }
+        XCTAssertEqual(names(["raven", "workstation-01"]).map(\.minWidth), [112, 112])
     }
 
     func testGaugeSparklineKeyValueDividerSpacer() {

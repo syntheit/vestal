@@ -98,12 +98,15 @@ final class RecipeTests: XCTestCase {
     }
 
     /// The default `systems` widget names its local host after this machine:
-    /// goldens say `<host>`.
+    /// goldens say `<host>`, and `<w>` for the name column's width, which
+    /// follows the longest name.
     static func hostMasked(_ text: String) -> String {
         let host = LocalHost.shortName
-        return text.replacingOccurrences(of: "@\(host)]", with: "@<host>]")
+        let out = text.replacingOccurrences(of: "@\(host)]", with: "@<host>]")
             .replacingOccurrences(of: "@\(host)/", with: "@<host>/")
             .replacingOccurrences(of: "\"\(host)\"", with: "\"<host>\"")
+        guard let width = try? NSRegularExpression(pattern: #"(text "<host>" [^\[\n]*)minWidth=[0-9.]+"#) else { return out }
+        return width.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out), withTemplate: "$1minWidth=<w>")
     }
 
     /// The clock's texts come from ICU and differ between Foundation builds.
