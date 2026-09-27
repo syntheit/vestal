@@ -258,7 +258,10 @@ final class ConfigLoaderTests: XCTestCase {
         XCTAssertEqual(config.widgets["systems"]?.hosts, [HostConfig(name: LocalHost.shortName, source: "local")])
         XCTAssertEqual(config.sources["calendar"]?.type, "calendar")
         XCTAssertEqual(config.sources["weather"]?.url, "https://wttr.in/?m&format=j1")
-        XCTAssertEqual(Set(config.sources.keys), ["weather", "calendar", "system", "media", "claude"])
+        // Plus the media preset's inline source (v0.4 expansion).
+        XCTAssertEqual(Set(config.sources.keys.filter { !$0.hasPrefix("inline:") }),
+                       ["weather", "calendar", "system", "media", "claude"])
+        XCTAssertEqual(config.sources[LegacySources.media(player: "Spotify").inlineName], LegacySources.media(player: "Spotify"))
     }
 
     func testFullExampleLoadsWithoutWarnings() throws {
@@ -349,11 +352,18 @@ final class ConfigLoaderTests: XCTestCase {
         XCTAssertEqual(config.hotkey, expected.hotkey)
         XCTAssertEqual(config.theme, expected.theme)
         XCTAssertEqual(config.views, expected.views)
-        XCTAssertEqual(Set(config.sources.keys), Set(expected.sources.keys))
+        // v0.4: the presets' inline sources and the adapter's `host:<name>`
+        // sources come in with the expansion.
+        let named = config.sources.filter { !$0.key.hasPrefix("inline:") && !$0.key.hasPrefix("host:") }
+        XCTAssertEqual(Set(named.keys), Set(expected.sources.keys))
+        XCTAssertEqual(Set(config.sources.keys.filter { $0.hasPrefix("host:") }), ["host:harbor", "host:raven", "host:conduit"])
         for (name, source) in expected.sources { XCTAssertEqual(config.sources[name], source, name) }
         XCTAssertEqual(Set(config.widgets.keys), Set(expected.widgets.keys))
         for (key, widget) in expected.widgets { XCTAssertEqual(config.widgets[key], widget, key) }
-        XCTAssertEqual(config, expected)
+        var plain = config
+        plain.sources = named
+        plain.expanded = nil
+        XCTAssertEqual(plain, expected)
     }
 
     func testClaudeUsageOptionsComeFromTheFirstWidgetByKey() {

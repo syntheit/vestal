@@ -244,7 +244,7 @@ public enum ConfigLoader {
     /// (templates, legacy adapter), with the expansion's findings.
     static func make(path: String?, merged: AnyJSON, warnings: [ConfigWarning]) -> LoadedConfig {
         let expanded = ConfigExpansion.expand(merged)
-        var config = decode(merged)
+        var config = decodeMerged(merged)
         config.adopt(expanded)
         return LoadedConfig(path: path, config: config, merged: merged, warnings: warnings + expanded.warnings,
                             notes: expanded.notes, expanded: expanded)
@@ -290,6 +290,13 @@ public enum ConfigLoader {
     /// Decode a merged tree. Never fails: decoding is permissive (see Config),
     /// and a tree that isn't an object gives an empty config.
     public static func decode(_ merged: AnyJSON) -> Config {
+        var config = decodeMerged(merged)
+        config.adopt(ConfigExpansion.expand(merged))
+        return config
+    }
+
+    /// The v0.3 view of a merged tree, without the expansion's sources.
+    static func decodeMerged(_ merged: AnyJSON) -> Config {
         // Inline source objects become named sources (InlineSources).
         guard let data = try? JSONEncoder().encode(InlineSources.extract(merged)),
               let config = try? JSONDecoder().decode(Config.self, from: data)

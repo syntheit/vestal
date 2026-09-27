@@ -161,7 +161,9 @@ final class CheckConfigTests: XCTestCase {
         XCTAssertEqual(find("/widgets/systems/hosts/1/key")?.code, "key-conflict")
         XCTAssertEqual(find("/views/main/order/1")?.code, "unknown-widget")
         XCTAssertEqual(find("/views/main/order/1")?.suggestions, ["agenda"])
-        XCTAssertTrue(found.allSatisfy { $0.severity == .warning }, "a v0.3 config has no errors")
+        // The legacy adapter adds info notes (§7.5); nothing is an error.
+        XCTAssertTrue(found.filter { $0.severity != .info }.allSatisfy { $0.severity == .warning }, "a v0.3 config has no errors")
+        XCTAssertEqual(found.filter { $0.severity == .info }.map(\.code), ["legacy"])
 
         let json = find("/views/main/order/1")!.json.objectValue!
         XCTAssertEqual(json["suggestion"], .string("agenda"))

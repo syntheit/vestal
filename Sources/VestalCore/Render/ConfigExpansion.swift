@@ -43,7 +43,9 @@ public enum ConfigExpansion {
     public static let maxDepth = 16
 
     public static func expand(_ merged: AnyJSON) -> ExpandedConfig {
-        guard case .object(var top) = merged else {
+        // Inline sources the user wrote are named first, as the v0.3 decoder
+        // names them (a template parameter then holds the name).
+        guard case .object(var top) = InlineSources.extract(merged) else {
             return ExpandedConfig(tree: merged, registry: .standard, warnings: [], notes: [])
         }
         let notes = LegacyAdapter.apply(&top)
@@ -363,6 +365,9 @@ struct Expander {
     /// fields applied to its root (§7.2 rules 1–6).
     private mutating func instance(_ members: [String: AnyJSON], _ template: TemplateDefinition, path: String) -> AnyJSON {
         guard let body = template.widget else { return errorNode("template \"\(template.name)\" has no widget") }
+        // A v0.3 widget type keeps v0.3's rules: the validator reports its
+        // problems, and a value of the wrong type counts as absent.
+        let legacy = template.builtin && WidgetConfig.keysByType[template.name] != nil
         var values: [String: AnyJSON] = [:]
         var common: [String: AnyJSON] = [:]
         var style: [String: AnyJSON] = [:]
@@ -376,7 +381,7 @@ struct Expander {
                 common[key] = value
             } else if WidgetTypes.styleShorthands.contains(key) {
                 style[key] = value
-            } else {
+            } else if !legacy {
                 let known = Array(template.params.keys) + Array(WidgetTypes.commonFields)
                 warnings.append(ConfigWarning(
                     kind: .unknownKey, path: "\(path).\(key)",
@@ -389,9 +394,14 @@ struct Expander {
             let param = template.params[name]!
             var value = values[name]
             if value == .null { value = nil }
+            if legacy, let given = value,
+               !param.accepts(given) || (param.enumValues.map { !$0.contains(given) } ?? false) {
+                value = nil
+            }
             if value == nil { value = param.defaultValue }
             guard let value else {
                 if param.required {
+                    if legacy { return errorNode("\(template.name) needs \"\(name)\"") }
                     return error(path, "\(template.name) needs \"\(name)\"", code: "missing-required")
                 }
                 continue
@@ -567,8 +577,13 @@ struct Expander {
         return .object(b)
     }
 
+    /// Problems check-config's validator reports itself (a widget's type,
+    /// references to `widgets`); the expansion only draws nothing for them.
+    static let validatorCodes: Set<String> = ["unknown-type", "unknown-widget"]
+
     private mutating func error(_ path: String, _ message: String, code: String,
                                 suggestions: [String] = [], expected: String? = nil, found: String? = nil) -> AnyJSON {
+        if Self.validatorCodes.contains(code) || message == "a widget needs a \"type\"" { return errorNode(message) }
         warnings.append(ConfigWarning(kind: code == "unknown-type" ? .unknownType : .invalidValue, path: path,
                                       message: message + "; the widget is not shown", code: code, severity: .error,
                                       suggestions: suggestions, expected: expected, found: found))
