@@ -8,11 +8,11 @@ import Foundation
 // its JSON path. Warnings never stop the app.
 
 enum ConfigValidator {
-    static func validate(_ merged: AnyJSON) -> [ConfigWarning] {
+    static func validate(_ merged: AnyJSON, platform: ConfigPlatform = .current) -> [ConfigWarning] {
         guard case .object(let top) = merged else {
             return [ConfigWarning(kind: .invalidJSON, message: "the top level must be an object")]
         }
-        var walker = Walker(top: top)
+        var walker = Walker(top: top, platform: platform)
         walker.run()
         return walker.warnings
     }
@@ -74,12 +74,15 @@ private struct Walker {
     /// Explicit host shortcut letters → where they were set. One keyboard
     /// serves every systemHealth widget.
     private var hostKeys: [String: String] = [:]
+    /// The v0.4 checks (ConfigValidatorV04.swift).
+    private var v04: V04Checker
 
     /// The top-level keys besides `platform`, which never reaches the merged tree.
     static let topLevelKeys = SchemaRegistry.topLevel.keyNames.filter { $0 != "platform" }
 
-    init(top: [String: AnyJSON]) {
+    init(top: [String: AnyJSON], platform: ConfigPlatform) {
         self.top = top
+        v04 = V04Checker(top: top, platform: platform)
         for (name, value) in top["sources"]?.objectValue ?? [:] {
             if let type = value.objectValue?["type"]?.stringValue {
                 sourceTypes[name] = SourceConfig.canonicalType(type)
@@ -104,14 +107,22 @@ private struct Walker {
             case "widgets": widgets(value)
             case "views": views(value)
             case "secrets": secrets(value)
+            case "defaultView": v04.defaultView(value)
+            case "keys": v04.keys(value, path: "keys")
+            case "functions": v04.functions(value)
+            case "templates": v04.templates()
             default:
                 add(.unknownKey, key, "unknown key (known: \(Self.topLevelKeys.joined(separator: ", ")), platform)",
                     suggestions: DidYouMean.suggestions(for: key, among: Self.topLevelKeys + ["platform"]))
             }
         }
-        if top["views"] == nil || top["views"]?.objectValue.map({ $0["main"]?.objectValue == nil }) == true {
-            add(.missingKey, "views.main", "missing; the dashboard shows nothing")
+        let shown = top["defaultView"]?.stringValue ?? "main"
+        if top["views"] == nil || top["views"]?.objectValue.map({ $0[shown]?.objectValue == nil }) == true {
+            if shown == "main" { add(.missingKey, "views.main", "missing; the dashboard shows nothing") }
         }
+        // Inline sources inside v0.4 widgets get the source checks.
+        for (definition, path) in v04.inlineSources { _ = source(definition, path) }
+        warnings += v04.warnings
     }
 
     /// A hotkey that doesn't parse registers nothing.
@@ -131,7 +142,12 @@ private struct Walker {
     private mutating func theme(_ value: AnyJSON) {
         guard let theme = object(value, "theme") else { return }
         checkKeys(theme, keys("theme"), "theme", for: "theme")
-        oneOf(theme["palette"], "theme.palette", ThemeConfig.palettes)
+        let palettes = ThemeConfig.palettes + (theme["palettes"]?.objectValue?.keys.sorted() ?? [])
+        oneOf(theme["palette"], "theme.palette", palettes)
+        oneOf(theme["icons"], "theme.icons", ["native", "phosphor"])
+        for problem in RenderPalette(theme: value).problems where problem.hasPrefix("colour") {
+            add(.invalidValue, "theme.colors", problem, code: "unknown-color")
+        }
         oneOf(theme["background"], "theme.background", ThemeConfig.backgrounds)
     }
 
@@ -154,6 +170,11 @@ private struct Walker {
               let type = entryType(source, path, what: "source")
         else { return nil }
         let canonical = SourceConfig.canonicalType(type)
+        if SourceConfig.keysByType[canonical] == nil, let template = v04.registry.lookup(type), template.isSource {
+            // A source template (§7.4): the expansion checks its parameters.
+            v04.sourceFields(source, path: path, params: [])
+            return template.source?.objectValue?["type"]?.stringValue.map(SourceConfig.canonicalType)
+        }
         guard let keys = SourceConfig.keysByType[canonical] else {
             add(.unknownType, "\(path).type",
                 "unknown source type \"\(type)\" (expected \(ConfigValidator.alternatives(Self.names(SourceConfig.keysByType))))",
@@ -161,6 +182,7 @@ private struct Walker {
             return nil
         }
         checkKeys(source, keys, path, for: "\(canonical) sources")
+        v04.sourceFields(source, path: path, params: [])
         duration(source["refresh"], "\(path).refresh", default: SourceConfig.defaultRefresh(for: canonical))
         if keys.contains("parse") {
             oneOf(source["parse"], "\(path).parse",
@@ -291,13 +313,17 @@ private struct Walker {
                   let type = entryType(widget, path, what: "widget")
             else { continue }
             let canonical = WidgetConfig.canonicalType(type)
-            guard let keys = WidgetConfig.keysByType[canonical] else {
-                add(.unknownType, "\(path).type",
-                    "unknown widget type \"\(type)\" (expected \(ConfigValidator.alternatives(Self.names(WidgetConfig.keysByType))))",
-                    suggestions: DidYouMean.suggestions(for: type, among: Self.names(WidgetConfig.keysByType)), found: type)
+            guard let preset = SchemaRegistry.presetWidgetTypes.first(where: { $0.name == canonical }) else {
+                // The engine's own types, templates, and unknown types (v0.4).
+                v04.widget(entry, path: path, scope: V04Checker.baseScope)
                 continue
             }
+            // A v0.3 type: its keys, the preset's extra parameters and the
+            // common fields (§6.1), which the v0.4 checks look at.
+            let keys = Set(SchemaRegistry.widgetKeys(preset).map(\.name))
             checkKeys(widget, keys, path, for: "\(canonical) widgets")
+            v04.common(widget.filter { WidgetTypes.commonFields.contains($0.key) && $0.key != "source" },
+                       path: path, scope: V04Checker.baseScope, inTemplate: false)
             if keys.contains("title") { _ = string(widget["title"], "\(path).title") }
 
             switch canonical {
@@ -312,7 +338,14 @@ private struct Walker {
                 widgetSource(widget, path, required: true, calendar: true)
                 atLeastOne(widget["maxEvents"], "\(path).maxEvents", default: WidgetConfig.Defaults.maxEvents)
             case "systemHealth":
-                oneOf(widget["provider"], "\(path).provider", WidgetConfig.providers)
+                if let provider = string(widget["provider"], "\(path).provider"),
+                   v04.registry.lookup(provider)?.source == nil || v04.registry.lookup(provider)?.params["url"] == nil {
+                    let providers = v04.registry.names.filter { v04.registry.lookup($0)?.params["url"] != nil && v04.registry.lookup($0)?.isSource == true }
+                    add(.invalidValue, "\(path).provider",
+                        "unknown value \"\(provider)\" (expected a source template with a url parameter: \(ConfigValidator.alternatives(providers)))",
+                        suggestions: DidYouMean.suggestions(for: provider, among: providers),
+                        expected: "one of " + providers.joined(separator: ", "), found: provider)
+                }
                 hosts(widget["hosts"], "\(path).hosts")
             case "keyValueList":
                 widgetSource(widget, path, required: false, calendar: false)
@@ -496,7 +529,10 @@ private struct Walker {
             let path = "views.\(name)"
             guard let view = object(entry, path, "view ignored") else { continue }
             checkKeys(view, keys("view"), path, for: "views")
-            if let order = strings(view["order"], "\(path).order") {
+            // With children, order is ignored (the defaults' main view has
+            // one that survives a user view written with children).
+            let hasChildren = view["children"] != nil && view["children"] != .null
+            if !hasChildren, let order = strings(view["order"], "\(path).order") {
                 var seen = Set<String>()
                 for (i, key) in order.enumerated() {
                     if !widgetNames.contains(key) {
@@ -508,6 +544,7 @@ private struct Walker {
                 }
             }
             oneOf(view["layout"], "\(path).layout", ViewConfig.layouts)
+            v04.view(name, view)
         }
     }
 

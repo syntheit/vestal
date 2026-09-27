@@ -61,6 +61,8 @@ public struct ConfigWarning: Equatable, Sendable, CustomStringConvertible {
     /// (`error`) and the legacy adapter's notes (`info`). Nil: the kind
     /// decides (`isError`).
     public var severity: ConfigDiagnostic.Severity?
+    /// For an expression problem: the UTF-8 offset inside the whole field.
+    public var exprOffset: Int?
 
     public init(kind: Kind, path: String = "", message: String,
                 line: Int? = nil, column: Int? = nil, platform: ConfigPlatform? = nil,
@@ -210,7 +212,7 @@ public enum ConfigLoader {
 
         var warnings = ConfigValidator.validatePlatformBlock(user["platform"])
         let merged = layer(defaults: DefaultConfig.tree, user: user, platform: platform)
-        warnings += ConfigValidator.validate(merged)
+        warnings += ConfigValidator.validate(merged, platform: platform)
 
         // The other platform's block never reaches this machine's config,
         // but it is the same file: report its problems too, tagged.
@@ -218,7 +220,7 @@ public enum ConfigLoader {
             guard user["platform"]?.objectValue?[other.rawValue]?.objectValue != nil else { continue }
             let seen = Set(warnings.map(\.description))
             let otherMerged = layer(defaults: DefaultConfig.tree, user: user, platform: other)
-            for var warning in ConfigValidator.validate(otherMerged) {
+            for var warning in ConfigValidator.validate(otherMerged, platform: other) {
                 // One this OS reports too is left out, unless the other
                 // block itself sets the value: then it is its own finding,
                 // in that block.

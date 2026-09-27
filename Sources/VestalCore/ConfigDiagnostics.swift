@@ -68,6 +68,7 @@ public struct ConfigDiagnostic: Equatable, Sendable {
         }
         if let expected { object["expected"] = .string(expected) }
         if let found { object["found"] = .string(found) }
+        if let offset = warning.exprOffset { object["exprOffset"] = .int(offset) }
         if let line { object["line"] = .int(line) }
         if let column { object["column"] = .int(column) }
         if let platform = warning.platform { object["platform"] = .string(platform.rawValue) }

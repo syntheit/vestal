@@ -150,7 +150,7 @@ public enum DocsCommand {
             let aliases = type.aliases.isEmpty ? "" : " (alias: " + type.aliases.map { "`\($0)`" }.joined(separator: ", ") + ")"
             section("Source `\(type.name)`\(aliases)", type.description, type.keys)
         }
-        for type in SchemaRegistry.widgetTypes {
+        for type in SchemaRegistry.allWidgetTypes {
             let aliases = type.aliases.isEmpty ? "" : " (alias: " + type.aliases.map { "`\($0)`" }.joined(separator: ", ") + ")"
             section("Widget `\(type.name)`\(aliases)", type.description, type.keys)
         }
@@ -164,6 +164,7 @@ public enum DocsCommand {
             if let minimum, minimum == maximum { return "`\(minimum)`" }
             return minimum.map { "integer ≥ \($0)" } ?? "integer"
         case .boolean: return "boolean"
+        case .number: return "number"
         case .duration: return "duration"
         case .oneOf(let values): return values.map { "`\($0)`" }.joined(separator: ", ")
         case .list(let element): return "list of \(describe(element))"

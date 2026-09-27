@@ -27,6 +27,8 @@ public indirect enum SchemaType: Equatable, Sendable {
     /// A whole number, at least `minimum` and at most `maximum` when set.
     case integer(minimum: Int?, maximum: Int? = nil)
     case boolean
+    /// Any number.
+    case number
     /// A duration string: "30s", "5m", "4h", "1d".
     case duration
     /// One of these strings.
@@ -59,13 +61,16 @@ public struct SchemaKey: Sendable {
     public var description: String
     public var examples: [AnyJSON]
     public var since: String
+    /// A literal field that may also be `{"expr": "<jq>"}`, computed at
+    /// render (§4.1 R3).
+    public var computed: Bool
 
     public init(_ name: String, _ type: SchemaType, kind: SchemaKind = .literal, default defaultValue: AnyJSON? = nil,
                 required: Bool = false, nullable: Bool = false, since: String = "0.3",
-                examples: [AnyJSON] = [], _ description: String) {
+                examples: [AnyJSON] = [], computed: Bool = false, _ description: String) {
         self.name = name; self.type = type; self.kind = kind; self.defaultValue = defaultValue
         self.required = required; self.nullable = nullable; self.description = description
-        self.examples = examples; self.since = since
+        self.examples = examples; self.since = since; self.computed = computed
     }
 }
 
@@ -160,6 +165,21 @@ public enum SchemaRegistry {
             SchemaKey("secrets", .map(.shape("secret")), since: "0.4",
                       examples: [.object(["gh": .object(["command": .array([.string("gh"), .string("auth"), .string("token")])])])],
                       "Named secrets, usable in source definitions as {{ $secrets.name }}. Never write a secret's value into the config."),
+            SchemaKey("defaultView", .string, default: .string("main"), since: "0.4", examples: [.string("main")],
+                      "The view show and toggle open."),
+            SchemaKey("keys", .map(.any), default: .object([:]), since: "0.4",
+                      examples: [.object(["r": .object(["refresh": .string("*")])])],
+                      "Global key bindings: a key (h, 2, tab, shift+tab, cmd+r, ...) → an action or a list of actions. "
+                      + "escape and alt+i are reserved."),
+            SchemaKey("templates", .map(.shape("template")), default: .object([:]), since: "0.4",
+                      examples: [.object(["metric": .object(["params": .object(["label": .object(["type": .string("text")])]),
+                                                             "widget": .object(["type": .string("text"), "text": .object(["param": .string("label")])])])])],
+                      "Parameterised widgets and sources, used like a type. Built-in templates (the presets) are "
+                      + "separate; a user template with a built-in's name needs \"override\": true."),
+            SchemaKey("functions", .map(.string), kind: .expr, default: .object([:]), since: "0.4",
+                      examples: [.object(["gib": .string(". / 1073741824 | fmt_fixed(1)")])],
+                      "jq functions with no arguments, name → body, callable from every expression. Names match "
+                      + "^[a-z_][a-z0-9_]*$ and may not shadow a builtin."),
             SchemaKey("platform", .shape("platform"),
                       examples: [.object(["linux": .object(["hotkey": .string("home")])])],
                       "Per-OS overrides: a macos and a linux block, each merged over the rest of the file on that OS only."),
@@ -171,17 +191,50 @@ public enum SchemaRegistry {
                       "Merged over the rest of the file on Linux."),
         ]),
         SchemaShape("theme", "Palette and background.", keys: [
-            SchemaKey("palette", .oneOf(ThemeConfig.palettes), default: .string("tokyo-night"), examples: [.string("tokyo-night")],
-                      "The colour palette. An unknown name falls back to tokyo-night."),
+            SchemaKey("palette", .string, default: .string("tokyo-night"), examples: [.string("tokyo-night")],
+                      "The colour palette: tokyo-night, or a key of palettes. An unknown name falls back to tokyo-night."),
             SchemaKey("background", .oneOf(ThemeConfig.backgrounds), default: .string("aurora"), examples: [.string("blur")],
                       "aurora: the animated aurora over the blurred desktop. blur: the blurred desktop only. none: the palette's solid background."),
+            SchemaKey("palettes", .map(.shape("palette")), since: "0.4",
+                      examples: [.object(["ember": .object(["extends": .string("tokyo-night"), "colors": .object(["accent": .string("#ff9e64")])])])],
+                      "User palettes: name → extends and colors."),
+            SchemaKey("colors", .map(.string), since: "0.4", examples: [.object(["brand": .string("#e01e5a")])],
+                      "Colours added to or overriding the chosen palette: name → colour (hex, a palette name, or name@alpha)."),
+            SchemaKey("fonts", .shape("fonts"), since: "0.4", examples: [.object(["sans": .string("Inter")])],
+                      "A font family per role; null means the platform default."),
+            SchemaKey("scale", .number, default: .int(1), since: "0.4", examples: [.double(1.25)],
+                      "Multiplies every text, icon and fixed size (not gaps)."),
+            SchemaKey("icons", .oneOf(["native", "phosphor"]), since: "0.4", examples: [.string("phosphor")],
+                      "native: the macOS UI draws the presets' icons as SF Symbols (the default on macOS). phosphor: the bundled "
+                      + "Phosphor font everywhere."),
         ]),
         SchemaShape("view", "A view: the widgets it shows, top to bottom.", keys: [
             SchemaKey("order", .list(.string), default: .array([]),
                       examples: [.array([.string("clock"), .string("systemBar"), .string("agenda")])],
-                      "Widget keys, top to bottom. Each key may appear once."),
+                      "Widget keys, top to bottom. Each key may appear once. v0.3's name for children: only the first "
+                      + "listed entry gets no space before it."),
             SchemaKey("layout", .oneOf(ViewConfig.layouts), default: .string("stack"), examples: [.string("stack")],
-                      "How the widgets are arranged. stack is the only layout so far."),
+                      "The root container: stack (top to bottom), row or grid."),
+            SchemaKey("children", .list(.any), default: .array([]), since: "0.4",
+                      examples: [.array([.string("clock"), .object(["type": .string("text"), "text": .string("Hi")])])],
+                      "Widget keys or inline widgets. Wins over order when both are set."),
+            SchemaKey("title", .string, kind: .text, since: "0.4", examples: [.string("Work")],
+                      "Shown by UIs that list views. Default: the name, capitalized."),
+            SchemaKey("key", .string, since: "0.4", examples: [.string("2")],
+                      "A key that switches to this view (a global binding)."),
+            SchemaKey("columns", .integer(minimum: 1), default: .int(2), since: "0.4", examples: [.int(3)],
+                      "Columns, for layout grid."),
+            SchemaKey("gap", .number, default: .int(24), since: "0.4", examples: [.int(32)],
+                      "Space between root children (presets set their own spaceBefore)."),
+            SchemaKey("align", .oneOf(["start", "center", "end", "stretch"]), default: .string("center"), since: "0.4",
+                      examples: [.string("stretch")], "Cross-axis alignment of root children."),
+            SchemaKey("padding", .any, default: .int(48), since: "0.4", examples: [.int(32), .array([.int(24), .int(48), .int(24), .int(48)])],
+                      "Inside maxWidth: a number, or [top, right, bottom, left]."),
+            SchemaKey("maxWidth", .number, default: .int(680), since: "0.4", examples: [.int(1100)],
+                      "The root is at most this wide, centred on screen."),
+            SchemaKey("keys", .map(.any), default: .object([:]), since: "0.4",
+                      examples: [.object(["n": .object(["open": .string("https://news.ycombinator.com")])])],
+                      "Key bindings of this view: key → action."),
         ]),
         SchemaShape("worldClock", "An extra clock under the date.", keys: [
             SchemaKey("label", .string, kind: .text, required: true, examples: [.string("NYC")], "Shown next to the time."),
@@ -240,7 +293,7 @@ public enum SchemaRegistry {
         SchemaShape("weatherFields", "Paths into the weather source (legacy paths, never jq).", keys: WidgetConfig.weatherFields.map { field in
             SchemaKey(field, .string, examples: [.string(weatherExamples[field] ?? ".x")], weatherDescriptions[field] ?? field)
         }),
-    ]
+    ] + v04Shapes
 
     // MARK: Sources
 
@@ -370,8 +423,9 @@ public enum SchemaRegistry {
                       examples: [.array([.object(["source": .string("local")]),
                                          .object(["name": .string("web"), "url": .string("https://web.example.com")])])],
                       "The hosts, in display order."),
-            SchemaKey("provider", .oneOf(WidgetConfig.providers), default: .string(WidgetConfig.Defaults.provider), examples: [.string("foyer")],
-                      "Where remote health comes from: foyer runs `foyer-api --host <url> /api/health`."),
+            SchemaKey("provider", .string, default: .string(WidgetConfig.Defaults.provider), examples: [.string("foyer")],
+                      "Where remote health comes from: a source template with a url parameter. foyer (the default) runs "
+                      + "`foyer-api --host <url> /api/health`."),
             title("Systems"),
         ]),
         SchemaEntityType("keyValueList", "Labelled values picked out of JSON sources, such as exchange rates.", keys: [

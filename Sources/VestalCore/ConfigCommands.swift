@@ -314,9 +314,8 @@ public enum ConfigCommands {
     static let schemaUsage = "usage: vestal schema [--config <path>] [--out <file>]"
 
     /// `vestal schema [--config <path>] [--out <file>]` (§11.3): the JSON
-    /// Schema of the config file. `--config` will add that config's own
-    /// templates as types once templates exist (v0.4 phase 5); a v0.3
-    /// config has none, so for now the schema is the same with or without.
+    /// Schema of the config file. `--config` adds that config's own
+    /// templates as types; a config without templates gets the same schema.
     public static func schema(_ arguments: [String], home: String = NSHomeDirectory()) -> Output {
         let options: Options
         switch Options.parse(arguments, flags: [], valued: ["config", "out"]) {
@@ -326,13 +325,21 @@ public enum ConfigCommands {
         guard options.positional.isEmpty else {
             return usageError("'schema' takes no arguments besides its options", usage: schemaUsage, json: false)
         }
-        if let config = options.values["config"], config != "-" {
-            let path = CommandRunner.expandTilde(config, home: home)
-            guard FileManager.default.isReadableFile(atPath: path) else {
+        var templates: TemplateRegistry?
+        if let config = options.values["config"] {
+            let path = config == "-" ? nil : CommandRunner.expandTilde(config, home: home)
+            if let path, !FileManager.default.isReadableFile(atPath: path) {
                 return Output(status: 1, stderr: "vestal: \(path): can't read the file\n")
             }
+            let loaded = path.map { ConfigLoader.load(path: $0) }
+                ?? ConfigLoader.load(data: FileHandle.standardInput.readDataToEndOfFile(), path: "-")
+            if loaded.hasErrors {
+                return Output(status: 1, stderr: loaded.warnings.filter(\.isError).map { "vestal: \($0)\n" }.joined())
+            }
+            // The config's own templates become types (§11.3).
+            if !loaded.expanded.registry.user.isEmpty { templates = loaded.expanded.registry }
         }
-        let text = ConfigSchema.text
+        let text = ConfigSchema.text(templates: templates)
         guard let out = options.values["out"] else { return Output(status: 0, stdout: text) }
         let path = CommandRunner.expandTilde(out, home: home)
         do {

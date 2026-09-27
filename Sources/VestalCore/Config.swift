@@ -647,7 +647,7 @@ public struct PickItem: Codable, Equatable, Sendable {
 // MARK: - View
 
 public struct ViewConfig: Codable, Equatable, Sendable {
-    public static let layouts = ["stack"]
+    public static let layouts = ["stack", "row", "grid"]
 
     public var order: [String] = []
     public var layout: String = "stack"        // "stack" | (future) "grid"

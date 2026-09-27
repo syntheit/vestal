@@ -25,9 +25,43 @@ public enum ConfigSchema {
     public static let id = "urn:vestal:config:1"
 
     /// The schema as `vestal schema` prints it.
-    public static var text: String { document.prettyPrinted() + "\n" }
+    public static var text: String { text(templates: nil) }
 
-    public static var document: AnyJSON {
+    /// With a config's own templates as types (`vestal schema --config`).
+    public static func text(templates: TemplateRegistry?) -> String {
+        document(templates: templates).prettyPrinted() + "\n"
+    }
+
+    public static var document: AnyJSON { document(templates: nil) }
+
+    /// Widget types (common fields included) and source types: the built-in
+    /// ones, then `templates`' user templates.
+    static func types(_ templates: TemplateRegistry?) -> (widgets: [SchemaEntityType], sources: [SchemaEntityType]) {
+        var widgets = SchemaRegistry.allWidgetTypes
+        var sources = SchemaRegistry.allSourceTypes
+        for (name, template) in (templates?.user ?? [:]).sorted(by: { $0.key < $1.key }) {
+            let type = SchemaEntityType(name, since: "0.4", template.description ?? "A template of this config.",
+                                        keys: SchemaRegistry.templateKeys(template))
+            if template.isSource {
+                let common = SchemaRegistry.sourceTypes.first!.keys.filter { Expander.commonSourceKeys.contains($0.name) }
+                var t = type
+                t.keys += common.filter { key in !t.keys.contains { $0.name == key.name } }.map { var k = $0; k.defaultValue = nil; return k }
+                sources.removeAll { $0.name == name }
+                sources.append(t)
+            } else {
+                widgets.removeAll { $0.name == name }
+                widgets.append(type)
+            }
+        }
+        widgets = widgets.map { type in
+            var t = type
+            t.keys = SchemaRegistry.widgetKeys(type)
+            return t
+        }
+        return (widgets, sources)
+    }
+
+    public static func document(templates: TemplateRegistry?) -> AnyJSON {
         let top = SchemaRegistry.topLevel
         var defs: [String: AnyJSON] = [
             "duration": .object([
@@ -35,6 +69,19 @@ public enum ConfigSchema {
                 "pattern": .string(#"^[ \t]*\+?0*[1-9][0-9]*[smhd][ \t]*$"#),
                 "description": .string("A whole number above zero and a unit: s, m, h or d."),
                 "examples": .array([.string("30s"), .string("5m"), .string("4h"), .string("1d")]),
+            ]),
+            "computed": .object([
+                "type": .string("object"),
+                "description": .string("A value computed at render by a jq expression (§4.1 R3)."),
+                "properties": .object(["expr": .object([
+                    "type": .string("string"),
+                    "description": .string("The jq expression."),
+                    "examples": .array([.string("if .ok then \"good\" else \"bad\" end")]),
+                    "x-vestal-kind": .string(SchemaKind.expr.rawValue),
+                    "x-vestal-since": .string("0.4"),
+                ])]),
+                "required": .array([.string("expr")]),
+                "additionalProperties": .bool(false),
             ]),
             "layer": .object([
                 "type": .string("object"),
@@ -47,8 +94,9 @@ public enum ConfigSchema {
         for shape in SchemaRegistry.shapes where shape.name != top.name {
             defs[shape.name] = object(shape.description, shape.keys, inList: listed.contains(shape.name))
         }
-        entities("source", SchemaRegistry.sourceTypes, templates: false, into: &defs)
-        entities("widget", SchemaRegistry.widgetTypes, templates: true, into: &defs)
+        let (widgets, sources) = types(templates)
+        entities("source", sources, templates: false, into: &defs)
+        entities("widget", widgets, templates: true, into: &defs)
 
         return .object([
             "$schema": .string("https://json-schema.org/draft/2020-12/schema"),
@@ -145,7 +193,8 @@ public enum ConfigSchema {
             }
         }
         for shape in SchemaRegistry.shapes { shape.keys.forEach { visit($0.type, inList: false) } }
-        for type in SchemaRegistry.sourceTypes + SchemaRegistry.widgetTypes { type.keys.forEach { visit($0.type, inList: false) } }
+        let (widgets, sources) = types(nil)
+        for type in sources + widgets { type.keys.forEach { visit($0.type, inList: false) } }
         return names
     }
 
@@ -169,7 +218,8 @@ public enum ConfigSchema {
     /// A key's schema: its type (with `nullable`, null too, which deletes
     /// it) and its annotations.
     private static func property(_ key: SchemaKey, nullable allowNull: Bool = true) -> AnyJSON {
-        let type = typeSchema(key.type)
+        var type = typeSchema(key.type)
+        if key.computed { type = ["anyOf": .array([.object(type), .object(ref("computed"))])] }
         var schema = allowNull || key.nullable ? nullable(type) : type
         schema["description"] = .string(key.description)
         if let value = key.defaultValue { schema["default"] = value }
@@ -190,6 +240,8 @@ public enum ConfigSchema {
             return schema
         case .boolean:
             return ["type": .string("boolean")]
+        case .number:
+            return ["type": .string("number")]
         case .duration:
             return ref("duration")
         case .oneOf(let values):
@@ -225,6 +277,9 @@ public enum ConfigSchema {
         }
         if schema["$ref"] != nil {
             return ["anyOf": .array([.object(schema), .object(["type": .string("null")])])]
+        }
+        if case .array(let options)? = schema["anyOf"] {
+            return ["anyOf": .array(options + [.object(["type": .string("null")])])]
         }
         return schema  // any value, null included
     }
