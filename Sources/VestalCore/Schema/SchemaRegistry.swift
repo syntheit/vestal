@@ -141,9 +141,9 @@ public enum SchemaRegistry {
             SchemaKey("version", .integer(minimum: 1, maximum: 1), default: .int(1), examples: [.int(1)],
                       "Schema version. Only 1 exists."),
             SchemaKey("hotkey", .string, default: .null, nullable: true, examples: [.string("f3"), .string("cmd+shift+space"), .null],
-                      "Built-in toggle hotkey: f1-f20, letters, digits, space, escape, home or end, with cmd, ctrl, alt (opt) "
-                      + "and shift, joined with +. Letters, digits, space and escape need cmd, ctrl or alt. null registers "
-                      + "nothing; bind `vestal toggle` in the window manager instead."),
+                      "Built-in toggle hotkey: f1-f20, letters, digits, space, escape, home or end, with cmd (super), ctrl, "
+                      + "alt (opt) and shift, joined with +. Letters, digits, space and escape need cmd, ctrl or alt. null "
+                      + "registers nothing; bind `vestal toggle` in the window manager instead."),
             SchemaKey("theme", .shape("theme"), default: defaults("theme"), examples: [.object(["background": .string("blur")])],
                       "Palette and background."),
             SchemaKey("sources", .map(.source), default: defaults("sources"),

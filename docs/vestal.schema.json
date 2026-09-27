@@ -148,7 +148,7 @@
       "properties": {
         "hotkey": {
           "default": null,
-          "description": "Built-in toggle hotkey: f1-f20, letters, digits, space, escape, home or end, with cmd, ctrl, alt (opt) and shift, joined with +. Letters, digits, space and escape need cmd, ctrl or alt. null registers nothing; bind `vestal toggle` in the window manager instead.",
+          "description": "Built-in toggle hotkey: f1-f20, letters, digits, space, escape, home or end, with cmd (super), ctrl, alt (opt) and shift, joined with +. Letters, digits, space and escape need cmd, ctrl or alt. null registers nothing; bind `vestal toggle` in the window manager instead.",
           "examples": [
             "f3",
             "cmd+shift+space",
@@ -1936,7 +1936,7 @@
   "properties": {
     "hotkey": {
       "default": null,
-      "description": "Built-in toggle hotkey: f1-f20, letters, digits, space, escape, home or end, with cmd, ctrl, alt (opt) and shift, joined with +. Letters, digits, space and escape need cmd, ctrl or alt. null registers nothing; bind `vestal toggle` in the window manager instead.",
+      "description": "Built-in toggle hotkey: f1-f20, letters, digits, space, escape, home or end, with cmd (super), ctrl, alt (opt) and shift, joined with +. Letters, digits, space and escape need cmd, ctrl or alt. null registers nothing; bind `vestal toggle` in the window manager instead.",
       "examples": [
         "f3",
         "cmd+shift+space",
