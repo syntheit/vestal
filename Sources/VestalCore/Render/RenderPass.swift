@@ -793,7 +793,7 @@ final class RenderPass {
         }
         guard !children.isEmpty else { return nil }
         return RenderNode(id: id, .stack(.init(axis: .h, gap: number(w["gap"], id: id, field: "gap", scope: scope) ?? 24,
-                                              align: .start, children: children)))
+                                              align: .center, children: children)))
     }
 
     private func divider(_ w: [String: AnyJSON], id: String, scope: Scope) -> RenderNode {
