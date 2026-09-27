@@ -104,9 +104,15 @@ final class ThemeState {
         return theme.background == "none" ? bg.withAlpha(1) : bg.withAlpha(Self.dimAlpha)
     }
 
-    /// How much of `bg` lies over the (blurred) desktop. With Hyprland's blur
-    /// this reads like the macOS HUD material; without blur it is a plain dim.
-    static let dimAlpha = 0.62
+    /// How much of `bg` lies over the (blurred) desktop: half, so the
+    /// blurred desktop reads through as it does under the macOS HUD
+    /// material, while white text keeps at least 3.3:1 contrast even over a
+    /// white wallpaper (about 4.5:1 at Hyprland's default blur brightness,
+    /// far more over a typical one). It must
+    /// stay above the `ignore_alpha` layer rule (0.3 by default), or
+    /// Hyprland blurs only the aurora's ribbons. A `bg` with its own alpha
+    /// (`theme.colors`) is multiplied by it. Without blur it is a plain dim.
+    static let dimAlpha = 0.5
 }
 
 // MARK: - Bundled fonts

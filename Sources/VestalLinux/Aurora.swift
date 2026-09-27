@@ -8,10 +8,13 @@ import VestalCore
 // The macOS aurora (VestalMac/AuroraView.swift), ported from Metal to GLSL in
 // a GtkGLArea behind the dashboard: four ribbons, the same waves, hues,
 // thicknesses, alphas and speeds, premultiplied and added onto a clear
-// background. It renders only while the dashboard is shown: a tick
-// callback queues one frame per display refresh, and `stop()` removes it, so
-// a hidden dashboard draws nothing. Without GL (no EGL, or a context that
-// fails) the area hides itself and the background is the plain blur.
+// background. GTK 4 gives the area an RGBA texture it composites as
+// premultiplied, over the window's translucent `bg` tint and the
+// compositor's blur, so no channel may exceed alpha. It renders only while
+// the dashboard is shown: a tick callback queues one frame per display
+// refresh, and `stop()` removes it, so a hidden dashboard draws nothing.
+// Without GL (no EGL, or a context that fails) the area hides itself and the
+// background is the plain blur.
 
 final class AuroraArea {
     let widget: WidgetPtr
@@ -216,12 +219,13 @@ final class AuroraArea {
         vec3 cTop = hsv2rgb(hueTop, 0.80, 1.0);
         vec3 cBot = hsv2rgb(hueBot, 0.75, 1.0);
 
-        // Premultiplied alpha, for the one/one blend.
+        // Premultiplied alpha, for the one/one blend and for GTK, which
+        // composites the area as premultiplied: no channel above alpha.
         float aTop = topA * 0.55 + topB * 0.40;
         float aBot = botA * 0.55 + botB * 0.40;
+        float alpha = min(aTop + aBot, 1.0);
         vec3 rgb = cTop * aTop + cBot * aBot;
-        float alpha = aTop + aBot;
-        fragColor = vec4(min(rgb, vec3(1.0)), min(alpha, 1.0));
+        fragColor = vec4(min(rgb, vec3(alpha)), alpha);
     }
     """
 }

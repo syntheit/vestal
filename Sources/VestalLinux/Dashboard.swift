@@ -31,10 +31,17 @@ public final class LinuxDashboard {
         public var description: String { "cannot open a display (is WAYLAND_DISPLAY set?)" }
     }
 
-    /// Registers the bundled fonts and starts GTK. Call once, on the main
-    /// thread, before creating a dashboard.
+    /// Registers the bundled fonts, picks the GL renderer and starts GTK.
+    /// Call once, on the main thread, before creating a dashboard.
     public static func initialize() throws {
         BundledFonts.register()
+        // GTK's Vulkan renderer (its default on Wayland) falls back to an
+        // opaque swapchain when the driver's Wayland surface lacks
+        // premultiplied alpha, which would hide the desktop and the blur
+        // behind the translucent `bg`. The GL renderer's EGL surface keeps
+        // the alpha, and the aurora is GL already (no GL-to-Vulkan texture
+        // import each frame). A GSK_RENDERER the user set wins.
+        setenv("GSK_RENDERER", "gl", 0)
         guard gtk_init_check() != 0 else { throw InitError.noDisplay }
         // gtk_init ran setlocale(LC_ALL, ""). Numbers stay American ('.'
         // decimals) whatever LC_NUMERIC says: with es_AR the window's CSS
