@@ -1,0 +1,204 @@
+{
+  "base": 1,
+  "ops": [
+    {
+      "id": "main/clock/0",
+      "node": {
+        "font": "mono",
+        "id": "main/clock/0",
+        "size": 56,
+        "text": "14:03:23",
+        "type": "text",
+        "weight": 100
+      },
+      "op": "replace"
+    },
+    {
+      "id": "main/systems/1/@conduit",
+      "node": {
+        "action": true,
+        "align": "center",
+        "axis": "h",
+        "children": [
+          {
+            "font": "mono",
+            "id": "main/systems/1/@conduit/1",
+            "lines": 1,
+            "text": "conduit",
+            "type": "text",
+            "weight": 600,
+            "width": 60
+          },
+          {
+            "align": "center",
+            "axis": "h",
+            "children": [
+              {
+                "color": "dim",
+                "id": "main/systems/1/@conduit/2/0",
+                "size": 9,
+                "text": "CPU",
+                "textAlign": "end",
+                "type": "text",
+                "weight": 600,
+                "width": 24
+              },
+              {
+                "color": "cyan",
+                "height": 6,
+                "id": "main/systems/1/@conduit/2/1",
+                "trackColor": "#7dcfff26",
+                "type": "bar",
+                "value": 0.04,
+                "width": 48
+              },
+              {
+                "color": "subtle",
+                "font": "mono",
+                "id": "main/systems/1/@conduit/2/2",
+                "size": 10,
+                "text": "4%",
+                "type": "text",
+                "width": 30
+              }
+            ],
+            "gap": 4,
+            "id": "main/systems/1/@conduit/2",
+            "type": "stack"
+          },
+          {
+            "align": "center",
+            "axis": "h",
+            "children": [
+              {
+                "color": "dim",
+                "id": "main/systems/1/@conduit/3/0",
+                "size": 9,
+                "text": "RAM",
+                "textAlign": "end",
+                "type": "text",
+                "weight": 600,
+                "width": 24
+              },
+              {
+                "color": "purple",
+                "height": 6,
+                "id": "main/systems/1/@conduit/3/1",
+                "trackColor": "#ba99f726",
+                "type": "bar",
+                "value": 0.22,
+                "width": 48
+              },
+              {
+                "color": "subtle",
+                "font": "mono",
+                "id": "main/systems/1/@conduit/3/2",
+                "size": 10,
+                "text": "22%",
+                "type": "text",
+                "width": 30
+              }
+            ],
+            "gap": 4,
+            "id": "main/systems/1/@conduit/3",
+            "type": "stack"
+          },
+          {
+            "color": "subtle",
+            "font": "mono",
+            "id": "main/systems/1/@conduit/4",
+            "size": 11,
+            "text": "41°",
+            "type": "text"
+          },
+          {
+            "color": "dim",
+            "font": "mono",
+            "id": "main/systems/1/@conduit/5",
+            "size": 11,
+            "text": "2h",
+            "type": "text"
+          },
+          {
+            "id": "main/systems/1/@conduit/6",
+            "type": "spacer",
+            "width": "fill"
+          }
+        ],
+        "gap": 10,
+        "id": "main/systems/1/@conduit",
+        "type": "stack",
+        "width": "fill"
+      },
+      "op": "replace"
+    },
+    {
+      "id": "main/systemBar/2",
+      "node": {
+        "action": true,
+        "align": "center",
+        "axis": "h",
+        "children": [
+          {
+            "color": "good",
+            "glyph": "",
+            "id": "main/systemBar/2/0",
+            "name": "microphone-slash",
+            "size": 11,
+            "type": "icon",
+            "weight": "fill"
+          },
+          {
+            "color": "good",
+            "glyph": "",
+            "id": "main/systemBar/2/1",
+            "name": "video-camera-slash",
+            "size": 11,
+            "type": "icon",
+            "weight": "fill"
+          }
+        ],
+        "gap": 6,
+        "height": 20,
+        "id": "main/systemBar/2",
+        "justify": "center",
+        "type": "stack",
+        "width": 40
+      },
+      "op": "replace"
+    },
+    {
+      "id": "main/spotify/1/=playing",
+      "node": {
+        "align": "center",
+        "axis": "h",
+        "children": [
+          {
+            "id": "main/spotify/1/=playing/0",
+            "lines": 1,
+            "size": 14,
+            "text": "Gymnopédie No. 1 (Remastered 2019, Orchestral Arrangement for Strings)",
+            "type": "text",
+            "weight": 500
+          },
+          {
+            "color": "subtle",
+            "id": "main/spotify/1/=playing/1",
+            "lines": 1,
+            "size": 14,
+            "text": "— Erik Satie, London Symphony Orchestra",
+            "type": "text"
+          }
+        ],
+        "gap": 4,
+        "id": "main/spotify/1/=playing",
+        "type": "stack",
+        "width": "fill"
+      },
+      "op": "replace"
+    }
+  ],
+  "protocol": 1,
+  "seq": 2,
+  "type": "patch"
+}
