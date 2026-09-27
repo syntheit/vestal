@@ -26,7 +26,8 @@ public enum DefaultConfig {
         "calendar": { "type": "calendar", "refresh": "5m", "days": 1 },
         "system": { "type": "system" },
         "media": { "type": "media", "player": "auto" },
-        "claude": { "type": "claude" }
+        "claude": { "type": "claude" },
+        "codex": { "type": "codex" }
       },
       "widgets": {
         "clock": { "type": "clock" },

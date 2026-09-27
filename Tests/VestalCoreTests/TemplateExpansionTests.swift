@@ -276,13 +276,11 @@ final class TemplateExpansionTests: XCTestCase {
         let loaded = ConfigLoader.load(path: Fixture.example("full.json").path, platform: .linux)
         let names = Set(loaded.expanded.sources.keys)
         let media = LegacySources.media(player: "Spotify").inlineName
-        let claude = LegacySources.claude(loaded.config.widgets["claude"]).inlineName
         XCTAssertTrue(names.contains(media), "\(names)")
-        XCTAssertTrue(names.contains(claude), "\(names)")
         XCTAssertTrue(media.hasPrefix("inline:") && media.count == "inline:".count + 8)
         XCTAssertTrue(names.contains { $0.hasPrefix("inline:") && loaded.expanded.sources[$0]?.type == "file" })
         // The runtime sees them, and the adapter's host sources.
-        for name in [media, claude, "host:harbor", "host:raven", "host:conduit"] {
+        for name in [media, "claude", "host:harbor", "host:raven", "host:conduit"] {
             XCTAssertNotNil(loaded.config.sources[name], name)
         }
     }
@@ -290,11 +288,11 @@ final class TemplateExpansionTests: XCTestCase {
     func testLegacyAdapterCouplings() {
         let loaded = ConfigLoader.load(path: Fixture.example("full.json").path, platform: .linux)
         XCTAssertEqual(loaded.warnings, [])
-        XCTAssertEqual(loaded.notes.count, 3)
+        XCTAssertEqual(loaded.notes.count, 2)
         XCTAssertTrue(loaded.notes.allSatisfy { $0.code == "legacy" && $0.severity == .info })
         let bar = loaded.expanded.top["widgets"]?.objectValue?["systemBar"]?.objectValue?["$params"]?.objectValue ?? [:]
         XCTAssertEqual(bar["privacyKey"], .string("p"))
-        XCTAssertEqual(bar["claudeSource"]?.objectValue?["type"], .string("claude"))
+        XCTAssertEqual(bar["claudeSource"] ?? .string("claude"), .string("claude"), "the named source; no adapter-made one")
         let harbor = loaded.expanded.sources["host:harbor"]
         XCTAssertEqual(harbor?.type, "command")
         XCTAssertEqual(harbor?.transform, "foyer_health")
@@ -329,7 +327,7 @@ final class TemplateExpansionTests: XCTestCase {
         let names = Set(json.objectValue?.keys.map { $0 } ?? [])
         XCTAssertTrue(names.isSuperset(of: ["section", "stat", "badge", "clock", "systemBar", "media", "agendaList",
                                             "systemHealth", "keyValueList", "weatherCard", "claudeUsage", "claudeItem",
-                                            "hostDetail", "foyer"]), "\(names)")
+                                            "hostDetail", "aiUsage", "aiWindow", "foyer"]), "\(names)")
         XCTAssertEqual(json.objectValue?["section"]?.objectValue?["builtin"], .bool(true))
     }
 }

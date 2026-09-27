@@ -2,7 +2,8 @@ import Foundation
 
 // MARK: - Built-in source types
 //
-// The data of the `system`, `media` and `claude` source types, in the shapes
+// The data of the `system` and `media` source types (`claude` and `codex`:
+// AIUsage.swift), in the shapes
 // of EXTENSIBILITY.md 5.4, identical on macOS and Linux: the same keys in
 // every case, a value the platform can't read is null (never 0), units are
 // bytes, bytes per second, seconds, epoch seconds, °C and percent 0-100.
@@ -182,41 +183,6 @@ public enum MediaSource {
         return NowPlaying(title: object["title"]?.stringValue ?? "", artist: object["artist"]?.stringValue ?? "",
                           state: state, album: object["album"]?.stringValue,
                           position: number("position"), duration: number("duration"))
-    }
-}
-
-// MARK: Claude
-
-public enum ClaudeSource {
-    /// Reads `source`'s projects directory (`~/` expanded against `home`).
-    public static func read(_ source: SourceConfig, home: String = NSHomeDirectory(), now: Date = Date()) -> AnyJSON {
-        let directory = CommandRunner.expandTilde(source.path ?? SourceConfig.defaultClaudePath, home: home)
-        return shape(ClaudeUsage.read(projectsDir: directory, now: now),
-                     fiveHourLimit: source.fiveHourLimit ?? ClaudeUsage.blockLimitTokens,
-                     weeklyLimit: source.weeklyLimit ?? ClaudeUsage.weeklyLimitTokens)
-    }
-
-    /// The `claude` shape: percent is v0.3's whole-number rule.
-    public static func shape(_ usage: ClaudeUsage.Snapshot, fiveHourLimit: Int, weeklyLimit: Int) -> AnyJSON {
-        .object([
-            "fiveHour": .object([
-                "tokens": .int(usage.blockTokens), "limit": .int(fiveHourLimit),
-                "percent": .int(usage.blockPercent(limit: fiveHourLimit)),
-            ]),
-            "week": .object([
-                "tokens": .int(usage.weeklyTokens), "limit": .int(weeklyLimit),
-                "percent": .int(usage.weeklyPercent(limit: weeklyLimit)),
-            ]),
-        ])
-    }
-
-    /// The token totals back from the data (the v0.3 claudeUsage views).
-    public static func usage(_ data: AnyJSON) -> ClaudeUsage.Snapshot? {
-        guard case .object(let object) = data,
-              case .int(let block)? = object["fiveHour"]?.objectValue?["tokens"],
-              case .int(let week)? = object["week"]?.objectValue?["tokens"]
-        else { return nil }
-        return ClaudeUsage.Snapshot(blockTokens: block, weeklyTokens: week)
     }
 }
 

@@ -51,7 +51,7 @@ With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "..
 
 `vestal capabilities [--json] [--config <path>]`
 
-What this machine supports: the OS; for each built-in source type (`system`, `media`, `calendar`, `claude`, and `audio`) its backend, whether it works here, and why not (for example `playerctl` missing, the players it sees, EventKit access, `ics` configured); the icon fonts found; screenshot support; whether a global hotkey works (macOS) or must be bound in the compositor (Linux); and every program the config's `command` sources, secrets and actions need, found or missing on `PATH`. Exit 0.
+What this machine supports: the OS; for each built-in source type (`system`, `media`, `calendar`, `claude`, `codex`, and `audio`) its backend, whether it works here, and why not (for example `playerctl` missing, the players it sees, EventKit access, `ics` configured); the icon fonts found; screenshot support; whether a global hotkey works (macOS) or must be bound in the compositor (Linux); and every program the config's `command` sources, secrets and actions need, found or missing on `PATH`. Exit 0.
 
 `vestal sources [--json] [--config <path>]`
 

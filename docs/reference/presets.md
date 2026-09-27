@@ -42,7 +42,7 @@ The local time (size 56, ultralight, mono), the date, and `worldClocks` under th
 
 ### `systemBar`
 
-A row of this machine's stats from the `system` source. `show` lists the items left to right: `uptime`, `disk`, `battery`, `claudeUsage`, `network`, `privacy` (absent or empty: all but privacy). `privacy` is `{"command": [argv], "stateFile": "path"}`: a microphone and camera toggle drawn at the right end, green while the state file exists, which runs the command on click (and on `p`, in the default view). `claudeSource` names the source of the Claude usage item.
+A row of this machine's stats from the `system` source. `show` lists the items left to right: `uptime`, `disk`, `battery`, `claudeUsage`, `codexUsage`, `network`, `privacy` (absent or empty: all but privacy and codexUsage). `privacy` is `{"command": [argv], "stateFile": "path"}`: a microphone and camera toggle drawn at the right end, green while the state file exists, which runs the command on click (and on `p`, in the default view). `claudeSource` and `codexSource` name the sources of the Claude and Codex usage items.
 
 ### `media`
 
@@ -66,13 +66,21 @@ Current weather from `source` with v0.3 paths in `fields` (`location`, `region`,
 
 ### `claudeUsage`
 
-Claude Code usage as a status row: `5h% / week%` against `fiveHourLimit` and `weeklyLimit`, read from `path`.
+The Claude plan's usage as a status row: `session% / weekly%` from the `claude` source (`–` for a window it doesn't report). `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored.
+
+### `aiUsage`
+
+Claude and Codex plan usage in one row: each service's 5-hour and weekly windows as small bars with their percentage, and `resets 4h` on a faint line under each. A bar turns red from 90%. `show` (default `["claude", "codex"]`) picks the services and their order; `claudeSource` and `codexSource` (defaults `claude`, `codex`) what they read. A service whose source has no data yet is left out, and so is a Codex 5-hour window the plan doesn't have. See `vestal docs ai-usage`.
 
 ## Helpers
 
 ### `claudeItem`
 
-The hourglass and `5h% / week%` of a `claude` source; the system bar and `claudeUsage` use it.
+An icon (`icon`, default `hourglass`) and `session% / weekly%` of a `claude` or `codex` source; the system bar and `claudeUsage` use it.
+
+### `aiWindow`
+
+One of `aiUsage`'s cells: `label`, `window` (an expression such as `.session`) and `color`.
 
 ### `hostDetail`
 

@@ -31,7 +31,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 
 | Key | Default | Meaning |
 |---|---|---|
-| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, or a source template such as `foyer`. |
+| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, `codex`, or a source template such as `foyer`. |
 | `refresh` | per type | How often to fetch: `"30s"`, `"5m"`, `"4h"`, `"1d"`. |
 | `when` | per type | `always`: fetched whether or not the dashboard is shown. `visible`: only while it is shown and a widget of the view reads it, with an immediate fetch on show when stale. |
 | `transform` | none | A jq expression applied to the data before widgets see it. The cache keeps the untransformed data, so editing a transform needs no refetch. |
@@ -47,9 +47,10 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 | `calendar` | `30m` | `always` | EventKit (macOS) or `.ics` (both) |
 | `system` | `3s` | `visible` | this machine |
 | `media` | `3s` | `visible` | a music player |
-| `claude` | `30s` | `visible` | Claude Code's logs |
+| `claude` | `30s` | `visible` | the Claude plan's usage, as Claude Code reports it |
+| `codex` | `5m` | `visible` | the Codex plan's usage, from `codex app-server` |
 
-**Built-in sources.** The defaults define `system`, `media` (`player: "auto"`), `claude`, `calendar` and `weather` (wttr.in). A `visible` source that nothing on screen reads is never fetched, so unused ones cost nothing.
+**Built-in sources.** The defaults define `system`, `media` (`player: "auto"`), `claude`, `codex`, `calendar` and `weather` (wttr.in). A `visible` source that nothing on screen reads is never fetched, so unused ones cost nothing.
 
 **Inline sources.** Wherever a widget takes `source`, it may give a definition instead of a name: `"source": {"type": "file", "path": "~/notes/today.md", "parse": "lines"}`. Identical definitions share one fetch. Its name in `vestal sources` and the cache is `inline:<8 hex digits>`.
 
@@ -218,19 +219,21 @@ One music player.
 
 ### `claude`
 
-Claude Code token usage from its logs.
+The Claude plan's usage (Pro and Max) as Claude Code reports it: `session` is the 5-hour window, `weekly` the 7-day one. No keys of its own (v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an info finding).
+
+```jsonc
+{ "session": { "percent": 35, "resetsAt": 1790546843 }, "weekly": { "percent": 50, "resetsAt": 1790831843 }, "updatedAt": 1790531843, "source": "claude", "plan": null }
+```
+
+`percent` is a whole number 0-100, `resetsAt` and `updatedAt` epoch seconds. A window may be `null`; one whose reset has passed reads `{"percent": 0, "resetsAt": null}` until Claude Code reports the new one. The data comes from `vestal claude-statusline` run as Claude Code's `statusLine` command; until it has run, the source fails with a hint. See `vestal docs ai-usage`.
+
+### `codex`
+
+The Codex plan's usage, in the same shape as `claude`, with `source: "codex"` and `plan` the plan's name. vestal runs `codex app-server`, asks `account/rateLimits/read` over JSON-RPC and stops it; Codex's own login is used, and nothing of it is read. Windows are placed by length: up to a day is `session`, longer is `weekly`; a plan without a 5-hour window has `session: null`. It refreshes every `5m` while shown, and on a show when its data is over a minute old.
 
 | Key | Default | |
 |---|---|---|
-| `path` | `~/.claude/projects` | Claude Code's projects directory. |
-| `fiveHourLimit` | `8000000` | Tokens that count as 100% over 5 hours. |
-| `weeklyLimit` | `95000000` | Tokens that count as 100% over 7 days. |
-
-```jsonc
-{ "fiveHour": { "tokens": 1500000, "limit": 8000000, "percent": 18 }, "week": { "tokens": 20000000, "limit": 95000000, "percent": 21 } }
-```
-
-`percent` is `tokens × 100 / limit`, truncated, at most 999.
+| `argv` | `["codex", "app-server"]` | The app server, when `codex` isn't on `PATH`. |
 
 ### `foyer`
 

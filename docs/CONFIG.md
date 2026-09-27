@@ -35,7 +35,7 @@ Decoding is permissive:
 
 - Unknown keys are ignored.
 - A value of the wrong JSON type is treated as absent: the key's default applies. The built-in defaults' value is not restored, because the merge has already replaced it: `"show": "uptime"` on `systemBar` shows every item, and `"order": "clock"` on `views.main` shows an empty dashboard.
-- A count or limit below 1 (`maxEvents`, `days`, `fiveHourLimit`, `weeklyLimit`) is treated as absent too.
+- A count below 1 (`maxEvents`, `days`) is treated as absent too.
 - An entry that cannot be used is dropped by itself: a source or widget without a `type`, a host without a `name` (only a local host may omit it), a world clock without `label` or `tz`, an item without `label`.
 - A widget that can't be drawn (an unknown type, a template missing a required parameter, an expression that doesn't compile) is left out; the rest of the dashboard draws.
 - If the file is not valid JSON, or its top level is not an object, the whole file is ignored and the built-in defaults apply. A trailing comma (`[1, 2,]` or `{"a": 1,}`) is invalid on every platform. A UTF-8 byte order mark at the start is fine.
@@ -75,7 +75,7 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 | `version` | integer | `1` | Schema version. Only `1` exists; v0.4 only adds keys. |
 | `hotkey` | string or `null` | `null` | Built-in toggle hotkey, such as `"f3"` or `"cmd+shift+space"`: keys `f1`-`f20`, letters, digits, `space`, `escape` (or `esc`), `home`, `end`, with modifiers `cmd` (or `super`, the same key: Super on Linux), `ctrl`, `alt` (or `opt`) and `shift`, joined with `+`, case-insensitive. The hotkey is taken from every app, so letters, digits, `space` and `escape` need `cmd`, `ctrl` or `alt` (`shift` alone is not enough); `f1`-`f20`, `home` and `end` may stand alone. One that doesn't parse registers nothing and is a warning (`check-config`, `vestal status`). `null` registers nothing; bind `vestal toggle` in skhd, Hyprland or similar instead. On Linux vestal registers no hotkey itself (Wayland has no global hotkeys); the Home Manager module's `programs.vestal.hyprland.enable` turns this key into a Hyprland bind. On macOS, letters and digits are key positions on a US layout. |
 | `theme` | object | see [theme](#theme) | Palette, background, colours, fonts, scale, icons. |
-| `sources` | object | `weather`, `calendar`, `system`, `media`, `claude` | Named data sources, see [sources](#sources). |
+| `sources` | object | `weather`, `calendar`, `system`, `media`, `claude`, `codex` | Named data sources, see [sources](#sources). |
 | `widgets` | object | see [defaults](#built-in-defaults) | Named widgets, see [widgets](#widgets). |
 | `views` | object | `main` | Named views, see [views](#views). |
 | `defaultView` | string | `"main"` | The view `vestal show` and `vestal toggle` open when they name none. |
@@ -217,7 +217,7 @@ Your own jq functions, with no arguments, callable from every expression:
 
 `sources` maps a name to a source. Widgets refer to sources by name, and every widget reading the same source shares one fetch.
 
-- **When sources run.** An `"always"` source (`http`, `command`, `calendar`, `file` by default) refreshes whether or not the dashboard is shown. A `"visible"` source (`system`, `media`, `claude` by default) is fetched only while the dashboard is shown and a widget of the current view reads it, `refresh` after its previous fetch ended; showing the dashboard fetches it at once when it is stale, and hiding the dashboard or reloading the config cancels a fetch in flight. So the built-in `media` and `claude` sources cost nothing until a widget uses them.
+- **When sources run.** An `"always"` source (`http`, `command`, `calendar`, `file` by default) refreshes whether or not the dashboard is shown. A `"visible"` source (`system`, `media`, `claude`, `codex` by default) is fetched only while the dashboard is shown and a widget of the current view reads it, `refresh` after its previous fetch ended; showing the dashboard fetches it at once when it is stale (a `codex` source also when its data is a minute old), and hiding the dashboard or reloading the config cancels a fetch in flight. So the built-in `media`, `claude` and `codex` sources cost nothing until a widget uses them.
 - **The cache.** The last good result of each source is kept on disk: `~/Library/Caches/Vestal/<name>.json` on macOS, `$XDG_CACHE_HOME/vestal/<name>.json` (default `~/.cache/vestal`) on Linux. When vestal starts it shows that result at once (unless it is older than `maxAge`), and fetches again only when it is older than `refresh`, or when the source's definition has changed since. The directory is private (`0700`, files `0600`), holds a hash of each source's definition rather than the definition, and is trimmed to 256 MiB, oldest files first. `"cache": false` keeps a source's data in memory only.
 - **Failures.** A failed fetch keeps the last good result on screen, logs the error, and tries again after `refresh` or 60 seconds, whichever is shorter, give or take 10%. A fetch fails when HTTP answers other than 2xx, when a command exits non-zero, when a `"json"` source's output is not valid JSON, or when an HTTP body, a command's output or a file is larger than 10 MiB. A source vestal cannot run at all (an unknown `type`, an `http` source without a usable `url`, a `command` without `argv`, a `file` without `path`) reports an error and is never fetched. It does not stop vestal.
 - **Inline sources.** A widget's `source` may be a source object instead of a name, such as `"source": { "type": "file", "path": "~/notes.json" }`. It becomes a source named `inline:<8 hex digits>` after its definition, so identical definitions share one fetch.
@@ -227,8 +227,8 @@ Every source takes:
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `type` | string | required | `"http"`, `"command"`, `"calendar"` (`"eventkit"` is an alias), `"file"`, `"system"`, `"media"`, `"claude"`, or a source template such as `"foyer"`. |
-| `refresh` | duration | per type | How often to fetch: `"30m"` for `http`, `command` and `calendar`; `"30s"` for `file` and `claude`; `"3s"` for `system` and `media`. |
+| `type` | string | required | `"http"`, `"command"`, `"calendar"` (`"eventkit"` is an alias), `"file"`, `"system"`, `"media"`, `"claude"`, `"codex"`, or a source template such as `"foyer"`. |
+| `refresh` | duration | per type | How often to fetch: `"30m"` for `http`, `command` and `calendar`; `"5m"` for `codex`; `"30s"` for `file` and `claude`; `"3s"` for `system` and `media`. |
 | `when` | string | per type | `"always"` or `"visible"`, see above. |
 | `transform` | expr | none | A jq expression applied to the data before widgets see it. The cache keeps the data untransformed, so editing a transform needs no refetch. |
 | `history` | object | none | Named number histories, see below. |
@@ -325,13 +325,19 @@ One music player: `{player, state, title, artist, album, position, duration, pla
 
 ### `claude`
 
-Claude Code usage from its session logs: `{fiveHour: {tokens, limit, percent}, week: {tokens, limit, percent}}`.
+Claude plan usage (Pro and Max), as Claude Code itself reports it: `{session, weekly, updatedAt, source, plan}`, where `session` is the 5-hour window and `weekly` the 7-day one, each `{percent, resetsAt}` (a whole percent 0 to 100, and epoch seconds) or `null`. A window whose reset time has passed reads `{"percent": 0, "resetsAt": null}`. `updatedAt` is when Claude Code last reported, `source` is `"claude"` and `plan` is `null`.
+
+The numbers come from Claude Code's status line: set its `statusLine` command to `vestal claude-statusline` (the Home Manager module's `programs.vestal.claudeStatusLine.enable` does it), which keeps them in `claude-rate-limits.json` in the cache directory, and nothing else of what Claude Code passes it. vestal reads no credentials and makes no network requests for them. Until Claude Code has run once with it, the source fails with a hint. `vestal docs ai-usage` has the setup, including how to keep a status line you already have.
+
+It takes no keys of its own. v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an `info` finding.
+
+### `codex`
+
+Codex plan usage, in the same shape as [`claude`](#claude), with `source` `"codex"` and `plan` the plan's name (`"plus"`, `"pro"`, ...). A plan without a 5-hour window has `session` `null`. vestal asks `codex app-server` (JSON-RPC over stdin and stdout: `initialize`, then `account/rateLimits/read`) and stops it once it has answered; Codex uses its own login, and vestal never reads it. It refreshes every 5 minutes while shown, and when the dashboard is shown with data older than a minute.
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `path` | string | `"~/.claude/projects"` | Where the logs are. |
-| `fiveHourLimit` | integer | `8000000` | Tokens that count as 100% over 5 hours. |
-| `weeklyLimit` | integer | `95000000` | Tokens that count as 100% over 7 days. |
+| `argv` | list of strings | `["codex", "app-server"]` | The app server to run, when `codex` is not on `PATH` (the launch agent's `PATH` includes the Nix profiles and Homebrew). A draft config (`--config`) runs a custom one only with `--allow-commands`. |
 
 ### Source templates
 
@@ -613,7 +619,7 @@ Every action also takes `hide: true` or `false` to override the last column. `ve
 
 The eight v0.3 widget types are built-in templates with the same names and parameters, so every v0.3 config means what it did. They are written in the config language (`vestal docs preset/<name>` prints each one's JSON, and `vestal print-config --expanded` what an instance becomes). New configs can use them, or build the same things from the primitives. Each preset sets the space before it that v0.3's dashboard used: 28 points before `systemBar` and `claudeUsage`, 20 before `media`, 24 before the sections, none before `clock`.
 
-Three v0.3 behaviours link separate widgets; a small legacy adapter keeps them, and reports each as an `info` finding with code `legacy`: a `systemBar` takes its Claude options from the first `claudeUsage` widget by key; the first `systemBar` in the default view whose privacy item shows gets the key `p`; and every `systemHealth` host with a `url` gets a source named `host:<name>` (`{"type": <provider>, "url": …, "refresh": <interval>}`), which any widget can read.
+Two v0.3 behaviours link separate widgets; a small legacy adapter keeps them, and reports each as an `info` finding with code `legacy`: the first `systemBar` in the default view whose privacy item shows gets the key `p`; and every `systemHealth` host with a `url` gets a source named `host:<name>` (`{"type": <provider>, "url": …, "refresh": <interval>}`), which any widget can read.
 
 ### `clock`
 
@@ -630,9 +636,10 @@ A row of system stats, from the `system` source.
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `show` | list of strings | every item | Items, left to right in this order: `"uptime"`, `"disk"` (free and total space of the first of the `system` source's `disks`), `"battery"`, `"claudeUsage"` (see [claudeUsage](#claudeusage)), `"network"` (download and upload rates). `"privacy"` is always drawn at the right end, wherever it is in the list. Unknown and repeated items are skipped. Absent or empty shows every item. |
+| `show` | list of strings | every item | Items, left to right in this order: `"uptime"`, `"disk"` (free and total space of the first of the `system` source's `disks`), `"battery"`, `"claudeUsage"` (see [claudeUsage](#claudeusage)), `"codexUsage"` (the same for Codex, from the [`codex` source](#codex)), `"network"` (download and upload rates). `"privacy"` is always drawn at the right end, wherever it is in the list. Unknown and repeated items are skipped. Absent or empty shows every item but `"codexUsage"`, which runs `codex app-server` and so is only drawn when listed. |
 | `privacy` | object | none | `command` (list of strings): run to toggle privacy mode, with the same rules as a [command source](#command)'s `argv`. `stateFile` (string): the file that exists while privacy mode is on; a leading `~/` expands. The privacy item, and its `p` key, only work when both are set. `p` toggles the first system bar in the default view that shows the item. |
-| `claudeSource` | source | `"claude"` | What the `claudeUsage` item reads (the legacy adapter fills it in from a `claudeUsage` widget). |
+| `claudeSource` | source | `"claude"` | What the `claudeUsage` item reads. |
+| `codexSource` | source | `"codex"` | What the `codexUsage` item reads. |
 | `privacyKey` | string | none | The privacy toggle's key (the adapter sets `p`). |
 
 ### `media`
@@ -713,19 +720,21 @@ Current weather from a JSON source. The fields are paths, so any weather API wor
 
 ### `claudeUsage`
 
-Claude Code usage: tokens in the last 5 hours and the last 7 days, read from the session logs (a `claude` source), as percentages of two limits. A `systemBar` showing `"claudeUsage"` takes its options from the first widget of this type (by key), or uses the defaults. Listed in a view, the widget is a row of its own, like a system bar with that one item.
+The Claude plan's usage from the [`claude` source](#claude): an hourglass and `session% / weekly%`, as Claude reports them (`–` for a window it doesn't report). Listed in a view, the widget is a row of its own, like a system bar with that one item; a `systemBar`'s `"claudeUsage"` item is the same. v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an `info` finding: the percentages are Anthropic's own now, not estimates.
+
+### `aiUsage`
+
+Claude and Codex plan usage in one row: for each, the 5-hour and weekly windows as small bars with their percentage, and when each resets on a faint line under it (`resets 4h`). A bar turns red from 90%. A Codex plan without a 5-hour window shows only the weekly one, and a service whose source has no data yet (no status line set up, `codex` missing) is left out. New in 0.4; `vestal docs ai-usage` has the setup.
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `path` | string | `"~/.claude/projects"` | Claude Code's projects directory. A leading `~/` expands. |
-| `fiveHourLimit` | integer, at least 1 | `8000000` | Tokens that count as 100% over 5 hours. |
-| `weeklyLimit` | integer, at least 1 | `95000000` | Tokens that count as 100% over 7 days. |
-
-The limits are calibration constants, not published numbers: adjust them until the percentages match what claude.ai shows for your plan.
+| `show` | list of strings | `["claude", "codex"]` | Which services, in order. |
+| `claudeSource` | source | `"claude"` | What the Claude cells read. |
+| `codexSource` | source | `"codex"` | What the Codex cells read. |
 
 ### Helpers
 
-`claudeItem` (the hourglass and `5h% / week%` of a `claude` source) and `hostDetail` (a host's popup: CPU, RAM, GPU, pools or mounts, network and services) are the presets' building blocks; `foyer` is the source template described under [sources](#source-templates).
+`claudeItem` (an icon and `session% / weekly%` of a `claude` or `codex` source), `aiWindow` (one of `aiUsage`'s cells) and `hostDetail` (a host's popup: CPU, RAM, GPU, pools or mounts, network and services) are the presets' building blocks; `foyer` is the source template described under [sources](#source-templates).
 
 ## Changes in 0.4
 
@@ -753,7 +762,8 @@ The bottom layer (`Sources/VestalCore/DefaultConfig.swift`): a generic dashboard
     "calendar": { "type": "calendar", "refresh": "5m", "days": 1 },
     "system": { "type": "system" },
     "media": { "type": "media", "player": "auto" },
-    "claude": { "type": "claude" }
+    "claude": { "type": "claude" },
+    "codex": { "type": "codex" }
   },
   "widgets": {
     "clock": { "type": "clock" },
@@ -785,7 +795,7 @@ The bottom layer (`Sources/VestalCore/DefaultConfig.swift`): a generic dashboard
 
 ## A complete example
 
-Every v0.3 section, merged over the defaults above. [`examples/full.json`](../examples/full.json) is another one, the setup vestal was built for, and [`examples/full-v04.json`](../examples/full-v04.json) the same dashboard written in the v0.4 style.
+Every v0.3 section, and the plan-usage row, merged over the defaults above. [`examples/full.json`](../examples/full.json) is another one, the setup vestal was built for, and [`examples/full-v04.json`](../examples/full-v04.json) the same dashboard written in the v0.4 style.
 
 ```json
 {
@@ -816,13 +826,13 @@ Every v0.3 section, merged over the defaults above. [`examples/full.json`](../ex
       ]
     },
     "systemBar": {
-      "show": ["uptime", "battery", "claudeUsage", "network", "privacy"],
+      "show": ["uptime", "battery", "claudeUsage", "codexUsage", "network", "privacy"],
       "privacy": {
         "command": ["~/bin/toggle-privacy"],
         "stateFile": "~/.cache/privacy-mode"
       }
     },
-    "claude": { "type": "claudeUsage", "weeklyLimit": 50000000 },
+    "usage": { "type": "aiUsage" },
     "media": { "player": "Spotify", "hideWhenOff": false },
     "agenda": { "maxEvents": 3, "title": "Next" },
     "systems": {
@@ -848,7 +858,7 @@ Every v0.3 section, merged over the defaults above. [`examples/full.json`](../ex
   },
   "views": {
     "main": {
-      "order": ["clock", "systemBar", "media", "agenda", "systems", "fx", "weather"]
+      "order": ["clock", "systemBar", "usage", "media", "agenda", "systems", "fx", "weather"]
     }
   },
   "platform": {

@@ -109,8 +109,8 @@ final class ConfigTests: XCTestCase {
             HostConfig(name: "box", source: "cmd"),
         ])
         XCTAssertEqual(config.widgets["w"]?.units, "imperial")
-        XCTAssertEqual(config.widgets["cu"], WidgetConfig(
-            type: "claudeUsage", path: "/x", fiveHourLimit: 10, weeklyLimit: 20))
+        // The v0.3 Claude options are accepted and ignored.
+        XCTAssertEqual(config.widgets["cu"], WidgetConfig(type: "claudeUsage"))
     }
 
     func testLocalHostNameDefaultsToShortHostname() throws {

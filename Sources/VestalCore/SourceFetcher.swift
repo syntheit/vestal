@@ -8,8 +8,8 @@ import FoundationNetworking
 // One fetch of one source, for AppRuntime. `LiveFetcher` does the real work:
 // HTTP through URLSession, commands through CommandRunner (an argv, never a
 // shell), files, ICS calendars, and the platform's providers for `calendar`
-// (EventKit), `system`, `media` and `claude` (SourcePlatform). Tests pass
-// their own fetcher.
+// (EventKit), `system` and `media` (SourcePlatform), and `claude` and
+// `codex` (AIUsage). Tests pass their own fetcher.
 //
 // A fetch either returns the bytes to keep or throws; the runtime keeps the
 // previous data on an error. `json` results must parse, HTTP must answer 2xx
@@ -144,6 +144,8 @@ public struct LiveFetcher: SourceFetcher {
             return platform.system == nil ? "system stats are not supported on this platform" : nil
         case "calendar", "media", "claude":
             return nil
+        case "codex":
+            return source.argv?.isEmpty == true ? "\"argv\" must not be empty" : nil
         default:
             return "unknown source type \"\(source.type)\""
         }
@@ -167,10 +169,15 @@ public struct LiveFetcher: SourceFetcher {
                 ?? MediaReading(player: nil, playing: .off, players: [])
             return FetchResult(data: MediaSource.shape(reading).canonicalData())
         case "claude":
-            // Plain file reads, already off the main actor; in the fetch's own
-            // task, so a cancelled fetch drops its result at once.
+            // One small file read (what `vestal claude-statusline` kept).
             try Task.checkCancellation()
-            return FetchResult(data: ClaudeSource.read(source, home: home, now: now()).canonicalData())
+            return FetchResult(data: try ClaudeRateLimits.read(path: ClaudeRateLimits.path(home: home), now: now())
+                .canonicalData())
+        case "codex":
+            // A draft may not pick the program; plain `codex app-server` is fine.
+            if source.argv != nil, !allowCommands { throw SourceError("not loaded (draft: pass --allow-commands)") }
+            return FetchResult(data: try await CodexRateLimits.fetch(argv: source.argv ?? CodexRateLimits.defaultArgv,
+                                                                     now: now()).canonicalData())
         default:
             return try await readCalendar(source)
         }

@@ -50,7 +50,7 @@ final class ConfigDocTests: XCTestCase {
         for platform in ConfigPlatform.allCases {
             let loaded = ConfigLoader.load(data: Data(block.utf8), platform: platform)
             XCTAssertEqual(loaded.warnings, [], "\(platform)")
-            XCTAssertEqual(loaded.config.views["main"]?.order.count, 7)
+            XCTAssertEqual(loaded.config.views["main"]?.order.count, 8)
         }
     }
 }

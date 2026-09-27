@@ -128,12 +128,21 @@ public enum CommandRunner {
     /// `CommandError` if the program can't be found or started, or runs
     /// longer than `timeout`, and `CancellationError` if the calling task is
     /// cancelled (the child is killed in both cases).
+    ///
+    /// `input` goes to the child's stdin, which then stays open (a server
+    /// that exits at the end of its input, such as `codex app-server`, keeps
+    /// running); it must fit in a pipe's buffer (a few KiB are always safe),
+    /// or the run fails with `launchFailed`. Without it stdin is /dev/null. `stopWhen` is asked after each piece of stdout: once it
+    /// returns true the run ends with what arrived so far (status 0) and the
+    /// child is stopped.
     public static func run(
         _ argv: [String],
         timeout: TimeInterval = 10,
         environment overrides: [String: String] = [:],
         maxStdout: Int? = nil,
-        maxStderr: Int? = nil
+        maxStderr: Int? = nil,
+        input: Data? = nil,
+        stopWhen: (@Sendable (Data) -> Bool)? = nil
     ) async throws -> CommandResult {
         guard let name = argv.first else { throw CommandError.emptyArgv }
         var env = ProcessInfo.processInfo.environment
@@ -151,7 +160,9 @@ public enum CommandRunner {
             environment: env,
             timeout: timeout,
             maxStdout: maxStdout,
-            maxStderr: maxStderr
+            maxStderr: maxStderr,
+            input: input,
+            stopWhen: stopWhen
         )
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
@@ -222,6 +233,10 @@ private final class CommandExecution {
     private let process = Process()
     private let stdoutPipe = Pipe()
     private let stderrPipe = Pipe()
+    /// With `input`: its write end stays open until the run finishes.
+    private let stdinPipe: Pipe?
+    private let input: Data?
+    private let stopWhen: (@Sendable (Data) -> Bool)?
 
     private var stdoutData = Data()
     private var stderrData = Data()
@@ -237,15 +252,23 @@ private final class CommandExecution {
     private var cancelled = false
 
     init(name: String, executable: String, arguments: [String],
-         environment: [String: String], timeout: TimeInterval, maxStdout: Int?, maxStderr: Int?) {
+         environment: [String: String], timeout: TimeInterval, maxStdout: Int?, maxStderr: Int?,
+         input: Data?, stopWhen: (@Sendable (Data) -> Bool)?) {
         self.name = name
         self.timeout = timeout
         self.maxStdout = maxStdout
         self.maxStderr = min(maxStderr ?? Self.maxCapture, Self.maxCapture)
+        self.input = input
+        self.stopWhen = stopWhen
+        stdinPipe = input == nil ? nil : Pipe()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
         process.environment = environment
-        process.standardInput = FileHandle.nullDevice
+        if let stdinPipe {
+            process.standardInput = stdinPipe
+        } else {
+            process.standardInput = FileHandle.nullDevice
+        }
         process.standardOutput = stdoutPipe
         process.standardError = stderrPipe
     }
@@ -278,6 +301,14 @@ private final class CommandExecution {
             let status = process.terminationStatus
             self.queue.async { self.childExited(status) }
         }
+        // Written before the child exists, while this process holds the read
+        // end too, so the write can't raise SIGPIPE; non-blocking, so input
+        // that doesn't fit in the pipe's buffer fails the run instead of
+        // blocking this queue.
+        if let input, let stdinPipe, !input.isEmpty, !Self.writeAll(input, to: stdinPipe.fileHandleForWriting) {
+            finish(.failure(CommandError.launchFailed(name, "its input (\(input.count) bytes) doesn't fit in a pipe")))
+            return
+        }
         do {
             try process.run()
         } catch {
@@ -296,6 +327,23 @@ private final class CommandExecution {
         timer.setEventHandler { self.timedOut() }
         timer.resume()
         self.timer = timer
+    }
+
+    /// Writes all of `data` without blocking; false if the pipe is full.
+    private static func writeAll(_ data: Data, to handle: FileHandle) -> Bool {
+        let fd = handle.fileDescriptor
+        _ = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)
+        return data.withUnsafeBytes { buffer -> Bool in
+            guard let base = buffer.baseAddress else { return true }
+            var offset = 0
+            while offset < buffer.count {
+                let count = write(fd, base + offset, buffer.count - offset)
+                if count > 0 { offset += count; continue }
+                if count < 0 && errno == EINTR { continue }
+                return false
+            }
+            return true
+        }
     }
 
     private func makeReader(_ handle: FileHandle, isStdout: Bool) -> DispatchSourceRead {
@@ -336,6 +384,10 @@ private final class CommandExecution {
             }
             guard stdoutData.count < Self.maxCapture else { return }
             stdoutData.append(contentsOf: bytes)
+            if let stopWhen, continuation != nil, stopWhen(stdoutData) {
+                killChild()
+                finish(.success(CommandResult(status: 0, stdout: stdoutData, stderr: stderrData)))
+            }
         } else {
             let room = maxStderr - stderrData.count
             guard room > 0 else { return }
@@ -410,6 +462,7 @@ private final class CommandExecution {
         timer = nil
         stdoutSource?.cancel()
         stderrSource?.cancel()
+        if let stdinPipe { try? stdinPipe.fileHandleForWriting.close() }
         continuation.resume(with: result)
     }
 }

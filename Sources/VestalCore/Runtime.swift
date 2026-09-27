@@ -138,6 +138,8 @@ public final class AppRuntime {
     static let minCacheInterval: TimeInterval = 30
 
     public private(set) var isVisible = false
+    /// When the dashboard was last shown (SourceConfig.showRefreshSeconds).
+    private var shownAt: Date?
     /// The view whose widgets count as readers: visible-only sources are
     /// fetched for this view only (§9.1: views not shown cost nothing). The
     /// render engine sets it when it switches views.
@@ -301,11 +303,13 @@ public final class AppRuntime {
     }
 
     /// Visible-only jobs run only while this is true. Becoming visible runs
-    /// every one whose interval has passed at once; becoming hidden cancels
+    /// every one whose interval has passed at once (or whose data is older
+    /// than its source's `showRefreshSeconds`); becoming hidden cancels
     /// their fetches in flight.
     public func setVisible(_ visible: Bool) {
         guard visible != isVisible else { return }
         isVisible = visible
+        if visible { shownAt = now() }
         if !visible { cancelVisibleOnlyFetches() }
         replan()
     }
@@ -503,6 +507,12 @@ public final class AppRuntime {
         else { return nil }
         // Never ran, or the clock went back: due now.
         guard let last = job.fromEnd ? job.lastEnd : job.lastStart, last <= now else { return now }
+        // Shown with data older than the source's show threshold, and not
+        // run since: due now, once per show.
+        if job.visibleOnly, let threshold = job.plan?.source.showRefreshSeconds, let shownAt,
+           last < shownAt, shownAt.timeIntervalSince(last) >= threshold {
+            return min(shownAt, now)
+        }
         let wait = job.failed ? min(job.interval, Self.maxRetryDelay) * job.retryJitter : job.interval
         guard job.aligned else { return last.addingTimeInterval(wait) }
         let t = last.timeIntervalSinceReferenceDate

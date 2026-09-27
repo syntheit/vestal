@@ -6,7 +6,8 @@ import Foundation
 // `stat` and `badge`, the 8 v0.3 widget types (`clock`, `systemBar`,
 // `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`,
 // `claudeUsage`), their helpers `claudeItem` and `hostDetail` (the host
-// popup), and the `foyer` source template. They live in their own registry
+// popup), `aiUsage` with its cell `aiWindow` (Claude and Codex plan usage),
+// and the `foyer` source template. They live in their own registry
 // (TemplateRegistry), not in the merged config layers (§7.2 rule 8).
 //
 // Each v0.3 preset reproduces its SwiftUI view in VestalMac/Widgets (sizes,
@@ -118,29 +119,83 @@ public enum DefaultPresets {
       },
 
       "claudeItem": {
-        "description": "Hourglass and '5h% / week%' from a claude source",
-        "params": {},
+        "description": "An icon and 'session% / weekly%' from a claude or codex source ('–' for a window it doesn't report)",
+        "params": {
+          "icon": { "type": "icon", "default": "hourglass" }
+        },
         "widget": {
           "type": "row", "gap": 5,
           "children": [
-            { "type": "icon", "name": "hourglass", "size": 10, "color": "dim" },
-            { "type": "text", "text": "{{ .fiveHour.percent // 0 }}% / {{ .week.percent // 0 }}%", "style": { "size": 12, "font": "mono", "color": "subtle" } }
+            { "type": "icon", "name": { "param": "icon" }, "size": 10, "color": "dim" },
+            { "type": "text", "text": "{{ [.session, .weekly] | map(if . == null then \"–\" else \"\\(.percent)%\" end) | join(\" / \") }}", "style": { "size": 12, "font": "mono", "color": "subtle" } }
           ]
         }
       },
 
       "claudeUsage": {
-        "description": "Claude Code usage as a status row (v0.3 claudeUsage)",
+        "description": "Claude plan usage as a status row, from the claude source (v0.3 claudeUsage)",
         "params": {
-          "path": { "type": "string", "default": "~/.claude/projects" },
-          "fiveHourLimit": { "type": "integer", "default": 8000000 },
-          "weeklyLimit": { "type": "integer", "default": 95000000 }
+          "path": { "type": "any", "description": "Ignored (v0.3)" },
+          "fiveHourLimit": { "type": "any", "description": "Ignored (v0.3)" },
+          "weeklyLimit": { "type": "any", "description": "Ignored (v0.3)" }
         },
         "widget": {
           "type": "row", "spaceBefore": 28, "height": 24, "gap": 16, "width": "fill",
-          "source": { "type": "claude", "path": { "param": "path" }, "fiveHourLimit": { "param": "fiveHourLimit" }, "weeklyLimit": { "param": "weeklyLimit" } },
-          "loading": "show",
+          "source": "claude", "loading": "show",
           "children": [ { "type": "claudeItem" }, { "type": "spacer" } ]
+        }
+      },
+
+      "aiWindow": {
+        "description": "One plan-usage window: a small bar with its percentage, and when it resets on a faint line under it",
+        "params": {
+          "label": { "type": "text", "required": true },
+          "window": { "type": "expr", "required": true, "description": "The window: .session or .weekly of a claude or codex source" },
+          "color": { "type": "color", "default": "accent", "description": "The bar's colour below 90%" }
+        },
+        "widget": {
+          "type": "stack", "gap": 3, "align": "start",
+          "vars": {
+            "w": { "param": "window" },
+            "p": "if $w == null then null elif $w.resetsAt != null and $w.resetsAt <= now then 0 else $w.percent end"
+          },
+          "children": [
+            { "type": "progress", "label": { "param": "label" }, "labelWidth": 50, "value": "$p // 0",
+              "width": 48, "height": 6, "textWidth": 30,
+              "text": "{{ if $p == null then \"–\" else \"\\($p)%\" end }}",
+              "color": { "expr": "if ($p // 0) >= 90 then \"bad\" else $color end" } },
+            { "type": "text", "when": "$w != null", "padding": [0, 0, 0, 54],
+              "text": "{{ if ($w.resetsAt // 0) > now then \"resets \" + (($w.resetsAt - now) | fmt_duration(1)) else \"new window\" end }}",
+              "style": { "size": 9, "font": "mono", "color": "dim" } }
+          ]
+        }
+      },
+
+      "aiUsage": {
+        "description": "Claude and Codex plan usage in one row: the 5-hour and weekly windows as small bars, with when each resets",
+        "params": {
+          "show": { "type": "array", "default": ["claude", "codex"], "description": "claude, codex: which services, in order" },
+          "claudeSource": { "type": "source", "default": "claude", "description": "What the Claude cells read" },
+          "codexSource": { "type": "source", "default": "codex", "description": "What the Codex cells read" }
+        },
+        "widget": {
+          "type": "row", "gap": 24, "width": "fill", "align": "start", "spaceBefore": 28,
+          "children": [
+            { "type": "list", "direction": "row", "gap": 24, "align": "start", "rowId": ".",
+              "items": "$show | map(select(. == \"claude\" or . == \"codex\")) | uniq_by(.)",
+              "row": { "type": "switch", "on": ".", "cases": {
+                "claude": { "type": "row", "gap": 20, "align": "start", "source": { "param": "claudeSource" }, "children": [
+                  { "type": "aiWindow", "label": "Claude 5h", "window": ".session", "color": "orange" },
+                  { "type": "aiWindow", "label": "Claude wk", "window": ".weekly", "color": "orange" }
+                ] },
+                "codex": { "type": "row", "gap": 20, "align": "start", "source": { "param": "codexSource" }, "children": [
+                  { "type": "aiWindow", "label": "Codex 5h", "window": ".session", "color": "teal", "when": ".session != null" },
+                  { "type": "aiWindow", "label": "Codex wk", "window": ".weekly", "color": "teal" }
+                ] }
+              } }
+            },
+            { "type": "spacer" }
+          ]
         }
       },
 
@@ -272,15 +327,16 @@ public enum DefaultPresets {
       "systemBar": {
         "description": "A row of system stats, with the privacy toggle at the right end (v0.3 systemBar)",
         "params": {
-          "show": { "type": "array", "default": [], "description": "uptime, disk, battery, claudeUsage, network, privacy; empty shows every item" },
+          "show": { "type": "array", "default": [], "description": "uptime, disk, battery, claudeUsage, codexUsage, network, privacy; empty shows every item but codexUsage" },
           "privacy": { "type": "object", "description": "{command: [argv], stateFile: path}" },
           "claudeSource": { "type": "source", "default": "claude", "description": "What the claudeUsage item reads" },
+          "codexSource": { "type": "source", "default": "codex", "description": "What the codexUsage item reads" },
           "privacyKey": { "type": "string", "description": "The privacy toggle's key" }
         },
         "widget": {
           "type": "row", "gap": 16, "height": 24, "width": "fill", "spaceBefore": 28,
           "source": "system", "loading": "show",
-          "vars": { "items": "(if ($show | length) == 0 then [\"uptime\", \"disk\", \"battery\", \"claudeUsage\", \"network\", \"privacy\"] else $show end) | map(select(. == \"uptime\" or . == \"disk\" or . == \"battery\" or . == \"claudeUsage\" or . == \"network\" or . == \"privacy\")) | uniq_by(.)" },
+          "vars": { "items": "(if ($show | length) == 0 then [\"uptime\", \"disk\", \"battery\", \"claudeUsage\", \"network\", \"privacy\"] else $show end) | map(select(. == \"uptime\" or . == \"disk\" or . == \"battery\" or . == \"claudeUsage\" or . == \"codexUsage\" or . == \"network\" or . == \"privacy\")) | uniq_by(.)" },
           "children": [
             {
               "type": "list", "direction": "row", "gap": 16,
@@ -307,6 +363,7 @@ public enum DefaultPresets {
                     "style": { "size": 11, "color": "dim" } }
                 ] },
                 "claudeUsage": { "type": "claudeItem", "source": { "param": "claudeSource" }, "loading": "show" },
+                "codexUsage": { "type": "claudeItem", "icon": "terminal-window", "source": { "param": "codexSource" }, "loading": "show" },
                 "network": { "type": "row", "gap": 5, "input": "$data", "children": [
                   { "type": "icon", "name": "arrow-down", "size": 9, "color": "dim" },
                   { "type": "text", "text": "{{ .network.rx // 0 | fmt_rate }}", "style": { "size": 12, "font": "mono", "color": "subtle" } },

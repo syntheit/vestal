@@ -91,11 +91,11 @@ public struct SystemBarLayout: Equatable, Sendable {
     public var privacy: Bool
 
     /// `show` without unknown or repeated items; absent or empty means every
-    /// item. The privacy item also needs both of its options.
+    /// item but codexUsage. The privacy item also needs both of its options.
     public init(_ widget: WidgetConfig) {
         let show = widget.show ?? []
         var seen = Set<String>()
-        let items = (show.isEmpty ? WidgetConfig.systemBarItems : show)
+        let items = (show.isEmpty ? WidgetConfig.systemBarDefaultItems : show)
             .filter { WidgetConfig.systemBarItems.contains($0) && seen.insert($0).inserted }
         leading = items.filter { $0 != "privacy" }
         privacy = items.contains("privacy") && widget.privacy?.isConfigured == true

@@ -63,12 +63,7 @@
         "stateFile": "/tmp/.privacy-mode"
       }
     },
-    "claude": {
-      "type": "claudeUsage",
-      "path": "~/.claude/projects",
-      "fiveHourLimit": 8000000,
-      "weeklyLimit": 95000000
-    },
+    "claude": { "type": "claudeUsage" },
     "media": null,
     "spotify": {
       "type": "media",

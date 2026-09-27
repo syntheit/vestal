@@ -60,7 +60,7 @@ final class AgentCommandsTests: XCTestCase {
         XCTAssertEqual(top["os"], .string("linux"))
         XCTAssertEqual(top["instance"], .bool(false))
         let sources = try XCTUnwrap(top["sources"]?.objectValue)
-        XCTAssertEqual(Set(sources.keys), ["system", "media", "calendar", "audio", "claude"])
+        XCTAssertEqual(Set(sources.keys), ["system", "media", "calendar", "audio", "claude", "codex"])
         XCTAssertEqual(sources["calendar"]?.objectValue?["backend"], .string("ics"))
         XCTAssertEqual(sources["claude"]?.objectValue?["ok"], .bool(false))
         XCTAssertEqual(top["screenshot"]?.objectValue?["supported"], .bool(false))

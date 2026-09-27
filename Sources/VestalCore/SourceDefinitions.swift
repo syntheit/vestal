@@ -79,16 +79,13 @@ public enum LegacySources {
         SourceConfig(type: "media", player: [player])
     }
 
-    /// What a v0.3 claudeUsage widget (or a system bar's claudeUsage item,
-    /// with the first claudeUsage widget's options) reads. `path` is kept as
-    /// written; the source expands `~/` when it reads.
-    public static func claude(_ widget: WidgetConfig?) -> SourceConfig {
-        SourceConfig(type: "claude", path: widget?.path ?? SourceConfig.defaultClaudePath,
-                     fiveHourLimit: widget?.fiveHourLimit, weeklyLimit: widget?.weeklyLimit)
-    }
+    /// The named sources a v0.3 claudeUsage widget, and a system bar's
+    /// claudeUsage and codexUsage items, read (the defaults define both).
+    public static let claude = "claude"
+    public static let codex = "codex"
 
-    /// The sources the main view's v0.3 widgets read (media players, Claude
-    /// usage), by their inline names.
+    /// The sources the main view's v0.3 widgets read (media players), by
+    /// their inline names.
     public static func sources(of config: Config) -> [String: SourceConfig] {
         var all: [String: SourceConfig] = [:]
         for entry in DashboardLayout(config: config).entries {
@@ -102,10 +99,19 @@ public enum LegacySources {
         switch entry.kind {
         case .media:
             return [media(player: entry.widget.mediaPlayer)]
+        default:
+            return []
+        }
+    }
+
+    /// The named sources one v0.3 widget reads besides its `source`.
+    static func named(for entry: DashboardLayout.Entry) -> [String] {
+        switch entry.kind {
         case .claudeUsage:
-            return [claude(entry.widget)]
-        case .systemBar where SystemBarLayout(entry.widget).leading.contains("claudeUsage"):
-            return [claude(config.claudeUsageWidget)]
+            return [claude]
+        case .systemBar:
+            let items = SystemBarLayout(entry.widget).leading
+            return (items.contains("claudeUsage") ? [claude] : []) + (items.contains("codexUsage") ? [codex] : [])
         default:
             return []
         }
@@ -163,6 +169,7 @@ public enum SourceReaders {
                 break
             }
             for source in LegacySources.sources(for: entry, in: config) { add(source.inlineName, entry.key) }
+            for name in LegacySources.named(for: entry) where config.sources[name] != nil { add(name, entry.key) }
             for name in widget.sourceNames.sorted() { add(name, entry.key) }
         }
         // The expanded tree the render engine draws (templates, v0.4 widgets).

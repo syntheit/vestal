@@ -302,9 +302,11 @@ private struct Walker {
         case "media":
             if case .string? = source["player"] {} else { _ = strings(source["player"], "\(path).player") }
         case "claude":
-            _ = string(source["path"], "\(path).path")
-            atLeastOne(source["fiveHourLimit"], "\(path).fiveHourLimit", default: ClaudeUsage.blockLimitTokens)
-            atLeastOne(source["weeklyLimit"], "\(path).weeklyLimit", default: ClaudeUsage.weeklyLimitTokens)
+            ignoredClaudeOptions(source, path)
+        case "codex":
+            if let argv = strings(source["argv"], "\(path).argv"), argv.isEmpty {
+                add(.invalidValue, "\(path).argv", "must not be empty")
+            }
         default:
             break
         }
@@ -428,9 +430,7 @@ private struct Walker {
                 }
                 oneOf(widget["units"], "\(path).units", WidgetConfig.unitSystems)
             case "claudeUsage":
-                _ = string(widget["path"], "\(path).path")
-                atLeastOne(widget["fiveHourLimit"], "\(path).fiveHourLimit", default: WidgetConfig.Defaults.fiveHourLimit)
-                atLeastOne(widget["weeklyLimit"], "\(path).weeklyLimit", default: WidgetConfig.Defaults.weeklyLimit)
+                ignoredClaudeOptions(widget, path)
             default:
                 break
             }
@@ -612,6 +612,17 @@ private struct Walker {
     }
 
     // MARK: Helpers
+
+    /// The v0.3 token-estimate options of a claude source or claudeUsage
+    /// widget: accepted, ignored, and said so once each.
+    private mutating func ignoredClaudeOptions(_ object: [String: AnyJSON], _ path: String) {
+        for key in ["path", "fiveHourLimit", "weeklyLimit"] where object[key] != nil && object[key] != .null {
+            warnings.append(ConfigWarning(
+                kind: .invalidValue, path: "\(path).\(key)",
+                message: "ignored: Claude usage now comes from Claude Code's status line (vestal docs ai-usage)",
+                code: "ignored", severity: .info))
+        }
+    }
 
     private mutating func add(_ kind: ConfigWarning.Kind, _ path: String, _ message: String, code: String? = nil,
                               suggestions: [String] = [], expected: String? = nil, found: String? = nil) {

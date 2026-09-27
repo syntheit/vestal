@@ -359,14 +359,24 @@ public enum SchemaRegistry {
                       "A player name, or a list (the first running one wins), or auto: an AppleScript application on macOS "
                       + "(auto: Spotify, then Music), an MPRIS player through playerctl on Linux (auto: the first playing one)."),
         ] + common("3s", "visible")),
-        SchemaEntityType("claude", since: "0.4", "Claude Code token usage over 5 hours and 7 days.", keys: [
-            SchemaKey("path", .string, default: .string(SourceConfig.defaultClaudePath), examples: [.string("~/.claude/projects")],
-                      "Claude Code's projects directory. A leading ~/ expands."),
-            SchemaKey("fiveHourLimit", .integer(minimum: 1), default: .int(ClaudeUsage.blockLimitTokens), examples: [.int(8_000_000)],
-                      "Tokens that count as 100% over 5 hours."),
-            SchemaKey("weeklyLimit", .integer(minimum: 1), default: .int(ClaudeUsage.weeklyLimitTokens), examples: [.int(95_000_000)],
-                      "Tokens that count as 100% over 7 days."),
-        ] + common("30s", "visible")),
+        SchemaEntityType("claude", since: "0.4",
+                         "Claude plan usage (5-hour and weekly windows) as Claude Code reports it to `vestal claude-statusline`.",
+                         keys: ignoredClaudeKeys + common("30s", "visible")),
+        SchemaEntityType("codex", since: "0.4", "Codex plan usage (5-hour and weekly windows) from `codex app-server`.", keys: [
+            SchemaKey("argv", .list(.string), since: "0.4", examples: [.array([.string("~/.local/bin/codex"), .string("app-server")])],
+                      "The app server to ask. Default: codex app-server, codex found on PATH; set it when it isn't."),
+        ] + common("5m", "visible")),
+    ]
+
+    /// The v0.3 Claude options: accepted and ignored (an info
+    /// finding), on the claude source and the claudeUsage widget.
+    static let ignoredClaudeKeys: [SchemaKey] = [
+        SchemaKey("path", .string, examples: [.string("~/.claude/projects")],
+                  "Ignored (it was Claude Code's log directory)."),
+        SchemaKey("fiveHourLimit", .integer(minimum: 1), examples: [.int(8_000_000)],
+                  "Ignored (it was a guessed 5-hour token limit)."),
+        SchemaKey("weeklyLimit", .integer(minimum: 1), examples: [.int(95_000_000)],
+                  "Ignored (it was a guessed weekly token limit)."),
     ]
 
     /// The keys every source takes (EXTENSIBILITY.md 5.1), with the type's
@@ -409,9 +419,10 @@ public enum SchemaRegistry {
                       "Extra clocks under the date. A clock in the local time zone is skipped."),
         ]),
         SchemaEntityType("systemBar", "A row of system stats.", keys: [
-            SchemaKey("show", .list(.oneOf(WidgetConfig.systemBarItems)), default: .array(WidgetConfig.systemBarItems.map(AnyJSON.string)),
+            SchemaKey("show", .list(.oneOf(WidgetConfig.systemBarItems)), default: .array(WidgetConfig.systemBarDefaultItems.map(AnyJSON.string)),
                       examples: [.array([.string("uptime"), .string("battery"), .string("network")])],
-                      "Items, left to right. privacy is always drawn at the right end. Absent or empty shows every item."),
+                      "Items, left to right. privacy is always drawn at the right end. Absent or empty shows every item but "
+                      + "codexUsage (it runs `codex app-server`)."),
             SchemaKey("privacy", .shape("privacy"),
                       examples: [.object(["command": .array([.string("~/bin/toggle-privacy")]), "stateFile": .string("~/.cache/privacy-mode")])],
                       "The privacy toggle: a command to run and the file that exists while privacy mode is on."),
@@ -455,14 +466,8 @@ public enum SchemaRegistry {
                       "Only picks the °C or °F suffix: point fields.temp at the matching value yourself."),
             title("Weather"),
         ]),
-        SchemaEntityType("claudeUsage", "Claude Code token usage over 5 hours and 7 days, as percentages of two limits.", keys: [
-            SchemaKey("path", .string, default: .string(WidgetConfig.Defaults.claudePath), examples: [.string("~/.claude/projects")],
-                      "Claude Code's projects directory. A leading ~/ expands."),
-            SchemaKey("fiveHourLimit", .integer(minimum: 1), default: .int(WidgetConfig.Defaults.fiveHourLimit), examples: [.int(8_000_000)],
-                      "Tokens that count as 100% over 5 hours."),
-            SchemaKey("weeklyLimit", .integer(minimum: 1), default: .int(WidgetConfig.Defaults.weeklyLimit), examples: [.int(95_000_000)],
-                      "Tokens that count as 100% over 7 days."),
-        ]),
+        SchemaEntityType("claudeUsage", "Claude plan usage, 5-hour and weekly percentages, from the claude source.",
+                         keys: ignoredClaudeKeys),
     ]
 
     private static func title(_ fallback: String?) -> SchemaKey {

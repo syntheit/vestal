@@ -48,7 +48,7 @@ in
           vestal check-config --strict typo.json > /dev/null || rc=$?
           [ "$rc" = 3 ]
           vestal check-config --commands ${../examples/full.json} > /dev/null
-          vestal print-config --origins ${../examples/full.json} | grep -q '^/widgets/claude/weeklyLimit  *95000000  *user$'
+          vestal print-config --origins ${../examples/full.json} | grep -q '^/widgets/claude/type  *"claudeUsage"  *user$'
           # The schema is the committed one, and the docs are built in.
           vestal schema | cmp - ${../docs/vestal.schema.json}
           vestal docs agents | grep -q '^# Configuring vestal'

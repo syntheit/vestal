@@ -142,6 +142,9 @@ case .command(.sources(let arguments)):
 case .command(.fetch(let arguments)):
     emit(SourceCommands.fetch(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
 
+case .command(.claudeStatusLine(let arguments)):
+    emit(ClaudeStatusLine.run(arguments, input: FileHandle.standardInput.readDataToEndOfFile()))
+
 case .command(.eval(let arguments)):
     emit(EvalCommand.run(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
 

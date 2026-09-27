@@ -50,6 +50,7 @@ public enum DocsCommand {
         "render-model": "What a UI draws: snapshot, nodes, layout rules, ids, patches",
         "protocol": "The subscribe protocol, for writing a UI in any toolkit",
         "recipes": "Complete configs for common requests; each is `recipe/<name>`",
+        "ai-usage": "Claude and Codex plan usage: the status line setup, the codex source, the widgets",
     ]
 
     /// Topic families: `<prefix><name>`, generated.

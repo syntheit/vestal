@@ -260,7 +260,7 @@ final class ConfigLoaderTests: XCTestCase {
         XCTAssertEqual(config.sources["weather"]?.url, "https://wttr.in/?m&format=j1")
         // Plus the media preset's inline source (v0.4 expansion).
         XCTAssertEqual(Set(config.sources.keys.filter { !$0.hasPrefix("inline:") }),
-                       ["weather", "calendar", "system", "media", "claude"])
+                       ["weather", "calendar", "system", "media", "claude", "codex"])
         XCTAssertEqual(config.sources[LegacySources.media(player: "Spotify").inlineName], LegacySources.media(player: "Spotify"))
     }
 
@@ -300,6 +300,7 @@ final class ConfigLoaderTests: XCTestCase {
                 "system": SourceConfig(type: "system"),
                 "media": SourceConfig(type: "media", player: ["auto"]),
                 "claude": SourceConfig(type: "claude"),
+                "codex": SourceConfig(type: "codex"),
             ],
             widgets: [
                 "clock": WidgetConfig(type: "clock", worldClocks: [
@@ -312,8 +313,7 @@ final class ConfigLoaderTests: XCTestCase {
                     show: ["uptime", "disk", "battery", "claudeUsage", "network", "privacy"],
                     privacy: PrivacyConfig(command: ["bash", "~/.local/bin/toggle-privacy"],
                                            stateFile: "/tmp/.privacy-mode")),
-                "claude": WidgetConfig(type: "claudeUsage", path: "~/.claude/projects",
-                                       fiveHourLimit: 8_000_000, weeklyLimit: 95_000_000),
+                "claude": WidgetConfig(type: "claudeUsage"),
                 "spotify": WidgetConfig(type: "media", player: "Spotify", hideWhenOff: true),
                 "agenda": WidgetConfig(type: "agendaList", title: "Today", source: "calendar", maxEvents: 5),
                 "systems": WidgetConfig(
@@ -364,16 +364,6 @@ final class ConfigLoaderTests: XCTestCase {
         plain.sources = named
         plain.expanded = nil
         XCTAssertEqual(plain, expected)
-    }
-
-    func testClaudeUsageOptionsComeFromTheFirstWidgetByKey() {
-        XCTAssertNil(DefaultConfig.config.claudeUsageWidget)
-        let config = Config(widgets: [
-            "b": WidgetConfig(type: "claudeUsage", weeklyLimit: 2),
-            "a": WidgetConfig(type: "claudeUsage", weeklyLimit: 1),
-            "0": WidgetConfig(type: "clock"),
-        ])
-        XCTAssertEqual(config.claudeUsageWidget?.weeklyLimit, 1)
     }
 
     // MARK: Helpers

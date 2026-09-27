@@ -18,6 +18,7 @@ final class SchemaTests: XCTestCase {
             "system": common.union(["disks", "interfaces"]),
             "media": common.union(["player"]),
             "claude": common.union(["path", "fiveHourLimit", "weeklyLimit"]),
+            "codex": common.union(["argv"]),
         ])
         XCTAssertEqual(SourceConfig.aliases, ["eventkit": "calendar"])
         XCTAssertEqual(WidgetConfig.keysByType, [
@@ -55,15 +56,17 @@ final class SchemaTests: XCTestCase {
         }
         let source = SourceConfig(
             type: "command", url: "u", argv: ["a"], env: [:], calendars: [], transform: ".", history: [:], maxAge: "1h",
-            headers: [:], body: .null, path: "p", disks: [], interfaces: [], player: [], fiveHourLimit: 1, weeklyLimit: 1,
-            ics: [])
+            headers: [:], body: .null, path: "p", disks: [], interfaces: [], player: [], ics: [])
+        // The v0.3 Claude options are declared (accepted, then ignored) but
+        // not decoded; a source's `path` is still the file source's.
+        let ignored: Set<String> = ["path", "fiveHourLimit", "weeklyLimit"]
         let sourceKeys = Set(SchemaRegistry.sourceTypes.flatMap(\.keyNames)).union(["type"])
+            .subtracting(["fiveHourLimit", "weeklyLimit"])
         XCTAssertEqual(try keys(source), sourceKeys)
         let widget = WidgetConfig(
             type: "clock", title: "t", source: "s", worldClocks: [], show: [], privacy: PrivacyConfig(), player: "p",
-            hideWhenOff: true, maxEvents: 1, hosts: [], provider: "foyer", items: [], fields: [:], units: "metric",
-            path: "p", fiveHourLimit: 1, weeklyLimit: 1)
-        XCTAssertEqual(try keys(widget), Set(SchemaRegistry.widgetTypes.flatMap(\.keyNames)).union(["type"]))
+            hideWhenOff: true, maxEvents: 1, hosts: [], provider: "foyer", items: [], fields: [:], units: "metric")
+        XCTAssertEqual(try keys(widget), Set(SchemaRegistry.widgetTypes.flatMap(\.keyNames)).union(["type"]).subtracting(ignored))
         // Theme and view keys added in v0.4 are read by the render engine
         // from the expanded tree, not by these decoders.
         func v03(_ shape: String) -> Set<String> {
@@ -130,7 +133,7 @@ final class SchemaTests: XCTestCase {
         let refs = widget.compactMap { $0.objectValue?["$ref"]?.stringValue }
         XCTAssertEqual(refs, (SchemaRegistry.allWidgetTypes.map(\.name).sorted() + ["template", "override"]).map { "#/$defs/widget.\($0)" })
         for type in ["stack", "row", "grid", "list", "table", "switch", "text", "icon", "progress", "gauge", "sparkline",
-                     "keyValue", "divider", "spacer", "section", "stat", "badge", "claudeItem", "hostDetail"] {
+                     "keyValue", "divider", "spacer", "section", "stat", "badge", "claudeItem", "hostDetail", "aiWindow", "aiUsage"] {
             XCTAssertNotNil(defs["widget.\(type)"], type)
         }
         // Common fields on every type, v0.3 presets included; computed literals take {"expr"}.

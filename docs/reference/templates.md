@@ -93,8 +93,7 @@ A source template that takes a `url` can also be `systemHealth`'s `provider`.
 
 ## The v0.3 adapter
 
-Three v0.3 behaviours link separate widgets, so a small adapter applies them before expansion, each reported by check-config as an info note with code `legacy`:
+Two v0.3 behaviours link separate widgets, so a small adapter applies them before expansion, each reported by check-config as an info note with code `legacy`:
 
-1. A `systemBar` without its own `claudeSource` takes its Claude options from the first `claudeUsage` widget (by key).
-2. The first `systemBar` of the default view whose privacy item shows gets the key `p`.
-3. Each `systemHealth` host with a `url` becomes the source `host:<name>` (`{"type": <provider>, "url": …, "refresh": <interval or 5s>}`).
+1. The first `systemBar` of the default view whose privacy item shows gets the key `p`.
+2. Each `systemHealth` host with a `url` becomes the source `host:<name>` (`{"type": <provider>, "url": …, "refresh": <interval or 5s>}`).

@@ -9,7 +9,7 @@ Vestal is a full-screen dashboard toggled by a key, on macOS and Linux, driven b
    - Otherwise edit the file itself: vestal reloads it on its own.
 2. **Work on a draft.** Copy the config to `/tmp/vestal-draft.json`, change that, and pass it to every command with `--config`. Only replace the real file once `check-config` is clean and the render looks right.
 3. **Never put secrets in the config.** Tokens live in a file (or an environment variable, or a command such as `gh auth token`), declared under `secrets` and used as `{{ $secrets.name }}` in a source's URL, headers or argv. Under Nix the config is in the world-readable store.
-4. **One config serves macOS and Linux.** Use the built-in sources (`system`, `media`, `calendar`, `claude`) rather than OS commands. Put what is truly OS-specific (fonts, a command that exists on one OS, a player name) in `platform.macos` or `platform.linux`, and check both OSes: `vestal check-config --platform linux`.
+4. **One config serves macOS and Linux.** Use the built-in sources (`system`, `media`, `calendar`, `claude`, `codex`) rather than OS commands. Put what is truly OS-specific (fonts, a command that exists on one OS, a player name) in `platform.macos` or `platform.linux`, and check both OSes: `vestal check-config --platform linux`.
 5. **Validate before you claim success:** `vestal check-config --json` must say `"error": 0` (exit 0, not 3), and `vestal render` must end with `diagnostics: 0`. Then look at it (`vestal screenshot`).
 6. **Prefer what exists:** presets (`vestal docs presets`), semantic colours (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
 7. **Tell the user what runs.** `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists every program the config can run (command sources, inline or from a template too; `command` secrets; `run` actions in widgets, views, keys and templates; the v0.3 privacy toggle and foyer hosts), with what triggers it and whether it is on `PATH`. Mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
@@ -44,7 +44,8 @@ sources:
   media     ok  MPRIS through playerctl: no MPRIS player running
   calendar  no  none: no calendar backend: set `ics` (files, a vdirsyncer directory or URLs) on the calendar source
   audio     no  wpctl: wpctl found, but no default output device
-  claude    ok  Claude Code logs: /home/me/.claude/projects
+  claude    no  Claude Code statusLine: no /home/me/.cache/vestal/claude-rate-limits.json yet: set Claude Code's statusLine to `vestal claude-statusline` (vestal docs ai-usage)
+  codex     ok  codex app-server: /etc/profiles/per-user/me/bin/codex
 icons: ok  …/share/vestal/icons/Phosphor.ttf, …/share/vestal/icons/Phosphor-Fill.ttf
 screenshot: no  needs a Wayland session (WAYLAND_DISPLAY is not set); `vestal render` works anywhere
 hotkey: no  not grabbed on Wayland: bind `vestal toggle` in the compositor (Hyprland: bind = , Home, exec, vestal toggle)
@@ -54,7 +55,7 @@ programs:
 
 `--json` gives the same as data: `sources.<type>.{backend, ok, detail}` (plus `players` for media and `null`, the `system` fields this machine can't read), `icons`, `screenshot.supported`, `hotkey.supported`, `programs[].{program, found, path, usedBy}` and `missing`. `vestal capabilities` tells you, before you write anything, whether `media` has a player (and which names work), whether the calendar has a backend, whether `wpctl` or `playerctl` is missing, and whether `vestal screenshot` can draw here. Read it first: a widget over a source that can't work here only wastes the user's screen.
 
-Without any config, the dashboard shows the defaults: `clock`, `systemBar`, `media`, `agenda`, `systems`, `weather` in view `main`, from the sources `system`, `media`, `claude`, `calendar` and `weather`.
+Without any config, the dashboard shows the defaults: `clock`, `systemBar`, `media`, `agenda`, `systems`, `weather` in view `main`, from the sources `system`, `media`, `calendar` and `weather` (`claude` and `codex` are defined too, for plan usage: `vestal docs ai-usage`).
 
 ### Step 2: inspect the data
 
@@ -273,7 +274,7 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 |---|---|
 | Containers | `stack`, `row`, `grid`, `list`, `table`, `switch` |
 | Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer` |
-| Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage` |
+| Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` |
 
 Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` (`"fill"`), `spaceBefore`, `action`, `key`.
 
@@ -825,6 +826,24 @@ User: *"List my Docker containers; clicking one restarts it."*
 - `docker ps --format json` prints one JSON object per line: `parse: "lines"` then `transform: "map(fromjson)"`. The source is `visible`: docker is only asked while the dashboard is shown.
 - The row's `run` action restarts the container without a shell. `optimistic` shows it as restarting at once (it replaces the source's data until the next fetch), and the source is fetched again when `docker restart` exits.
 - Tell the user: a click restarts a container (there is no confirmation); `docker` must be on the daemon's PATH.
+
+### Recipe `ai-usage`: Claude and Codex plan usage
+
+User: *"Show how much of my Claude and Codex limits I've used."*
+
+```json
+{
+  "version": 1,
+  "widgets": {
+    "usage": { "type": "aiUsage" }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "usage", "agenda"] } }
+}
+```
+
+- `aiUsage` draws Claude's and Codex's 5-hour and weekly windows as bars, with `resets 4h` under each; a service with no data yet is left out. The numbers are the services' own: vestal reads no credentials.
+- Claude's come from Claude Code's status line, which must run `vestal claude-statusline`: under Home Manager `programs.vestal.claudeStatusLine.enable = true;`, else `"statusLine": {"type": "command", "command": "vestal claude-statusline"}` in `~/.claude/settings.json`. If the user already has a status line, don't replace it: use `vestal claude-statusline --then <their command>`. `vestal fetch claude` fails with a hint until Claude Code has run with it.
+- Codex's come from `codex app-server` (the user's `codex login`); `vestal fetch codex` checks it. For the system bar instead: `"show": [..., "claudeUsage", "codexUsage", ...]`. Details: `vestal docs ai-usage`.
 
 ### Recipe `disk-table`: disks as a table
 
