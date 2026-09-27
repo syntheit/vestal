@@ -135,6 +135,7 @@ public enum ClaudeUsage {
 
     private static let assistantMarker = Data("\"type\":\"assistant\"".utf8)
 
+    #if canImport(Darwin)
     private static let isoFractional: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -147,7 +148,16 @@ public enum ClaudeUsage {
         return f
     }()
 
-    private static func parseTimestamp(_ s: String) -> Date? {
+    static func parseTimestamp(_ s: String) -> Date? {
         isoFractional.date(from: s) ?? isoPlain.date(from: s)
     }
+    #else
+    /// corelibs Foundation 5.10's ISO8601DateFormatter traps on
+    /// `.withFractionalSeconds` (SIGILL in `_cfObject`), so Linux parses by
+    /// hand (whole seconds; a boundary a fraction of a second off doesn't
+    /// matter for 5-hour and 7-day windows).
+    static func parseTimestamp(_ s: String) -> Date? {
+        FeedParser.FeedDate.rfc3339(s).map { Date(timeIntervalSince1970: TimeInterval($0)) }
+    }
+    #endif
 }
