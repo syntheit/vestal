@@ -163,6 +163,43 @@ enum JQOps {
         }
     }
 
+    /// `acc = acc + x`, mutating in place when `acc` holds the only
+    /// reference (so accumulating is linear, as in jq).
+    static func addInPlace(_ acc: inout JQValue, _ x: JQValue) throws {
+        switch x {
+        case .string(let b):
+            if var a = take(&acc, { if case .string(let s) = $0 { return s }; return nil }) {
+                a += b
+                acc = .string(a)
+                return
+            }
+        case .array(let b):
+            if var a = take(&acc, { if case .array(let v) = $0 { return v }; return nil }) {
+                a.append(contentsOf: b)
+                acc = .array(a)
+                return
+            }
+        case .object(let b):
+            if var a = take(&acc, { if case .object(let o) = $0 { return o }; return nil }) {
+                for (k, v) in b { a[k] = v }
+                acc = .object(a)
+                return
+            }
+        default:
+            break
+        }
+        acc = try add(acc, x)
+    }
+
+    /// Move the payload out of `v` (leaving null) when `extract` finds one,
+    /// so the caller holds the only reference and can mutate in place.
+    @inline(__always)
+    static func take<T>(_ v: inout JQValue, _ extract: (JQValue) -> T?) -> T? {
+        guard let payload = extract(v) else { return nil }
+        v = .null
+        return payload
+    }
+
     static func subtract(_ l: JQValue, _ r: JQValue) throws -> JQValue {
         switch (l, r) {
         case (.number(let a), .number(let b)): return .number(a - b)
@@ -323,6 +360,52 @@ enum JQOps {
         return try set(t, first, newSub)
     }
 
+    /// `setpath` that mutates `t`, copying nothing that `t` alone holds.
+    /// Object keys, null and in-range array indices are handled here; any
+    /// other step (slices, errors) goes through `setpath`, so results and
+    /// messages are the same.
+    static func setpathInPlace(_ t: inout JQValue, _ comps: ArraySlice<JQValue>, _ v: JQValue) throws {
+        guard let first = comps.first else {
+            t = v
+            return
+        }
+        let rest = comps.dropFirst()
+        switch first {
+        case .string(let key):
+            if case .null = t { t = .object(JQObject()) }
+            guard var o = take(&t, { if case .object(let o) = $0 { return o }; return nil }) else {
+                t = try setpath(t, comps, v)
+                return
+            }
+            var child = o[key] ?? .null
+            // Release the object's reference, keeping the key's position.
+            if o[key] != nil { o[key] = .null }
+            try setpathInPlace(&child, rest, v)
+            o[key] = child
+            t = .object(o)
+        case .number(let d):
+            if case .null = t { t = .array([]) }
+            guard var a = take(&t, { if case .array(let a) = $0 { return a }; return nil }) else {
+                t = try setpath(t, comps, v)
+                return
+            }
+            var i = d.isNaN ? -1 : Int(max(min(d, Double(Int32.max)), Double(Int32.min)))
+            if !d.isNaN && i < 0 { i += a.count }
+            guard i >= 0, i <= maxArrayIndex else {
+                t = try setpath(.array(a), comps, v)
+                return
+            }
+            if i >= a.count { a.append(contentsOf: repeatElement(JQValue.null, count: i - a.count + 1)) }
+            var child = a[i]
+            a[i] = .null
+            try setpathInPlace(&child, rest, v)
+            a[i] = child
+            t = .array(a)
+        default:
+            t = try setpath(t, comps, v)
+        }
+    }
+
     /// jq's jv_set.
     static func set(_ t: JQValue, _ k: JQValue, _ v: JQValue) throws -> JQValue {
         switch (t, k) {
@@ -426,12 +509,14 @@ enum JQOps {
             }
             return .array(out)
         case .object(var o):
+            var remove = Set<String>()
             for k in keys {
                 guard case .string(let s) = k else {
                     throw JQError.runtime("Cannot delete field at index of \(k.typeName)")
                 }
-                o[s] = nil
+                remove.insert(s)
             }
+            o.removeKeys(remove)
             return .object(o)
         default:
             throw JQError.runtime("Cannot delete fields from \(t.typeName)")

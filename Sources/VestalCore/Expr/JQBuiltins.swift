@@ -19,30 +19,9 @@ enum JQBuiltins {
     def unique_by(f): group_by(f) | map(.[0]);
     def max_by(f): _max_by_impl(map([f]));
     def min_by(f): _min_by_impl(map([f]));
-    def add: reduce .[] as $x (null; . + $x);
     def add(f): reduce f as $x (null; . + $x);
     def del(f): delpaths([path(f)]);
     def abs: if . < 0 then - . else . end;
-    def _assign(paths; $value): reduce path(paths) as $p (.; setpath($p; $value));
-    def _modify(paths; update):
-        reduce path(paths) as $p ([., []];
-            . as $dot
-          | null
-          | label $out
-          | ($dot[0] | getpath($p)) as $v
-          | (
-              (   $v
-                | update
-                | (., break $out) as $v
-                | $dot
-                | setpath([0] + $p; $v)
-              ),
-              (
-                  $dot
-                | setpath([1, (.[1] | length)]; $p)
-              )
-            )
-        ) | . as $dot | $dot[0] | delpaths($dot[1]);
     def map_values(f): .[] |= f;
     def recurse(f): def r: ., (f | r); r;
     def recurse(f; cond): def r: ., (f | select(cond) | r); r;
@@ -72,10 +51,6 @@ enum JQBuiltins {
     def values: select(. != null);
     def scalars: select(type|. != "array" and . != "object");
     def leaf_paths: paths(scalars);
-    def join($x): reduce .[] as $i (null;
-                (if .==null then "" else .+$x end) +
-                ($i | if type=="boolean" or type=="number" then tostring else .//"" end)
-            ) // "";
     def _flatten($x): reduce .[] as $i ([]; if $i | type == "array" and $x != 0 then . + ($i | _flatten($x-1)) else . + [$i] end);
     def flatten($x): if $x < 0 then error("flatten depth must not be negative") else _flatten($x) end;
     def flatten: _flatten(-1);
@@ -317,6 +292,45 @@ enum JQBuiltins {
             return result
         }
         value("delpaths", 1) { _, input, args in try JQOps.delpaths(input, args[0]) }
+        // Assignment, as jq 1.7.1 defines it, updating in place:
+        //   def _assign(paths; $value): reduce path(paths) as $p (.; setpath($p; $value));
+        generator("_assign", 2) { interp, args, input, env, out in
+            try interp.eval(args[1], input, env) { value in
+                var root = input
+                try interp.paths(args[0], input, env) { path in
+                    try interp.tick()
+                    try JQOps.setpathInPlace(&root, path[...], value)
+                }
+                try checkDepth(root)
+                try out(root)
+            }
+        }
+        //   def _modify(paths; update): for each path, the first output of
+        //   `update` on the current value replaces it; no output deletes it
+        //   (all deletions at the end).
+        generator("_modify", 2) { interp, args, input, env, out in
+            var root = input
+            var deletions: [JQValue] = []
+            try interp.paths(args[0], input, env) { path in
+                try interp.tick()
+                let current = try JQOps.getpath(root, .array(path))
+                var replacement: JQValue?
+                do {
+                    try interp.eval(args[1], current, env) { v in
+                        replacement = v
+                        throw FirstOutput()
+                    }
+                } catch is FirstOutput {}
+                if let replacement {
+                    try JQOps.setpathInPlace(&root, path[...], replacement)
+                } else {
+                    deletions.append(.array(path))
+                }
+            }
+            let result = deletions.isEmpty ? root : try JQOps.delpaths(root, .array(deletions))
+            try checkDepth(result)
+            try out(result)
+        }
 
         // Introspection
         simple("type") { .string($0.typeName) }
@@ -538,6 +552,35 @@ enum JQBuiltins {
         }
 
         // Collections
+        // def add: reduce .[] as $x (null; . + $x), accumulating in place.
+        simple("add") { v in
+            var acc = JQValue.null
+            try JQOps.iterate(v) { _, x in try JQOps.addInPlace(&acc, x) }
+            return acc
+        }
+        // def join($x): reduce .[] as $i (null; (if .==null then "" else .+$x end)
+        //   + ($i | if type=="boolean" or type=="number" then tostring else .//"" end)) // "";
+        generator("join", 1) { interp, args, input, env, out in
+            try interp.eval(args[0], input, env) { sep in
+                var acc = JQValue.null
+                try JQOps.iterate(input) { _, item in
+                    try interp.tick()
+                    if case .null = acc {
+                        acc = .string("")
+                    } else {
+                        try JQOps.addInPlace(&acc, sep)
+                    }
+                    let piece: JQValue
+                    switch item {
+                    case .bool, .number: piece = .string(item.textValue)
+                    case .null, .bool(false): piece = .string("")
+                    default: piece = item
+                    }
+                    try JQOps.addInPlace(&acc, piece)
+                }
+                try out(acc.isTruthy ? acc : .string(""))
+            }
+        }
         simple("sort") { v in
             guard case .array(let a) = v else {
                 throw JQError.runtime("\(v.errorDescription()) cannot be sorted, as it is not an array")
@@ -788,6 +831,8 @@ enum JQBuiltins {
     }()
 
     // MARK: Helpers
+
+    private struct FirstOutput: Error {}
 
     /// Indices of `keys` in jq's sort order, stable.
     static func stableOrder(_ keys: [JQValue]) -> [Int] {

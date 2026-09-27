@@ -57,6 +57,13 @@ public struct JQObject: Sendable, Sequence {
 
     public var values: [JQValue] { keys.map { storage[$0]! } }
 
+    /// Remove several keys at once (one pass over the order).
+    mutating func removeKeys(_ remove: Set<String>) {
+        guard !remove.isEmpty else { return }
+        keys.removeAll { remove.contains($0) }
+        for k in remove { storage[k] = nil }
+    }
+
     /// Keys sorted the way jq sorts them (by code point).
     public var sortedKeys: [String] { keys.sorted(by: jqStringLess) }
 

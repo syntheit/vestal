@@ -367,9 +367,9 @@ final class JQCompiler {
         let r = try compile(rhs)
         switch op {
         case "=":
-            return .callFunc(JQFuncRef(f: try global("_assign", 2)), [l, r])
+            return .callNative(try native("_assign", 2), [l, r])
         case "|=":
-            return .callFunc(JQFuncRef(f: try global("_modify", 2)), [l, r])
+            return .callNative(try native("_modify", 2), [l, r])
         default:
             // lhs op= rhs  ==>  rhs as $tmp | _modify(lhs; . op $tmp)
             let tmp = freshId()
@@ -379,15 +379,15 @@ final class JQCompiler {
             } else {
                 update = .binary(binOp(String(op.dropLast())), .identity, .variable(tmp))
             }
-            let modify = JQOp.callFunc(JQFuncRef(f: try global("_modify", 2)), [l, update])
+            let modify = JQOp.callNative(try native("_modify", 2), [l, update])
             return .bind(r, [.variable(tmp)], [], modify)
         }
     }
 
-    func global(_ name: String, _ arity: Int) throws -> JQFunc {
+    func native(_ name: String, _ arity: Int) throws -> JQNative {
         let key = "\(name)/\(arity)"
-        if let f = preludeDefs[key] ?? globals[key] { return f }
-        throw JQError(kind: .compile, message: "internal: \(key) missing from the prelude")
+        if let n = natives[key] { return n }
+        throw JQError(kind: .compile, message: "internal: \(key) missing from the builtins")
     }
 
     // MARK: Calls
