@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import VestalCore
+import VestalCore
 
 /// The expression engine's API, errors, limits and the places where it
 /// deliberately differs from jq. jq semantics themselves are covered by

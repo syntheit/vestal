@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import VestalCore
+import VestalCore
 
 /// Replays Fixtures/expr-cases.json: every case there was run through real
 /// jq (1.7.1, or 1.8.1 for the few 1.8-only builtins) by
