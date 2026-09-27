@@ -18,8 +18,9 @@ import VestalCore
 //
 // The window is a wlr-layer-shell surface (gtk4-layer-shell) on the overlay
 // layer, anchored to every edge, exclusive zone -1, namespace `vestal`, with
-// exclusive keyboard focus while shown and none while hidden. Hidden means
-// unmapped: no surface, no frames, no aurora, no timers. The compositor
+// the keyboard while shown until the user turns to another monitor, and
+// none while hidden (see `setKeyboard`). Hidden means unmapped: no surface,
+// no frames, no aurora, no timers. The compositor
 // chooses the output each time it is mapped (no output is set), which on
 // Hyprland and Sway is the focused one; gtk4-layer-shell can't ask where the
 // pointer is. With a self-blurred backdrop (`theme.backdrop: "self"`, the
@@ -71,6 +72,13 @@ public final class LinuxDashboard {
     private var fadeTick: guint = 0
     /// A screenshot is being taken (see `capture`).
     private var capturing = false
+    /// The last `setKeyboard`: the keyboard while shown, and on demand
+    /// rather than exclusive.
+    private var keyboardInteractive = false
+    private var keyboardRelaxed = false
+    /// The compositor focuses an on-demand layer surface when it maps and
+    /// keeps it focused (Hyprland; see `setKeyboard`).
+    private let focusedOnMap: Bool
     /// This show draws its own blurred capture of the output (the window's
     /// CSS is then clear; the aurora's GL area is the whole background).
     private var selfBackdrop = false
@@ -91,6 +99,10 @@ public final class LinuxDashboard {
         stage = StageView(context: context, aurora: aurora)
         window = gtk_window_new()
         usesLayerShell = gtk_layer_is_supported() != 0
+        // hyprland_surface_manager_v1 is in every Hyprland since 0.45.
+        focusedOnMap = usesLayerShell
+            && (gdk_wayland_display_query_registry(gdk_display_get_default(), "hyprland_surface_manager_v1") != 0
+                || ProcessInfo.processInfo.environment["HYPRLAND_INSTANCE_SIGNATURE"] != nil)
 
         gtk_window_set_title(gtkWindow, "vestal")
         gtk_window_set_decorated(gtkWindow, 0)
@@ -107,7 +119,7 @@ public final class LinuxDashboard {
             }
             // -1: over panels and bars, reserving nothing.
             gtk_layer_set_exclusive_zone(gtkWindow, -1)
-            gtk_layer_set_keyboard_mode(gtkWindow, GTK_LAYER_SHELL_KEYBOARD_MODE_NONE)
+            setKeyboard(interactive: false)
             // The compositor's `closed` (its output went away) becomes a
             // close-request, which hides and tells the core; the next show
             // maps a new surface.
@@ -118,6 +130,7 @@ public final class LinuxDashboard {
         }
         gtk_widget_set_opacity(stage.widget, 0)
         installKeys()
+        installPointerLeave()
         installCloseRequest()
         aurora.tint = context.theme.backdropTint
         aurora.onFailure = { [weak self] in self?.backdropUnavailable() }
@@ -274,7 +287,11 @@ public final class LinuxDashboard {
         gtk_widget_set_opacity(window, 1)
         setInputRegion(empty: false)
         if usesLayerShell {
-            gtk_layer_set_keyboard_mode(gtkWindow, GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE)
+            // Mapped already without the keyboard (a hidden screenshot is
+            // being taken): unmap it, so this show maps it again and gets
+            // the focus a map gives.
+            if gtk_widget_get_visible(window) != 0, !keyboardInteractive { gtk_widget_set_visible(window, 0) }
+            setKeyboard(interactive: true)
         }
         gtk_widget_set_visible(window, 1)
         gtk_window_present(gtkWindow)
@@ -350,9 +367,7 @@ public final class LinuxDashboard {
             guard let self, generation == self.fadeGeneration else { return }
             self.aurora.stop()
             gtk_widget_set_visible(self.window, 0)
-            if self.usesLayerShell {
-                gtk_layer_set_keyboard_mode(self.gtkWindow, GTK_LAYER_SHELL_KEYBOARD_MODE_NONE)
-            }
+            self.setKeyboard(interactive: false)
             // The capture's texture goes; the next show captures again.
             if self.selfBackdrop {
                 self.selfBackdrop = false
@@ -503,7 +518,7 @@ public final class LinuxDashboard {
             if fadeTick != 0 { gtk_widget_remove_tick_callback(stage.widget, fadeTick); fadeTick = 0 }
             aurora.stop()
             // The cancelled fade would have given the keyboard back.
-            if usesLayerShell { gtk_layer_set_keyboard_mode(gtkWindow, GTK_LAYER_SHELL_KEYBOARD_MODE_NONE) }
+            setKeyboard(interactive: false)
             apply(model)
             gtk_widget_set_opacity(window, 0)
             gtk_widget_set_opacity(stage.widget, 1)
@@ -554,9 +569,7 @@ public final class LinuxDashboard {
                 gtk_widget_set_opacity(self.stage.widget, 0)
                 gtk_widget_set_opacity(self.window, 1)
                 self.setInputRegion(empty: false)
-                if self.usesLayerShell {
-                    gtk_layer_set_keyboard_mode(self.gtkWindow, GTK_LAYER_SHELL_KEYBOARD_MODE_NONE)
-                }
+                self.setKeyboard(interactive: false)
             }
             self.capturing = false
             completion(result)
@@ -574,6 +587,58 @@ public final class LinuxDashboard {
         } else {
             gdk_surface_set_input_region(surface, nil)
         }
+    }
+
+    /// The layer surface's keyboard interactivity: none while hidden (and
+    /// for a hidden screenshot's invisible map); while shown, the keyboard
+    /// on show, but only until the user turns to another monitor.
+    ///
+    /// Exclusive for the whole show kept the keyboard whatever the user did
+    /// elsewhere, and on Hyprland every pointer event too (it sends them to
+    /// an exclusive overlay while the pointer is over no exclusive surface),
+    /// so nothing on another monitor could be clicked or typed into. On
+    /// demand, the compositor's usual rules move the focus: a click, and
+    /// with focus-follows-mouse the pointer entering a window (or the
+    /// dashboard again). What differs is the first focus:
+    ///
+    /// - Hyprland focuses an on-demand layer surface when it maps
+    ///   (`CLayerSurface::onMap`, 0.56), so it is on demand from the start.
+    /// - Sway 1.11 focuses it on map too, but its `arrange_layers` right
+    ///   after gives the keyboard back to the focused window. So on every
+    ///   other compositor it is exclusive on show (which they all focus)
+    ///   and on demand once the pointer leaves the dashboard
+    ///   (`installPointerLeave`).
+    ///
+    /// Before layer-shell v4 there is no on-demand mode: exclusive then.
+    private func setKeyboard(interactive: Bool, relaxed: Bool = false) {
+        guard usesLayerShell else { return }
+        keyboardInteractive = interactive
+        keyboardRelaxed = interactive && (relaxed || focusedOnMap)
+        let mode: GtkLayerShellKeyboardMode
+        if !interactive {
+            mode = GTK_LAYER_SHELL_KEYBOARD_MODE_NONE
+        } else if keyboardRelaxed, gtk_layer_get_protocol_version() >= 4 {
+            mode = GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND
+        } else {
+            mode = GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE
+        }
+        gtk_layer_set_keyboard_mode(gtkWindow, mode)
+    }
+
+    /// The pointer left the dashboard (for another monitor): exclusive
+    /// becomes on demand, and the compositor gives the keyboard to what
+    /// the user turns to.
+    private func installPointerLeave() {
+        let controller = gtk_event_controller_motion_new()!
+        let leave: @convention(c) (UnsafeMutableRawPointer?, gpointer?) -> Void = { _, data in
+            Box<() -> Void>.from(data)()
+        }
+        let relax: () -> Void = { [weak self] in
+            guard let self, self.isVisible, self.keyboardInteractive, !self.keyboardRelaxed else { return }
+            self.setKeyboard(interactive: true, relaxed: true)
+        }
+        connectSignal(UnsafeMutableRawPointer(controller), "leave", leave, data: Box(relax).retained())
+        gtk_widget_add_controller(window, controller)
     }
 
     /// Every node's final frame in window coordinates, in tree order, with

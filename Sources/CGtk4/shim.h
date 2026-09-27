@@ -5,6 +5,7 @@
 #include <epoxy/gl.h>
 #include <fontconfig/fontconfig.h>
 #include <gtk/gtk.h>
+#include <gdk/wayland/gdkwayland.h>
 #include <gtk4-layer-shell.h>
 #include <glib-unix.h>
 #include <sys/eventfd.h>
