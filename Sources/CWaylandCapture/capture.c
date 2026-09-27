@@ -88,22 +88,33 @@ static int pump(struct state *s, const int *flag, int64_t deadline) {
             if (wl_display_dispatch_pending(s->display) < 0) return VESTAL_CAPTURE_FAILED;
             if (*flag) return 0;
         }
-        if (wl_display_flush(s->display) < 0 && errno != EAGAIN) {
-            wl_display_cancel_read(s->display);
-            return VESTAL_CAPTURE_FAILED;
+        // A full socket (EAGAIN): wait until it can be written as well.
+        int unsent = 0;
+        if (wl_display_flush(s->display) < 0) {
+            if (errno != EAGAIN) {
+                wl_display_cancel_read(s->display);
+                return VESTAL_CAPTURE_FAILED;
+            }
+            unsent = 1;
         }
         int64_t remaining = deadline - now_ms();
         if (remaining <= 0) {
             wl_display_cancel_read(s->display);
             return VESTAL_CAPTURE_TIMEOUT;
         }
-        struct pollfd fd = { .fd = wl_display_get_fd(s->display), .events = POLLIN };
+        struct pollfd fd = { .fd = wl_display_get_fd(s->display), .events = POLLIN | (unsent ? POLLOUT : 0) };
         int polled = poll(&fd, 1, (int)remaining);
         if (polled <= 0) {
             wl_display_cancel_read(s->display);
             if (polled < 0 && errno == EINTR) continue;
             if (polled == 0) return VESTAL_CAPTURE_TIMEOUT;
             return VESTAL_CAPTURE_FAILED;
+        }
+        if (!(fd.revents & POLLIN)) {
+            // Writable (flush again at the top), or the connection broke.
+            wl_display_cancel_read(s->display);
+            if (fd.revents & (POLLERR | POLLHUP | POLLNVAL)) return VESTAL_CAPTURE_FAILED;
+            continue;
         }
         if (wl_display_read_events(s->display) < 0) return VESTAL_CAPTURE_FAILED;
         if (wl_display_dispatch_pending(s->display) < 0) return VESTAL_CAPTURE_FAILED;

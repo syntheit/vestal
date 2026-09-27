@@ -210,7 +210,7 @@ final class AuroraArea {
     }
 
     private func backdropFailed(_ why: String) {
-        uiLog("linux ui: can't blur the backdrop (\(why)); using the compositor's blur")
+        uiLog("linux ui: can't blur the backdrop (\(why)); the window is translucent over whatever blur the compositor adds")
         hasBackdrop = false
         blur.releaseResult()
         // The window goes back to its translucent tint (the dashboard

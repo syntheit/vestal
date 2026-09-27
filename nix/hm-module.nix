@@ -192,6 +192,9 @@ let
   # `theme.backdrop = "compositor"`. The default, "self", blurs vestal's own
   # capture of the screen in an opaque window, where a blur rule would only
   # cost GPU time; "none" asks for no blur, and a `none` background is opaque.
+  # If vestal can't capture the screen it falls back to a translucent window,
+  # unblurred here; set "compositor" explicitly on a compositor without
+  # screen capture.
   compositorBlur = linuxTheme "backdrop" == "compositor" && linuxTheme "background" != "none";
 
   # vestal's hotkey grammar (Sources/VestalCore/Hotkey.swift) in Hyprland's

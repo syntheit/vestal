@@ -242,7 +242,8 @@ public final class LinuxDashboard {
             ScreenCapture.captureFocusedOutput { [weak self] result in
                 // Hidden (or shown again) meanwhile: this capture is stale.
                 guard let self, generation == self.fadeGeneration, self.isVisible else { return }
-                self.present(animated: animated, backdrop: result)
+                // A reload meanwhile may have left `self`: show without it.
+                self.present(animated: animated, backdrop: self.wantsSelfBackdrop ? result : nil)
             }
             return
         }
@@ -320,7 +321,7 @@ public final class LinuxDashboard {
         if usesLayerShell { gtk_layer_set_monitor(gtkWindow, nil) }
         guard !loggedCaptureFailure || traceBackdrop else { return }
         loggedCaptureFailure = true
-        uiLog("linux ui: no self-blurred backdrop (\(why)); using the compositor's blur"
+        uiLog("linux ui: no self-blurred backdrop (\(why)); the window is translucent over whatever blur the compositor adds"
               + (permanent ? " from now on" : " for this show"))
     }
 
