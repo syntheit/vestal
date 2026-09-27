@@ -250,8 +250,18 @@ public struct LiveFetcher: SourceFetcher {
         if let size = (attributes[.size] as? NSNumber)?.intValue, size > Self.maxBytes {
             throw SourceError("\(path) is larger than 10 MiB")
         }
-        guard let data = FileManager.default.contents(atPath: path) else { throw SourceError("can't read \(path)") }
-        return try Self.parsed(data, parse: source.parse)
+        return try Self.parsed(try Self.readLimited(path), parse: source.parse)
+    }
+
+    /// The file's bytes, failing past `maxBytes` as they are read: the size
+    /// checked beforehand can be stale or missing (a growing file, a device).
+    static func readLimited(_ path: String) throws -> Data {
+        guard let handle = FileHandle(forReadingAtPath: path) else { throw SourceError("can't read \(path)") }
+        defer { try? handle.close() }
+        let data: Data
+        do { data = try handle.read(upToCount: maxBytes + 1) ?? Data() } catch { throw SourceError("can't read \(path)") }
+        if data.count > maxBytes { throw SourceError("\(path) is larger than 10 MiB") }
+        return data
     }
 
     // MARK: Calendar
@@ -319,8 +329,7 @@ public struct LiveFetcher: SourceFetcher {
            size.intValue > maxBytes {
             throw SourceError("\(path) is larger than 10 MiB")
         }
-        guard let data = FileManager.default.contents(atPath: path) else { throw SourceError("can't read \(path)") }
-        return String(decoding: data, as: UTF8.self)
+        return String(decoding: try readLimited(path), as: UTF8.self)
     }
 
     private static func baseName(_ file: String) -> String {
@@ -381,12 +390,17 @@ extension URLSession {
     /// (by its Content-Length, or as it arrives) fails at once with
     /// "response larger than …" instead of being buffered whole. A session
     /// of its own per request, ephemeral (nothing on disk), invalidated when
-    /// done. Cancelling the calling task cancels the request.
+    /// done. Cancelling the calling task cancels the request. The request's
+    /// `timeoutInterval` bounds the whole request, not only the time between
+    /// two packets, so a server that trickles its answer can't hold it open.
     static func vestalData(for request: URLRequest, limit: Int) async throws -> (Data, URLResponse) {
         let receiver = LimitedReceiver(limit: limit)
         let session = URLSession(configuration: .ephemeral, delegate: receiver, delegateQueue: nil)
         defer { session.finishTasksAndInvalidate() }
         let pending = PendingDataTask()
+        let deadline = DispatchWorkItem { receiver.expire(); pending.cancel() }
+        DispatchQueue.global().asyncAfter(deadline: .now() + max(request.timeoutInterval, 0.001), execute: deadline)
+        defer { deadline.cancel() }
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 receiver.start(continuation)
@@ -405,6 +419,7 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
     private var data = Data()
     private var response: URLResponse?
     private var tooLarge = false
+    private var expired = false
     private var continuation: CheckedContinuation<(Data, URLResponse), Error>?
 
     init(limit: Int) {
@@ -439,6 +454,13 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
         if over { dataTask.cancel() }
     }
 
+    /// The whole request's time is up; the caller cancels the task next.
+    func expire() {
+        lock.lock()
+        expired = true
+        lock.unlock()
+    }
+
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         lock.lock()
         let continuation = self.continuation
@@ -446,6 +468,8 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
         let result: Result<(Data, URLResponse), Error>
         if tooLarge {
             result = .failure(SourceError("response larger than \(limit / 1024 / 1024) MiB"))
+        } else if expired, error != nil {
+            result = .failure(URLError(.timedOut))
         } else if let error {
             result = .failure(error)
         } else if let response = response ?? task.response {

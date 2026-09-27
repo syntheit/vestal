@@ -508,6 +508,7 @@ struct JQParser {
             case .literal(let s): out.append(.literal(s))
             case .interpolation(let toks):
                 var sub = JQParser(source: src, tokens: toks)
+                sub.nesting = nesting
                 if sub.peek.tok == .eof { throw sub.error("empty string interpolation \\()") }
                 let e = try sub.parsePipe()
                 try sub.expectEOF()

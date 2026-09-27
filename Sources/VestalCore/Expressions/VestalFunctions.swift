@@ -131,6 +131,7 @@ public enum VestalFunctions {
         num("starts_in", 0) { d, _, _ in Format.startsIn(minutes: try whole(d, "starts_in")) },
         f("fmt_relative", 0) { input, _, context in
             guard let t = try time(input, "fmt_relative") else { return .null }
+            guard !t.isNaN else { throw JQError.runtime("fmt_relative: nan is not a time") }
             return .string(relative(t - context.currentTime()))
         },
         f("fmt_time", 1) { input, args, context in
@@ -307,7 +308,7 @@ public enum VestalFunctions {
     /// A count or number of decimals: a whole number, at least 0.
     private static func decimals(_ value: JQValue, _ name: String) throws -> Int {
         guard let d = try number(value, name), d.isFinite else { throw JQError.runtime("\(name): the count is null") }
-        return max(0, min(Int(d), 20))
+        return Int(max(0, min(d, 20)))
     }
 
     private static func whole(_ d: Double, _ name: String) throws -> Int {

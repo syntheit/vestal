@@ -39,6 +39,9 @@ struct JQLexer {
 
     let src: [Unicode.Scalar]
     var pos: Int
+    /// Strings open around the current position (nested `\(…)` interpolations),
+    /// capped like the parser's nesting so deep interpolation cannot exhaust the stack.
+    var stringDepth = 0
 
     init(source: [Unicode.Scalar], start: Int = 0) {
         self.src = source
@@ -194,6 +197,11 @@ struct JQLexer {
 
     mutating func string() throws -> [JQStrPart] {
         let open = pos
+        stringDepth += 1
+        defer { stringDepth -= 1 }
+        if stringDepth > JQParser.maxNesting {
+            throw error("strings nested too deeply (more than \(JQParser.maxNesting) levels)", at: open)
+        }
         pos += 1
         var parts: [JQStrPart] = []
         var lit = String.UnicodeScalarView()

@@ -167,7 +167,10 @@ public final class LinuxDashboard {
     private func setTheme(_ theme: RenderTheme) {
         context.theme = ThemeState(theme)
         applyThemeCSS()
-        gtk_widget_set_visible(aurora.widget, theme.background == "aurora" && !aurora.failed ? 1 : 0)
+        let wantsAurora = theme.background == "aurora"
+        gtk_widget_set_visible(aurora.widget, wantsAurora && !aurora.failed ? 1 : 0)
+        // A reload that changes the background while shown: animate or stop now.
+        if isVisible { wantsAurora ? aurora.start() : aurora.stop() }
     }
 
     private func applyThemeCSS() {

@@ -90,6 +90,8 @@ final class FakeFetcher: SourceFetcher, @unchecked Sendable {
                 withLock { cancelled.append(key) }
                 throw error
             }
+            // Set to an error while held: the held fetch fails with it.
+            if case .error(let message)? = withLock({ replies[key] }) { throw SourceError(message) }
             return Data("{\"released\": true}".utf8)
         }
     }

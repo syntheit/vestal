@@ -102,6 +102,23 @@ final class SourceRuntimeTests: XCTestCase {
     }
 
     @MainActor
+    func testSwitchingToAViewThatDoesNotReadASourceCancelsItsFetch() async {
+        let clock = FakeClock(), fetcher = FakeFetcher()
+        fetcher.reply("system", .hold)
+        let config = Config(sources: ["system": SourceConfig(type: "system")],
+                            widgets: ["bar": WidgetConfig(type: "systemBar", show: ["uptime"]),
+                                      "clock": WidgetConfig(type: "clock")],
+                            views: ["main": ViewConfig(order: ["bar"]), "other": ViewConfig(order: ["clock"])])
+        let runtime = AppRuntime(config: config, fetcher: fetcher, cache: nil, now: { clock.now })
+        runtime.start()
+        runtime.setVisible(true)
+        await waitUntil { fetcher.count("system") == 1 }
+        runtime.setView("other")
+        await waitUntil { fetcher.cancelledKeys == ["system"] }
+        XCTAssertNil(runtime.snapshot(.source("system"))?.data)
+    }
+
+    @MainActor
     func testRetriesAreJittered() async {
         let clock = FakeClock(), fetcher = FakeFetcher()
         fetcher.reply("https://a.example", .error("down"))
@@ -172,6 +189,17 @@ final class SourceRuntimeTests: XCTestCase {
                        "the definition keeps the name, never the value")
     }
 
+    func testATextBodyGetsItsSecretsAndAJSONBodyStaysAsWritten() async throws {
+        let store = SecretStore(["token": SecretConfig(env: "TOKEN")], environment: ["TOKEN": "hunter22"])
+        var source = http("https://a.example")
+        source.body = .string("token={{ $secrets.token }}")
+        let text = try await store.resolve(source)
+        XCTAssertEqual(text.body, .string("token=hunter22"))
+        source.body = .object(["token": .string("{{ $secrets.token }}")])
+        let json = try await store.resolve(source)
+        XCTAssertEqual(json.body, source.body)
+    }
+
     @MainActor
     func testHistoriesSampleEachSuccessfulFetch() async throws {
         let cache = SnapshotCache(directory: try makeTemporaryDirectory().path)
@@ -192,6 +220,41 @@ final class SourceRuntimeTests: XCTestCase {
         let restarted = AppRuntime(config: configWithBar(["btc": source]), fetcher: fetcher, cache: cache,
                                    now: { clock.now })
         XCTAssertEqual(restarted.histories.values(source: "btc", name: "price"), [64000.5, 65000], "persisted")
+    }
+
+    /// A scheduled run overtaken by a later `fetchNow` keeps the newer
+    /// sample (an older time would restart the series) and its success.
+    @MainActor
+    func testAnOvertakenScheduledFetchKeepsTheNewerHistoryAndSuccess() async {
+        let clock = FakeClock(), fetcher = FakeFetcher()
+        let key = "https://btc.example"
+        var source = http(key, refresh: "5m")
+        source.history = ["one": HistorySpec(value: "1", size: 5)]
+        let runtime = AppRuntime(config: configWithBar(["btc": source]), fetcher: fetcher, cache: nil,
+                                 now: { clock.now })
+        let log = EventLog(runtime)
+        for fails in [false, true] {
+            let before = fetcher.count(key)
+            fetcher.reply(key, .hold)
+            clock.advance(600)
+            runtime.startDueJobs()
+            await waitUntil { fetcher.count(key) == before + 1 }
+            clock.advance(10)
+            fetcher.reply(key, .data(#"{"usd": 2}"#))
+            guard case .success(let fresh) = await runtime.fetchNow(.source("btc")) else { return XCTFail() }
+            let times = runtime.histories.times(source: "btc", name: "one")
+            XCTAssertEqual(times.last, fresh.fetchedAt?.timeIntervalSince1970)
+            // The held scheduled run ends now: with data, or with an error.
+            let events = log.events.count
+            if fails { fetcher.reply(key, .error("boom")) }
+            fetcher.release(key)
+            await waitUntil { log.events.count > events }
+            await settle()
+            XCTAssertEqual(runtime.histories.times(source: "btc", name: "one"), times, "the older run records nothing")
+            XCTAssertEqual(runtime.snapshot(.source("btc"))?.fetchedAt, fresh.fetchedAt)
+            XCTAssertNil(runtime.snapshot(.source("btc"))?.lastError)
+            XCTAssertEqual(runtime.meta(.source("btc"))?.ok, true)
+        }
     }
 
     @MainActor
@@ -316,6 +379,16 @@ final class LiveFetcherSourceTests: XCTestCase {
             XCTFail("too big")
         } catch {
             XCTAssertEqual("\(error)", "head: output larger than 10 MiB")
+        }
+    }
+
+    /// A file whose size says nothing (a device) is still cut at 10 MiB.
+    func testFileReadsStopAt10MiBWhateverTheSizeSays() async {
+        do {
+            _ = try await LiveFetcher(platform: SourcePlatform()).fetch(SourceConfig(type: "file", parse: "raw", path: "/dev/zero"))
+            XCTFail("too big")
+        } catch {
+            XCTAssertEqual("\(error)", "/dev/zero is larger than 10 MiB")
         }
     }
 

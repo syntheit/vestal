@@ -226,6 +226,8 @@ public final class AppRuntime {
             guard case .snapshot(let key) = id, let old = job.plan, let plan = plans[key], plan != old,
                   plan.source == old.source else { continue }
             jobs[id] = job.replanned(plan)
+            // A visible-only fetch the new view no longer reads stops now.
+            if plan.visibleOnly, !plan.wanted, tasks[id] != nil, case .fetch = job.work { cancel(id) }
         }
         replan()
     }
@@ -610,23 +612,26 @@ public final class AppRuntime {
         guard let job = jobs[id], job.generation == generation else { return }
         tasks[id] = nil
         job.lastEnd = now()
+        // An on-demand fetch (`fetchNow`) that started later may have landed
+        // first: its newer data, history samples and success stay.
+        let superseded = job.snapshot.fetchedAt.flatMap { newer in job.lastStart.map { newer > $0 } } ?? false
         switch outcome {
         case .ticked:
             break
         case .fetched(let data, let info, let samples, let cached):
             job.failed = false
-            // An on-demand fetch (`fetchNow`) that started later may have
-            // landed first; its newer data stays.
-            if let newer = job.snapshot.fetchedAt, let start = job.lastStart, newer > start {
+            if superseded {
                 job.snapshot.lastError = nil
             } else {
                 job.snapshot = SourceSnapshot(data: data, fetchedAt: job.lastStart, info: info)
+                if case .snapshot(let key) = id, let start = job.lastStart { record(samples, source: key, at: start) }
             }
             if cached {
                 job.lastCached = job.lastStart
                 job.lastCachedData = data
             }
-            if case .snapshot(let key) = id, let start = job.lastStart { record(samples, source: key, at: start) }
+        case .failed where superseded:
+            break
         case .failed(let message):
             // Once per new error, not on every retry.
             if message != job.snapshot.lastError { vestalLog("\(id): \(message)") }

@@ -481,14 +481,16 @@ enum JQTime {
         guard case .array(let a) = v else { throw JQError.runtime("\(what) requires array inputs") }
         var n: [Double] = []
         for k in 0..<8 {
-            guard k < a.count, case .number(let d) = a[k] else {
+            // Non-finite fields are rejected: Int(nan) and Int(inf) trap.
+            guard k < a.count, case .number(let d) = a[k], d.isFinite else {
                 throw JQError.runtime("\(what) requires parsed datetime inputs")
             }
             n.append(d)
         }
-        func i(_ d: Double) -> Int { Int(max(min(d, 1e15), -1e15)) }
+        func clamp(_ d: Double) -> Double { max(min(d, 1e15), -1e15) }
+        func i(_ d: Double) -> Int { Int(clamp(d)) }
         return Broken(year: i(n[0]), month: i(n[1]), day: i(n[2]), hour: i(n[3]), minute: i(n[4]),
-                      second: n[5], wday: i(n[6]), yday: i(n[7]))
+                      second: clamp(n[5]), wday: i(n[6]), yday: i(n[7]))
     }
 
     // MARK: strftime

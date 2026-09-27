@@ -440,6 +440,27 @@ final class ExprTests: XCTestCase {
         XCTAssertNoThrow(try JQExpression(fine))
     }
 
+    func testInterpolationCountsTowardsTheNestingLimit() {
+        func nested(_ n: Int) -> String {
+            String(repeating: #""\("#, count: n) + "1" + String(repeating: #")""#, count: n)
+        }
+        XCTAssertEqual(try one(nested(50)), .string("1"))
+        for n in [300, 20_000] {
+            XCTAssertThrowsError(try JQExpression(nested(n)), "\(n)") { error in
+                XCTAssertEqual((error as? JQError)?.kind, .syntax)
+            }
+        }
+        let mixed = #""\("# + String(repeating: "(", count: 200) + #""\("# + String(repeating: "(", count: 200)
+            + "1" + String(repeating: ")", count: 200) + #")""# + String(repeating: ")", count: 200) + #")""#
+        XCTAssertThrowsError(try JQExpression(mixed))
+    }
+
+    func testDatetimeFieldsThatAreNotFiniteAreRejected() {
+        XCTAssertEqual(error("[nan,0,0,0,0,0,0,0] | mktime")?.kind, .runtime)
+        XCTAssertEqual(error("[0,0,0,0,0,infinite,0,0] | strftime(\"%S\")")?.kind, .runtime)
+        XCTAssertNoThrow(try run("[0,0,0,0,0,1e300,0,0] | strftime(\"%S\")"))
+    }
+
     func testLongListsDoNotNestDeeply() throws {
         let literals = "[" + (0..<20_000).map(String.init).joined(separator: ",") + "] | length"
         XCTAssertEqual(try one(literals), .number(20_000))

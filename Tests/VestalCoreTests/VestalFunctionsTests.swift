@@ -377,6 +377,16 @@ final class VestalFunctionsTests: XCTestCase {
         return AsyncData.exchangeRates([item], defaultSource: "s", parsedBySource: ["s": ["v": value]]).first?.buy ?? ""
     }
 
+    func testHugeCountsAndNaNTimesDoNotTrap() throws {
+        XCTAssertEqual(try one("fmt_fixed(1e300)", .number(1.5)), .string("1.50000000000000000000"))
+        XCTAssertEqual(try one("fmt_fixed(-1e300)", .number(1.5)), .string("2"))
+        XCTAssertEqual(try one("fmt_percent(1e300)", .number(0.5)), try one("fmt_percent(20)", .number(0.5)))
+        XCTAssertEqual(try one("fmt_thousands(1e300)", 1), try one("fmt_thousands(20)", 1))
+        XCTAssertEqual(try one("fmt_duration(1e300)", 90), .string("1m 30s"))
+        XCTAssertEqual(try one("truncate(1e300)", "abc"), .string("abc"))
+        XCTAssertThrowsError(try one("nan | fmt_relative"))
+    }
+
     func testSignaturesCoverTheSpec() {
         let signatures = Set(VestalFunctions.signatures)
         for name in ["fmt_fixed/1", "fmt_int/0", "fmt_number/0", "fmt_thousands/0", "fmt_thousands/1", "fmt_compact/0",
