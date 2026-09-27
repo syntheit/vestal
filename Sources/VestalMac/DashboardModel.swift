@@ -84,8 +84,9 @@ final class DashboardModel: ObservableObject {
     private var mediaClicked: [String: Date] = [:]
     /// Each Claude projects directory's `claude` source (its inline name).
     private let claudeSources: [String: String]
-    /// Whether the `system` source exists (a config may remove it); without
-    /// it the stats are read by a ticker here, as in v0.3.
+    /// Whether the `system` source exists and is of type `system` (a config
+    /// may remove or replace it); without it the stats are read by a ticker
+    /// here, as in v0.3.
     private let hasSystemSource: Bool
     /// The toggles of the bars that show the privacy item, by bar key.
     private let privacy: [String: PrivacyProvider]
@@ -137,7 +138,7 @@ final class DashboardModel: ObservableObject {
         // The `system` source, read now if its data is older than its
         // refresh (Mach, IOKit and CoreAudio reads take well under 1ms each),
         // so the first frame is complete.
-        let hasSystemSource = runtime.source(.source(SourceReaders.system)) != nil
+        let hasSystemSource = runtime.source(.source(SourceReaders.system))?.type == "system"
         self.hasSystemSource = hasSystemSource
         let stats = MacPlatform.stats
         if hasSystemSource { runtime.readNow([.source(SourceReaders.system)]) }
@@ -223,12 +224,23 @@ final class DashboardModel: ObservableObject {
     // MARK: Actions
 
     func playPause(player: String) {
-        players[player]?.playPause()
+        mediaProvider(for: player)?.playPause()
         mediaClicked[player] = Date()
         guard var playing = nowPlaying[player] else { return }
         if playing.state == "playing" { playing.state = "paused" }
         else if playing.state == "paused" { playing.state = "playing" }
         update(\.nowPlaying, player, playing)
+    }
+
+    /// The provider for a media row: the player its source resolved (a
+    /// widget's `player` may be `auto`), else the widget's own.
+    private func mediaProvider(for player: String) -> MediaProvider? {
+        if let source = mediaSources[player],
+           let resolved = data(source).flatMap(AnyJSON.decode)?.objectValue?["player"]?.stringValue,
+           resolved.caseInsensitiveCompare(player) != .orderedSame {
+            return MacPlatform.media(player: resolved)
+        }
+        return players[player]
     }
 
     func toggleMute() {

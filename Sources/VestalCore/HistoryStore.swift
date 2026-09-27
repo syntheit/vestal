@@ -30,6 +30,8 @@ public final class HistoryStore {
     /// Nil keeps histories in memory only.
     public let directory: String?
     private var series: [String: [String: Series]] = [:]
+    /// Sources whose histories stay in memory.
+    private var ephemeral: Set<String> = []
 
     public init(directory: String?) {
         self.directory = directory
@@ -44,8 +46,12 @@ public final class HistoryStore {
     /// `every`), loading what the disk has the first time. A history keeps
     /// its samples while its `value` text is the same, trimmed to a smaller
     /// `size`; histories no longer defined are dropped.
-    public func configure(source: String, specs: [String: HistorySpec], refresh: TimeInterval) {
-        var current = series[source] ?? load(source)
+    /// `persist` false (a `"cache": false` source) keeps them in memory only
+    /// and removes any file.
+    public func configure(source: String, specs: [String: HistorySpec], refresh: TimeInterval, persist: Bool = true) {
+        if persist { ephemeral.remove(source) } else { ephemeral.insert(source) }
+        let before = series[source] ?? (persist ? load(source) : [:])
+        var current = before
         var next: [String: Series] = [:]
         for (name, spec) in specs {
             let every = spec.every.flatMap(ConfigDuration.seconds) ?? refresh
@@ -58,9 +64,10 @@ public final class HistoryStore {
             trim(&entry)
             next[name] = entry
         }
-        let changed = next != (series[source] ?? [:])
         series[source] = next.isEmpty ? nil : next
-        if changed { save(source) }
+        // Compared with what was loaded too, so a history removed from the
+        // config also leaves the disk.
+        if next != before || !persist { save(source) }
     }
 
     /// Appends `value` at `time` unless the last sample is less than `every`
@@ -113,7 +120,7 @@ public final class HistoryStore {
     /// Writes `source`'s histories (removes the file when it has none).
     public func save(_ source: String) {
         guard let directory, let path = path(for: source) else { return }
-        guard let current = series[source], !current.isEmpty else {
+        guard !ephemeral.contains(source), let current = series[source], !current.isEmpty else {
             try? FileManager.default.removeItem(atPath: path)
             return
         }

@@ -125,7 +125,8 @@ public struct SnapshotCache: Sendable {
     /// Writes `data` atomically as a 0600 file: a temporary file made 0600
     /// before anything is written to it, then renamed over `path`.
     public static func writePrivate(_ data: Data, to path: String) {
-        let temporary = path + ".\(ProcessInfo.processInfo.processIdentifier).tmp"
+        // Unique per write, so two writers of one file never share it.
+        let temporary = path + ".\(UUID().uuidString).tmp"
         let fd = open(temporary, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0o600)
         guard fd >= 0 else { return }
         _ = fchmod(fd, 0o600)

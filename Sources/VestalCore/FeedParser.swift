@@ -654,8 +654,12 @@ enum FeedDate {
     /// Epoch seconds for a civil date and time at `offset` seconds east of
     /// UTC; nil when a field is out of range.
     static func epoch(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int, offset: Int) -> Int? {
-        guard (1...12).contains(month), (1...31).contains(day), (0...23).contains(hour),
+        guard (1...12).contains(month), (0...23).contains(hour),
               (0...59).contains(minute), (0...60).contains(second) else { return nil }
+        // The month's real length: "2026-02-30" is not a date.
+        let leap = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
+        let length = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1]
+        guard (1...length).contains(day) else { return nil }
         // Days from 1970-01-01 (Howard Hinnant's days_from_civil).
         let y = month <= 2 ? year - 1 : year
         let era = (y >= 0 ? y : y - 399) / 400

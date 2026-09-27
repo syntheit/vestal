@@ -64,9 +64,10 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 | `version` | integer | `1` | Schema version. Only `1` exists. |
 | `hotkey` | string or `null` | `null` | Built-in toggle hotkey, such as `"f3"` or `"cmd+shift+space"`: keys `f1`-`f20`, letters, digits, `space`, `escape` (or `esc`), `home`, `end`, with modifiers `cmd`, `ctrl`, `alt` (or `opt`) and `shift`, joined with `+`, case-insensitive. The hotkey is taken from every app, so letters, digits, `space` and `escape` need `cmd`, `ctrl` or `alt` (`shift` alone is not enough); `f1`-`f20`, `home` and `end` may stand alone. One that doesn't parse registers nothing and is a warning (`check-config`, `vestal status`). `null` registers nothing; bind `vestal toggle` in skhd, Hyprland or similar instead. On macOS, letters and digits are key positions on a US layout. |
 | `theme` | object | see [theme](#theme) | |
-| `sources` | object | `weather`, `calendar` | Named data sources, see [sources](#sources). |
+| `sources` | object | `weather`, `calendar`, `system`, `media`, `claude` | Named data sources, see [sources](#sources). |
 | `widgets` | object | see [defaults](#built-in-defaults) | Named widgets, see [widgets](#widgets). |
 | `views` | object | `main` | Named views, see [views](#views). |
+| `secrets` | object | none | Named secrets for source definitions, see [secrets](#secrets). |
 | `platform` | object | none | Per-OS overrides, see [above](#the-platform-block). |
 
 ## `theme`
@@ -78,25 +79,38 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 
 ## Sources
 
-`sources` maps a name to a source. Widgets refer to sources by name, and every widget reading the same source shares one fetch. Sources keep refreshing while the dashboard is hidden.
+`sources` maps a name to a source. Widgets refer to sources by name, and every widget reading the same source shares one fetch. docs/EXTENSIBILITY.md section 5 is the full reference; this is the summary.
 
-- The last good result of each source is kept on disk: `~/Library/Caches/Vestal/<name>.json` on macOS, `$XDG_CACHE_HOME/vestal/<name>.json` (default `~/.cache/vestal`) on Linux. When vestal starts it shows that result at once, and fetches again only when it is older than `refresh`, or when the source's definition has changed since.
-- A failed fetch keeps the last good result on screen, logs the error, and tries again after `refresh` or 60 seconds, whichever is shorter. A fetch fails when HTTP answers other than 2xx, when a command exits non-zero, or when a `"json"` source's output is not valid JSON.
-- A source vestal cannot run at all (an unknown `type`, an `http` source without a usable `url`, a `command` without `argv`, a `calendar` source on Linux) reports an error and is never fetched. It does not stop vestal.
+- **When sources run.** An `"always"` source (`http`, `command`, `calendar`, `file` by default) refreshes whether or not the dashboard is shown. A `"visible"` source (`system`, `media`, `claude` by default) is fetched only while the dashboard is shown and a widget of the main view reads it, `refresh` after its previous fetch ended; showing the dashboard fetches it at once when it is stale, and hiding the dashboard or reloading the config cancels a fetch in flight. So the built-in `media` and `claude` sources cost nothing until a widget uses them.
+- **The cache.** The last good result of each source is kept on disk: `~/Library/Caches/Vestal/<name>.json` on macOS, `$XDG_CACHE_HOME/vestal/<name>.json` (default `~/.cache/vestal`) on Linux. When vestal starts it shows that result at once (unless it is older than `maxAge`), and fetches again only when it is older than `refresh`, or when the source's definition has changed since. The directory is private (`0700`, files `0600`), holds a hash of each source's definition rather than the definition, and is trimmed to 256 MiB, oldest files first. `"cache": false` keeps a source's data in memory only.
+- **Failures.** A failed fetch keeps the last good result on screen, logs the error, and tries again after `refresh` or 60 seconds, whichever is shorter, give or take 10%. A fetch fails when HTTP answers other than 2xx, when a command exits non-zero, when a `"json"` source's output is not valid JSON, or when an HTTP body, a command's output or a file is larger than 10 MiB. A source vestal cannot run at all (an unknown `type`, an `http` source without a usable `url`, a `command` without `argv`, a `file` without `path`) reports an error and is never fetched. It does not stop vestal.
+- **Inline sources.** A widget's `source` may be a source object instead of a name, such as `"source": { "type": "file", "path": "~/notes.json" }`. It becomes a source named `inline:<8 hex digits>` after its definition, so identical definitions share one fetch.
+- **Seeing the data.** `vestal sources` lists every source with its type, refresh, `when`, age, status and the widgets that read it. `vestal fetch <name>` fetches one now and prints its data as JSON; `--shape` prints an outline of its paths instead (`.[].title string  "…"`), `--raw` the data before `transform`, `--cached` the last data without fetching, and `--local` fetches in the `vestal` process itself. Both ask the running instance when there is one. `fetch` with `--config` naming a draft file never runs `command` sources or secrets unless `--allow-commands` is given. Exit status 4 means there is no such source (with a suggestion).
 
 Every source takes:
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `type` | string | required | `"http"`, `"command"` or `"calendar"` (`"eventkit"` is an alias of `"calendar"`). |
-| `refresh` | duration | `"30m"` | How often to fetch. |
+| `type` | string | required | `"http"`, `"command"`, `"calendar"` (`"eventkit"` is an alias), `"file"`, `"system"`, `"media"` or `"claude"`. |
+| `refresh` | duration | per type | How often to fetch: `"30m"` for `http`, `command` and `calendar`; `"30s"` for `file` and `claude`; `"3s"` for `system` and `media`. |
+| `when` | string | per type | `"always"` or `"visible"`, see above. |
+| `transform` | string | none | A jq expression applied to the data before widgets see it; the cache keeps the data untransformed. Until expressions arrive (v0.4 phase 3) only plain paths such as `".items"` or `".data[0]"` work. |
+| `history` | object | none | Named number histories for sparklines: `{"price": {"value": ".usd", "size": 288, "every": "5m"}}`. Each successful fetch appends `value` (again a plain path for now), at most one sample per `every` (default: `refresh`), keeping the last `size` (default 120, at most 10000). Kept on disk in the cache's `history/` directory; changing `value` starts the history over. |
+| `maxAge` | duration | none | Cached data older than this is not shown at startup. |
+| `cache` | boolean | `true` | `false`: never written to disk. |
+
+Text in a source definition (`url`, `argv`, `env`, `headers`, `path`, `ics`) may use `{{ $secrets.<name> }}` (see [secrets](#secrets)) and `{{ $env.<NAME> }}`; they are filled in when the source is fetched. `{{{{` writes a literal `{{`.
 
 ### `http`
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `url` | string | required | An `http://` or `https://` URL, fetched with a 10 second timeout and a `vestal/<version>` User-Agent. The answer must have a 2xx status. |
-| `parse` | string | `"json"` | `"json"`: the body must be valid JSON. `"raw"`: the body as it is. |
+| `url` | string | required | An `http://` or `https://` URL, fetched with a `vestal/<version>` User-Agent. The answer must have a 2xx status. |
+| `method` | string | `"GET"` | `"GET"` or `"POST"`. |
+| `headers` | object of strings | none | Request headers, such as `{"Authorization": "Bearer {{ $secrets.token }}"}`. |
+| `body` | string or JSON | none | The `POST` body. A JSON value is sent as `application/json`. |
+| `timeout` | duration | `"10s"` | The request fails after this long. |
+| `parse` | string | `"json"` | `"json"`: the body must be valid JSON. `"raw"`: the body as it is. `"lines"`: a list of its lines. `"feed"`: an RSS 2.0, Atom 1.0 or JSON Feed 1.1 document, read into `{title, url, items: [{id, title, url, date, author, summary}]}` (the first 500 items; `summary` as plain text of at most 500 characters). |
 
 ### `command`
 
@@ -104,30 +118,72 @@ Every source takes:
 |---|---|---|---|
 | `argv` | list of strings | required | The program and its arguments. Never run through a shell. `argv[0]` is looked up on `PATH`, then `~/.nix-profile/bin`, `/etc/profiles/per-user/$USER/bin`, `/run/current-system/sw/bin`, `/opt/homebrew/bin` and `/usr/local/bin`. A leading `~` or `~/` in any element expands to your home directory (`$HOME`, which `env` may set). |
 | `timeout` | duration | `"10s"` | The command is killed after this long. |
-| `parse` | string | `"json"` | `"json"`: stdout must be valid JSON. `"raw"`: stdout as it is. The command must exit with status 0 either way. |
+| `parse` | string | `"json"` | As for `http`. The command must exit with status 0 either way. |
 | `env` | object of strings | none | Added to the command's environment. |
+
+### `file`
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `path` | string | required | A file; a leading `~/` expands. |
+| `parse` | string | `"json"` | As for `http`, plus `"exists"`: `{"exists": true, "modified": <seconds since 1970>}` or `{"exists": false, "modified": null}`, which never fails. The other modes fail when the file is missing. |
 
 ### `calendar`
 
-Events from the system calendar: EventKit on macOS (vestal asks for calendar access the first time). The source's data is a list of events: `title`, `start` and `end` (seconds since 1970), `allDay` and `calendar` (the calendar's name).
-
-There is no Linux backend yet: on Linux a calendar source reports an error (in `vestal status`) that says what to use instead. An [`agendaList`](#agendalist) also reads a `command` or `http` source whose JSON is that same list, so an ICS feed or CalDAV calendar works through a script of your own, for example one around `khal list` or one that downloads and converts an ICS file:
-
-```json
-{
-  "sources": {
-    "events": { "type": "command", "argv": ["~/.local/bin/events-json", "--days", "1"], "refresh": "5m" }
-  },
-  "widgets": {
-    "agenda": { "type": "agendaList", "source": "events" }
-  }
-}
-```
+Events, as a list: `title`, `start` and `end` (seconds since 1970), `allDay`, `calendar` (the calendar's name) and `location` (or `null`).
 
 | Key | Type | Default | |
 |---|---|---|---|
 | `days` | integer, at least 1 | `1` | How many days to read: from now to the end of the `days`-th day, today being the first. |
 | `calendars` | list of strings | all | Only calendars with these names. |
+| `ics` | list of strings | none | `.ics` files, directories of them (such as vdirsyncer's) or `http(s)` URLs. When set, they are read on both macOS and Linux. The calendar's name is the file's `X-WR-CALNAME`, else the file's name (for a file in a directory, the directory's name). Recurring events are expanded (`RRULE` with `DAILY`, `WEEKLY`, `MONTHLY` or `YEARLY`, `COUNT`, `UNTIL`, `INTERVAL`, `BYDAY`, `BYMONTHDAY`, `BYMONTH`, `WKST`, and `EXDATE`, `RDATE`, moved or cancelled instances), in the event's own time zone (`TZID`, with its `VTIMEZONE`). An event whose rule uses anything else (`BYSETPOS`, `BYWEEKNO`, ...) is left out rather than guessed, and `vestal sources` says how many were. |
+| `timeout` | duration | `"10s"` | For `ics` URLs. |
+
+Without `ics`, macOS reads the system calendar through EventKit (vestal asks for calendar access the first time). Linux has no system calendar: there a calendar source without `ics` yields an empty list, and `vestal sources` notes "no calendar backend: set `ics`". An [`agendaList`](#agendalist) also reads a `command`, `http` or `file` source whose JSON is that same list.
+
+### `system`
+
+This machine: CPU (`percent`, `cores`, `load`), memory (`percent`, `used`, `total`, and `pressure`: compressed memory on macOS, PSI `some avg10` on Linux), CPU temperature, battery, disks, network rates (total and per interface), the default output's volume, uptime, host name and OS. The same keys on macOS and Linux; a value the machine can't report is `null`. `vestal fetch system` shows it.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `disks` | list of strings | `["/"]` | Mount points to report. |
+| `interfaces` | list of strings | all but loopback | Network interfaces to report and sum (on Linux the default leaves out virtual ones: bridges, containers, VPNs). |
+
+### `media`
+
+One music player: `{player, state, title, artist, album, position, duration, players}`. `state` is `playing`, `paused` or `off` (not running, or nothing loaded). `players` lists the players this machine can see now, which are the values `player` accepts.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `player` | string or list of strings | `"auto"` | On macOS an application asked over AppleScript (`"Spotify"`, `"Music"`); on Linux an MPRIS player through `playerctl` (`"spotify"`, `"firefox"`), matched without regard to case. A list takes the first one that is running. `"auto"` is Spotify, then Music, on macOS; on Linux the first player that is playing, else the first one found. |
+
+### `claude`
+
+Claude Code usage from its session logs: `{fiveHour: {tokens, limit, percent}, week: {tokens, limit, percent}}`.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `path` | string | `"~/.claude/projects"` | Where the logs are. |
+| `fiveHourLimit` | integer | `8000000` | Tokens that count as 100% over 5 hours. |
+| `weeklyLimit` | integer | `95000000` | Tokens that count as 100% over 7 days. |
+
+## Secrets
+
+`secrets` names values a source definition can use as `{{ $secrets.<name> }}` without writing them into the config (which, under Home Manager, ends up in the world-readable Nix store). Each is read once after the config loads, the first time a source needs it, and trimmed of surrounding whitespace. Secret values are removed from every error vestal logs or shows.
+
+```json
+{
+  "secrets": {
+    "ha": { "file": "~/.config/vestal/secrets/ha-token" },
+    "gh": { "command": ["gh", "auth", "token"] },
+    "owm": { "env": "OPENWEATHER_KEY" }
+  }
+}
+```
+
+Give exactly one of `file`, `env` or `command` (an argv, run with a 10 second timeout). `check-config` warns when a URL or header looks like it contains a literal token.
+
 
 ## Widgets
 

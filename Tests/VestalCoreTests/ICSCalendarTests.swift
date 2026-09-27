@@ -147,7 +147,7 @@ final class ICSCalendarTests: XCTestCase {
         XCTAssertEqual(inNewYork.start, utc("2026-10-08T23:00:00Z"))
     }
 
-    func testRDateAddsInstancesAndPeriodsAreIgnored() throws {
+    func testRDateAddsInstances() throws {
         let piano = try personal().entries.filter { $0.title == "Piano lesson" }
         XCTAssertEqual(piano.map(\.start), [
             utc("2026-10-03T16:00:00Z"), utc("2026-10-10T16:00:00Z"), utc("2026-10-31T17:00:00Z"),
@@ -183,7 +183,10 @@ final class ICSCalendarTests: XCTestCase {
         XCTAssertFalse(result.entries.contains { $0.title == "Gym" })
         // An override whose master is not in the document is a plain event.
         XCTAssertEqual(result.entries.filter { $0.title == "Book club" }.map(\.start), [utc("2026-10-15T17:30:00Z")])
-        XCTAssertEqual(result.skipped, ["Tax deadline: unsupported RRULE part BYWEEKNO"])
+        XCTAssertEqual(result.skipped, [
+            "Tax deadline: unsupported RRULE part BYWEEKNO",
+            "Guitar lesson: unsupported RDATE PERIOD value",
+        ], "a PERIOD RDATE leaves its event out rather than dropping one instance")
     }
 
     // MARK: Inline documents

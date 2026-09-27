@@ -102,6 +102,20 @@ public final class SecretStore: @unchecked Sendable {
         self.environment = environment
         self.home = home
         self.allowCommands = allowCommands
+        // `file` and `env` secrets are read now, at load: cheap, and then
+        // every error is scrubbed of them, even one from a source that
+        // doesn't use them. `command` secrets run on first use, off the main
+        // actor.
+        for (name, definition) in definitions {
+            var raw: String?
+            if let file = definition.file {
+                raw = FileManager.default.contents(atPath: CommandRunner.expandTilde(file, home: home))
+                    .map { String(decoding: $0, as: UTF8.self) }
+            } else if let variable = definition.env {
+                raw = environment[variable]
+            }
+            if let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines) { values[name] = value }
+        }
     }
 
     /// A secret's value, read now if it hasn't been.

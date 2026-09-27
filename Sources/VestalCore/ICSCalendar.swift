@@ -44,7 +44,9 @@ public enum ICSCalendar {
 
         // VEVENTs are not searched for nested components: a VALARM inside
         // one is not an event.
-        func collect(_ component: ICSComponent) {
+        // Depth-limited: a hostile document can nest components without end.
+        func collect(_ component: ICSComponent, depth: Int = 0) {
+            guard depth < 32 else { return }
             switch component.name {
             case "VEVENT":
                 events.append(component)
@@ -56,10 +58,10 @@ public enum ICSCalendar {
                    !name.isEmpty {
                     calendarName = name
                 }
-                component.children.forEach(collect)
+                for child in component.children { collect(child, depth: depth + 1) }
             }
         }
-        ICSParser.components(text).forEach(collect)
+        for component in ICSParser.components(text) { collect(component) }
 
         let expander = ICSExpander(
             zones: ICSZoneResolver(timezones),
@@ -138,6 +140,9 @@ private struct ICSExpander {
                     continue
                 }
                 let own = uid.flatMap { overrides[$0] } ?? []
+                if own.contains(where: { $0.first("RECURRENCE-ID")?.params["RANGE"]?.uppercased() == "THISANDFUTURE" }) {
+                    throw ICSUnsupported("unsupported RECURRENCE-ID RANGE=THISANDFUTURE")
+                }
                 let timing = try self.timing(of: event, fallback: nil)
                 let walls = try occurrences(of: event, timing: timing, overrides: own)
                 let location = event.location
@@ -177,7 +182,8 @@ private struct ICSExpander {
     // MARK: Times
 
     /// The times in a DTSTART, DTEND, EXDATE, RDATE or RECURRENCE-ID
-    /// property. PERIOD values ("start/end") are ignored.
+    /// property. PERIOD values ("start/end") are skipped here; an RDATE
+    /// with one leaves its event out (`occurrences`).
     func times(_ property: ICSProperty) -> [ICSTime] {
         let zone = property.params["TZID"].flatMap { zones.zone($0) }
         return property.value.split(separator: ",").compactMap { value in
@@ -226,7 +232,12 @@ private struct ICSExpander {
         var walls = try rules.first.map { try expand(ICSRule.parse($0.value), t) } ?? [t.wall]
 
         let timeOfDay = floorMod(t.wall, 86_400)
-        for property in event.all("RDATE") {
+        let rdates = event.all("RDATE")
+        guard rdates.reduce(0, { $0 + $1.value.split(separator: ",").count }) <= 10_000 else {
+            throw ICSUnsupported("more than 10000 RDATE values")
+        }
+        if rdates.contains(where: { $0.value.contains("/") }) { throw ICSUnsupported("unsupported RDATE PERIOD value") }
+        for property in rdates {
             for time in times(property) {
                 if time.isDate {
                     walls.append(time.day * 86_400 + (t.allDay ? 0 : timeOfDay))
@@ -283,8 +294,8 @@ private struct ICSExpander {
     }
 
     /// An override, or an event without a master: one occurrence with its
-    /// own times, title, location and status. RANGE=THISANDFUTURE is not
-    /// supported; such an override replaces only its own instance.
+    /// own times, title, location and status. A master with a
+    /// RANGE=THISANDFUTURE override is left out (`run`).
     func single(_ event: ICSComponent, master: (timing: ICSTiming, title: String)?) throws -> CalendarEntry? {
         let fallback = master.map { (days: $0.timing.days, seconds: $0.timing.seconds) }
         let timing = try self.timing(of: event, fallback: fallback)
@@ -371,7 +382,8 @@ private struct ICSRule {
                 guard let f = Frequency(rawValue: text) else { throw ICSUnsupported("unsupported RRULE FREQ=\(text)") }
                 frequency = f
             case "INTERVAL":
-                guard let n = Int(text), n >= 1 else { throw invalid(part) }
+                // Bounded, so step * interval can never overflow.
+                guard let n = Int(text), n >= 1, n <= 10_000 else { throw invalid(part) }
                 rule.interval = n
             case "COUNT":
                 guard let n = Int(text), n >= 1 else { throw invalid(part) }

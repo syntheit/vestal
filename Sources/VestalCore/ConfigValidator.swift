@@ -135,6 +135,9 @@ private struct Walker {
     private mutating func sources(_ value: AnyJSON) {
         guard let entries = object(value, "sources") else { return }
         for (name, entry) in entries.sorted(by: { $0.key < $1.key }) {
+            if name.hasPrefix("inline:") {
+                add(.invalidValue, "sources.\(name)", "names starting with \"inline:\" are for inline sources; rename it")
+            }
             _ = source(entry, "sources.\(name)")
         }
     }
@@ -183,6 +186,9 @@ private struct Walker {
             }
             for (name, header) in (stringMap(source["headers"], "\(path).headers") ?? [:]).sorted(by: { $0.key < $1.key }) {
                 secretLiteral(header, "\(path).headers.\(name)")
+            }
+            if let body = source["body"], body != .null {
+                secretLiteral(body.stringValue ?? body.canonicalText(), "\(path).body")
             }
         case "command":
             if let argv = strings(source["argv"], "\(path).argv") {

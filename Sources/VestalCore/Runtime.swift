@@ -572,7 +572,13 @@ public final class AppRuntime {
             break
         case .fetched(let data, let info, let samples, let cached):
             job.failed = false
-            job.snapshot = SourceSnapshot(data: data, fetchedAt: job.lastStart, info: info)
+            // An on-demand fetch (`fetchNow`) that started later may have
+            // landed first; its newer data stays.
+            if let newer = job.snapshot.fetchedAt, let start = job.lastStart, newer > start {
+                job.snapshot.lastError = nil
+            } else {
+                job.snapshot = SourceSnapshot(data: data, fetchedAt: job.lastStart, info: info)
+            }
             if cached {
                 job.lastCached = job.lastStart
                 job.lastCachedData = data
@@ -596,7 +602,8 @@ public final class AppRuntime {
         for (history, value) in samples {
             if histories.append(source: name, name: history, value: value, at: time) { appended = true }
         }
-        guard appended, cache != nil else { return }
+        // `"cache": false` keeps its histories in memory too.
+        guard appended, cache != nil, jobs[.snapshot(key)]?.plan?.source.cache ?? false else { return }
         histories.save(name)
     }
 
@@ -605,7 +612,8 @@ public final class AppRuntime {
         for (id, job) in jobs {
             guard case .snapshot(.source(let name)) = id, let plan = job.plan else { continue }
             names.insert(name)
-            histories.configure(source: name, specs: plan.source.history ?? [:], refresh: job.interval)
+            histories.configure(source: name, specs: plan.source.history ?? [:], refresh: job.interval,
+                                persist: plan.source.cache)
         }
         histories.retain(sources: names)
     }

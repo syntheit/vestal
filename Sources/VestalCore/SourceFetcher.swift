@@ -167,11 +167,10 @@ public struct LiveFetcher: SourceFetcher {
                 ?? MediaReading(player: nil, playing: .off, players: [])
             return FetchResult(data: MediaSource.shape(reading).canonicalData())
         case "claude":
-            let home = self.home, now = self.now()
-            let data = await Task.detached(priority: .utility) {
-                ClaudeSource.read(source, home: home, now: now).canonicalData()
-            }.value
-            return FetchResult(data: data)
+            // Plain file reads, already off the main actor; in the fetch's own
+            // task, so a cancelled fetch drops its result at once.
+            try Task.checkCancellation()
+            return FetchResult(data: ClaudeSource.read(source, home: home, now: now()).canonicalData())
         default:
             return try await readCalendar(source)
         }
@@ -212,8 +211,7 @@ public struct LiveFetcher: SourceFetcher {
             }
         }
         for (name, value) in source.headers ?? [:] { request.setValue(value, forHTTPHeaderField: name) }
-        let (data, response) = try await URLSession.shared.vestalData(for: request)
-        guard data.count <= maxBytes else { throw SourceError("response larger than 10 MiB") }
+        let (data, response) = try await URLSession.vestalData(for: request, limit: maxBytes)
         return (data, (response as? HTTPURLResponse)?.statusCode)
     }
 
@@ -379,27 +377,84 @@ public struct LiveFetcher: SourceFetcher {
 // MARK: - URLSession
 
 extension URLSession {
-    /// `data(for:)` on every platform: corelibs Foundation 5.10 (Linux) has
-    /// no async URLSession API. Cancelling the calling task cancels the
-    /// request, which then fails with `URLError(.cancelled)`.
-    func vestalData(for request: URLRequest) async throws -> (Data, URLResponse) {
+    /// One request whose body may be at most `limit` bytes: a longer one
+    /// (by its Content-Length, or as it arrives) fails at once with
+    /// "response larger than …" instead of being buffered whole. A session
+    /// of its own per request, ephemeral (nothing on disk), invalidated when
+    /// done. Cancelling the calling task cancels the request.
+    static func vestalData(for request: URLRequest, limit: Int) async throws -> (Data, URLResponse) {
+        let receiver = LimitedReceiver(limit: limit)
+        let session = URLSession(configuration: .ephemeral, delegate: receiver, delegateQueue: nil)
+        defer { session.finishTasksAndInvalidate() }
         let pending = PendingDataTask()
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
-                let task = dataTask(with: request) { data, response, error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else if let data, let response {
-                        continuation.resume(returning: (data, response))
-                    } else {
-                        continuation.resume(throwing: URLError(.badServerResponse))
-                    }
-                }
-                pending.start(task)
+                receiver.start(continuation)
+                pending.start(session.dataTask(with: request))
             }
         } onCancel: {
             pending.cancel()
         }
+    }
+}
+
+/// Collects one response for `URLSession.vestalData(for:limit:)`.
+private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+    private let limit: Int
+    private let lock = NSLock()
+    private var data = Data()
+    private var response: URLResponse?
+    private var tooLarge = false
+    private var continuation: CheckedContinuation<(Data, URLResponse), Error>?
+
+    init(limit: Int) {
+        self.limit = limit
+    }
+
+    func start(_ continuation: CheckedContinuation<(Data, URLResponse), Error>) {
+        lock.lock()
+        self.continuation = continuation
+        lock.unlock()
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse,
+                    completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+        lock.lock()
+        self.response = response
+        let over = response.expectedContentLength > Int64(limit)
+        if over { tooLarge = true }
+        lock.unlock()
+        completionHandler(over ? .cancel : .allow)
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        lock.lock()
+        self.data.append(data)
+        let over = self.data.count > limit
+        if over {
+            tooLarge = true
+            self.data = Data()
+        }
+        lock.unlock()
+        if over { dataTask.cancel() }
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        lock.lock()
+        let continuation = self.continuation
+        self.continuation = nil
+        let result: Result<(Data, URLResponse), Error>
+        if tooLarge {
+            result = .failure(SourceError("response larger than \(limit / 1024 / 1024) MiB"))
+        } else if let error {
+            result = .failure(error)
+        } else if let response = response ?? task.response {
+            result = .success((data, response))
+        } else {
+            result = .failure(URLError(.badServerResponse))
+        }
+        lock.unlock()
+        continuation?.resume(with: result)
     }
 }
 
