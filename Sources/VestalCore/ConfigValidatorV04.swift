@@ -161,8 +161,7 @@ struct V04Checker {
     mutating func widget(_ value: AnyJSON, path: String, scope: Scope, inTemplate: Bool = false) {
         switch value {
         case .string(let key):
-            // Outside template bodies the expansion reports these.
-            if inTemplate, !widgetNames.contains(key) {
+            if !widgetNames.contains(key) {
                 add(.missingReference, path, "no widget named \"\(key)\"", code: "unknown-widget", severity: .error,
                     suggestions: DidYouMean.suggestions(for: key, among: Array(widgetNames)))
             }
@@ -170,7 +169,7 @@ struct V04Checker {
             if inTemplate, Expander.parameterReference(value) != nil { return }
             guard let written = members["type"]?.stringValue else {
                 if inTemplate, members["type"].flatMap(Expander.parameterReference) != nil { return }
-                if inTemplate { add(.missingKey, path, "a widget needs a \"type\"", code: "missing-required", severity: .error) }
+                add(.missingKey, path, "a widget needs a \"type\"; the widget is not shown", code: "missing-required", severity: .error)
                 return
             }
             let type = WidgetConfig.canonicalType(written)
@@ -178,12 +177,14 @@ struct V04Checker {
                 primitive(members, entity, path: path, scope: scope, inTemplate: inTemplate)
             } else if let template = registry.lookup(type), !template.isSource {
                 instance(members, template, path: path, scope: scope, inTemplate: inTemplate)
-            } else if inTemplate {
-                add(.unknownType, "\(path).type", "unknown widget type \"\(written)\"", code: "unknown-type", severity: .error,
+            } else {
+                add(.unknownType, "\(path).type", "unknown widget type \"\(written)\"; the widget is not shown", code: "unknown-type", severity: .error,
                     suggestions: DidYouMean.suggestions(for: written, among: registry.widgetTypeNames), found: written)
             }
         default:
-            break  // the expansion reports it
+            if inTemplate { return }
+            add(.wrongType, path, "expected a widget (an object or a widget key), found \(value.kindDescription)",
+                severity: .error, expected: "object", found: value.jsonTypeName)
         }
     }
 

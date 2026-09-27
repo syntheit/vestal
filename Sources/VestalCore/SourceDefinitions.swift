@@ -124,7 +124,9 @@ extension Config {
     /// "adapter" (a v0.3 widget's).
     public func origin(ofSource name: String) -> String {
         if let source = sources[name] {
-            if name.hasPrefix("inline:") { return "inline" }
+            if name.hasPrefix("inline:") {
+                return LegacySources.sources(of: self)[name] != nil ? "adapter" : "inline"
+            }
             return LegacySources.builtin[name] == source ? "builtin" : "config"
         }
         return name.hasPrefix("inline:") ? "adapter" : "config"

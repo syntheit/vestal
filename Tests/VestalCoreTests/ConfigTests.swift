@@ -175,7 +175,10 @@ final class ConfigTests: XCTestCase {
     }
 
     func testBuiltInDefaultsRoundTrip() throws {
-        XCTAssertEqual(try roundTrip(DefaultConfig.config), DefaultConfig.config)
+        // The expanded tree isn't part of the config's JSON.
+        var plain = DefaultConfig.config
+        plain.expanded = nil
+        XCTAssertEqual(try roundTrip(DefaultConfig.config), plain)
     }
 
     func testBuiltInDefaultsReferenceExistingWidgetsAndSources() {
