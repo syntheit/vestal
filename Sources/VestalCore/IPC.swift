@@ -77,6 +77,9 @@ public enum IPCCommand: String, CaseIterable, Sendable {
     /// v0.4: an expression's outputs with the instance's data (`vestal
     /// eval`); needs `expr`, takes `source`, `template` and `at`.
     case eval
+    /// v0.4: a key for the dashboard, as if typed on it (`vestal press`);
+    /// needs `key`.
+    case press
 }
 
 /// A command with its arguments. On the wire it is the bare command word
@@ -86,8 +89,7 @@ public enum IPCCommand: String, CaseIterable, Sendable {
 /// ignores JSON keys it doesn't know, so later arguments stay compatible.
 public struct IPCRequest: Equatable, Sendable {
     public var command: IPCCommand
-    /// The view `show` and `toggle` open. Ignored until views exist
-    /// (docs/TASKS-v0.4.md phase 7).
+    /// The view `show` and `toggle` open (§9.1).
     public var view: String?
     /// `fetch`: the source's name.
     public var source: String?
@@ -105,6 +107,8 @@ public struct IPCRequest: Equatable, Sendable {
     public var template: Bool?
     /// `render`, `eval`: the time `now` gives, in epoch seconds.
     public var at: Double?
+    /// `press`: the key, in the hotkey grammar (§9.2).
+    public var key: String?
 
     public init(_ command: IPCCommand, view: String? = nil, source: String? = nil, raw: Bool? = nil,
                 cached: Bool? = nil, timeout: Double? = nil) {
@@ -131,6 +135,7 @@ public struct IPCRequest: Equatable, Sendable {
         if let expression { object["expr"] = .string(expression) }
         if let template { object["template"] = .bool(template) }
         if let at { object["at"] = .double(at) }
+        if let key { object["key"] = .string(key) }
         guard object.count > 1 else { return command.rawValue }
         return AnyJSON.object(object).canonicalText()
     }
@@ -195,6 +200,7 @@ public struct IPCRequest: Equatable, Sendable {
         if case .array(let keys)? = object["press"] { request.press = keys.compactMap(\.stringValue) }
         if case .string(let expression)? = object["expr"] { request.expression = expression }
         if case .bool(let flag)? = object["template"] { request.template = flag }
+        if case .string(let key)? = object["key"] { request.key = key }
         switch object["at"] {
         case .int(let seconds)?: request.at = Double(seconds)
         case .double(let seconds)?: request.at = seconds
@@ -290,6 +296,8 @@ public struct IPCStatus: Codable, Equatable, Sendable {
     /// This machine's stats when the status was taken; nil from an app that
     /// doesn't report them (or an older build).
     public var stats: SystemStatsSample?
+    /// The view on screen; nil while hidden (or from an older build).
+    public var view: String?
 
     public init(
         pid: Int32,
@@ -299,7 +307,8 @@ public struct IPCStatus: Codable, Equatable, Sendable {
         hotkey: String? = nil,
         warnings: [String] = [],
         sources: [IPCSourceStatus] = [],
-        stats: SystemStatsSample? = nil
+        stats: SystemStatsSample? = nil,
+        view: String? = nil
     ) {
         self.pid = pid
         self.version = version
@@ -309,10 +318,11 @@ public struct IPCStatus: Codable, Equatable, Sendable {
         self.warnings = warnings
         self.sources = sources
         self.stats = stats
+        self.view = view
     }
 
     enum CodingKeys: String, CodingKey {
-        case pid, version, visible, configPath, hotkey, warnings, sources, stats
+        case pid, version, visible, configPath, hotkey, warnings, sources, stats, view
     }
 
     public init(from decoder: Decoder) throws {
@@ -327,6 +337,7 @@ public struct IPCStatus: Codable, Equatable, Sendable {
         // Stats from another build may not decode; the rest of the status
         // still does.
         stats      = try? c.decodeIfPresent(SystemStatsSample.self, forKey: .stats)
+        view       = try? c.decodeIfPresent(String.self, forKey: .view)
     }
 }
 

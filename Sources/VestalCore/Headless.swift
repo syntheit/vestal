@@ -48,15 +48,19 @@ public struct HeadlessPlatform {
     /// This machine's stats for `vestal status`; nil reports none. Called on
     /// the main actor for each status request.
     public var stats: (@MainActor () -> SystemStatsSample)?
+    /// The default output, for `audio` actions; nil ignores them.
+    public var audio: AudioProvider?
 
     public init(
         sources: SourcePlatform = SourcePlatform(),
         watcher: (@MainActor () -> ConfigWatcher)? = nil,
-        stats: (@MainActor () -> SystemStatsSample)? = nil
+        stats: (@MainActor () -> SystemStatsSample)? = nil,
+        audio: AudioProvider? = nil
     ) {
         self.sources = sources
         self.watcher = watcher
         self.stats = stats
+        self.audio = audio
     }
 }
 
@@ -75,8 +79,12 @@ public enum HeadlessApp {
         MainActor.assumeIsolated {
             let runtime = AppRuntime(config: config, fetcher: LiveFetcher(platform: platform.sources), cache: SnapshotCache())
             let surface = HeadlessSurface()
+            // The render engine runs too, with no UI observing: `vestal show
+            // <view>`, `vestal press` and actions work (copy falls back to
+            // wl-copy), and a UI in this process can observe it later.
             let resident = Resident(loaded: loaded, runtime: runtime, surface: surface,
-                                    watcher: platform.watcher?(), stats: platform.stats)
+                                    watcher: platform.watcher?(), stats: platform.stats,
+                                    actions: RenderActionRunner(media: platform.sources.media, audio: platform.audio))
             let quit: @MainActor () -> Void = {
                 // The socket goes first, so a new instance can start at once;
                 // running fetches are cancelled and running commands killed.

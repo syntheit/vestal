@@ -59,6 +59,10 @@ public enum CLI {
         case render([String])
         /// `vestal explain ...` (RenderCommands).
         case explain([String])
+        /// `vestal press ...` (PressCommand).
+        case press([String])
+        /// `vestal screenshot ...` (the platform's renderer).
+        case screenshot([String])
     }
 
     public enum Parsed: Equatable, Sendable {
@@ -88,6 +92,8 @@ public enum CLI {
         case "eval": return .command(.eval(rest))
         case "render": return .command(.render(rest))
         case "explain": return .command(.explain(rest))
+        case "press": return .command(.press(rest))
+        case "screenshot": return .command(.screenshot(rest))
         case "show" where !rest.isEmpty, "toggle" where !rest.isEmpty:
             guard rest.count == 1, !rest[0].hasPrefix("-") else { return .usageError("'\(name)' takes one view at most") }
             return .command(.sendRequest(IPCRequest(IPCCommand(rawValue: name)!, view: rest[0])))
@@ -109,7 +115,9 @@ public enum CLI {
         Commands:
           daemon               Start hidden (the launch agent runs this). If vestal
                                runs already: exit 0, or replace it if it is another build
-          toggle [view]        Show or hide the dashboard; starts vestal if needed
+          toggle [view]        Show or hide the dashboard; starts vestal if needed.
+                               With a view: hide it if shown on that view, else
+                               show that view
           show [view]          Show the dashboard; starts vestal if needed. A view
                                must be one of the config's (exit 4 otherwise)
           hide                 Hide the dashboard
@@ -141,6 +149,15 @@ public enum CLI {
           explain <node id or widget key> [--view <name>] [--json]
                                Everything about one widget: template chain, source,
                                vars, when, fields as written and as resolved
+          screenshot <out.png> [--view <name>] [--press <key>]... [--at <time>]
+                     [--cached|--fetch|--data <dir>] [--size <w>x<h>] [--scale <n>]
+                     [--background solid|transparent] [--frames <file.json>] [--json]
+                               Draw a view offscreen to a PNG with the dashboard's own
+                               renderer (macOS; no window, no running instance)
+          press <key> [--dry-run]
+                               Send a key to the running dashboard, as if typed on
+                               it; --dry-run says what it is bound to instead (local,
+                               with render's data options)
           schema [--out <file>]
                                Print the config's JSON Schema
           docs [topic] [--list] [--search <text>] [--json]
@@ -355,6 +372,7 @@ public enum CLI {
             "config: \(status.configPath ?? "none (built-in defaults)")",
             "hotkey: \(status.hotkey ?? "none")",
         ]
+        if let view = status.view { lines.append("view: \(view)") }
         if status.warnings.isEmpty {
             lines.append("warnings: none")
         } else {

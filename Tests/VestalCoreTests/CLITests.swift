@@ -10,7 +10,7 @@ final class CLITests: XCTestCase {
     func testParse() {
         XCTAssertEqual(CLI.parse([]), .command(.start(hidden: false)))
         XCTAssertEqual(CLI.parse(["daemon"]), .command(.start(hidden: true)))
-        for command in IPCCommand.allCases where ![.sources, .fetch, .render, .eval].contains(command) {
+        for command in IPCCommand.allCases where ![.sources, .fetch, .render, .eval, .press].contains(command) {
             XCTAssertEqual(CLI.parse([command.rawValue]), .command(.send(command)))
         }
         XCTAssertEqual(CLI.parse(["sources", "--json"]), .command(.sources(["--json"])))

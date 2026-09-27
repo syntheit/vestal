@@ -23,16 +23,21 @@ public final class RenderConfigModel: @unchecked Sendable {
     public let sourceNames: Set<String>
     /// `theme.scale` (§8.1).
     public let scale: Double
+    /// The config file (nil: the built-in defaults) and its `version`, for
+    /// the info popup.
+    public let configPath: String?
+    public let configVersion: Int
 
     private let lock = NSLock()
     private var textCache: [String: Result<TextTemplate, ExprError>] = [:]
 
     public convenience init(loaded: LoadedConfig) {
-        self.init(expanded: loaded.expanded)
+        self.init(expanded: loaded.expanded, path: loaded.path)
     }
 
-    public init(expanded: ExpandedConfig) {
+    public init(expanded: ExpandedConfig, path: String? = nil) {
         self.expanded = expanded
+        configPath = path
         let top = expanded.top
         widgets = top["widgets"]?.objectValue ?? [:]
         var views: [String: ViewSpec] = [:]
@@ -60,6 +65,11 @@ public final class RenderConfigModel: @unchecked Sendable {
         sources = expanded.sources
         sourceNames = Set(top["sources"]?.objectValue?.keys.map { $0 } ?? [])
         scale = TextStyle.size(themeObject["scale"]) ?? 1
+        switch top["version"] {
+        case .int(let v)?: configVersion = v
+        case .double(let v)?: configVersion = Int(exactly: v) ?? 1
+        default: configVersion = 1
+        }
     }
 
     /// The order `tab` cycles through: views with a key by key, then the

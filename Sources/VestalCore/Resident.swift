@@ -10,7 +10,12 @@ import Foundation
 // `vestal daemon`, can plug into the same place.
 //
 // Visibility drives the runtime: host health, stats and media polling run
-// only while the dashboard is shown (`AppRuntime.setVisible`).
+// only while the dashboard is shown (`AppRuntime.setVisible`), and the
+// render engine (`engine`), which evaluates only while shown. The resident
+// owns the engine: `show`/`toggle` with a view switch it (§9.1), `press`
+// sends it a key, a reload hands it the new config, and its `hide` actions
+// and Escape come back here. A UI observes `engine` and sends it clicks and
+// keys; its actions run through `actions` (RenderActionRunner by default).
 //
 // Reload: `vestal reload` reloads at once and answers whether it worked.
 // SIGHUP and changes to the config file or its directory (Home Manager
@@ -71,6 +76,9 @@ public final class Resident {
     /// Whether the dashboard is on screen.
     public private(set) var isVisible = false
     public let runtime: AppRuntime
+    /// The render engine the UI observes; nil for the v0.3 views
+    /// (`VESTAL_LEGACY_UI=1` on macOS), which draw from the runtime.
+    public let engine: RenderEngine?
 
     private weak var surface: ResidentSurface?
     private let hotkeys: HotkeyRegistrar?
@@ -97,6 +105,9 @@ public final class Resident {
     ///   - load: reads the config again, for a reload.
     ///   - watchedPath: the config file to watch.
     ///   - stats: this machine's stats for `vestal status`; nil reports none.
+    ///   - render: whether to run the render engine (`engine`).
+    ///   - actions: runs the engine's actions; nil: a `RenderActionRunner`
+    ///     without media or audio providers.
     public init(
         loaded: LoadedConfig,
         runtime: AppRuntime,
@@ -106,7 +117,9 @@ public final class Resident {
         reloadDelay: TimeInterval = Resident.reloadDelay,
         load: @escaping () -> LoadedConfig = { ConfigLoader.load() },
         watchedPath: @escaping () -> String = { ConfigLoader.watchedPath() },
-        stats: (@MainActor () -> SystemStatsSample)? = nil
+        stats: (@MainActor () -> SystemStatsSample)? = nil,
+        render: Bool = true,
+        actions: RenderActionHandler? = nil
     ) {
         self.loaded = loaded
         self.runtime = runtime
@@ -117,6 +130,9 @@ public final class Resident {
         self.load = load
         self.watchedPath = watchedPath
         self.stats = stats
+        engine = render ? RenderEngine(runtime: runtime, loaded: loaded) : nil
+        engine?.actions = actions ?? RenderActionRunner()
+        engine?.onHide = { [weak self] in self?.hide() }
     }
 
     // MARK: Lifecycle
@@ -155,14 +171,18 @@ public final class Resident {
     public func handle(_ request: IPCRequest, reply: @escaping IPCReply) {
         switch request.command {
         case .show:
-            show()
+            if let failure = unknownView(request.view) { return reply(failure) }
+            show(view: request.view)
             reply(visibilityReply())
         case .hide:
             hide()
             reply(visibilityReply())
         case .toggle:
-            toggle()
+            if let failure = unknownView(request.view) { return reply(failure) }
+            toggle(view: request.view)
             reply(visibilityReply())
+        case .press:
+            press(request.key, reply: reply)
         case .reload:
             reply(reload())
         case .status:
@@ -257,11 +277,18 @@ public final class Resident {
         }
     }
 
-    public func show() {
+    /// Shows the dashboard on `view`, or on `defaultView` (§9.1, §16 Q4):
+    /// also when it is already shown on another view.
+    public func show(view: String? = nil) {
         guard !stopped else { return }
         isVisible = true
-        // Whatever went stale while hidden refreshes at once.
+        // Whatever went stale while hidden refreshes at once; `system` and
+        // `file` sources are read now, so the first frame is complete (§15).
         runtime.setVisible(true)
+        if let engine {
+            runtime.readNow()
+            engine.show(view: view)
+        }
         surface?.show()
     }
 
@@ -269,14 +296,38 @@ public final class Resident {
     public func hide() {
         guard !stopped else { return }
         isVisible = false
+        engine?.setVisible(false)
         // Nothing polls during the fade-out.
         runtime.setVisible(false)
         surface?.hide()
     }
 
-    /// The hotkey and `vestal toggle`.
-    public func toggle() {
-        isVisible ? hide() : show()
+    /// The hotkey and `vestal toggle`. With a view: hides the dashboard
+    /// when it is shown on that view, else shows that view (§9.1).
+    public func toggle(view: String? = nil) {
+        if let view, let engine, isVisible, engine.view != view {
+            show(view: view)
+        } else {
+            isVisible ? hide() : show(view: view)
+        }
+    }
+
+    /// `vestal press <key>`: the key goes to the engine as if typed on the
+    /// dashboard, which has to be shown.
+    private func press(_ key: String?, reply: @escaping IPCReply) {
+        guard let key, !key.isEmpty else { return reply(.failure("press needs a key")) }
+        guard let engine else { return reply(.failure("keys go to the v0.3 views directly (VESTAL_LEGACY_UI)")) }
+        guard isVisible else { return reply(.failure("the dashboard is hidden; run `vestal show` first")) }
+        engine.key(key)
+        reply(.ok)
+    }
+
+    /// A failure reply for a view the config doesn't have (exit 4), or nil.
+    private func unknownView(_ view: String?) -> IPCResponse? {
+        guard let view else { return nil }
+        let known = engine.map { $0.hasView(view) } ?? (loaded.config.views[view] != nil)
+        guard !known else { return nil }
+        return IPCResponse(ok: false, error: "no view named \"\(view)\"", code: IPCResponse.notFound)
     }
 
     /// `.ok`, with the surface's notice and the new state when it has one:
@@ -321,6 +372,7 @@ public final class Resident {
         vestalLog("config reloaded from \(fresh.path ?? "the built-in defaults"): \(fresh.warnings.count) warnings")
         for warning in fresh.warnings { vestalLog("config warning: \(warning)") }
         runtime.apply(fresh.config)
+        engine?.apply(fresh)
         if hotkeyChanged || hotkeyProblem != nil { registerHotkey() }
         surface?.apply(fresh)
         return .ok
@@ -388,7 +440,8 @@ public final class Resident {
             hotkey: hotkeyProblem == nil ? hotkey?.description : nil,
             warnings: warnings,
             sources: sources,
-            stats: stats?())
+            stats: stats?(),
+            view: isVisible ? engine?.view : nil)
     }
 }
 
