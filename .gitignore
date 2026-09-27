@@ -7,3 +7,5 @@ xcuserdata/
 *.xcuserstate
 DerivedData/
 *.resolved
+.claude/
+result
