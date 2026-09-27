@@ -42,7 +42,7 @@ struct RGBA: Equatable {
 
     /// For CSS: `rgba(r, g, b, a)`.
     var css: String {
-        "rgba(\(Int((r * 255).rounded())), \(Int((g * 255).rounded())), \(Int((b * 255).rounded())), \(String(format: "%.3f", a)))"
+        "rgba(\(Int((r * 255).rounded())), \(Int((g * 255).rounded())), \(Int((b * 255).rounded())), \(Format.printf("%.3f", a)))"
     }
 }
 

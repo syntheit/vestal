@@ -1,14 +1,41 @@
 import Foundation
+#if canImport(Glibc)
+import Glibc
+#endif
 
 // MARK: - Display formatting
 //
 // Every string the dashboard derives from a number or a time. Portable so the
 // exact output is covered by tests on Linux; the views only lay these out.
+//
+// Numbers are always written the American way ('.' for decimals; ',' only
+// where a format groups thousands), whatever the system's LC_NUMERIC: use
+// `Format.printf`, never `String(format:)`, for anything with a number.
 
 public enum Format {
+    #if os(Linux)
+    /// The C locale for LC_NUMERIC, set per thread around each format.
+    nonisolated(unsafe) private static let cNumeric: locale_t? = newlocale(Int32(1) << LC_NUMERIC, "C", nil)
+    #endif
+
+    /// `String(format:)` in the C locale. On Linux, `String(format:)` follows
+    /// the process's LC_NUMERIC, which GTK's `setlocale(LC_ALL, "")` sets
+    /// from the environment (es_AR writes "5,19", and "0,620" breaks CSS);
+    /// macOS formats in the C locale already.
+    public static func printf(_ format: String, _ arguments: CVarArg...) -> String {
+        #if os(Linux)
+        if let c = cNumeric {
+            let previous = uselocale(c)
+            defer { uselocale(previous) }
+            return String(format: format, arguments: arguments)
+        }
+        #endif
+        return String(format: format, arguments: arguments)
+    }
+
     public static func rate(_ bytesPerSec: Int64) -> String {
         if bytesPerSec >= 1_048_576 {
-            return String(format: "%.1fM", Double(bytesPerSec) / 1_048_576)
+            return printf("%.1fM", Double(bytesPerSec) / 1_048_576)
         }
         if bytesPerSec >= 1024 {
             return "\(bytesPerSec / 1024)K"
@@ -25,13 +52,13 @@ public enum Format {
 
     public static func bytes(_ bytes: Int64) -> String {
         let gb = Double(bytes) / 1_073_741_824
-        if gb >= 1024 { return String(format: "%.1fT", gb / 1024) }
-        if gb >= 10 { return String(format: "%.0fG", gb) }
-        return String(format: "%.1fG", gb)
+        if gb >= 1024 { return printf("%.1fT", gb / 1024) }
+        if gb >= 10 { return printf("%.0fG", gb) }
+        return printf("%.1fG", gb)
     }
 
     public static func megabytes(_ mb: Int) -> String {
-        if mb >= 1024 { return String(format: "%.1fG", Double(mb) / 1024) }
+        if mb >= 1024 { return printf("%.1fG", Double(mb) / 1024) }
         return "\(mb)M"
     }
 
@@ -50,7 +77,7 @@ public enum Format {
         guard let usage else { return "" }
         let freeGB = Double(usage.freeBytes) / 1_073_741_824
         let totalGB = Double(usage.totalBytes) / 1_073_741_824
-        return String(format: "%.0f/%.0fGB", freeGB, totalGB)
+        return printf("%.0f/%.0fGB", freeGB, totalGB)
     }
 
     /// Battery time left: "2h 5m", or "45m" under an hour.

@@ -181,11 +181,11 @@ public enum AsyncData {
         case "int", "integer":
             if let d = asDouble { return String(Int(d)) }
         case "decimal", "%.2f":
-            if let d = asDouble { return String(format: "%.2f", d) }
+            if let d = asDouble { return Format.printf("%.2f", d) }
         default:
             if let s = value as? String { return s }
             if let d = asDouble {
-                return d == d.rounded() ? String(Int(d)) : String(format: "%.2f", d)
+                return d == d.rounded() ? String(Int(d)) : Format.printf("%.2f", d)
             }
         }
         return "\(value)"

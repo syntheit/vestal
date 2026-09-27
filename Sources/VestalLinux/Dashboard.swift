@@ -36,6 +36,11 @@ public final class LinuxDashboard {
     public static func initialize() throws {
         BundledFonts.register()
         guard gtk_init_check() != 0 else { throw InitError.noDisplay }
+        // gtk_init ran setlocale(LC_ALL, ""). Numbers stay American ('.'
+        // decimals) whatever LC_NUMERIC says: with es_AR the window's CSS
+        // alpha became "0,620", GTK dropped the rule, and the GTK theme's
+        // opaque window background showed instead (mantle's first run).
+        setlocale(LC_NUMERIC, "C")
         MainLoop.bridgeDispatch()
     }
 

@@ -371,6 +371,31 @@ final class VestalFunctionsTests: XCTestCase {
         }
     }
 
+    func testNumbersStayAmericanUnderACommaDecimalLocale() throws {
+        // mantle's LC_NUMERIC=es_AR.UTF-8 showed BRL as "5,19" once GTK had
+        // run setlocale(LC_ALL, ""). The Nix test build provides the locale
+        // (LOCALE_ARCHIVE in nix/checks.nix).
+        let previous = setlocale(LC_NUMERIC, nil).map { String(cString: $0) } ?? "C"
+        guard setlocale(LC_NUMERIC, "es_AR.UTF-8") != nil else { throw XCTSkip("no es_AR.UTF-8 locale") }
+        defer { setlocale(LC_NUMERIC, previous) }
+        #if os(Linux)
+        XCTAssertEqual(String(format: "%.2f", 5.19), "5,19", "the comma locale is in effect")
+        #endif
+        XCTAssertEqual(legacyFormat(5.19, "decimal"), "5.19")
+        XCTAssertEqual(legacyFormat(1540, "int"), "1540")
+        XCTAssertEqual(try string("5.19 | fmt_legacy(\"decimal\")"), "5.19")
+        XCTAssertEqual(try string("5.194 | fmt_fixed(2)"), "5.19")
+        XCTAssertEqual(try string("2.5 | fmt_number"), "2.50")
+        XCTAssertEqual(try string("1234567.891 | fmt_thousands(2)"), "1,234,567.89")
+        XCTAssertEqual(try string("2500000 | fmt_compact"), "2.5M")
+        XCTAssertEqual(try string("12.345 | fmt_percent(1)"), "12.3%")
+        XCTAssertEqual(try string("5242880 | fmt_bytes"), "5.0M")
+        XCTAssertEqual(try string("5.19 | tostring"), "5.19")
+        XCTAssertEqual(Format.bytes(1_073_741_824 / 2), "0.5G")
+        XCTAssertEqual(Format.rate(5_452_595), "5.2M")
+        XCTAssertEqual(Format.printf("%.3f", 0.62), "0.620")
+    }
+
     /// v0.3's `formatValue`, through a keyValueList item's `pick`.
     private func legacyFormat(_ value: Any, _ format: String?) -> String {
         let item = PickItem(label: "x", pick: "v", format: format)

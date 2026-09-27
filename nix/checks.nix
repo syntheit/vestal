@@ -166,6 +166,14 @@ in
       ];
     };
     nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.python3 ];
+    # A comma-decimal locale, so the test that numbers stay American under
+    # LC_NUMERIC=es_AR (mantle's) runs rather than skips.
+    LOCALE_ARCHIVE = "${
+      pkgs.glibcLocales.override {
+        allLocales = false;
+        locales = [ "es_AR.UTF-8/UTF-8" ];
+      }
+    }/lib/locale/locale-archive";
     buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.swiftPackages.XCTest ];
     # Every target, the tests included.
     swiftpmFlags = [ "--build-tests" ];

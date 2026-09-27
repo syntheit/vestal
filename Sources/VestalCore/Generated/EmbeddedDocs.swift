@@ -1248,6 +1248,8 @@ Numbers may arrive as JSON numbers or as numeric strings: `"12.5"` works whereve
 
 ## Formatting
 
+Numbers are written the American way on every system, whatever its locale (`LC_NUMERIC`): `.` before decimals, and `,` between thousands only where a function groups them (`fmt_thousands`). Dates and times (`fmt_localized`) follow the system's locale.
+
 | Function | Input → output | Example |
 |---|---|---|
 | `fmt_fixed(n)` | number → text with `n` decimals | `3.14159 \| fmt_fixed(2)` → `"3.14"` |

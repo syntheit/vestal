@@ -113,7 +113,7 @@ public enum VestalFunctions {
     static let table: [Entry] = [
         // Formatting
         num("fmt_fixed", 1) { d, args, _ in
-            String(format: "%.\(try decimals(args[0], "fmt_fixed"))f", d)
+            Format.printf("%.\(try decimals(args[0], "fmt_fixed"))f", d)
         },
         num("fmt_int", 0) { d, _, _ in String(try whole(d, "fmt_int")) },
         num("fmt_number", 0) { d, _, _ in fmtNumber(d) },
@@ -383,12 +383,12 @@ public enum VestalFunctions {
     /// v0.3's default for a number: whole numbers as is, otherwise 2 decimals.
     static func fmtNumber(_ d: Double) -> String {
         if d == d.rounded(), d.isFinite, abs(d) < 9.0e18 { return String(Int(d)) }
-        return String(format: "%.2f", d)
+        return Format.printf("%.2f", d)
     }
 
     static func thousands(_ d: Double, decimals: Int) -> String {
         let value = decimals == 0 ? d.rounded() : d
-        let body = String(format: "%.\(decimals)f", abs(value))
+        let body = Format.printf("%.\(decimals)f", abs(value))
         let parts = body.split(separator: ".", maxSplits: 1)
         let digits = Array(parts[0])
         var grouped = ""
@@ -407,11 +407,11 @@ public enum VestalFunctions {
         guard magnitude >= 1000 else { return fmtNumber(d) }
         let sign = d < 0 ? "-" : ""
         for (i, (divisor, suffix)) in units.enumerated() where magnitude >= divisor {
-            var text = String(format: "%.1f", magnitude / divisor)
+            var text = Format.printf("%.1f", magnitude / divisor)
             // 999,960 rounds to "1000.0k": say "1M" instead.
             if let v = Double(text), v >= 1000, i > 0 {
                 let (bigger, biggerSuffix) = units[i - 1]
-                text = String(format: "%.1f", magnitude / bigger)
+                text = Format.printf("%.1f", magnitude / bigger)
                 if text.hasSuffix(".0") { text.removeLast(2) }
                 return sign + text + biggerSuffix
             }
@@ -423,18 +423,18 @@ public enum VestalFunctions {
 
     static func percent(_ d: Double, decimals: Int) -> String {
         if decimals == 0 { return fmtWhole(d.rounded()) + "%" }
-        return String(format: "%.\(decimals)f", d) + "%"
+        return Format.printf("%.\(decimals)f", d) + "%"
     }
 
     private static func fmtWhole(_ d: Double) -> String {
-        d.isFinite && abs(d) < 9.0e18 ? String(Int(d)) : String(format: "%.0f", d)
+        d.isFinite && abs(d) < 9.0e18 ? String(Int(d)) : Format.printf("%.0f", d)
     }
 
     static func bytes(_ b: Int64) -> String {
         if b >= 1_073_741_824 { return Format.bytes(b) }
         if b >= 1_048_576 {
             let mb = Double(b) / 1_048_576
-            return String(format: mb >= 10 ? "%.0fM" : "%.1fM", mb)
+            return Format.printf(mb >= 10 ? "%.0fM" : "%.1fM", mb)
         }
         if b >= 1024 { return "\(b / 1024)K" }
         return "\(b)B"

@@ -129,7 +129,7 @@ public enum RenderText {
     // MARK: Helpers
 
     static func number(_ v: Double) -> String {
-        v == v.rounded() && abs(v) < 1e15 ? String(Int(v)) : String(format: "%g", v)
+        v == v.rounded() && abs(v) < 1e15 ? String(Int(v)) : Format.printf("%g", v)
     }
 
     static func length(_ l: RenderLength) -> String {
