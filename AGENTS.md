@@ -367,6 +367,8 @@ User: *"Put my review queue on the dashboard; clicking opens the PR."*
 - The data comes from `gh`, which must be installed, logged in (`gh auth status`), and on the daemon's PATH (Nix: `programs.vestal.extraPackages = [ pkgs.gh ];`). `argv` never goes through a shell.
 - Check: `vestal fetch prs --config /tmp/vestal-draft.json --allow-commands --shape` (step 2 shows its output), then `vestal render --config /tmp/vestal-draft.json --allow-commands`: one `action` row per PR, ids `main/reviews/1/@<url>`.
 - `rowId: ".url"` keeps rows stable, so a refresh redraws only changed rows. `sortBy` with `to_epoch` sorts ISO dates.
+- Other PR lists change only the `gh` arguments (ask the user which one they mean): their own open PRs `--author=@me`, assigned ones `--assignee=@me`, one repository `--repo owner/name`. The fields and the widget stay the same.
+- The `children` list above is an example: keep the user's existing `main` children (read them with `vestal print-config`) and insert `reviews` where they want it.
 - Tell the user: `gh` runs every 5 minutes; a click opens the PR in the browser and hides the dashboard; `g` opens the review page.
 
 ### Recipe `crypto`: a price with its 24 h change and sparklines
