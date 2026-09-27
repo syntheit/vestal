@@ -132,7 +132,7 @@ public final class RenderSession {
     /// what calls `now`.
     public func render(data: RenderData, now: Date, changed: Set<String>? = nil, tick: Bool = false) -> RenderSnapshot {
         let pass = RenderPass(model: model, data: data, now: now, view: view, timeZone: timeZone, locale: locale, os: os)
-        let spec = model.views[view] ?? ViewSpec(name: view, json: [:])
+        let spec = model.views[view] ?? ViewSpec(name: view, json: [:], density: model.density)
         let full = changed == nil || renderedView != view || children.count != spec.children.count
         let axis: RenderAxis = spec.layout == "row" ? .h : .v
         if full {

@@ -62,7 +62,7 @@ extension RenderCommands {
         let snapshot = session.render(data: data, now: now)
 
         // The root widget the target belongs to.
-        let spec = model.views[view] ?? ViewSpec(name: view, json: [:])
+        let spec = model.views[view] ?? ViewSpec(name: view, json: [:], density: model.density)
         let id: String
         if model.widgets[target] != nil {
             id = "\(view)/\(RenderPass.encode(target))"

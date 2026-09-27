@@ -157,6 +157,7 @@ private struct Walker {
         }
         oneOf(theme["background"], "theme.background", ThemeConfig.backgrounds)
         oneOf(theme["backdrop"], "theme.backdrop", ThemeConfig.backdrops)
+        oneOf(theme["density"], "theme.density", ThemeConfig.densities)
         themeDim(theme)
         themeBlur(theme)
     }

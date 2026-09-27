@@ -49,7 +49,7 @@ public enum ConfigExpansion {
             return ExpandedConfig(tree: merged, registry: .standard, warnings: [], notes: [])
         }
         let notes = LegacyAdapter.apply(&top)
-        let registry = TemplateRegistry(userTemplates: top["templates"])
+        let registry = TemplateRegistry(userTemplates: top["templates"], density: ThemeConfig.density(top["theme"]))
         var expander = Expander(registry: registry, raw: top["widgets"]?.objectValue ?? [:])
         expander.warnings = registry.problems
 

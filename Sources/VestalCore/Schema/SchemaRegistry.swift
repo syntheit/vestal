@@ -215,6 +215,11 @@ public enum SchemaRegistry {
                       "Shorthand for fonts.sans (§16.1)."),
             SchemaKey("scale", .number, default: .int(1), since: "0.4", examples: [.double(1.25)],
                       "Multiplies every text, icon and fixed size (not gaps or padding)."),
+            SchemaKey("density", .oneOf(ThemeConfig.densities), default: .string("comfortable"), since: "0.4",
+                      examples: [.string("compact")],
+                      "How much room the built-in presets take. comfortable: the v0.3 look. compact: a smaller clock with the "
+                      + "date and world clocks on one line, no section titles or rules, tighter rows and gaps, one-line "
+                      + "currencies and weather. Views' default gap follows it."),
             SchemaKey("icons", .oneOf(["native", "phosphor"]), since: "0.4", examples: [.string("phosphor")],
                       "native: the macOS UI draws the presets' icons as SF Symbols (the default on macOS). phosphor: the bundled "
                       + "Phosphor font everywhere."),

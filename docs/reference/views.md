@@ -24,7 +24,7 @@ A view is one screen of widgets. The dashboard opens `defaultView` (default `mai
 | `key` | none | A key that switches to this view while the dashboard is open. |
 | `layout` | `stack` | The root container: `stack` (top to bottom), `row` or `grid`. |
 | `columns` | `2` | For `layout: "grid"`. |
-| `gap` | `24` | Between root children (the presets set their own `spaceBefore`). |
+| `gap` | `24` (`12` with `theme.density` `compact`) | Between root children (the presets set their own `spaceBefore`). |
 | `align` | `center` | Cross-axis alignment of the root children. |
 | `padding` | `48` | Inside `maxWidth`: a number or `[top, right, bottom, left]`. |
 | `maxWidth` | `680` | The root is at most this wide, centred on the screen both ways. |

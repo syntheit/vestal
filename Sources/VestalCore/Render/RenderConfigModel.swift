@@ -23,6 +23,8 @@ public final class RenderConfigModel: @unchecked Sendable {
     public let sourceNames: Set<String>
     /// `theme.scale` (§8.1).
     public let scale: Double
+    /// `theme.density` (§8.1): `comfortable` or `compact`.
+    public let density: String
     /// The config file (nil: the built-in defaults) and its `version`, for
     /// the info popup.
     public let configPath: String?
@@ -40,9 +42,10 @@ public final class RenderConfigModel: @unchecked Sendable {
         configPath = path
         let top = expanded.top
         widgets = top["widgets"]?.objectValue ?? [:]
+        density = ThemeConfig.density(top["theme"])
         var views: [String: ViewSpec] = [:]
         for (name, json) in top["views"]?.objectValue ?? [:] {
-            if let object = json.objectValue { views[name] = ViewSpec(name: name, json: object) }
+            if let object = json.objectValue { views[name] = ViewSpec(name: name, json: object, density: density) }
         }
         self.views = views
         viewNames = views.keys.sorted()
@@ -121,14 +124,15 @@ public struct ViewSpec: Equatable, Sendable {
     public var usesOrder: Bool
     public var keys: [String: AnyJSON]
 
-    init(name: String, json: [String: AnyJSON]) {
+    /// `density`: `theme.density`; `compact` halves the default `gap`.
+    init(name: String, json: [String: AnyJSON], density: String = "comfortable") {
         self.name = name
         title = json["title"]?.stringValue ?? (name.prefix(1).uppercased() + name.dropFirst())
         key = json["key"]?.stringValue
         let layout = json["layout"]?.stringValue ?? "stack"
         self.layout = ["stack", "row", "grid"].contains(layout) ? layout : "stack"
         columns = json["columns"].flatMap { if case .int(let n) = $0, n >= 1 { return n }; return nil } ?? 2
-        gap = TextStyle.size(json["gap"]) ?? 24
+        gap = TextStyle.size(json["gap"]) ?? (density == "compact" ? 12 : 24)
         align = json["align"]?.stringValue ?? "center"
         switch json["padding"] {
         case .array(let items)? where items.count == 4:

@@ -51,7 +51,7 @@ struct V04Checker {
         self.top = top
         self.platform = platform
         environment = ExprEnvironment.forFunctions(ExprEnvironment.userFunctions(of: .object(top)))
-        registry = TemplateRegistry(userTemplates: top["templates"])
+        registry = TemplateRegistry(userTemplates: top["templates"], density: ThemeConfig.density(top["theme"]))
         palette = RenderPalette(theme: top["theme"])
         sourceNames = Set(top["sources"]?.objectValue?.keys.map { $0 } ?? [])
         widgetNames = Set(top["widgets"]?.objectValue?.keys.map { $0 } ?? [])

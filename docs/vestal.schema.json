@@ -3389,6 +3389,24 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "density": {
+          "default": "comfortable",
+          "description": "How much room the built-in presets take. comfortable: the v0.3 look. compact: a smaller clock with the date and world clocks on one line, no section titles or rules, tighter rows and gaps, one-line currencies and weather. Views' default gap follows it.",
+          "enum": [
+            "comfortable",
+            "compact",
+            null
+          ],
+          "examples": [
+            "compact"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "dim": {
           "description": "0 to 1: the opacity of the palette's bg over the blurred desktop, for aurora and blur. Default: 0.5 on Linux; on macOS none (the material's own tint). About 0.75 to 0.85 hides busy windows behind.",
           "examples": [
