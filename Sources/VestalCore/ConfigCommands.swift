@@ -188,7 +188,53 @@ public enum ConfigCommands {
                 break
             }
         }
-        return entries
+        // v0.4: command secrets, `run` actions and inline command sources
+        // anywhere in widgets, views, keys and templates.
+        for (name, value) in (top["secrets"]?.objectValue ?? [:]).sorted(by: { $0.key < $1.key }) {
+            if let argv = strings(value.objectValue?["command"]), !argv.isEmpty {
+                add(["secrets", name, "command"], "secret \"\(name)\", once when the config loads", argv)
+            }
+        }
+        func owner(_ segments: [String]) -> String {
+            guard segments.count >= 2 else { return "the config" }
+            switch segments[0] {
+            case "widgets": return "widget \"\(segments[1])\""
+            case "views": return "view \"\(segments[1])\""
+            case "keys": return "key \"\(segments[1])\""
+            case "templates": return "template \"\(segments[1])\""
+            default: return segments[0]
+            }
+        }
+        func visit(_ value: AnyJSON, _ segments: [String]) {
+            switch value {
+            case .object(let object):
+                if let argv = strings(object["run"]), !argv.isEmpty {
+                    let env = (object["env"]?.objectValue ?? [:]).keys.sorted()
+                    add(segments + ["run"], "an action of \(owner(segments)) (a click or its key)", argv, env: env)
+                }
+                if let source = object["source"]?.objectValue,
+                   source["type"]?.stringValue.map(SourceConfig.canonicalType) == "command",
+                   let argv = strings(source["argv"]), !argv.isEmpty {
+                    let refresh = source["refresh"]?.stringValue ?? SourceConfig.defaultRefresh
+                    let env = (source["env"]?.objectValue ?? [:]).keys.sorted()
+                    add(segments + ["source", "argv"], "an inline source of \(owner(segments)), every \(refresh)", argv, env: env)
+                }
+                // A source object holds no actions: don't descend into it.
+                for (key, child) in object.sorted(by: { $0.key < $1.key }) where key != "source" || child.objectValue == nil {
+                    visit(child, segments + [key])
+                }
+            case .array(let items):
+                for (i, child) in items.enumerated() { visit(child, segments + [String(i)]) }
+            default:
+                break
+            }
+        }
+        for key in ["widgets", "views", "keys", "templates"] {
+            if let value = top[key] { visit(value, [key]) }
+        }
+        return entries.enumerated().sorted {
+            ($0.element.pointer, $0.offset) < ($1.element.pointer, $1.offset)
+        }.map(\.element)
     }
 
     private static func commands(_ input: Input, platform: ConfigPlatform, otherPlatforms: Bool, json: Bool,
