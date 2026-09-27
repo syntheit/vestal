@@ -42,6 +42,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 | `theme.colors` | Every palette name a node may use, resolved to `#rrggbbaa`. |
 | `theme.fonts` | A family per role; `null` is the platform default. |
 | `theme.icons` | The icon font family per weight; `mode` (`native` or `phosphor`) when the config sets `theme.icons`. |
+| `theme.dim` | The config's `theme.dim`, clamped to 0 to 1, when it sets one: the opacity of `bg` over the blurred desktop for `aurora` and `blur`. Absent: the UI's default (0.5 in the GTK UI; no tint in the macOS UI). |
 | `root` | The view's tree. |
 | `popup` | `null`, or `{"id": "popup", "width": 520, "node": <node>}`. |
 | `diagnostics` | Problems found while rendering (below). |

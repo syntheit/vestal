@@ -187,9 +187,7 @@ public final class LinuxDashboard {
 
     private func applyThemeCSS() {
         // The window's background shows at once on show; the content fades.
-        let background = context.theme.windowBackground
-        let text = "window.vestal { background-color: \(background.css); }"
-        gtk_css_provider_load_from_string(css, text)
+        gtk_css_provider_load_from_string(css, context.theme.theme.linuxWindowCSS)
     }
 
     // MARK: Visibility

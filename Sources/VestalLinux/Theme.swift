@@ -39,11 +39,6 @@ struct RGBA: Equatable {
         self.b = b
         self.a = a
     }
-
-    /// For CSS: `rgba(r, g, b, a)`.
-    var css: String {
-        "rgba(\(Int((r * 255).rounded())), \(Int((g * 255).rounded())), \(Int((b * 255).rounded())), \(Format.printf("%.3f", a)))"
-    }
 }
 
 /// The resolved look of one snapshot's `theme`.
@@ -97,22 +92,15 @@ final class ThemeState {
         theme.icons.fonts[weight] ?? (weight == "fill" ? "Phosphor-Fill" : "Phosphor")
     }
 
-    /// The background behind the dashboard: the palette's `bg`, translucent
-    /// over the compositor's blur for `aurora` and `blur`, opaque for `none`.
+    /// The background behind the dashboard: the palette's `bg`, at
+    /// `theme.dim` (default `RenderTheme.linuxDim`) over the compositor's
+    /// blur for `aurora` and `blur`, opaque for `none`. `dim` must stay above
+    /// the `ignore_alpha` layer rule (0.3 by default), or Hyprland blurs only
+    /// the aurora's ribbons; check-config warns. Without blur it is a plain
+    /// dim. The window's CSS is `RenderTheme.linuxWindowCSS`, the same colour.
     var windowBackground: RGBA {
-        let bg = color("bg")
-        return theme.background == "none" ? bg.withAlpha(1) : bg.withAlpha(Self.dimAlpha)
+        color("bg").withAlpha(theme.windowAlpha(defaultDim: RenderTheme.linuxDim))
     }
-
-    /// How much of `bg` lies over the (blurred) desktop: half, so the
-    /// blurred desktop reads through as it does under the macOS HUD
-    /// material, while white text keeps at least 3.3:1 contrast even over a
-    /// white wallpaper (about 4.5:1 at Hyprland's default blur brightness,
-    /// far more over a typical one). It must
-    /// stay above the `ignore_alpha` layer rule (0.3 by default), or
-    /// Hyprland blurs only the aurora's ribbons. A `bg` with its own alpha
-    /// (`theme.colors`) is multiplied by it. Without blur it is a plain dim.
-    static let dimAlpha = 0.5
 }
 
 // MARK: - Bundled fonts

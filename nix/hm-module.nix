@@ -354,7 +354,8 @@ in
         description = ''
           The `ignore_alpha` layer rule: parts of the dashboard more
           transparent than this get no blur behind them. `null` leaves the
-          rule out.
+          rule out. Keep it below vestal's `theme.dim` (0.5 by default),
+          the opacity of the dashboard's tint.
         '';
       };
 

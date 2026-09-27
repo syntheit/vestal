@@ -45,6 +45,11 @@ public struct RenderTheme: Equatable, Sendable, Codable {
     /// Family per role; nil means the platform default (§8.5).
     public var fonts: Fonts
     public var icons: Icons
+    /// `theme.dim` (§8.1), 0 to 1: how much of the palette's `bg` lies over
+    /// the blurred desktop for `aurora` and `blur`. Nil (omitted): the UI's
+    /// default (`linuxDim` on Linux; none on macOS, where the material
+    /// tints). See `windowAlpha`.
+    public var dim: Double?
 
     public struct Fonts: Equatable, Sendable, Codable {
         public var sans: String?
@@ -85,14 +90,15 @@ public struct RenderTheme: Equatable, Sendable, Codable {
     }
 
     public init(background: String = "aurora", colors: [String: String] = RenderTheme.tokyoNight,
-                fonts: Fonts = Fonts(), icons: Icons = Icons()) {
+                fonts: Fonts = Fonts(), icons: Icons = Icons(), dim: Double? = nil) {
         self.background = background
         self.colors = colors
         self.fonts = fonts
         self.icons = icons
+        self.dim = dim
     }
 
-    private enum CodingKeys: String, CodingKey { case background, colors, fonts, icons }
+    private enum CodingKeys: String, CodingKey { case background, colors, fonts, icons, dim }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -100,6 +106,7 @@ public struct RenderTheme: Equatable, Sendable, Codable {
         colors = try c.decodeIfPresent([String: String].self, forKey: .colors) ?? [:]
         fonts = try c.decodeIfPresent(Fonts.self, forKey: .fonts) ?? Fonts()
         icons = try c.decodeIfPresent(Icons.self, forKey: .icons) ?? Icons()
+        dim = try c.decodeIfPresent(Double.self, forKey: .dim).map(Self.clampDim)
     }
 
     /// The `tokyo-night` palette of §8.2, resolved to `#rrggbbaa`.
@@ -123,6 +130,49 @@ public struct RenderTheme: Equatable, Sendable, Codable {
         "teal": "#73d6c2ff",
         "orange": "#ff9e64ff",
     ]
+}
+
+// MARK: - Window background (theme.dim)
+
+extension RenderTheme {
+    /// The Linux UI's `theme.dim`: half, so the blurred desktop reads
+    /// through as it does under the macOS HUD material, while white text
+    /// keeps at least 3.3:1 contrast even over a white wallpaper. It stays
+    /// above Hyprland's default `ignore_alpha` (0.3), below which Hyprland
+    /// blurs only the aurora's ribbons.
+    public static let linuxDim = 0.5
+
+    /// `theme.dim` from the config: a number clamped to 0...1 (check-config
+    /// warns outside it); nil when absent or not a finite number.
+    public static func dim(_ value: AnyJSON?) -> Double? {
+        switch value {
+        case .int(let n)?: return clampDim(Double(n))
+        case .double(let d)?: return d.isFinite ? clampDim(d) : nil
+        default: return nil
+        }
+    }
+
+    static func clampDim(_ value: Double) -> Double {
+        value.isFinite ? min(max(value, 0), 1) : 1
+    }
+
+    /// How much of the palette's `bg` covers the desktop behind the
+    /// dashboard: all of it for `none`; `dim`, else the UI's `defaultDim`,
+    /// for `aurora` and `blur` (over the compositor's blur). A `bg` with its
+    /// own alpha is multiplied by it.
+    public func windowAlpha(defaultDim: Double) -> Double {
+        background == "none" ? 1 : (dim ?? defaultDim)
+    }
+
+    /// The GTK window's CSS rule: the palette's `bg` at
+    /// `windowAlpha(defaultDim: linuxDim)`.
+    public var linuxWindowCSS: String {
+        let hex = colors["bg"].flatMap(RenderPalette.hex) ?? Self.tokyoNight["bg"]!
+        let value = UInt64(hex.dropFirst(), radix: 16) ?? 0xff
+        func channel(_ shift: UInt64) -> Double { Double((value >> shift) & 0xff) / 255 }
+        let alpha = channel(0) * windowAlpha(defaultDim: Self.linuxDim)
+        return "window.vestal { background-color: \(Format.cssRGBA(red: channel(24), green: channel(16), blue: channel(8), alpha: alpha)); }"
+    }
 }
 
 /// `popup` in a snapshot: one popup at a time (§9.4).

@@ -1617,6 +1617,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 | `theme.colors` | Every palette name a node may use, resolved to `#rrggbbaa`. |
 | `theme.fonts` | A family per role; `null` is the platform default. |
 | `theme.icons` | The icon font family per weight; `mode` (`native` or `phosphor`) when the config sets `theme.icons`. |
+| `theme.dim` | The config's `theme.dim`, clamped to 0 to 1, when it sets one: the opacity of `bg` over the blurred desktop for `aurora` and `blur`. Absent: the UI's default (0.5 in the GTK UI; no tint in the macOS UI). |
 | `root` | The view's tree. |
 | `popup` | `null`, or `{"id": "popup", "width": 520, "node": <node>}`. |
 | `diagnostics` | Problems found while rendering (below). |
@@ -1971,6 +1972,7 @@ A built-in source template: `{"type": "foyer", "url": "https://box.example.com"}
 |---|---|---|
 | `palette` | `tokyo-night` | A built-in palette or a key of `palettes`. |
 | `background` | `aurora` | `aurora` (animated, over the blurred desktop), `blur` (the blurred desktop) or `none` (the palette's `bg`). A UI that can't draw the aurora draws `blur`. |
+| `dim` | Linux `0.5`, macOS none | 0 to 1: the opacity of the palette's `bg` over the blurred desktop, for `aurora` and `blur`. About `0.75` to `0.85` hides busy windows behind the dashboard. macOS by default keeps the material's own tint; set, it adds `bg` over it. On Linux it is the knob for how much shows through: Hyprland can't set blur strength per layer, and below its `ignore_alpha` (0.3 by default) it doesn't blur behind the dashboard at all (check-config warns). Clamped to 0 to 1. |
 | `palettes` | none | Name → `{ "extends": "<palette>", "colors": { name: colour } }`. |
 | `colors` | none | Colours added to, or replacing, the chosen palette's. |
 | `fonts` | platform | `{ "sans": family, "mono": family, "rounded": family }`; `null` means the platform default. |
@@ -1984,7 +1986,7 @@ Fonts are the usual reason for a `platform` block:
 {
   "version": 1,
   "theme": { "background": "blur", "scale": 1.1 },
-  "platform": { "linux": { "theme": { "fonts": { "sans": "Inter", "mono": "JetBrains Mono" } } } }
+  "platform": { "linux": { "theme": { "dim": 0.8, "fonts": { "sans": "Inter", "mono": "JetBrains Mono" } } } }
 }
 ```
 

@@ -156,6 +156,32 @@ private struct Walker {
             add(.invalidValue, "theme.colors", problem, code: "unknown-color")
         }
         oneOf(theme["background"], "theme.background", ThemeConfig.backgrounds)
+        themeDim(theme)
+    }
+
+    /// `theme.dim`: a number, clamped to 0...1. On Linux, a dim below
+    /// Hyprland's default `ignore_alpha` (0.3) over a blur leaves the
+    /// window's pixels too transparent to blur behind.
+    private mutating func themeDim(_ theme: [String: AnyJSON]) {
+        guard let value = theme["dim"], value != .null else { return }
+        let number: Double, found: String
+        switch value {
+        case .int(let n): (number, found) = (Double(n), "\(n)")
+        case .double(let d): (number, found) = (d, "\(d)")
+        default: return wrongType(value, "theme.dim", expected: "a number", "treated as absent; the UI's default applies")
+        }
+        guard (0...1).contains(number) else {
+            let clamped = number < 0 ? "0" : "1"
+            return add(.invalidValue, "theme.dim", "must be between 0 and 1; using \(clamped)",
+                       expected: "a number from 0 to 1", found: found)
+        }
+        let background = theme["background"]?.stringValue ?? "aurora"
+        if v04.platform == .linux, number < 0.3, background != "none" {
+            add(.invalidValue, "theme.dim",
+                "\(found) is below Hyprland's default ignore_alpha (0.3): Hyprland won't blur behind the dashboard "
+                + "(only the aurora's ribbons, if any); use at least 0.3, or lower programs.vestal.hyprland.ignoreAlpha",
+                found: found)
+        }
     }
 
     // MARK: Sources
@@ -622,7 +648,7 @@ private struct Walker {
 
     /// The JSON Schema type names of the `expected` texts below.
     static let jsonTypeNames = ["an object": "object", "a list": "array", "a string": "string",
-                                "a whole number": "integer", "true or false": "boolean"]
+                                "a whole number": "integer", "a number": "number", "true or false": "boolean"]
 
     private mutating func wrongType(_ value: AnyJSON, _ path: String, expected: String,
                                     _ consequence: String = Walker.treatedAsAbsent) {

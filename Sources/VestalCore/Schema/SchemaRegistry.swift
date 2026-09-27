@@ -195,6 +195,9 @@ public enum SchemaRegistry {
                       "The colour palette: tokyo-night, or a key of palettes. An unknown name falls back to tokyo-night."),
             SchemaKey("background", .oneOf(ThemeConfig.backgrounds), default: .string("aurora"), examples: [.string("blur")],
                       "aurora: the animated aurora over the blurred desktop. blur: the blurred desktop only. none: the palette's solid background."),
+            SchemaKey("dim", .number, since: "0.4", examples: [.double(0.8)],
+                      "0 to 1: the opacity of the palette's bg over the blurred desktop, for aurora and blur. Default: 0.5 on "
+                      + "Linux; on macOS none (the material's own tint). About 0.75 to 0.85 hides busy windows behind."),
             SchemaKey("palettes", .map(.shape("palette")), since: "0.4",
                       examples: [.object(["ember": .object(["extends": .string("tokyo-night"), "colors": .object(["accent": .string("#ff9e64")])])])],
                       "User palettes: name → extends and colors."),

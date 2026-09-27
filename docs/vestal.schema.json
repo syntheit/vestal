@@ -3212,6 +3212,18 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "dim": {
+          "description": "0 to 1: the opacity of the palette's bg over the blurred desktop, for aurora and blur. Default: 0.5 on Linux; on macOS none (the material's own tint). About 0.75 to 0.85 hides busy windows behind.",
+          "examples": [
+            0.8
+          ],
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "font": {
           "description": "Shorthand for fonts.sans (§16.1).",
           "examples": [

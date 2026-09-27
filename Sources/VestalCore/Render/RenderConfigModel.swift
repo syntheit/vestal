@@ -60,7 +60,8 @@ public final class RenderConfigModel: @unchecked Sendable {
             colors: palette.colors,
             fonts: RenderTheme.Fonts(sans: fonts["sans"]?.stringValue ?? themeObject["font"]?.stringValue,
                                      mono: fonts["mono"]?.stringValue, rounded: fonts["rounded"]?.stringValue),
-            icons: icons)
+            icons: icons,
+            dim: RenderTheme.dim(themeObject["dim"]))
         environment = ExprEnvironment.forFunctions(ExprEnvironment.userFunctions(of: expanded.tree))
         sources = expanded.sources
         sourceNames = Set(top["sources"]?.objectValue?.keys.map { $0 } ?? [])

@@ -5,7 +5,8 @@ import VestalCore
 // MARK: - Dashboard (v0.4)
 //
 // The window's content since v0.4: the aurora (for `theme.background:
-// "aurora"`) over the window's blur or solid colour, exactly as v0.3's
+// "aurora"`) over the window's blur (tinted by `theme.dim` when set) or
+// solid colour, exactly as v0.3's
 // DashboardView draws it, and the render engine's model over that
 // (RenderStageView: the view's root centred, the popup with its scrim).
 
@@ -17,6 +18,12 @@ struct RenderDashboardView: View {
     var body: some View {
         ZStack {
             Color.clear
+            // theme.dim: the palette's `bg` over the window's material,
+            // under the aurora. Unset, nothing: the HUD material's own tint.
+            if let dim = store.style.theme.dim, store.style.theme.background != "none" {
+                store.style.rgba("bg").withAlpha(dim).color
+                    .allowsHitTesting(false)
+            }
             if aurora {
                 AuroraView()
                     .allowsHitTesting(false)
