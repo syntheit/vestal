@@ -80,6 +80,10 @@ public final class LinuxSystemStats: SystemStatsProvider {
     private let fileSystemUsage: (String) -> DiskUsage?
     private var lastCPU: LinuxProc.CPUTimes?
     private var lastNetwork: (time: TimeInterval, bytesIn: Int64, bytesOut: Int64)?
+    /// `interfaceRates`' previous reading, every interface's counters by
+    /// name; separate from `networkRate`'s, so each is a rate since its own
+    /// previous call.
+    private var lastInterfaces: (time: TimeInterval, counters: [String: LinuxProc.InterfaceCounters])?
 
     /// - Parameters:
     ///   - files: where /proc and /sys are read.
@@ -153,10 +157,7 @@ public final class LinuxSystemStats: SystemStatsProvider {
 
     public func networkRate() -> NetworkRate {
         guard let text = files.read("/proc/net/dev") else { return NetworkRate(bytesIn: 0, bytesOut: 0) }
-        // Every system lists at least `lo` here; an empty listing means /sys
-        // isn't there to ask.
-        let listing = files.list("/sys/devices/virtual/net")
-        let totals = LinuxProc.networkTotals(LinuxProc.netDev(text), virtual: listing.isEmpty ? nil : Set(listing))
+        let totals = LinuxProc.networkTotals(LinuxProc.netDev(text), virtual: virtualInterfaces())
         let now = clock()
         defer { lastNetwork = (now, totals.bytesIn, totals.bytesOut) }
         // First call: no rate yet (as on macOS).
@@ -187,6 +188,62 @@ public final class LinuxSystemStats: SystemStatsProvider {
 
     public func uptime() -> TimeInterval {
         files.read("/proc/uptime").flatMap(LinuxProc.uptime) ?? 0
+    }
+
+    // MARK: The `system` source's values
+
+    public func loadAverage() -> [Double]? {
+        files.read("/proc/loadavg").flatMap(LinuxProc.loadavg)
+    }
+
+    public func cpuCores() -> Int? {
+        files.read("/proc/stat").flatMap(LinuxProc.cpuCount(stat:))
+    }
+
+    public func memoryBytes() -> MemoryBytes? {
+        LinuxProc.memoryBytes(meminfo: LinuxProc.meminfo(files.read("/proc/meminfo") ?? ""))
+    }
+
+    /// Nil on kernels built without PSI (no /proc/pressure).
+    public func memoryPSI() -> Double? {
+        files.read("/proc/pressure/memory").flatMap(LinuxProc.psiSomeAvg10)
+    }
+
+    /// Any file system the user names, not only `storageMounts`' kinds. A
+    /// path must be listed in /proc/self/mounts (a trailing "/" is ignored);
+    /// "/" always counts, so it works even where that file can't be read.
+    public func disks(_ mountpoints: [String]) -> [MountUsage] {
+        let listed = files.read("/proc/self/mounts").map { Set(LinuxProc.mounts($0).map(\.mountpoint)) } ?? []
+        var seen = Set<String>()
+        return mountpoints.compactMap { path in
+            var mount = path
+            while mount.count > 1 && mount.hasSuffix("/") { mount.removeLast() }
+            guard mount == "/" || listed.contains(mount), seen.insert(mount).inserted,
+                  let usage = fileSystemUsage(mount) else { return nil }
+            return MountUsage(mountpoint: mount, totalBytes: usage.totalBytes, freeBytes: usage.freeBytes)
+        }
+    }
+
+    public func interfaceRates(_ names: [String]?) -> [InterfaceRate]? {
+        guard let text = files.read("/proc/net/dev") else { return nil }
+        let counters = LinuxProc.netDev(text)
+        let selected = LinuxProc.selectInterfaces(counters, names: names, virtual: virtualInterfaces())
+        let now = clock()
+        let previous = lastInterfaces
+        // Every interface, so a different `names` next time still has a
+        // previous reading.
+        lastInterfaces = (now, Dictionary(counters.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first }))
+        return selected.map { counter in
+            LinuxProc.interfaceRate(from: previous?.counters[counter.name], to: counter,
+                                    elapsed: previous.map { now - $0.time } ?? 0)
+        }
+    }
+
+    /// The listing of /sys/devices/virtual/net. Every system lists at least
+    /// `lo` there; an empty listing means /sys isn't there to ask (nil).
+    private func virtualInterfaces() -> Set<String>? {
+        let listing = files.list("/sys/devices/virtual/net")
+        return listing.isEmpty ? nil : Set(listing)
     }
 
     /// A file system's size: f_blocks and f_bavail times f_frsize.

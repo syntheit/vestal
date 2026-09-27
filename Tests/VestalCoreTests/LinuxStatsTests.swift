@@ -9,7 +9,11 @@ import XCTest
 /// Logitech mouse's battery, WireGuard and Tailscale). Each `<host>-1.txt` is
 /// every file the stats provider reads, as "== <path>" and the file's
 /// contents (Fixtures/linux/README); `<host>-2.txt` has /proc/stat,
-/// /proc/net/dev and /proc/uptime again about two seconds later.
+/// /proc/net/dev and /proc/uptime again about two seconds later;
+/// `<host>-3.txt`, captured later for the `system` source, has
+/// /proc/loadavg, /proc/pressure/memory, /proc/net/dev, /proc/uptime and
+/// the virtual interfaces. Neither `-1` capture has /proc/pressure, so
+/// alone they stand for a kernel without PSI.
 ///
 /// No reachable machine has a laptop battery, PipeWire or an MPRIS player, so
 /// those inputs are written here from the kernel's and the tools' formats.
@@ -304,6 +308,164 @@ final class LinuxStatsTests: XCTestCase {
         XCTAssertEqual(Fixed().mounts(), [MountUsage(mountpoint: "/", totalBytes: 10, freeBytes: 4)])
     }
 
+    // MARK: The `system` source's values
+
+    func testCPUCount() throws {
+        XCTAssertEqual(LinuxProc.cpuCount(stat: try dump("harbor-1.txt").file("/proc/stat")), 20)
+        XCTAssertEqual(LinuxProc.cpuCount(stat: try dump("mantle-1.txt").file("/proc/stat")), 16)
+        XCTAssertNil(LinuxProc.cpuCount(stat: "cpu  1 2 3 4\nintr 5\n"), "the aggregate line is not a core")
+        XCTAssertNil(LinuxProc.cpuCount(stat: ""))
+    }
+
+    func testLoadAverage() throws {
+        XCTAssertEqual(LinuxProc.loadavg(try dump("harbor-3.txt").file("/proc/loadavg")), [3.45, 2.66, 2.12])
+        XCTAssertEqual(LinuxProc.loadavg(try dump("mantle-3.txt").file("/proc/loadavg")), [1.73, 1.92, 1.83])
+        XCTAssertNil(LinuxProc.loadavg("0.5 0.4\n"))
+        XCTAssertNil(LinuxProc.loadavg(""))
+    }
+
+    func testMemoryPSI() throws {
+        // Both machines were idle: 0.00.
+        XCTAssertEqual(LinuxProc.psiSomeAvg10(try dump("harbor-3.txt").file("/proc/pressure/memory")), 0)
+        XCTAssertEqual(LinuxProc.psiSomeAvg10(try dump("mantle-3.txt").file("/proc/pressure/memory")), 0)
+        let busy = """
+            some avg10=12.34 avg60=5.10 avg300=1.02 total=123456789
+            full avg10=8.50 avg60=3.00 avg300=0.50 total=98765432
+            """
+        XCTAssertEqual(LinuxProc.psiSomeAvg10(busy), 12.34, "some, not full")
+        XCTAssertNil(LinuxProc.psiSomeAvg10("full avg10=8.50 avg60=3.00 avg300=0.50 total=1\n"))
+        XCTAssertNil(LinuxProc.psiSomeAvg10(""))
+    }
+
+    func testMemoryBytes() throws {
+        let info = LinuxProc.meminfo(try dump("mantle-1.txt").file("/proc/meminfo"))
+        XCTAssertEqual(LinuxProc.memoryBytes(meminfo: info),
+                       MemoryBytes(used: (32785284 - 9474076) * 1024, total: 32785284 * 1024))
+        let old = LinuxProc.meminfo("MemTotal: 1000 kB\nMemFree: 100 kB\nBuffers: 50 kB\nCached: 250 kB\n")
+        XCTAssertEqual(LinuxProc.memoryBytes(meminfo: old), MemoryBytes(used: 600 * 1024, total: 1000 * 1024))
+        XCTAssertNil(LinuxProc.memoryBytes(meminfo: [:]))
+    }
+
+    func testProviderSystemValuesOnServer() throws {
+        let files = DumpFiles(try dump("harbor-3.txt").merged(over: try dump("harbor-1.txt").files))
+        let stats = LinuxSystemStats(files: files)
+        XCTAssertEqual(stats.loadAverage(), [3.45, 2.66, 2.12])
+        XCTAssertEqual(stats.cpuCores(), 20)
+        XCTAssertEqual(stats.memoryBytes(), MemoryBytes(used: (65593952 - 31615760) * 1024, total: 65593952 * 1024))
+        XCTAssertEqual(stats.memoryPSI(), 0)
+        // The same "used" as the percentage.
+        XCTAssertEqual(stats.memory().ramPercent, 51)
+    }
+
+    func testProviderWithoutBatterySensorsOrPSI() throws {
+        // mantle's /proc without /sys (no battery, sensors or interface
+        // listing) and, like any kernel without PSI, no /proc/pressure.
+        let files = try dump("mantle-1.txt").without(prefix: "/sys")
+        let stats = LinuxSystemStats(files: files, fileSystemUsage: { _ in DiskUsage(totalBytes: 10, freeBytes: 4) })
+        XCTAssertNil(stats.battery())
+        XCTAssertEqual(stats.temperature(), 0)
+        XCTAssertNil(stats.memoryPSI())
+        XCTAssertNil(stats.loadAverage(), "not in this capture")
+        XCTAssertEqual(stats.cpuCores(), 16)
+        XCTAssertEqual(stats.memoryBytes()?.total, 32785284 * 1024)
+        // Physical interfaces by name, since /sys can't tell.
+        XCTAssertEqual(stats.interfaceRates(nil)?.map(\.name), ["enp34s0", "wlo1"])
+
+        let nothing = LinuxSystemStats(files: DumpFiles([:]), fileSystemUsage: { _ in nil })
+        XCTAssertNil(nothing.loadAverage())
+        XCTAssertNil(nothing.cpuCores())
+        XCTAssertNil(nothing.memoryBytes())
+        XCTAssertNil(nothing.memoryPSI())
+        XCTAssertNil(nothing.interfaceRates(nil))
+        XCTAssertNil(nothing.interfaceRates(["eth0"]))
+        XCTAssertEqual(nothing.disks(["/"]), [])
+    }
+
+    func testDisksAreTheNamedMountPoints() throws {
+        let stats = LinuxSystemStats(files: try dump("harbor-1.txt"), fileSystemUsage: { path in
+            path == "/micron01" ? nil : DiskUsage(totalBytes: Int64(path.count) * 100, freeBytes: 50)
+        })
+        // In the given order, any file system type (tmpfs, a ZFS dataset);
+        // not a directory that isn't a mount point, one that can't be read,
+        // or one named twice. A trailing "/" is ignored.
+        XCTAssertEqual(stats.disks(["/boot", "/home", "/", "/tmp", "/micron01", "/platapool/seafile/", "/boot"]), [
+            MountUsage(mountpoint: "/boot", totalBytes: 500, freeBytes: 50),
+            MountUsage(mountpoint: "/", totalBytes: 100, freeBytes: 50),
+            MountUsage(mountpoint: "/tmp", totalBytes: 400, freeBytes: 50),
+            MountUsage(mountpoint: "/platapool/seafile", totalBytes: 1800, freeBytes: 50),
+        ])
+        XCTAssertEqual(stats.disks([]), [])
+
+        // Without /proc/self/mounts, "/" still works; nothing else can be
+        // told apart from a plain directory.
+        let bare = LinuxSystemStats(files: DumpFiles([:]), fileSystemUsage: { _ in DiskUsage(totalBytes: 10, freeBytes: 4) })
+        XCTAssertEqual(bare.disks(["/boot", "/"]), [MountUsage(mountpoint: "/", totalBytes: 10, freeBytes: 4)])
+    }
+
+    func testInterfaceRatesBetweenCaptures() throws {
+        let files = SwitchableFiles(try dump("harbor-1.txt"))
+        let stats = LinuxSystemStats(files: files, clock: { LinuxProc.uptime(files.read("/proc/uptime") ?? "") ?? 0 })
+        let named = ["lo", "docker0", "eth9", "enp4s0", "lo"]
+        // First call: every interface at 0. Loopback and docker0 only
+        // because they are named; eth9 doesn't exist.
+        XCTAssertEqual(stats.interfaceRates(nil), [
+            InterfaceRate(name: "enp4s0", bytesIn: 0, bytesOut: 0),
+            InterfaceRate(name: "wlp5s0", bytesIn: 0, bytesOut: 0),
+        ])
+        XCTAssertEqual(stats.interfaceRates(named)?.map(\.name), ["lo", "docker0", "enp4s0"])
+        XCTAssertEqual(stats.networkRate(), NetworkRate(bytesIn: 0, bytesOut: 0))
+
+        files.files = try dump("harbor-2.txt").merged(over: files.files)
+        // networkRate keeps its own previous reading.
+        XCTAssertEqual(stats.networkRate(), NetworkRate(bytesIn: 1498841, bytesOut: 95322))
+        // Over the 3.05s between the captures; the physical ones add up to
+        // networkRate's total.
+        XCTAssertEqual(stats.interfaceRates(named), [
+            InterfaceRate(name: "lo", bytesIn: 23233, bytesOut: 23233),
+            InterfaceRate(name: "docker0", bytesIn: 26227, bytesOut: 6030),
+            InterfaceRate(name: "enp4s0", bytesIn: 1498841, bytesOut: 95322),
+        ])
+    }
+
+    func testInterfaceRatesOverALongGap() throws {
+        // mantle, 2790.3s apart: -1, then -3.
+        let files = SwitchableFiles(try dump("mantle-1.txt"))
+        let stats = LinuxSystemStats(files: files, clock: { LinuxProc.uptime(files.read("/proc/uptime") ?? "") ?? 0 })
+        XCTAssertEqual(stats.interfaceRates(nil)?.map(\.bytesIn), [0, 0])
+        files.files = try dump("mantle-3.txt").merged(over: files.files)
+        XCTAssertEqual(stats.interfaceRates(nil), [
+            InterfaceRate(name: "enp34s0", bytesIn: 264479, bytesOut: 335246),
+            InterfaceRate(name: "wlo1", bytesIn: 0, bytesOut: 0),
+        ])
+    }
+
+    func testInterfaceRatesResetAndNewInterfaces() {
+        func netDev(_ lines: [(String, Int64, Int64)]) -> String {
+            "Inter-|   Receive |  Transmit\n face |bytes packets|bytes packets\n"
+                + lines.map { "\($0.0): \($0.1) 0 0 0 0 0 0 0 \($0.2) 0 0 0 0 0 0 0\n" }.joined()
+        }
+        let files = SwitchableFiles(DumpFiles(["/proc/net/dev": netDev([("eth0", 1000, 500)])]))
+        var now: TimeInterval = 100
+        let stats = LinuxSystemStats(files: files, clock: { now })
+
+        XCTAssertEqual(stats.interfaceRates(nil), [InterfaceRate(name: "eth0", bytesIn: 0, bytesOut: 0)])
+        now += 2
+        files.files["/proc/net/dev"] = netDev([("eth0", 5000, 700), ("eth1", 9000, 9000)])
+        XCTAssertEqual(stats.interfaceRates(nil), [
+            InterfaceRate(name: "eth0", bytesIn: 2000, bytesOut: 100),
+            InterfaceRate(name: "eth1", bytesIn: 0, bytesOut: 0),  // new: no previous reading
+        ])
+        now += 2
+        // eth0 was recreated: its counters start again.
+        files.files["/proc/net/dev"] = netDev([("eth0", 100, 900), ("eth1", 9400, 9000)])
+        XCTAssertEqual(stats.interfaceRates(nil), [
+            InterfaceRate(name: "eth0", bytesIn: 0, bytesOut: 100),
+            InterfaceRate(name: "eth1", bytesIn: 200, bytesOut: 0),
+        ])
+        // Asking again at once: too short an interval to measure.
+        XCTAssertEqual(stats.interfaceRates(["eth1"]), [InterfaceRate(name: "eth1", bytesIn: 0, bytesOut: 0)])
+    }
+
     #if os(Linux)
     func testLiveFilesReadProc() throws {
         let files = LiveLinuxFiles()
@@ -318,6 +480,11 @@ final class LinuxStatsTests: XCTestCase {
         XCTAssertGreaterThan(stats.memory().ramPercent, 0)
         XCTAssertNotNil(stats.disk())
         XCTAssertFalse(stats.mounts().isEmpty)
+        XCTAssertEqual(stats.loadAverage()?.count, 3)
+        XCTAssertGreaterThan(stats.cpuCores() ?? 0, 0)
+        XCTAssertGreaterThan(stats.memoryBytes()?.total ?? 0, 0)
+        XCTAssertEqual(stats.disks(["/"]).map(\.mountpoint), ["/"])
+        XCTAssertNotNil(stats.interfaceRates(nil))
     }
     #endif
 
@@ -399,6 +566,150 @@ final class LinuxCommandProviderTests: XCTestCase {
         let missing: CommandRun = { argv, _ in throw CommandError.notFound(argv[0]) }
         let none = await WirePlumberAudio(run: missing).readVolume()
         XCTAssertNil(none)
+        let failing = await WirePlumberAudio(run: CommandLog { _ in nil }.run).readVolume()
+        XCTAssertNil(failing)
+    }
+
+    func testWirePlumberVolumeSteps() async {
+        let log = CommandLog { _ in CommandResult(status: 0, stdout: Data(), stderr: Data()) }
+        let audio = WirePlumberAudio(run: log.run)
+        audio.volumeUp()
+        await waitForCalls(log, 1)
+        audio.volumeDown()
+        await waitForCalls(log, 2)
+        XCTAssertEqual(log.calls, [
+            ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%+"],
+            ["wpctl", "set-volume", "-l", "1.0", "@DEFAULT_AUDIO_SINK@", "5%-"],
+        ])
+    }
+
+    // MARK: playerctl metadata
+
+    func testPlayerctlAlbumPositionAndLength() {
+        XCTAssertEqual(LinuxProc.playerctlFormat,
+                       "{{status}}\u{1F}{{title}}\u{1F}{{artist}}\u{1F}{{album}}\u{1F}{{mpris:length}}\u{1F}{{position}}")
+        XCTAssertEqual(LinuxProc.playerctlNowPlaying(
+            "Playing\u{1F}Windowlicker\u{1F}Aphex Twin\u{1F}Windowlicker EP\u{1F}367000000\u{1F}83200000\n"),
+            NowPlaying(title: "Windowlicker", artist: "Aphex Twin", state: "playing",
+                       album: "Windowlicker EP", position: 83.2, duration: 367))
+        // A browser tab: no album, no length.
+        XCTAssertEqual(LinuxProc.playerctlNowPlaying("Paused\u{1F}A video\u{1F}A channel\u{1F}\u{1F}\u{1F}1500000\n"),
+                       NowPlaying(title: "A video", artist: "A channel", state: "paused", position: 1.5))
+        // A stream: length 0; a position that isn't a number.
+        XCTAssertEqual(LinuxProc.playerctlNowPlaying("Playing\u{1F}Radio\u{1F}\u{1F}\u{1F}0\u{1F}n/a\n"),
+                       NowPlaying(title: "Radio", artist: "", state: "playing"))
+        XCTAssertEqual(LinuxProc.playerctlNowPlaying("Playing\u{1F}T\u{1F}A\u{1F}B\u{1F}nan\u{1F}0\n"),
+                       NowPlaying(title: "T", artist: "A", state: "playing", album: "B", position: 0))
+        XCTAssertEqual(LinuxProc.playerctlNowPlaying("Stopped\u{1F}T\u{1F}A\u{1F}B\u{1F}1\u{1F}1\n"), .off)
+    }
+
+    func testPlayerctlMediaReadsTheWholeTrackAndSkips() async {
+        let log = CommandLog { argv in
+            argv.contains("metadata")
+                ? CommandResult(status: 0, stdout: Data("Playing\u{1F}T\u{1F}A\u{1F}Al\u{1F}200000000\u{1F}5000000\n".utf8), stderr: Data())
+                : CommandResult(status: 0, stdout: Data(), stderr: Data())
+        }
+        let media = PlayerctlMedia(player: "Spotify", run: log.run)
+        let playing = await media.nowPlaying()
+        XCTAssertEqual(playing, NowPlaying(title: "T", artist: "A", state: "playing", album: "Al", position: 5, duration: 200))
+        media.next()
+        await waitForCalls(log, 2)
+        media.previous()
+        await waitForCalls(log, 3)
+        XCTAssertEqual(Array(log.calls.dropFirst()), [
+            ["playerctl", "-p", "spotify", "next"],
+            ["playerctl", "-p", "spotify", "previous"],
+        ])
+    }
+
+    // MARK: playerctl players
+
+    func testPlayerctlListAndMatching() {
+        let listed = LinuxProc.playerctlList("spotify\nfirefox.instance_1_23\n\nchromium.instance12345\nfirefox.instance_4_56\nspotify\n")
+        XCTAssertEqual(listed, ["spotify", "firefox.instance_1_23", "chromium.instance12345", "firefox.instance_4_56"])
+        XCTAssertEqual(LinuxProc.playerctlDiscoveryNames(listed), ["spotify", "firefox", "chromium"])
+        XCTAssertEqual(LinuxProc.playerctlList(""), [])
+
+        XCTAssertTrue(LinuxProc.playerctlMatches("Spotify", busName: "spotify.instance123"))
+        XCTAssertTrue(LinuxProc.playerctlMatches(" spotify ", busName: "spotify"))
+        XCTAssertTrue(LinuxProc.playerctlMatches("firefox.instance_1_23", busName: "firefox.instance_1_23"))
+        XCTAssertFalse(LinuxProc.playerctlMatches("spot", busName: "spotify"), "not a prefix match")
+        XCTAssertFalse(LinuxProc.playerctlMatches("spotifyd", busName: "spotify"))
+        XCTAssertFalse(LinuxProc.playerctlMatches("", busName: "spotify"))
+        XCTAssertTrue(LinuxProc.playerctlIsAuto(" AUTO"))
+
+        // The first name that matches wins; auto stands where it is listed.
+        XCTAssertEqual(LinuxProc.playerctlChoice(["mpv", "Firefox", "spotify"], listed: listed, autoChoice: nil),
+                       "firefox.instance_1_23")
+        XCTAssertEqual(LinuxProc.playerctlChoice(["mpv", "auto"], listed: listed, autoChoice: "chromium.instance12345"),
+                       "chromium.instance12345")
+        XCTAssertEqual(LinuxProc.playerctlChoice(["spotify", "auto"], listed: listed, autoChoice: "chromium.instance12345"),
+                       "spotify")
+        XCTAssertNil(LinuxProc.playerctlChoice(["mpv"], listed: listed, autoChoice: nil))
+        XCTAssertNil(LinuxProc.playerctlChoice(["auto"], listed: [], autoChoice: nil))
+    }
+
+    /// A fake playerctl: `players` for -l, each player's status, and a
+    /// track for whichever player is asked for metadata.
+    private func playerctl(_ players: String, statuses: [String: String]) -> CommandLog {
+        CommandLog { argv in
+            func ok(_ text: String) -> CommandResult { CommandResult(status: 0, stdout: Data(text.utf8), stderr: Data()) }
+            if argv == ["playerctl", "-l"] { return players.isEmpty ? nil : ok(players) }
+            guard argv.count >= 4, argv[1] == "-p", let status = statuses[argv[2]] else { return nil }
+            switch argv[3] {
+            case "status": return ok(status + "\n")
+            case "metadata": return ok("\(status)\u{1F}\(argv[2]) song\u{1F}Artist\u{1F}\u{1F}\u{1F}\n")
+            default: return nil
+            }
+        }
+    }
+
+    func testBackendAutoPicksThePlayingPlayer() async {
+        let log = playerctl("spotify\nfirefox.instance_1_23\n",
+                            statuses: ["spotify": "Paused", "firefox.instance_1_23": "Playing"])
+        let reading = await PlayerctlBackend(run: log.run).read(["auto"])
+        XCTAssertEqual(reading, MediaReading(
+            player: "firefox.instance_1_23",
+            playing: NowPlaying(title: "firefox.instance_1_23 song", artist: "Artist", state: "playing"),
+            players: ["spotify", "firefox"]))
+
+        // Nothing playing: the first one listed.
+        let paused = playerctl("spotify\nfirefox.instance_1_23\n",
+                               statuses: ["spotify": "Paused", "firefox.instance_1_23": "Stopped"])
+        let first = await PlayerctlBackend(run: paused.run).read(["Auto"])
+        XCTAssertEqual(first.player, "spotify")
+        XCTAssertEqual(first.playing.state, "paused")
+    }
+
+    func testBackendExplicitNames() async {
+        let log = playerctl("spotify.instance123\nfirefox.instance_1_23\n",
+                            statuses: ["spotify.instance123": "Paused", "firefox.instance_1_23": "Playing"])
+        let backend = PlayerctlBackend(run: log.run)
+        // The first name that matches, whether or not it plays.
+        let spotify = await backend.read(["mpv", "Spotify", "firefox"])
+        XCTAssertEqual(spotify.player, "spotify.instance123")
+        XCTAssertEqual(spotify.playing, NowPlaying(title: "spotify.instance123 song", artist: "Artist", state: "paused"))
+        XCTAssertEqual(spotify.players, ["spotify", "firefox"])
+        XCTAssertFalse(log.calls.contains { $0.last == "status" }, "no auto, no status round")
+
+        let none = await backend.read(["mpv"])
+        XCTAssertEqual(none, MediaReading(player: nil, playing: .off, players: ["spotify", "firefox"]))
+
+        XCTAssertEqual((backend.provider(for: "Spotify") as? PlayerctlMedia)?.player, "spotify")
+    }
+
+    func testBackendWithoutPlayersOrPlayerctl() async {
+        let empty = await PlayerctlBackend(run: playerctl("", statuses: [:]).run).read(["auto"])
+        XCTAssertEqual(empty, MediaReading(player: nil, playing: .off, players: []))
+        let missing: CommandRun = { argv, _ in throw CommandError.notFound(argv[0]) }
+        let reading = await PlayerctlBackend(run: missing).read(["auto", "spotify"])
+        XCTAssertEqual(reading, MediaReading(player: nil, playing: .off, players: []))
+    }
+
+    /// Fire-and-forget commands run in a detached task.
+    private func waitForCalls(_ log: CommandLog, _ count: Int) async {
+        let deadline = Date().addingTimeInterval(5)
+        while log.calls.count < count && Date() < deadline { try? await Task.sleep(nanoseconds: 5_000_000) }
     }
 }
 

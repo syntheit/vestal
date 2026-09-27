@@ -17,4 +17,10 @@ dump /proc/stat /proc/meminfo /proc/net/dev /proc/uptime /proc/self/mounts \
   /sys/class/power_supply/*/uevent /sys/devices/virtual/net/*/type /sys/block/zram*/mm_stat
 ```
 
+`<host>-3.txt` (v0.4, for the `system` source) was captured later the same way with this list, so it pairs with `-1` for a long-interval interface rate. Neither `-1` file has `/proc/pressure/memory` or `/proc/loadavg`, so on their own they stand for a kernel without PSI:
+
+```sh
+dump /proc/loadavg /proc/pressure/memory /proc/net/dev /proc/uptime /sys/devices/virtual/net/*/type
+```
+
 Neither machine has a laptop battery, and neither runs PipeWire or an MPRIS player where it could be captured, so the tests write those inputs (a `BAT0` uevent, `wpctl` and `playerctl` output) from the kernel's and the tools' documented formats.

@@ -57,7 +57,28 @@ public enum LinuxProc {
         return min(100, max(0, Int(busy * 100 / total)))
     }
 
-    // MARK: Memory (/proc/meminfo, /sys/block/zram*/mm_stat)
+    /// Logical CPUs: the "cpuN" lines of /proc/stat (online CPUs, as
+    /// `nproc` counts them); nil if there are none.
+    public static func cpuCount(stat: String) -> Int? {
+        var count = 0
+        for line in stat.split(separator: "\n") {
+            let name = line.prefix { $0 != " " }
+            guard name.hasPrefix("cpu"), name.count > 3, name.dropFirst(3).allSatisfy(\.isNumber) else { continue }
+            count += 1
+        }
+        return count > 0 ? count : nil
+    }
+
+    // MARK: Load (/proc/loadavg)
+
+    /// The 1, 5 and 15 minute load averages: the first three fields of
+    /// "0.52 0.58 0.59 2/1234 5678".
+    public static func loadavg(_ text: String) -> [Double]? {
+        let fields = text.split(whereSeparator: { $0 == " " || $0 == "\n" }).prefix(3).compactMap { Double($0) }
+        return fields.count == 3 ? fields : nil
+    }
+
+    // MARK: Memory (/proc/meminfo, /sys/block/zram*/mm_stat, /proc/pressure/memory)
 
     /// /proc/meminfo by key, in bytes ("MemTotal: 32785284 kB" becomes
     /// "MemTotal": 33572130816). Values without a unit (HugePages_*) are kept
@@ -94,12 +115,34 @@ public enum LinuxProc {
     /// compressed pages: zswap's pool (meminfo "Zswap") plus `zramBytes`,
     /// the zram devices' mem_used_total.
     public static func memory(meminfo: [String: Int64], zramBytes: Int64 = 0) -> MemoryInfo? {
+        guard let bytes = memoryBytes(meminfo: meminfo) else { return nil }
+        let total = bytes.total
+        let compressed = min(total, max(0, (meminfo["Zswap"] ?? 0) + zramBytes))
+        return MemoryInfo(ramPercent: Int(bytes.used * 100 / total), pressurePercent: Int(compressed * 100 / total))
+    }
+
+    /// Used RAM (as `memory` counts it) and MemTotal, in bytes.
+    public static func memoryBytes(meminfo: [String: Int64]) -> MemoryBytes? {
         guard let total = meminfo["MemTotal"], total > 0 else { return nil }
         let available = meminfo["MemAvailable"]
             ?? ((meminfo["MemFree"] ?? 0) + (meminfo["Buffers"] ?? 0) + (meminfo["Cached"] ?? 0))
-        let used = min(total, max(0, total - available))
-        let compressed = min(total, max(0, (meminfo["Zswap"] ?? 0) + zramBytes))
-        return MemoryInfo(ramPercent: Int(used * 100 / total), pressurePercent: Int(compressed * 100 / total))
+        return MemoryBytes(used: min(total, max(0, total - available)), total: total)
+    }
+
+    /// `some avg10` of a /proc/pressure file: the share of the last 10
+    /// seconds in which at least one task stalled waiting for the resource,
+    /// 0-100. The file reads
+    /// "some avg10=0.12 avg60=0.05 avg300=0.01 total=123456", then a
+    /// "full" line.
+    public static func psiSomeAvg10(_ text: String) -> Double? {
+        for line in text.split(separator: "\n") {
+            let fields = line.split(separator: " ", omittingEmptySubsequences: true)
+            guard fields.first == "some" else { continue }
+            for field in fields.dropFirst() where field.hasPrefix("avg10=") {
+                return Double(field.dropFirst("avg10=".count))
+            }
+        }
+        return nil
     }
 
     // MARK: Network (/proc/net/dev)
@@ -147,12 +190,47 @@ public enum LinuxProc {
         var bytesIn: Int64 = 0
         var bytesOut: Int64 = 0
         for counter in counters {
-            let skip = virtual.map { $0.contains(counter.name) } ?? looksVirtual(counter.name)
-            guard !skip else { continue }
+            guard !isVirtual(counter.name, virtual: virtual) else { continue }
             bytesIn += counter.bytesIn
             bytesOut += counter.bytesOut
         }
         return (bytesIn, bytesOut)
+    }
+
+    /// The interfaces `interfaceRates` reports. `names` nil: the ones
+    /// `networkTotals` counts (the physical ones), by name. A list: exactly
+    /// those, in that order, where they exist; virtual ones and loopback
+    /// too, since they were asked for by name.
+    public static func selectInterfaces(_ counters: [InterfaceCounters], names: [String]?,
+                                        virtual: Set<String>?) -> [InterfaceCounters] {
+        guard let names else {
+            return counters
+                .filter { !isVirtual($0.name, virtual: virtual) }
+                .sorted { $0.name < $1.name }
+        }
+        var seen = Set<String>()
+        return names.compactMap { name in
+            guard seen.insert(name).inserted else { return nil }
+            return counters.first { $0.name == name }
+        }
+    }
+
+    /// One interface's bytes per second between two readings `elapsed`
+    /// seconds apart. No previous reading (the first call, or an interface
+    /// that just appeared), too short an interval, or a counter that went
+    /// backwards (the interface was recreated) is 0.
+    public static func interfaceRate(from previous: InterfaceCounters?, to now: InterfaceCounters,
+                                     elapsed: TimeInterval) -> InterfaceRate {
+        guard let previous, elapsed > 0.1 else { return InterfaceRate(name: now.name, bytesIn: 0, bytesOut: 0) }
+        func rate(_ from: Int64, _ to: Int64) -> Int64 { to < from ? 0 : Int64(Double(to - from) / elapsed) }
+        return InterfaceRate(name: now.name, bytesIn: rate(previous.bytesIn, now.bytesIn),
+                             bytesOut: rate(previous.bytesOut, now.bytesOut))
+    }
+
+    /// In /sys/devices/virtual/net, or, without that listing, named like a
+    /// virtual interface.
+    static func isVirtual(_ name: String, virtual: Set<String>?) -> Bool {
+        virtual.map { $0.contains(name) } ?? looksVirtual(name)
     }
 
     /// Name prefixes of virtual interfaces, for when /sys can't tell.
@@ -416,13 +494,17 @@ public enum LinuxProc {
     /// or artist contains (unlike "|", tab or a newline).
     public static let playerctlSeparator: Character = "\u{1F}"
 
-    /// The `--format` for `playerctl metadata`: status, title, artist.
-    public static let playerctlFormat = "{{status}}\u{1F}{{title}}\u{1F}{{artist}}"
+    /// The `--format` for `playerctl metadata`: status, title, artist,
+    /// album, the track's length and the position (both in microseconds).
+    public static let playerctlFormat =
+        "{{status}}\u{1F}{{title}}\u{1F}{{artist}}\u{1F}{{album}}\u{1F}{{mpris:length}}\u{1F}{{position}}"
 
     /// `playerctl metadata --format playerctlFormat`, or plain
     /// `playerctl status` ("Playing"), as a now-playing value. As on macOS,
     /// only a playing or paused player reports a track; stopped, or anything
-    /// else, is off.
+    /// else, is off. An empty album, and a length or position that is missing
+    /// or not a number, is nil; so is a length of 0 (a stream). Output with
+    /// only the first three fields (the v0.3 format) still reads.
     public static func playerctlNowPlaying(_ output: String) -> NowPlaying {
         var text = Substring(output)
         while let last = text.last, last == "\n" || last == "\r" { text = text.dropLast() }
@@ -433,8 +515,71 @@ public enum LinuxProc {
         case "Paused": state = "paused"
         default: return .off
         }
-        return NowPlaying(title: parts.count > 1 ? String(parts[1]) : "",
-                          artist: parts.count > 2 ? String(parts[2]) : "",
-                          state: state)
+        func part(_ i: Int) -> Substring? { i < parts.count ? parts[i] : nil }
+        let duration = part(4).flatMap(microseconds)
+        return NowPlaying(title: part(1).map(String.init) ?? "",
+                          artist: part(2).map(String.init) ?? "",
+                          state: state,
+                          album: part(3).flatMap { $0.isEmpty ? nil : String($0) },
+                          position: part(5).flatMap(microseconds),
+                          duration: duration.flatMap { $0 > 0 ? $0 : nil })
+    }
+
+    /// A playerctl time field (microseconds) in seconds; nil unless it is a
+    /// finite number of at least 0.
+    static func microseconds(_ field: Substring) -> Double? {
+        guard let value = Double(field.trimmingCharacters(in: .whitespaces)), value.isFinite, value >= 0 else { return nil }
+        return value / 1_000_000
+    }
+
+    /// `playerctl -l`: one player per line, the MPRIS bus name after
+    /// `org.mpris.MediaPlayer2.` (`spotify`, `firefox.instance_1_23`), in
+    /// playerctl's order.
+    public static func playerctlList(_ output: String) -> [String] {
+        var seen = Set<String>()
+        return output.split(whereSeparator: { $0 == "\n" || $0 == "\r" })
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && seen.insert($0).inserted }
+    }
+
+    /// A listed player's name without its instance (`firefox.instance_1_23`
+    /// is `firefox`): what the `media` source's `players` shows, and what a
+    /// config's `player` names.
+    public static func playerctlDiscoveryName(_ busName: String) -> String {
+        busName.range(of: ".instance").map { String(busName[..<$0.lowerBound]) } ?? busName
+    }
+
+    /// The discovery names of the listed players, each once, in order.
+    public static func playerctlDiscoveryNames(_ busNames: [String]) -> [String] {
+        var seen = Set<String>()
+        return busNames.map(playerctlDiscoveryName).filter { seen.insert($0).inserted }
+    }
+
+    /// Whether a config's `player` names a listed player: trimmed and
+    /// compared case-insensitively with the bus name, or with the bus name
+    /// without its instance (`Spotify` matches `spotify.instance123`). MPRIS
+    /// `Identity` would need D-Bus, so it isn't compared.
+    public static func playerctlMatches(_ wanted: String, busName: String) -> Bool {
+        let name = playerctlName(wanted)
+        return !name.isEmpty && (name == busName.lowercased() || name == playerctlDiscoveryName(busName).lowercased())
+    }
+
+    /// Whether a `player` value is `"auto"`.
+    public static func playerctlIsAuto(_ wanted: String) -> Bool {
+        playerctlName(wanted) == "auto"
+    }
+
+    /// The listed player that `wanted` chooses, the first name that matches
+    /// winning; `auto` is `autoChoice` (the playing player, else the first
+    /// listed) where it stands in the list. Nil when nothing matches.
+    public static func playerctlChoice(_ wanted: [String], listed: [String], autoChoice: String?) -> String? {
+        for name in wanted {
+            if playerctlIsAuto(name) {
+                if let autoChoice { return autoChoice }
+                continue
+            }
+            if let match = listed.first(where: { playerctlMatches(name, busName: $0) }) { return match }
+        }
+        return nil
     }
 }

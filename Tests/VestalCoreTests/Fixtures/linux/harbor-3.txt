@@ -1,0 +1,222 @@
+== /proc/loadavg
+3.45 2.66 2.12 3/5143 117593
+== /proc/pressure/memory
+some avg10=0.00 avg60=0.00 avg300=0.00 total=10480165
+full avg10=0.00 avg60=0.00 avg300=0.00 total=10349396
+== /proc/net/dev
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo: 3116595079 4683470    0    0    0     0          0         0 3116595079 4683470    0    0    0     0       0          0
+enp4s0: 284293411425 460484212    0    0    0     0          0     16755 254235338387 472142365    0    0    0     0       0          0
+wlp5s0:       0       0    0    0    0     0          0         0        0       0    0    2    0     0       0          0
+virbr0: 115208046  911154    0    0    0     0          0         3 74550485  910111    0    2    0     0       0          0
+ vnet0: 127977052  911217    0    0    0     0          0         0 79670608 1008531    0    0    0     0       0          0
+   wg0: 2026866720 2330321    0    0    0     0          0         0 27551371472 19692226 2055 3395    0     0       0          0
+tailscale0: 131423052  214246    0    0    0     0          0         0 17055073  150601    0    0    0     0       0          0
+pelican0: 670825211  494182    0    0    0     0          0       581 64364035  441688    0    2    0     0       0          0
+br-39a107b76d1f:  103293    3310    0    0    0     0          0         0    32299     124    0    2    0     0       0          0
+br-602b2f6b4c5c:      84       3    0    0    0     0          0         0     7162      79    0    2    0     0       0          0
+br-e559394731f2: 33589600   52390    0    0    0     0          0         0  7963125   61592    0    2    0     0       0          0
+br-e872033d5c8e: 978720992  742083    0    0    0     0          0         0 1857008119 1130080    0    2    0     0       0          0
+br-f39ac70de67d: 85850800  110991    0    0    0     0          0         0 21315219  113317    0    2    0     0       0          0
+br-1d57a893bce6:    2806      20    0    0    0     0          0         0    12619      90    0    2    0     0       0          0
+br-381a069a40d4: 5888307   60455    0    0    0     0          0         0 12247077   53101    0    2    0     0       0          0
+br-4bf18627444f: 66542686   94123    0    0    0     0          0         0 68047713  156999    0    2    0     0       0          0
+docker0: 25828814464 2555223    0    0    0     0          0       872 665365731 1854231    0    2    0     0       0          0
+br-56cf9f76451f:      84       3    0    0    0     0          0         0     7162      79    0    2    0     0       0          0
+br-5bac12140a52: 7345270   17476    0    0    0     0          0         0  6600417   18679    0    2    0     0       0          0
+br-75de15cde649: 215565408277 443680851    0    0    0     0          0        34 267612178770 440007632    0    2    0     0       0          0
+br-cae2adb8ec95: 110509078  213530    0    0    0     0          0         0 20524528  193940    0    2    0     0       0          0
+veth4b0e2bc:     126       3    0    0    0     0          0         0   148759    3389    0    0    0     0       0          0
+vethcf1f9a1: 6457499   53909    0    0    0     0          0         0 12925017   69300    0    0    0     0       0          0
+veth79a162a:    2960      17    0    0    0     0          0         0    17086     135    0    0    0     0       0          0
+vethaeed52b:    2960      17    0    0    0     0          0         0   695586   16295    0    0    0     0       0          0
+veth06d3035:     126       3    0    0    0     0          0         0    11503     121    0    0    0     0       0          0
+veth04e290e:     126       3    0    0    0     0          0         0    11087     118    0    0    0     0       0          0
+veth7c9527c:     126       3    0    0    0     0          0         0    11503     121    0    0    0     0       0          0
+vethd86f271:     126       3    0    0    0     0          0         0  2101239    7598    0    0    0     0       0          0
+vethf5386e5: 9566445   52013    0    0    0     0          0         0  5594332   55534    0    0    0     0       0          0
+veth620cd62:   12419      43    0    0    0     0          0         0   173338    3426    0    0    0     0       0          0
+br-e33f0af4cbc2:       0       0    0    0    0     0          0         0        0       0    0    2    0     0       0          0
+vethaf78fe9: 189489597  125122    0    0    0     0          0         0 13599828  131899    0    0    0     0       0          0
+veth7474039:     126       3    0    0    0     0          0         0  2098157    7566    0    0    0     0       0          0
+veth15a89c5: 13927966   45704    0    0    0     0          0         0  5642848   56309    0    0    0     0       0          0
+vethffbefe0:     126       3    0    0    0     0          0         0    12091     135    0    0    0     0       0          0
+veth4b5ab0d: 7980610150  711531    0    0    0     0          0         0 824557511  652246    0    0    0     0       0          0
+veth89500fb:     126       3    0    0    0     0          0         0  2098157    7566    0    0    0     0       0          0
+vethf80c8e3: 40817748  528855    0    0    0     0          0         0 233807757  723547    0    0    0     0       0          0
+vethdcf1ce8: 21226589   55225    0    0    0     0          0         0  7876670   60741    0    0    0     0       0          0
+vethaf05872: 3342401245 4056590    0    0    0     0          0         0 10803472758 4367427    0    0    0     0       0          0
+vethb803b0b:     126       3    0    0    0     0          0         0  2098031    7563    0    0    0     0       0          0
+vethe66e8c3: 54909390   36329    0    0    0     0          0         0  8157901   51103    0    0    0     0       0          0
+veth3e0fac0: 958159588 2454967    0    0    0     0          0         0 1391949261 2591220    0    0    0     0       0          0
+veth37314a6: 867483277 4326281    0    0    0     0          0         0 651094332 4276445    0    0    0     0       0          0
+vetheb32ce5: 44978732  152628    0    0    0     0          0         0 126484435  199297    0    0    0     0       0          0
+veth4d7d52b: 292579108  743883    0    0    0     0          0         0 329792805  920873    0    0    0     0       0          0
+vethf0a6fbf:  640679    6976    0    0    0     0          0         0   592196    7708    0    0    0     0       0          0
+veth7f4ad1b: 5609849   41563    0    0    0     0          0         0  9713644   81849    0    0    0     0       0          0
+veth367bb5e: 26818986   25255    0    0    0     0          0         0  4851986   32488    0    0    0     0       0          0
+veth691815f: 13447813  207828    0    0    0     0          0         0 13455848  207910    0    0    0     0       0          0
+veth07647ad: 246346432  789523    0    0    0     0          0         0 60805742  586042    0    0    0     0       0          0
+veth2ead821: 1557763814 1186917    0    0    0     0          0         0 5175189909 1289938    0    0    0     0       0          0
+veth6ed7be9: 127358909 1540007    0    0    0     0          0         0 474216495 1622870    0    0    0     0       0          0
+veth4628800: 1048724159 5291183    0    0    0     0          0         0 1228112776 5227186    0    0    0     0       0          0
+veth4735491: 126883586  420896    0    0    0     0          0         0 33832817  401380    0    0    0     0       0          0
+veth14838ff: 7691534   70819    0    0    0     0          0         0 136819311   71438    0    0    0     0       0          0
+vethc36edcb: 1552971    3803    0    0    0     0          0         0  4657678    5269    0    0    0     0       0          0
+veth0b1d345: 518230159 1756855    0    0    0     0          0         0 140934767 1643187    0    0    0     0       0          0
+veth4cc34f8: 25195355272 1402564    0    0    0     0          0         0 232895807 1091871    0    0    0     0       0          0
+veth18760cc:     126       3    0    0    0     0          0         0    10039     120    0    0    0     0       0          0
+vethf23686d:   60692     427    0    0    0     0          0         0   150286     509    0    0    0     0       0          0
+vetha6d3bf9: 2725313   39827    0    0    0     0          0         0  8067904   38911    0    0    0     0       0          0
+veth21d40c1: 92535262  131600    0    0    0     0          0         0 30229911  129232    0    0    0     0       0          0
+veth4f48cbd: 655378496  276932    0    0    0     0          0         0 31718363  459292    0    0    0     0       0          0
+veth1840cfc: 22365263  217250    0    0    0     0          0         0 37131587   81452    0    0    0     0       0          0
+veth0164f4c: 221676289287 442495963    0    0    0     0          0         0 259172923889 438699822    0    0    0     0       0          0
+vethd38a865: 371943083  100825    0    0    0     0          0         0 59758504  112933    0    0    0     0       0          0
+veth2e77abe: 69059716  262515    0    0    0     0          0         0 252619704  239700    0    0    0     0       0          0
+veth6cc6671: 95394259 1056865    0    0    0     0          0         0 2632952323  902706    0    0    0     0       0          0
+veth1fa0292: 778162613  616362    0    0    0     0          0         0 210125419  767743    0    0    0     0       0          0
+veth015f31f: 96647910  273668    0    0    0     0          0         0  6639168   52511    0    0    0     0       0          0
+== /proc/uptime
+196753.93 3714262.66
+== /sys/devices/virtual/net/br-1d57a893bce6/type
+1
+== /sys/devices/virtual/net/br-381a069a40d4/type
+1
+== /sys/devices/virtual/net/br-39a107b76d1f/type
+1
+== /sys/devices/virtual/net/br-4bf18627444f/type
+1
+== /sys/devices/virtual/net/br-56cf9f76451f/type
+1
+== /sys/devices/virtual/net/br-5bac12140a52/type
+1
+== /sys/devices/virtual/net/br-602b2f6b4c5c/type
+1
+== /sys/devices/virtual/net/br-75de15cde649/type
+1
+== /sys/devices/virtual/net/br-cae2adb8ec95/type
+1
+== /sys/devices/virtual/net/br-e33f0af4cbc2/type
+1
+== /sys/devices/virtual/net/br-e559394731f2/type
+1
+== /sys/devices/virtual/net/br-e872033d5c8e/type
+1
+== /sys/devices/virtual/net/br-f39ac70de67d/type
+1
+== /sys/devices/virtual/net/docker0/type
+1
+== /sys/devices/virtual/net/lo/type
+772
+== /sys/devices/virtual/net/pelican0/type
+1
+== /sys/devices/virtual/net/tailscale0/type
+65534
+== /sys/devices/virtual/net/veth015f31f/type
+1
+== /sys/devices/virtual/net/veth0164f4c/type
+1
+== /sys/devices/virtual/net/veth04e290e/type
+1
+== /sys/devices/virtual/net/veth06d3035/type
+1
+== /sys/devices/virtual/net/veth07647ad/type
+1
+== /sys/devices/virtual/net/veth0b1d345/type
+1
+== /sys/devices/virtual/net/veth14838ff/type
+1
+== /sys/devices/virtual/net/veth15a89c5/type
+1
+== /sys/devices/virtual/net/veth1840cfc/type
+1
+== /sys/devices/virtual/net/veth18760cc/type
+1
+== /sys/devices/virtual/net/veth1fa0292/type
+1
+== /sys/devices/virtual/net/veth21d40c1/type
+1
+== /sys/devices/virtual/net/veth2e77abe/type
+1
+== /sys/devices/virtual/net/veth2ead821/type
+1
+== /sys/devices/virtual/net/veth367bb5e/type
+1
+== /sys/devices/virtual/net/veth37314a6/type
+1
+== /sys/devices/virtual/net/veth3e0fac0/type
+1
+== /sys/devices/virtual/net/veth4628800/type
+1
+== /sys/devices/virtual/net/veth4735491/type
+1
+== /sys/devices/virtual/net/veth4b0e2bc/type
+1
+== /sys/devices/virtual/net/veth4b5ab0d/type
+1
+== /sys/devices/virtual/net/veth4cc34f8/type
+1
+== /sys/devices/virtual/net/veth4d7d52b/type
+1
+== /sys/devices/virtual/net/veth4f48cbd/type
+1
+== /sys/devices/virtual/net/veth620cd62/type
+1
+== /sys/devices/virtual/net/veth691815f/type
+1
+== /sys/devices/virtual/net/veth6cc6671/type
+1
+== /sys/devices/virtual/net/veth6ed7be9/type
+1
+== /sys/devices/virtual/net/veth7474039/type
+1
+== /sys/devices/virtual/net/veth79a162a/type
+1
+== /sys/devices/virtual/net/veth7c9527c/type
+1
+== /sys/devices/virtual/net/veth7f4ad1b/type
+1
+== /sys/devices/virtual/net/veth89500fb/type
+1
+== /sys/devices/virtual/net/vetha6d3bf9/type
+1
+== /sys/devices/virtual/net/vethaeed52b/type
+1
+== /sys/devices/virtual/net/vethaf05872/type
+1
+== /sys/devices/virtual/net/vethaf78fe9/type
+1
+== /sys/devices/virtual/net/vethb803b0b/type
+1
+== /sys/devices/virtual/net/vethc36edcb/type
+1
+== /sys/devices/virtual/net/vethcf1f9a1/type
+1
+== /sys/devices/virtual/net/vethd38a865/type
+1
+== /sys/devices/virtual/net/vethd86f271/type
+1
+== /sys/devices/virtual/net/vethdcf1ce8/type
+1
+== /sys/devices/virtual/net/vethe66e8c3/type
+1
+== /sys/devices/virtual/net/vetheb32ce5/type
+1
+== /sys/devices/virtual/net/vethf0a6fbf/type
+1
+== /sys/devices/virtual/net/vethf23686d/type
+1
+== /sys/devices/virtual/net/vethf5386e5/type
+1
+== /sys/devices/virtual/net/vethf80c8e3/type
+1
+== /sys/devices/virtual/net/vethffbefe0/type
+1
+== /sys/devices/virtual/net/virbr0/type
+1
+== /sys/devices/virtual/net/vnet0/type
+1
+== /sys/devices/virtual/net/wg0/type
+65534

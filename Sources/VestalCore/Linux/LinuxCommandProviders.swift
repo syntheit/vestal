@@ -77,10 +77,21 @@ public final class WirePlumberAudio: AudioProvider, @unchecked Sendable {
         lock.lock()
         if latest != nil { latest?.muted = muted }
         lock.unlock()
+        fire(["wpctl", "set-mute", Self.sink, muted ? "1" : "0"])
+    }
+
+    /// 5% up, at most 100% (`-l 1.0`: PipeWire would boost past it).
+    public func volumeUp() {
+        fire(["wpctl", "set-volume", "-l", "1.0", Self.sink, "5%+"])
+    }
+
+    public func volumeDown() {
+        fire(["wpctl", "set-volume", "-l", "1.0", Self.sink, "5%-"])
+    }
+
+    private func fire(_ argv: [String]) {
         let run = self.run
-        Task.detached(priority: .utility) {
-            _ = try? await run(["wpctl", "set-mute", Self.sink, muted ? "1" : "0"], 3)
-        }
+        Task.detached(priority: .utility) { _ = try? await run(argv, 3) }
     }
 }
 
@@ -88,7 +99,8 @@ public final class WirePlumberAudio: AudioProvider, @unchecked Sendable {
 
 /// One MPRIS player by the media widget's `player`, which is matched
 /// case-insensitively ("Spotify" asks `playerctl -p spotify`). Same values
-/// as the macOS provider: playing or paused with title and artist, else off.
+/// as the macOS provider: playing or paused with title, artist, album,
+/// position and length, else off.
 public final class PlayerctlMedia: MediaProvider {
     /// The name given to `playerctl -p`.
     public let player: String
@@ -110,9 +122,59 @@ public final class PlayerctlMedia: MediaProvider {
         return LinuxProc.playerctlNowPlaying(result.stdoutString)
     }
 
-    public func playPause() {
+    public func playPause() { fire("play-pause") }
+    public func next() { fire("next") }
+    public func previous() { fire("previous") }
+
+    private func fire(_ command: String) {
         let run = self.run
-        let argv = ["playerctl", "-p", player, "play-pause"]
+        let argv = ["playerctl", "-p", player, command]
         Task.detached(priority: .utility) { _ = try? await run(argv, 3) }
+    }
+}
+
+/// The `media` source on Linux: MPRIS players through playerctl
+/// (EXTENSIBILITY.md 5.2). `players` is `playerctl -l`'s list without
+/// instance suffixes; a `player` matches a listed one by bus name
+/// (`LinuxProc.playerctlMatches`), and `auto` is the first one playing,
+/// else the first listed. Without playerctl, or with no players, it reads
+/// off with no players.
+public final class PlayerctlBackend: MediaBackend {
+    private let run: CommandRun
+
+    public init(run: @escaping CommandRun = LinuxCommands.live) {
+        self.run = run
+    }
+
+    public func read(_ wanted: [String]) async -> MediaReading {
+        let listed = await list()
+        let players = LinuxProc.playerctlDiscoveryNames(listed)
+        var auto: String?
+        if wanted.contains(where: LinuxProc.playerctlIsAuto) { auto = await autoChoice(listed) }
+        guard let chosen = LinuxProc.playerctlChoice(wanted, listed: listed, autoChoice: auto) else {
+            return MediaReading(player: nil, playing: .off, players: players)
+        }
+        let playing = await PlayerctlMedia(player: chosen, run: run).nowPlaying()
+        return MediaReading(player: chosen, playing: playing, players: players)
+    }
+
+    public func provider(for player: String) -> MediaProvider {
+        PlayerctlMedia(player: player, run: run)
+    }
+
+    /// `playerctl -l`; empty when it fails (no players, or no playerctl).
+    private func list() async -> [String] {
+        guard let result = try? await run(["playerctl", "-l"], 3), result.status == 0 else { return [] }
+        return LinuxProc.playerctlList(result.stdoutString)
+    }
+
+    /// The first listed player whose status is Playing, else the first
+    /// listed; one `status` per player until one plays.
+    private func autoChoice(_ listed: [String]) async -> String? {
+        for player in listed {
+            guard let result = try? await run(["playerctl", "-p", player, "status"], 3), result.status == 0 else { continue }
+            if result.stdoutString.trimmingCharacters(in: .whitespacesAndNewlines) == "Playing" { return player }
+        }
+        return listed.first
     }
 }

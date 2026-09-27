@@ -1,0 +1,21 @@
+== /proc/loadavg
+1.73 1.92 1.83 2/2455 420369
+== /proc/pressure/memory
+some avg10=0.00 avg60=0.00 avg300=0.00 total=40358619
+full avg10=0.00 avg60=0.00 avg300=0.00 total=38787881
+== /proc/net/dev
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo: 32884262  133868    0    0    0     0          0         0 32884262  133868    0    0    0     0       0          0
+enp34s0: 89687582088 84972297    0    0    0     0          0    240803 19483573860 50115074    0    0    0     0       0          0
+  wlo1: 438266643  449405    0    0    0     0          0         0 402134214  442576    0  155    0     0       0          0
+   wg0:  398176    4328    0    0    0     0          0         0  1544916   30788 12197   16    0     0       0          0
+tailscale0: 5533310141 4740466    0    0    0     0          0         0 8140808919 11924009    0    0    0     0       0          0
+== /proc/uptime
+548221.55 5488687.94
+== /sys/devices/virtual/net/lo/type
+772
+== /sys/devices/virtual/net/tailscale0/type
+65534
+== /sys/devices/virtual/net/wg0/type
+65534
