@@ -12,7 +12,7 @@ Vestal is a full-screen dashboard toggled by a key, on macOS and Linux, driven b
 4. **One config serves macOS and Linux.** Use the built-in sources (`system`, `media`, `calendar`, `claude`) rather than OS commands. Put what is truly OS-specific (fonts, a command that exists on one OS, a player name) in `platform.macos` or `platform.linux`, and check both OSes: `vestal check-config --platform linux`.
 5. **Validate before you claim success:** `vestal check-config --json` must say `"error": 0` (exit 0, not 3), and `vestal render` must end with `diagnostics: 0`. Then look at it (`vestal screenshot`).
 6. **Prefer what exists:** presets (`vestal docs presets`), semantic colours (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
-7. **Tell the user what runs.** `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists the command sources; mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
+7. **Tell the user what runs.** `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists every program the config can run (command sources, inline or from a template too; `command` secrets; `run` actions in widgets, views, keys and templates; the v0.3 privacy toggle and foyer hosts), with what triggers it and whether it is on `PATH`. Mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
 8. **Lists replace, objects merge.** Your file is merged over the built-in defaults: objects merge key by key, but a list (such as `views.main.children`) replaces the default list whole, and `null` deletes a default. When you add a widget to a view, write the view's full list.
 
 ## 2. The loop
@@ -32,7 +32,27 @@ $ vestal docs                    # the topics; `vestal docs widget/list`, `vesta
 $ vestal print-config            # the effective config, defaults included (what your file merges over)
 ```
 
-`vestal capabilities` tells you, before you write anything, whether `media` has a player (and which names work), whether the calendar has a backend, whether `wpctl` or `playerctl` is missing, and whether `vestal screenshot` can draw here. Read it first: a widget over a source that can't work here only wastes the user's screen.
+On a Linux server without a display, for example:
+
+```text
+$ vestal capabilities --config /tmp/vestal-draft.json
+os: linux, UI: GTK 4 (layer shell)
+config: /tmp/vestal-draft.json
+instance: not running
+sources:
+  system    ok  /proc and /sys: null here: battery, audio.volume, gpu
+  media     ok  MPRIS through playerctl: no MPRIS player running
+  calendar  no  none: no calendar backend: set `ics` (files, a vdirsyncer directory or URLs) on the calendar source
+  audio     no  wpctl: wpctl found, but no default output device
+  claude    ok  Claude Code logs: /home/me/.claude/projects
+icons: ok  …/share/vestal/icons/Phosphor.ttf, …/share/vestal/icons/Phosphor-Fill.ttf
+screenshot: no  needs a Wayland session (WAYLAND_DISPLAY is not set); `vestal render` works anywhere
+hotkey: no  not grabbed on Wayland: bind `vestal toggle` in the compositor (Hyprland: bind = , Home, exec, vestal toggle)
+programs:
+  gh  /etc/profiles/per-user/me/bin/gh  (source prs)
+```
+
+`--json` gives the same as data: `sources.<type>.{backend, ok, detail}` (plus `players` for media and `null`, the `system` fields this machine can't read), `icons`, `screenshot.supported`, `hotkey.supported`, `programs[].{program, found, path, usedBy}` and `missing`. `vestal capabilities` tells you, before you write anything, whether `media` has a player (and which names work), whether the calendar has a backend, whether `wpctl` or `playerctl` is missing, and whether `vestal screenshot` can draw here. Read it first: a widget over a source that can't work here only wastes the user's screen.
 
 Without any config, the dashboard shows the defaults: `clock`, `systemBar`, `media`, `agenda`, `systems`, `weather` in view `main`, from the sources `system`, `media`, `claude`, `calendar` and `weather`.
 
@@ -216,6 +236,8 @@ It shows the template chain, the source and its `$meta` (did the fetch work?), e
 ```text
 $ vestal screenshot /tmp/vestal.png --config /tmp/vestal-draft.json --frames /tmp/vestal-frames.json
 /tmp/vestal.png
+$ vestal screenshot /tmp/vestal.png --config /tmp/vestal-draft.json --json
+{"clipped":0,"diagnostics":0,"frames":null,"height":982,"path":"/tmp/vestal.png","scale":2,"truncated":0,"width":1512}
 ```
 
 Then open `/tmp/vestal.png` with your image-viewing tool and look: alignment, crowding, colours, anything cut off. `--frames` writes every node's frame, with `clipped: true` on nodes cut off at the bottom of the screen (vestal never scrolls) and `truncated: true` on texts cut by `lines`: check those without reading pixels. It takes the same `--view`, `--press`, `--data` and `--at` as `render`, plus `--size <w>x<h>` and `--scale`. The desktop blur and the aurora aren't captured; the background is the palette's `bg`. It draws with the real UI code: SwiftUI on macOS, GTK on Linux (which needs a Wayland session; exit 5 without one: rely on `render` then).

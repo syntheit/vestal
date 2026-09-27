@@ -44,4 +44,4 @@ A `run` that toggles something and shows it at once (the privacy toggle of the `
 }
 ```
 
-Nothing runs from `vestal render`, `vestal eval` or `vestal check-config`: `vestal render --press <key>` only opens popups and switches views. `vestal check-config --commands` lists the command sources a config runs; read `run` actions in the config itself before telling the user what runs.
+Nothing runs from `vestal render`, `vestal eval` or `vestal check-config`: `vestal render --press <key>` only opens popups and switches views. `vestal check-config --commands` lists every program a config can run, `run` actions included, with what triggers each one.

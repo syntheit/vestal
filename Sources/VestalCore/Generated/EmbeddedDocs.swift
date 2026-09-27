@@ -51,7 +51,7 @@ A `run` that toggles something and shows it at once (the privacy toggle of the `
 }
 ```
 
-Nothing runs from `vestal render`, `vestal eval` or `vestal check-config`: `vestal render --press <key>` only opens popups and switches views. `vestal check-config --commands` lists the command sources a config runs; read `run` actions in the config itself before telling the user what runs.
+Nothing runs from `vestal render`, `vestal eval` or `vestal check-config`: `vestal render --press <key>` only opens popups and switches views. `vestal check-config --commands` lists every program a config can run, `run` actions included, with what triggers each one.
 
 """#,
         "agents": #"""
@@ -69,7 +69,7 @@ Vestal is a full-screen dashboard toggled by a key, on macOS and Linux, driven b
 4. **One config serves macOS and Linux.** Use the built-in sources (`system`, `media`, `calendar`, `claude`) rather than OS commands. Put what is truly OS-specific (fonts, a command that exists on one OS, a player name) in `platform.macos` or `platform.linux`, and check both OSes: `vestal check-config --platform linux`.
 5. **Validate before you claim success:** `vestal check-config --json` must say `"error": 0` (exit 0, not 3), and `vestal render` must end with `diagnostics: 0`. Then look at it (`vestal screenshot`).
 6. **Prefer what exists:** presets (`vestal docs presets`), semantic colours (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
-7. **Tell the user what runs.** `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists the command sources; mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
+7. **Tell the user what runs.** `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists every program the config can run (command sources, inline or from a template too; `command` secrets; `run` actions in widgets, views, keys and templates; the v0.3 privacy toggle and foyer hosts), with what triggers it and whether it is on `PATH`. Mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
 8. **Lists replace, objects merge.** Your file is merged over the built-in defaults: objects merge key by key, but a list (such as `views.main.children`) replaces the default list whole, and `null` deletes a default. When you add a widget to a view, write the view's full list.
 
 ## 2. The loop
@@ -89,7 +89,27 @@ $ vestal docs                    # the topics; `vestal docs widget/list`, `vesta
 $ vestal print-config            # the effective config, defaults included (what your file merges over)
 ```
 
-`vestal capabilities` tells you, before you write anything, whether `media` has a player (and which names work), whether the calendar has a backend, whether `wpctl` or `playerctl` is missing, and whether `vestal screenshot` can draw here. Read it first: a widget over a source that can't work here only wastes the user's screen.
+On a Linux server without a display, for example:
+
+```text
+$ vestal capabilities --config /tmp/vestal-draft.json
+os: linux, UI: GTK 4 (layer shell)
+config: /tmp/vestal-draft.json
+instance: not running
+sources:
+  system    ok  /proc and /sys: null here: battery, audio.volume, gpu
+  media     ok  MPRIS through playerctl: no MPRIS player running
+  calendar  no  none: no calendar backend: set `ics` (files, a vdirsyncer directory or URLs) on the calendar source
+  audio     no  wpctl: wpctl found, but no default output device
+  claude    ok  Claude Code logs: /home/me/.claude/projects
+icons: ok  …/share/vestal/icons/Phosphor.ttf, …/share/vestal/icons/Phosphor-Fill.ttf
+screenshot: no  needs a Wayland session (WAYLAND_DISPLAY is not set); `vestal render` works anywhere
+hotkey: no  not grabbed on Wayland: bind `vestal toggle` in the compositor (Hyprland: bind = , Home, exec, vestal toggle)
+programs:
+  gh  /etc/profiles/per-user/me/bin/gh  (source prs)
+```
+
+`--json` gives the same as data: `sources.<type>.{backend, ok, detail}` (plus `players` for media and `null`, the `system` fields this machine can't read), `icons`, `screenshot.supported`, `hotkey.supported`, `programs[].{program, found, path, usedBy}` and `missing`. `vestal capabilities` tells you, before you write anything, whether `media` has a player (and which names work), whether the calendar has a backend, whether `wpctl` or `playerctl` is missing, and whether `vestal screenshot` can draw here. Read it first: a widget over a source that can't work here only wastes the user's screen.
 
 Without any config, the dashboard shows the defaults: `clock`, `systemBar`, `media`, `agenda`, `systems`, `weather` in view `main`, from the sources `system`, `media`, `claude`, `calendar` and `weather`.
 
@@ -273,6 +293,8 @@ It shows the template chain, the source and its `$meta` (did the fetch work?), e
 ```text
 $ vestal screenshot /tmp/vestal.png --config /tmp/vestal-draft.json --frames /tmp/vestal-frames.json
 /tmp/vestal.png
+$ vestal screenshot /tmp/vestal.png --config /tmp/vestal-draft.json --json
+{"clipped":0,"diagnostics":0,"frames":null,"height":982,"path":"/tmp/vestal.png","scale":2,"truncated":0,"width":1512}
 ```
 
 Then open `/tmp/vestal.png` with your image-viewing tool and look: alignment, crowding, colours, anything cut off. `--frames` writes every node's frame, with `clipped: true` on nodes cut off at the bottom of the screen (vestal never scrolls) and `truncated: true` on texts cut by `lines`: check those without reading pixels. It takes the same `--view`, `--press`, `--data` and `--at` as `render`, plus `--size <w>x<h>` and `--scale`. The desktop blur and the aurora aren't captured; the background is the palette's `bg`. It draws with the real UI code: SwiftUI on macOS, GTK on Linux (which needs a Wayland session; exit 5 without one: rely on `render` then).
@@ -950,7 +972,7 @@ With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "..
 | `vestal show [view]`, `vestal toggle [view]` | Show, or show or hide, the dashboard; start vestal if needed. `view` must name a view of the config (exit 4 otherwise). |
 | `vestal hide`, `vestal reload`, `vestal quit` | Tell the running instance. Exit 1 when none runs; they never start one. |
 | `vestal status [--json]` | The running instance: pid, build, config file, warnings, each source's age and last error, and this machine's stats. |
-| `vestal subscribe [--view <name>] [--while-hidden] [--role ui\|observer] [--control] [--json-only]` | Print the live render-model stream (`vestal docs protocol`) until Ctrl-C. Exit 1 when none runs. |
+| `vestal subscribe [--view <name>] [--while-hidden] [--role ui\|observer\|control] [--control] [--minor <n>] [--input]` | Print the live render-model stream (`vestal docs protocol`) until the instance hangs up or Ctrl-C; `--input` forwards JSON commands typed on stdin. Exit 1 when none runs. |
 
 ## Looking at the machine and the data
 
@@ -974,7 +996,7 @@ Checks a config file (default: the one vestal loads; `-` reads stdin) after merg
 
 - `--json`: `{"file", "status", "counts": {"error", "warning", "info"}, "diagnostics": [...]}`. Each diagnostic has `severity`, `code`, `pointer`, `layer` (`user`, `platform.macos`, `platform.linux` or `defaults`), `message`, and where they apply `suggestion` (the best) and `suggestions` (up to 3), `expected` and `found`, `line` and `column`, `exprOffset`, and `platform` (for a finding only the other OS's block causes).
 - `--platform macos|linux`: check as that OS loads the file. The default, `all`, checks this OS and also the other OS's block.
-- `--commands`: list the programs the config runs on a schedule or a v0.3 key (command sources, the `systemBar` privacy toggle, `systemHealth` foyer hosts): where it is defined, what triggers it, the environment keys it adds, whether the program is on this machine's `PATH`, and the argv as written. Exit 0.
+- `--commands`: list every program the config can run: `command` sources (named, inline, or from a source template), `command` secrets, `run` actions in widgets, views, global keys and templates, the `systemBar` privacy toggle and `systemHealth` foyer hosts. For each: where it is defined (pointer), what triggers it, the environment keys it adds, whether the program is on this machine's `PATH`, and the argv as written (text holes are never evaluated). Exit 0.
 
 Severities: **error** (that part won't work; the rest still runs), **warning** (ignored or defaulted), **info** (advice, such as `legacy` notes about v0.3 widgets).
 
@@ -1450,10 +1472,12 @@ A source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `f
 A UI in any language or toolkit can draw vestal: it connects to the running instance's socket, subscribes, and receives the render model (`vestal docs render-model`) as a stream of JSON lines. `vestal subscribe` is the reference client and a debugging tool:
 
 ```text
-vestal subscribe [--view <name>] [--while-hidden] [--role ui|observer] [--control] [--json-only]
+vestal subscribe [--view <name>] [--while-hidden] [--role ui|observer|control] [--control] [--minor <n>] [--input]
 ```
 
-It prints every message the instance sends, one JSON object per line, until Ctrl-C, and exits 1 when no instance runs.
+It prints every message the instance sends, one JSON object per line, until the instance hangs up or Ctrl-C. It subscribes as an `observer` unless `--role` says otherwise. `--input` sends the JSON lines you type on stdin (`{"cmd":"key","key":"2"}`) to the instance; they count only for the primary `ui` or with `--control`. `--view` asks for that view (it implies `--control`; the switch happens while the dashboard is shown). Exit 0 when the instance ends the stream, 1 when none runs or it sent an `error`, 4 for an unknown view.
+
+Any vestal instance serves subscribers, including a Linux `vestal daemon` with no display (headless): it still evaluates the dashboard while it is "shown" (`vestal show`), so a UI in another process can draw it.
 
 ## The socket
 
@@ -1469,14 +1493,14 @@ It prints every message the instance sends, one JSON object per line, until Ctrl
 
 | Field | Default | |
 |---|---|---|
-| `role` | `observer` | `ui` draws the dashboard; `observer` watches (status bars, debuggers). |
+| `role` | `observer` | `ui` draws the dashboard; `observer` watches (status bars, debuggers); `control` is an observer with `control: true`. |
 | `protocol` | `[1]` | The major versions the client speaks. Without `1`: an `error` message, and the connection closes. |
 | `minor` | `0` | The minor version the client understands; newer node types come as `text` with their `alt`. |
 | `client` | none | A name for logs. |
-| `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). |
+| `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise the headless daemon runs `wl-copy` (`pbcopy` on macOS). (`screenshot` delegation is specified but not implemented yet.) |
 | `whileHidden` | `false` | Keep evaluating and sending patches while the dashboard is hidden (debugging). |
 | `control` | `false` | Let an observer's `invoke`, `key`, `hide` and `view` count. |
-| `view` | none | Switch to this view. |
+| `view` | none | Switch to this view, as a `view` command right after subscribing (primary UI or control only, while shown). |
 
 The connection then stays open. The server writes one JSON message per line; the client writes commands, one per line.
 
@@ -1485,12 +1509,12 @@ The connection then stays open. The server writes one JSON message per line; the
 | Message | |
 |---|---|
 | `{"type": "hello", "protocol": 1, "minor": 0, "server": "0.4.0 (abc1234)", "os": "linux", "role": "observer", "primary": false}` | First, after `subscribe`. `primary` says whether this subscriber is the primary UI. |
-| `snapshot` | The whole model (`vestal docs render-model`), with this connection's `seq`. |
+| `snapshot` | The whole model (`vestal docs render-model`), with this connection's `seq` (1 for the first; every later snapshot or patch adds 1). `visible` in it is `false` for a `whileHidden` subscriber while the dashboard is hidden. |
 | `patch` | Changes since `base` (`vestal docs render-model`). At most one per 50 ms per subscriber; a patch bigger than half a snapshot is sent as a snapshot. |
 | `{"type": "visibility", "visible": true, "view": "main"}` | Show or hide the window. The core decides: `vestal toggle`, Escape and actions all go through it. |
 | `{"type": "effect", "effect": "copy", "text": "…"}` | Put the text on the clipboard. |
 | `{"type": "effect", "effect": "notify", "level": "error", "text": "…"}` | An optional transient message, such as a failed `run`. |
-| `{"type": "error", "code": "protocol", "message": "…", "supported": [1]}` | Then the connection closes. |
+| `{"type": "error", "code": "protocol", "message": "…", "supported": [1]}` | Then the connection closes. Other codes: `request` (a line that isn't a known command, or an unknown `role`), `unavailable` (this instance has no render engine). |
 
 While the dashboard is hidden nothing is evaluated and no patches are sent (unless a subscriber set `whileHidden`). On show, every subscriber gets a fresh snapshot, then `visibility`.
 
@@ -1507,7 +1531,7 @@ While the dashboard is hidden nothing is evaluated and no patches are sent (unle
 ## Roles
 
 - The **primary UI** is the most recent `ui` subscriber still connected. When it disconnects, the previous `ui` subscriber becomes primary.
-- Only the primary UI receives effects, and only its `invoke`, `key`, `hide` and `view` count.
+- Only the primary UI receives effects, and only its `invoke`, `key`, `hide` and `view` count; another `ui`'s are ignored.
 - Observers get snapshots, patches and visibility; their commands are ignored unless they subscribed with `control: true`. `snapshot` always works.
 
 ## Backpressure

@@ -43,7 +43,7 @@ With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "..
 | `vestal show [view]`, `vestal toggle [view]` | Show, or show or hide, the dashboard; start vestal if needed. `view` must name a view of the config (exit 4 otherwise). |
 | `vestal hide`, `vestal reload`, `vestal quit` | Tell the running instance. Exit 1 when none runs; they never start one. |
 | `vestal status [--json]` | The running instance: pid, build, config file, warnings, each source's age and last error, and this machine's stats. |
-| `vestal subscribe [--view <name>] [--while-hidden] [--role ui\|observer] [--control] [--json-only]` | Print the live render-model stream (`vestal docs protocol`) until Ctrl-C. Exit 1 when none runs. |
+| `vestal subscribe [--view <name>] [--while-hidden] [--role ui\|observer\|control] [--control] [--minor <n>] [--input]` | Print the live render-model stream (`vestal docs protocol`) until the instance hangs up or Ctrl-C; `--input` forwards JSON commands typed on stdin. Exit 1 when none runs. |
 
 ## Looking at the machine and the data
 
@@ -67,7 +67,7 @@ Checks a config file (default: the one vestal loads; `-` reads stdin) after merg
 
 - `--json`: `{"file", "status", "counts": {"error", "warning", "info"}, "diagnostics": [...]}`. Each diagnostic has `severity`, `code`, `pointer`, `layer` (`user`, `platform.macos`, `platform.linux` or `defaults`), `message`, and where they apply `suggestion` (the best) and `suggestions` (up to 3), `expected` and `found`, `line` and `column`, `exprOffset`, and `platform` (for a finding only the other OS's block causes).
 - `--platform macos|linux`: check as that OS loads the file. The default, `all`, checks this OS and also the other OS's block.
-- `--commands`: list the programs the config runs on a schedule or a v0.3 key (command sources, the `systemBar` privacy toggle, `systemHealth` foyer hosts): where it is defined, what triggers it, the environment keys it adds, whether the program is on this machine's `PATH`, and the argv as written. Exit 0.
+- `--commands`: list every program the config can run: `command` sources (named, inline, or from a source template), `command` secrets, `run` actions in widgets, views, global keys and templates, the `systemBar` privacy toggle and `systemHealth` foyer hosts. For each: where it is defined (pointer), what triggers it, the environment keys it adds, whether the program is on this machine's `PATH`, and the argv as written (text holes are never evaluated). Exit 0.
 
 Severities: **error** (that part won't work; the rest still runs), **warning** (ignored or defaulted), **info** (advice, such as `legacy` notes about v0.3 widgets).
 

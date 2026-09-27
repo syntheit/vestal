@@ -3,10 +3,12 @@
 A UI in any language or toolkit can draw vestal: it connects to the running instance's socket, subscribes, and receives the render model (`vestal docs render-model`) as a stream of JSON lines. `vestal subscribe` is the reference client and a debugging tool:
 
 ```text
-vestal subscribe [--view <name>] [--while-hidden] [--role ui|observer] [--control] [--json-only]
+vestal subscribe [--view <name>] [--while-hidden] [--role ui|observer|control] [--control] [--minor <n>] [--input]
 ```
 
-It prints every message the instance sends, one JSON object per line, until Ctrl-C, and exits 1 when no instance runs.
+It prints every message the instance sends, one JSON object per line, until the instance hangs up or Ctrl-C. It subscribes as an `observer` unless `--role` says otherwise. `--input` sends the JSON lines you type on stdin (`{"cmd":"key","key":"2"}`) to the instance; they count only for the primary `ui` or with `--control`. `--view` asks for that view (it implies `--control`; the switch happens while the dashboard is shown). Exit 0 when the instance ends the stream, 1 when none runs or it sent an `error`, 4 for an unknown view.
+
+Any vestal instance serves subscribers, including a Linux `vestal daemon` with no display (headless): it still evaluates the dashboard while it is "shown" (`vestal show`), so a UI in another process can draw it.
 
 ## The socket
 
@@ -22,14 +24,14 @@ It prints every message the instance sends, one JSON object per line, until Ctrl
 
 | Field | Default | |
 |---|---|---|
-| `role` | `observer` | `ui` draws the dashboard; `observer` watches (status bars, debuggers). |
+| `role` | `observer` | `ui` draws the dashboard; `observer` watches (status bars, debuggers); `control` is an observer with `control: true`. |
 | `protocol` | `[1]` | The major versions the client speaks. Without `1`: an `error` message, and the connection closes. |
 | `minor` | `0` | The minor version the client understands; newer node types come as `text` with their `alt`. |
 | `client` | none | A name for logs. |
-| `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). |
+| `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise the headless daemon runs `wl-copy` (`pbcopy` on macOS). (`screenshot` delegation is specified but not implemented yet.) |
 | `whileHidden` | `false` | Keep evaluating and sending patches while the dashboard is hidden (debugging). |
 | `control` | `false` | Let an observer's `invoke`, `key`, `hide` and `view` count. |
-| `view` | none | Switch to this view. |
+| `view` | none | Switch to this view, as a `view` command right after subscribing (primary UI or control only, while shown). |
 
 The connection then stays open. The server writes one JSON message per line; the client writes commands, one per line.
 
@@ -38,12 +40,12 @@ The connection then stays open. The server writes one JSON message per line; the
 | Message | |
 |---|---|
 | `{"type": "hello", "protocol": 1, "minor": 0, "server": "0.4.0 (abc1234)", "os": "linux", "role": "observer", "primary": false}` | First, after `subscribe`. `primary` says whether this subscriber is the primary UI. |
-| `snapshot` | The whole model (`vestal docs render-model`), with this connection's `seq`. |
+| `snapshot` | The whole model (`vestal docs render-model`), with this connection's `seq` (1 for the first; every later snapshot or patch adds 1). `visible` in it is `false` for a `whileHidden` subscriber while the dashboard is hidden. |
 | `patch` | Changes since `base` (`vestal docs render-model`). At most one per 50 ms per subscriber; a patch bigger than half a snapshot is sent as a snapshot. |
 | `{"type": "visibility", "visible": true, "view": "main"}` | Show or hide the window. The core decides: `vestal toggle`, Escape and actions all go through it. |
 | `{"type": "effect", "effect": "copy", "text": "…"}` | Put the text on the clipboard. |
 | `{"type": "effect", "effect": "notify", "level": "error", "text": "…"}` | An optional transient message, such as a failed `run`. |
-| `{"type": "error", "code": "protocol", "message": "…", "supported": [1]}` | Then the connection closes. |
+| `{"type": "error", "code": "protocol", "message": "…", "supported": [1]}` | Then the connection closes. Other codes: `request` (a line that isn't a known command, or an unknown `role`), `unavailable` (this instance has no render engine). |
 
 While the dashboard is hidden nothing is evaluated and no patches are sent (unless a subscriber set `whileHidden`). On show, every subscriber gets a fresh snapshot, then `visibility`.
 
@@ -60,7 +62,7 @@ While the dashboard is hidden nothing is evaluated and no patches are sent (unle
 ## Roles
 
 - The **primary UI** is the most recent `ui` subscriber still connected. When it disconnects, the previous `ui` subscriber becomes primary.
-- Only the primary UI receives effects, and only its `invoke`, `key`, `hide` and `view` count.
+- Only the primary UI receives effects, and only its `invoke`, `key`, `hide` and `view` count; another `ui`'s are ignored.
 - Observers get snapshots, patches and visibility; their commands are ignored unless they subscribed with `control: true`. `snapshot` always works.
 
 ## Backpressure
