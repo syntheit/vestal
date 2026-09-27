@@ -38,7 +38,7 @@ These keep their v0.3 names, parameters and look, so v0.3 configs work unchanged
 
 ### `clock`
 
-The local time (size 56, ultralight, mono), the date, and `worldClocks` under them: `[{"label": "NYC", "tz": "America/New_York"}]`. A world clock in the local zone, or with an unknown zone, is skipped.
+The local time (size 56, ultralight, mono), the date, and `worldClocks` under them: `[{"label": "NYC", "tz": "America/New_York"}]`. A world clock in the local zone, or with an unknown zone, is skipped. Times are 24-hour on every system (`13:46:38`); `hour12: true` shows `1:46:38 PM`. The date follows the locale.
 
 ### `systemBar`
 
@@ -50,7 +50,7 @@ What a music player is playing, with play/pause (click the icon) and the output 
 
 ### `agendaList`
 
-The next `maxEvents` (5) events of `source` (a `calendar` source, or any source with the same event list) under `title` (`Today`). The first timed event shows how soon it starts, in `warn` within 15 minutes. Hidden when there are no events left.
+The next `maxEvents` (5) events of `source` (a `calendar` source, or any source with the same event list) under `title` (`Today`), with 24-hour start times (`hour12: true` for `1:46 PM`). The first timed event shows how soon it starts, in `warn` within 15 minutes. Hidden when there are no events left.
 
 ### `systemHealth`
 

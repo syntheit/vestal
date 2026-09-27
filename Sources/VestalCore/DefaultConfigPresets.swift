@@ -95,12 +95,13 @@ public enum DefaultPresets {
       "clock": {
         "description": "Local time and date, with world clocks under them (v0.3 clock)",
         "params": {
-          "worldClocks": { "type": "array", "default": [], "description": "[{\"label\": \"NYC\", \"tz\": \"America/New_York\"}]; clocks in the local zone or with an unknown zone are skipped" }
+          "worldClocks": { "type": "array", "default": [], "description": "[{\"label\": \"NYC\", \"tz\": \"America/New_York\"}]; clocks in the local zone or with an unknown zone are skipped" },
+          "hour12": { "type": "boolean", "default": false, "description": "12-hour times with AM/PM (1:46:38 PM, world clocks 1:46 PM) instead of 24-hour (13:46:38, 13:46)" }
         },
         "widget": {
           "type": "stack", "gap": 4, "align": "center", "spaceBefore": 0,
           "children": [
-            { "type": "text", "text": "{{ now | fmt_localized(\"JJmmss\") }}", "style": { "size": 56, "weight": "ultralight", "font": "mono" } },
+            { "type": "text", "text": "{{ now | fmt_time(if $hour12 then \"h:mm:ss a\" else \"HH:mm:ss\" end) }}", "style": { "size": 56, "weight": "ultralight", "font": "mono" } },
             { "type": "text", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}", "style": { "size": 15, "font": "rounded", "color": "subtle" } },
             {
               "type": "list", "spaceBefore": 10, "direction": "row", "gap": 16,
@@ -109,7 +110,7 @@ public enum DefaultPresets {
               "empty": { "type": "spacer", "height": 0 },
               "row": { "type": "row", "gap": 4, "children": [
                 { "type": "text", "text": "{{ .label }}", "style": { "size": 11, "weight": "semibold", "color": "dim" } },
-                { "type": "text", "text": "{{ now | fmt_time(\"HH:mm\"; $item.tz) }}", "style": { "size": 11, "font": "mono", "color": "subtle" } }
+                { "type": "text", "text": "{{ now | fmt_time(if $hour12 then \"h:mm a\" else \"HH:mm\" end; $item.tz) }}", "style": { "size": 11, "font": "mono", "color": "subtle" } }
               ] }
             }
           ]
@@ -204,7 +205,8 @@ public enum DefaultPresets {
         "params": {
           "source": { "type": "source", "required": true },
           "maxEvents": { "type": "integer", "default": 5 },
-          "title": { "type": "text", "default": "Today" }
+          "title": { "type": "text", "default": "Today" },
+          "hour12": { "type": "boolean", "default": false, "description": "Start times as 1:46 PM instead of 13:46" }
         },
         "widget": {
           "type": "section", "title": { "param": "title" }, "spaceBefore": 24,
@@ -217,7 +219,7 @@ public enum DefaultPresets {
               "items": "([$events | to_entries[] | select(.value.allDay | not) | .key] | first) as $ft | $events | to_entries | map(.value + {firstTimed: (.key == $ft)})",
               "rowId": ".title + \"@\" + (.start | tostring)",
               "row": { "type": "row", "gap": 10, "children": [
-                { "type": "text", "text": "{{ .start | fmt_time(\"HH:mm\") }}", "when": ".allDay | not", "style": { "size": 12, "font": "mono", "color": "subtle" } },
+                { "type": "text", "text": "{{ .start | fmt_time(if $hour12 then \"h:mm a\" else \"HH:mm\" end) }}", "when": ".allDay | not", "style": { "size": 12, "font": "mono", "color": "subtle" } },
                 { "type": "text", "text": "{{ .title }}", "style": { "size": 13, "weight": "medium" } },
                 { "type": "switch", "on": "if .allDay then \"allDay\" elif .firstTimed then \"next\" else \"\" end",
                   "cases": {

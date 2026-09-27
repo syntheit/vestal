@@ -3791,6 +3791,19 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "hour12": {
+          "default": false,
+          "description": "Start times as 1:46 PM instead of 13:46",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "id": {
           "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
           "examples": [
@@ -5528,6 +5541,19 @@
           "examples": [
             24,
             "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "hour12": {
+          "default": false,
+          "description": "12-hour times with AM/PM (1:46:38 PM, world clocks 1:46 PM) instead of 24-hour (13:46:38, 13:46)",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -10844,6 +10870,18 @@
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
+        },
+        "hour12": {
+          "description": "Start times as 1:46 PM instead of 13:46",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
         },
         "icon": {
           "description": "The icon parameter (icon).",

@@ -1266,7 +1266,7 @@ Numbers are written the American way on every system, whatever its locale (`LC_N
 | `fmt_relative` | time → distance from now | `"5m ago"`, `"3h ago"`, `"2d ago"`, `"in 25m"`, `"now"` |
 | `starts_in` | minutes → `"now"`, `"in 25m"`, `"in 2h 5m"` | `125 \| starts_in` → `"in 2h 5m"` |
 | `fmt_time(pattern)`, `fmt_time(pattern; tz)` | time → an ICU date pattern, in the local zone or `tz` | `now \| fmt_time("HH:mm"; "Asia/Tokyo")` |
-| `fmt_localized(skeleton)`, `fmt_localized(skeleton; tz)` | time → the locale's form of an ICU skeleton | `now \| fmt_localized("EEEEMMMMdy")` → `"Sunday, September 27, 2026"`; `"JJmm"`: hours and minutes in the locale's hour cycle |
+| `fmt_localized(skeleton)`, `fmt_localized(skeleton; tz)` | time → the locale's form of an ICU skeleton | `now \| fmt_localized("EEEEMMMMdy")` → `"Sunday, September 27, 2026"`; `"JJmm"`: hours and minutes in the locale's hour cycle (12-hour without AM/PM in `en_US`; for a fixed 24-hour time use `fmt_time("HH:mm")`) |
 | `clock24` | 12-hour text → 24-hour | `"06:15 PM"` → `"18:15"`, `"06:15"` → `"6:15"` |
 | `capitalize` | first letter upper-cased | `"exchange"` → `"Exchange"` |
 | `titlecase` | every word capitalized | `"new york"` → `"New York"` |
@@ -1433,7 +1433,7 @@ These keep their v0.3 names, parameters and look, so v0.3 configs work unchanged
 
 ### `clock`
 
-The local time (size 56, ultralight, mono), the date, and `worldClocks` under them: `[{"label": "NYC", "tz": "America/New_York"}]`. A world clock in the local zone, or with an unknown zone, is skipped.
+The local time (size 56, ultralight, mono), the date, and `worldClocks` under them: `[{"label": "NYC", "tz": "America/New_York"}]`. A world clock in the local zone, or with an unknown zone, is skipped. Times are 24-hour on every system (`13:46:38`); `hour12: true` shows `1:46:38 PM`. The date follows the locale.
 
 ### `systemBar`
 
@@ -1445,7 +1445,7 @@ What a music player is playing, with play/pause (click the icon) and the output 
 
 ### `agendaList`
 
-The next `maxEvents` (5) events of `source` (a `calendar` source, or any source with the same event list) under `title` (`Today`). The first timed event shows how soon it starts, in `warn` within 15 minutes. Hidden when there are no events left.
+The next `maxEvents` (5) events of `source` (a `calendar` source, or any source with the same event list) under `title` (`Today`), with 24-hour start times (`hour12: true` for `1:46 PM`). The first timed event shows how soon it starts, in `warn` within 15 minutes. Hidden when there are no events left.
 
 ### `systemHealth`
 

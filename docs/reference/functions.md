@@ -24,7 +24,7 @@ Numbers are written the American way on every system, whatever its locale (`LC_N
 | `fmt_relative` | time → distance from now | `"5m ago"`, `"3h ago"`, `"2d ago"`, `"in 25m"`, `"now"` |
 | `starts_in` | minutes → `"now"`, `"in 25m"`, `"in 2h 5m"` | `125 \| starts_in` → `"in 2h 5m"` |
 | `fmt_time(pattern)`, `fmt_time(pattern; tz)` | time → an ICU date pattern, in the local zone or `tz` | `now \| fmt_time("HH:mm"; "Asia/Tokyo")` |
-| `fmt_localized(skeleton)`, `fmt_localized(skeleton; tz)` | time → the locale's form of an ICU skeleton | `now \| fmt_localized("EEEEMMMMdy")` → `"Sunday, September 27, 2026"`; `"JJmm"`: hours and minutes in the locale's hour cycle |
+| `fmt_localized(skeleton)`, `fmt_localized(skeleton; tz)` | time → the locale's form of an ICU skeleton | `now \| fmt_localized("EEEEMMMMdy")` → `"Sunday, September 27, 2026"`; `"JJmm"`: hours and minutes in the locale's hour cycle (12-hour without AM/PM in `en_US`; for a fixed 24-hour time use `fmt_time("HH:mm")`) |
 | `clock24` | 12-hour text → 24-hour | `"06:15 PM"` → `"18:15"`, `"06:15"` → `"6:15"` |
 | `capitalize` | first letter upper-cased | `"exchange"` → `"Exchange"` |
 | `titlecase` | every word capitalized | `"new york"` → `"New York"` |

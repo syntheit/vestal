@@ -620,6 +620,7 @@ The local time and date.
 | Key | Type | Default | |
 |---|---|---|---|
 | `worldClocks` | list of `{ "label": string, "tz": string }` | none | Extra clocks under the date. `tz` is an IANA zone such as `"America/New_York"`. A clock in the local time zone, or with an unknown zone, is skipped. Both keys are required. |
+| `hour12` | boolean | `false` | 12-hour times with AM/PM (`1:46:38 PM`, world clocks `1:46 PM`). By default times are 24-hour (`13:46:38`, `13:46`) whatever the system's locale; the date follows the locale. |
 
 ### `systemBar`
 
@@ -650,6 +651,7 @@ The next events from a calendar source.
 | `source` | string | required | A `calendar` source, or a `command`, `http` or `file` source whose JSON is the same list of events (see [calendar](#calendar)). |
 | `maxEvents` | integer, at least 1 | `5` | At most this many events. |
 | `title` | string | `"Today"` | Section title. |
+| `hour12` | boolean | `false` | Start times as `1:46 PM` instead of `13:46`. |
 
 ### `systemHealth`
 
