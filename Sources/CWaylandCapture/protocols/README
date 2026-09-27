@@ -1,0 +1,18 @@
+The Wayland protocols the self-blurred backdrop captures the screen with
+(capture.c), and the source of the generated glue one directory up:
+
+  ext-image-copy-capture-v1.xml     wayland-protocols 1.48, staging
+  ext-image-capture-source-v1.xml   wayland-protocols 1.48, staging
+  ext-foreign-toplevel-list-v1.xml  wayland-protocols 1.48, staging (only
+                                    because ext-image-capture-source names
+                                    its handle interface)
+  wlr-screencopy-unstable-v1.xml    wlr-protocols (unstable-2022-09-05)
+
+Regenerate after replacing an XML (wayland-scanner 1.24.0 made these; the
+flake's `wayland-glue` check compares them):
+
+  for x in *.xml; do
+    n=${x%.xml}
+    wayland-scanner client-header $x ../$n-client-protocol.h
+    wayland-scanner private-code $x ../$n-protocol.c
+  done

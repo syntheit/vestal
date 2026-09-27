@@ -43,6 +43,8 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 | `theme.fonts` | A family per role; `null` is the platform default. |
 | `theme.icons` | The icon font family per weight; `mode` (`native` or `phosphor`) when the config sets `theme.icons`. |
 | `theme.dim` | The config's `theme.dim`, clamped to 0 to 1, when it sets one: the opacity of `bg` over the blurred desktop for `aurora` and `blur`. Absent: the UI's default (0.5 in the GTK UI; no tint in the macOS UI). |
+| `theme.backdrop` | The config's `theme.backdrop` (`self`, `compositor` or `none`) when it sets one. Absent: `self` in the GTK UI where the compositor can capture the screen; the macOS UI ignores it. |
+| `theme.blur` | The config's `theme.blur`, clamped to 0 to 200, when it sets one: the radius in points of the GTK UI's own blur. Absent: 48. |
 | `root` | The view's tree. |
 | `popup` | `null`, or `{"id": "popup", "width": 520, "node": <node>}`. |
 | `diagnostics` | Problems found while rendering (below). |

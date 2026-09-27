@@ -50,6 +50,15 @@ public struct RenderTheme: Equatable, Sendable, Codable {
     /// default (`linuxDim` on Linux; none on macOS, where the material
     /// tints). See `windowAlpha`.
     public var dim: Double?
+    /// `theme.backdrop` (§8.1), the GTK UI's: `self` (vestal captures the
+    /// output and blurs it), `compositor` (a translucent window over the
+    /// compositor's blur) or `none` (translucent, no blur asked for). Nil
+    /// (omitted): `self` where the compositor can capture, else
+    /// `compositor`. The macOS UI ignores it.
+    public var backdrop: String?
+    /// `theme.blur` (§8.1): the radius, in points, of `self`'s blur. Nil
+    /// (omitted): `linuxBlur`.
+    public var blur: Double?
 
     public struct Fonts: Equatable, Sendable, Codable {
         public var sans: String?
@@ -90,15 +99,18 @@ public struct RenderTheme: Equatable, Sendable, Codable {
     }
 
     public init(background: String = "aurora", colors: [String: String] = RenderTheme.tokyoNight,
-                fonts: Fonts = Fonts(), icons: Icons = Icons(), dim: Double? = nil) {
+                fonts: Fonts = Fonts(), icons: Icons = Icons(), dim: Double? = nil, backdrop: String? = nil,
+                blur: Double? = nil) {
         self.background = background
         self.colors = colors
         self.fonts = fonts
         self.icons = icons
         self.dim = dim
+        self.backdrop = backdrop
+        self.blur = blur
     }
 
-    private enum CodingKeys: String, CodingKey { case background, colors, fonts, icons, dim }
+    private enum CodingKeys: String, CodingKey { case background, colors, fonts, icons, dim, backdrop, blur }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -107,6 +119,8 @@ public struct RenderTheme: Equatable, Sendable, Codable {
         fonts = try c.decodeIfPresent(Fonts.self, forKey: .fonts) ?? Fonts()
         icons = try c.decodeIfPresent(Icons.self, forKey: .icons) ?? Icons()
         dim = try c.decodeIfPresent(Double.self, forKey: .dim).map(Self.clampDim)
+        backdrop = try c.decodeIfPresent(String.self, forKey: .backdrop).flatMap { ThemeConfig.backdrops.contains($0) ? $0 : nil }
+        blur = try c.decodeIfPresent(Double.self, forKey: .blur).map(Self.clampBlur)
     }
 
     /// The `tokyo-night` palette of §8.2, resolved to `#rrggbbaa`.
@@ -166,12 +180,55 @@ extension RenderTheme {
 
     /// The GTK window's CSS rule: the palette's `bg` at
     /// `windowAlpha(defaultDim: linuxDim)`.
-    public var linuxWindowCSS: String {
+    public var linuxWindowCSS: String { linuxWindowCSS(selfBackdrop: false) }
+
+    /// With `selfBackdrop` (this show draws its own blurred capture, which
+    /// lays the tint itself), the window is clear: the capture, tint and
+    /// aurora are one opaque layer that fades in over the desktop.
+    public func linuxWindowCSS(selfBackdrop: Bool) -> String {
         let hex = colors["bg"].flatMap(RenderPalette.hex) ?? Self.tokyoNight["bg"]!
         let value = UInt64(hex.dropFirst(), radix: 16) ?? 0xff
         func channel(_ shift: UInt64) -> Double { Double((value >> shift) & 0xff) / 255 }
-        let alpha = channel(0) * windowAlpha(defaultDim: Self.linuxDim)
+        let alpha = selfBackdrop ? 0 : channel(0) * windowAlpha(defaultDim: Self.linuxDim)
         return "window.vestal { background-color: \(Format.cssRGBA(red: channel(24), green: channel(16), blue: channel(8), alpha: alpha)); }"
+    }
+}
+
+// MARK: - Backdrop (theme.backdrop, theme.blur)
+
+extension RenderTheme {
+    /// The GTK UI's `theme.blur`: about the macOS HUD material's blur at
+    /// scale 1, heavy enough that text behind the dashboard is gone.
+    public static let linuxBlur = 48.0
+
+    /// `theme.blur`'s range: from none to far more than anyone needs.
+    public static let blurRange = 0.0...200.0
+
+    /// `theme.blur` from the config: a number clamped to `blurRange`
+    /// (check-config warns outside it); nil when absent or not a finite
+    /// number.
+    public static func blur(_ value: AnyJSON?) -> Double? {
+        switch value {
+        case .int(let n)?: return clampBlur(Double(n))
+        case .double(let d)?: return d.isFinite ? clampBlur(d) : nil
+        default: return nil
+        }
+    }
+
+    static func clampBlur(_ value: Double) -> Double {
+        value.isFinite ? min(max(value, blurRange.lowerBound), blurRange.upperBound) : linuxBlur
+    }
+
+    /// `theme.backdrop` from the config, nil unless one of `ThemeConfig.backdrops`.
+    public static func backdrop(_ value: AnyJSON?) -> String? {
+        value?.stringValue.flatMap { ThemeConfig.backdrops.contains($0) ? $0 : nil }
+    }
+
+    /// The backdrop the GTK UI wants: none for a `none` background (the
+    /// opaque `bg`), else `backdrop`, else `self`. The UI falls back to
+    /// `compositor` when the compositor can't capture the screen.
+    public var linuxBackdrop: String {
+        background == "none" ? "none" : (backdrop ?? "self")
     }
 }
 

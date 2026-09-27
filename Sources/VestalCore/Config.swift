@@ -88,6 +88,8 @@ extension Config: Codable {
 public struct ThemeConfig: Codable, Equatable, Sendable {
     public static let palettes = ["tokyo-night"]
     public static let backgrounds = ["aurora", "blur", "none"]
+    /// `theme.backdrop` (Linux): who blurs the desktop behind the dashboard.
+    public static let backdrops = ["self", "compositor", "none"]
 
     public var palette: String = "tokyo-night"
     public var background: String = "aurora" // "aurora" | "blur" | "none"

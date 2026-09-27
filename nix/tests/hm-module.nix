@@ -279,6 +279,28 @@ let
         // vestal
       );
   hyprHome = hypr { inherit settings; };
+  # theme.backdrop "compositor" (here in the Linux block) brings the blur rules back.
+  hyprCompositor = hypr {
+    settings = settings // {
+      platform.linux = {
+        hotkey = "home";
+        theme.backdrop = "compositor";
+      };
+    };
+  };
+  hyprCompositorTop = hypr { settings.theme.backdrop = "compositor"; };
+  hyprCompositorOverridden = hypr {
+    settings = {
+      theme.backdrop = "compositor";
+      platform.linux.theme.backdrop = "self";
+    };
+  };
+  hyprCompositorOpaque = hypr {
+    settings.theme = {
+      backdrop = "compositor";
+      background = "none";
+    };
+  };
   hyprTop = hypr { settings.hotkey = "super+d"; };
   hyprNoLinuxKey = hypr {
     settings = {
@@ -426,18 +448,22 @@ let
         "SUPER, T, exec, foot"
         ", Home, ${toggle}"
       ];
-    "hyprland: layer rules for the vestal namespace" =
-      hyprRules hyprHome == [
+    "hyprland: no blur rules with the default self backdrop" = hyprRules hyprHome == [ ];
+    "hyprland: blur rules for backdrop compositor" =
+      hyprRules hyprCompositor == [
         "blur on, match:namespace ^(vestal)$"
         "ignore_alpha 0.300000, match:namespace ^(vestal)$"
-      ];
+      ]
+      && hyprRules hyprCompositorTop == hyprRules hyprCompositor;
+    "hyprland: platform.linux backdrop wins over the top level" = hyprRules hyprCompositorOverridden == [ ];
+    "hyprland: no blur rules for an opaque background" = hyprRules hyprCompositorOpaque == [ ];
     "hyprland: top-level hotkey when platform.linux has none" =
       hyprBinds hyprTop == [
         "SUPER, T, exec, foot"
         "SUPER, D, ${toggle}"
       ];
     "hyprland: platform.linux null hotkey, no bind" =
-      hyprBinds hyprNoLinuxKey == [ "SUPER, T, exec, foot" ] && hyprRules hyprNoLinuxKey != [ ];
+      hyprBinds hyprNoLinuxKey == [ "SUPER, T, exec, foot" ];
     "hyprland: no hotkey, no bind" = hyprBinds hyprNone == [ "SUPER, T, exec, foot" ];
     "hyprland: explicit bind and rule options" =
       hyprBinds hyprOverride == [

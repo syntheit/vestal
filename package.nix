@@ -11,6 +11,9 @@
 {
   lib,
   stdenv,
+  # Linux: SwiftPM compiles C targets (CWaylandCapture) with $CC and clang's
+  # flags, so the build needs clang, as nixpkgs' own SwiftPM packages use.
+  clangStdenv,
   swift,
   swiftpm,
   swiftPackages,
@@ -88,7 +91,7 @@ let
     }
   );
 in
-stdenv.mkDerivation {
+(if stdenv.hostPlatform.isLinux then clangStdenv else stdenv).mkDerivation {
   pname = "vestal";
   inherit version;
 

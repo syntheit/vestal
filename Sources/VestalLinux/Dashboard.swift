@@ -22,8 +22,10 @@ import VestalCore
 // unmapped: no surface, no frames, no aurora, no timers. The compositor
 // chooses the output each time it is mapped (no output is set), which on
 // Hyprland and Sway is the focused one; gtk4-layer-shell can't ask where the
-// pointer is. Without layer-shell (GNOME), it is an undecorated fullscreen
-// window instead.
+// pointer is. With a self-blurred backdrop (`theme.backdrop: "self"`, the
+// default, SelfBlur.swift) a show first captures the compositor's focused
+// output, then pins the window there. Without layer-shell (GNOME), it is an
+// undecorated fullscreen window instead.
 
 public final class LinuxDashboard {
     public enum InitError: Error, CustomStringConvertible {
@@ -69,6 +71,18 @@ public final class LinuxDashboard {
     private var fadeTick: guint = 0
     /// A screenshot is being taken (see `capture`).
     private var capturing = false
+    /// This show draws its own blurred capture of the output (the window's
+    /// CSS is then clear; the aurora's GL area is the whole background).
+    private var selfBackdrop = false
+    /// The compositor can't capture the screen: `self` is `compositor` for
+    /// the rest of the process.
+    private var captureUnsupported = false
+    private var loggedCaptureFailure = false
+    /// The capture's half of the log line the blur completes.
+    private var backdropLog: String?
+    private var loggedBackdrop = false
+    /// VESTAL_TRACE_BACKDROP=1: log every show's capture and blur times.
+    private let traceBackdrop = ProcessInfo.processInfo.environment["VESTAL_TRACE_BACKDROP"] == "1"
 
     /// `send` receives every click (`invoke`) and key (`key`) the UI doesn't
     /// consume itself, and `hide` when the window goes away on its own.
@@ -105,6 +119,9 @@ public final class LinuxDashboard {
         gtk_widget_set_opacity(stage.widget, 0)
         installKeys()
         installCloseRequest()
+        aurora.tint = context.theme.backdropTint
+        aurora.onFailure = { [weak self] in self?.backdropUnavailable() }
+        aurora.onBackdropBlurred = { [weak self] milliseconds in self?.logBackdrop(blurred: milliseconds) }
         applyThemeCSS()
     }
 
@@ -178,16 +195,32 @@ public final class LinuxDashboard {
 
     private func setTheme(_ theme: RenderTheme) {
         context.theme = ThemeState(theme)
+        aurora.ribbons = theme.background == "aurora"
+        aurora.tint = context.theme.backdropTint
+        // A reload away from `self` while shown drops the backdrop now; one
+        // to `self` (or a new `blur`) takes effect at the next show, which
+        // captures before it maps.
+        if selfBackdrop, theme.linuxBackdrop != "self" {
+            selfBackdrop = false
+            aurora.clearBackdrop()
+        }
         applyThemeCSS()
-        let wantsAurora = theme.background == "aurora"
-        gtk_widget_set_visible(aurora.widget, wantsAurora && !aurora.failed ? 1 : 0)
+        updateAuroraVisibility()
         // A reload that changes the background while shown: animate or stop now.
-        if isVisible { wantsAurora ? aurora.start() : aurora.stop() }
+        if isVisible { aurora.ribbons || selfBackdrop ? aurora.start() : aurora.stop() }
     }
 
     private func applyThemeCSS() {
-        // The window's background shows at once on show; the content fades.
-        gtk_css_provider_load_from_string(css, context.theme.theme.linuxWindowCSS)
+        // The window's background shows at once on show; the content fades
+        // (with a self backdrop, which is part of the content, from the
+        // desktop to the frosted glass).
+        gtk_css_provider_load_from_string(css, context.theme.theme.linuxWindowCSS(selfBackdrop: selfBackdrop))
+    }
+
+    /// The GL area draws the aurora, the self backdrop, or both.
+    private func updateAuroraVisibility() {
+        let wanted = (context.theme.theme.background == "aurora" || selfBackdrop) && !aurora.failed
+        gtk_widget_set_visible(aurora.widget, wanted ? 1 : 0)
     }
 
     // MARK: Visibility
@@ -199,8 +232,42 @@ public final class LinuxDashboard {
     }
 
     private func show(animated: Bool) {
+        // `theme.backdrop: "self"`: capture the output first, while nothing
+        // of vestal is on it, then map. Not while the window is still mapped
+        // (a hide's fade, a hidden screenshot): that show keeps what it has.
+        if wantsSelfBackdrop, gtk_widget_get_visible(window) == 0 {
+            fadeGeneration += 1
+            let generation = fadeGeneration
+            isVisible = true
+            ScreenCapture.captureFocusedOutput { [weak self] result in
+                // Hidden (or shown again) meanwhile: this capture is stale.
+                guard let self, generation == self.fadeGeneration, self.isVisible else { return }
+                self.present(animated: animated, backdrop: result)
+            }
+            return
+        }
+        present(animated: animated, backdrop: nil)
+    }
+
+    private var wantsSelfBackdrop: Bool {
+        usesLayerShell && !captureUnsupported && !aurora.failed && context.theme.theme.linuxBackdrop == "self"
+    }
+
+    /// Maps (or keeps) the window and fades the content in, over `backdrop`
+    /// when the show captured one.
+    private func present(animated: Bool, backdrop: Result<OutputCapture, CaptureFailure>?) {
         fadeGeneration += 1
         isVisible = true
+        if let backdrop {
+            useBackdrop(backdrop)
+        } else if gtk_widget_get_visible(window) == 0 {
+            // No capture: the compositor's blur, on the output it chooses.
+            selfBackdrop = false
+            aurora.clearBackdrop()
+            if usesLayerShell { gtk_layer_set_monitor(gtkWindow, nil) }
+            applyThemeCSS()
+        }
+        updateAuroraVisibility()
         // A screenshot taken while hidden may have the window mapped
         // invisibly and without input; showing ends that.
         gtk_widget_set_opacity(window, 1)
@@ -210,8 +277,67 @@ public final class LinuxDashboard {
         }
         gtk_widget_set_visible(window, 1)
         gtk_window_present(gtkWindow)
-        if snapshot?.theme.background ?? "aurora" == "aurora" { aurora.start() }
+        if aurora.ribbons || selfBackdrop { aurora.start() }
         fade(to: 1, duration: animated ? 0.2 : 0, easeOut: true, then: nil)
+    }
+
+    // MARK: Self backdrop
+
+    /// Pins the window to the captured output and hands the capture to the
+    /// GL area; on any failure, this show uses the compositor's blur.
+    private func useBackdrop(_ result: Result<OutputCapture, CaptureFailure>) {
+        selfBackdrop = false
+        aurora.clearBackdrop()
+        defer { applyThemeCSS() }
+        let capture: OutputCapture
+        switch result {
+        case .failure(let failure):
+            if failure.permanent { captureUnsupported = true }
+            return backdropFallback(failure.description, permanent: failure.permanent)
+        case .success(let success):
+            capture = success
+        }
+        guard let monitor = Monitors.named(capture.output) else {
+            return backdropFallback("GTK has no monitor \(capture.output.isEmpty ? "(unnamed)" : capture.output)")
+        }
+        let (width, height) = Monitors.size(monitor)
+        // Rotated or flipped outputs: the capture's rows aren't the
+        // window's; rare enough to leave to the compositor.
+        guard capture.transform == 0, width > 0, height > 0,
+              abs(Double(capture.width) / Double(capture.height) - width / height) < 0.02 else {
+            return backdropFallback("\(capture.output) is rotated (\(capture.width)x\(capture.height) for \(Int(width))x\(Int(height)))")
+        }
+        let scale = Double(capture.width) / width
+        let radius = context.theme.theme.blur ?? RenderTheme.linuxBlur
+        gtk_layer_set_monitor(gtkWindow, monitor)
+        aurora.setBackdrop(capture, radius: radius * scale)
+        selfBackdrop = true
+        backdropLog = "\(capture.output) \(capture.width)x\(capture.height) over \(capture.protocolName), "
+            + "captured in \(Format.printf("%.1f", capture.milliseconds)) ms, blur radius \(Format.printf("%g", radius)) pt"
+    }
+
+    private func backdropFallback(_ why: String, permanent: Bool = false) {
+        if usesLayerShell { gtk_layer_set_monitor(gtkWindow, nil) }
+        guard !loggedCaptureFailure || traceBackdrop else { return }
+        loggedCaptureFailure = true
+        uiLog("linux ui: no self-blurred backdrop (\(why)); using the compositor's blur"
+              + (permanent ? " from now on" : " for this show"))
+    }
+
+    private func logBackdrop(blurred milliseconds: Double) {
+        guard let line = backdropLog, !loggedBackdrop || traceBackdrop else { return }
+        loggedBackdrop = true
+        backdropLog = nil
+        uiLog("linux ui: self backdrop: \(line), blurred in \(Format.printf("%.1f", milliseconds)) ms")
+    }
+
+    /// GL failed (at realize, or blurring): back to the translucent window
+    /// over the compositor's blur.
+    private func backdropUnavailable() {
+        guard selfBackdrop else { return }
+        selfBackdrop = false
+        applyThemeCSS()
+        updateAuroraVisibility()
     }
 
     private func hide(animated: Bool) {
@@ -225,6 +351,13 @@ public final class LinuxDashboard {
             gtk_widget_set_visible(self.window, 0)
             if self.usesLayerShell {
                 gtk_layer_set_keyboard_mode(self.gtkWindow, GTK_LAYER_SHELL_KEYBOARD_MODE_NONE)
+            }
+            // The capture's texture goes; the next show captures again.
+            if self.selfBackdrop {
+                self.selfBackdrop = false
+                self.aurora.clearBackdrop()
+                self.applyThemeCSS()
+                self.updateAuroraVisibility()
             }
         }
     }

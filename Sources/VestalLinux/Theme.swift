@@ -101,6 +101,10 @@ final class ThemeState {
     var windowBackground: RGBA {
         color("bg").withAlpha(theme.windowAlpha(defaultDim: RenderTheme.linuxDim))
     }
+
+    /// The same colour over a self-blurred backdrop, which the aurora's GL
+    /// area lays itself (the window is clear then).
+    var backdropTint: RGBA { windowBackground }
 }
 
 // MARK: - Bundled fonts

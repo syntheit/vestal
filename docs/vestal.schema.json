@@ -3173,6 +3173,24 @@
       "additionalProperties": false,
       "description": "Palette and background.",
       "properties": {
+        "backdrop": {
+          "description": "Linux: self (vestal captures the screen before it shows and blurs it), compositor (a translucent window over the compositor's blur) or none (translucent, no blur). Default: self where the compositor can capture the screen, else compositor. macOS ignores it.",
+          "enum": [
+            "self",
+            "compositor",
+            "none",
+            null
+          ],
+          "examples": [
+            "compositor"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "background": {
           "default": "aurora",
           "description": "aurora: the animated aurora over the blurred desktop. blur: the blurred desktop only. none: the palette's solid background.",
@@ -3191,6 +3209,18 @@
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
+        },
+        "blur": {
+          "description": "Linux, backdrop self: the blur's radius in points, 0 to 200. Default 48.",
+          "examples": [
+            64
+          ],
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
         },
         "colors": {
           "additionalProperties": {

@@ -87,7 +87,7 @@ inputs.vestal.url = "github:syntheit/vestal";
 | `signingIdentity` | `null` | macOS: a code signing identity from your keychain (`security find-identity -v -p codesigning`). See below. |
 | `hyprland.enable` | `false` | Linux: adds to `wayland.windowManager.hyprland.settings` a `bind` that runs `vestal toggle`, and `layerrule`s for the layer namespace `vestal`. Needs Hyprland 0.53 or later (`match:` rules) and `configType = "hyprlang"`. |
 | `hyprland.bind` | from the hotkey | The bind's `"MODS, key"`. By default the hotkey vestal uses on Linux (`settings.platform.linux.hotkey`, else `settings.hotkey`) in Hyprland's syntax: `"home"` is `", Home"`, `"super+d"` (`"cmd+d"`) is `"SUPER, D"`. `null`: no bind. |
-| `hyprland.blur`, `.ignoreAlpha`, `.animation`, `.noAnim` | `true`, `0.3`, `null`, `false` | The `blur`, `ignore_alpha`, `animation` and `no_anim` layer rules. |
+| `hyprland.blur`, `.ignoreAlpha`, `.animation`, `.noAnim` | `true`, `0.3`, `null`, `false` | The `blur`, `ignore_alpha`, `animation` and `no_anim` layer rules. `blur` and `ignore_alpha` only with `theme.backdrop = "compositor"` in `settings` (`platform.linux.theme` or `theme`): by default vestal blurs its own capture of the screen in an opaque window (`theme.backdrop` `"self"`, docs/CONFIG.md). |
 
 Every activation also runs `vestal reload`, so a running dashboard picks up the
 new config at once. It never starts vestal and never fails the activation.

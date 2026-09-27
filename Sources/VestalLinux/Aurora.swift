@@ -7,26 +7,54 @@ import VestalCore
 //
 // The macOS aurora (VestalMac/AuroraView.swift), ported from Metal to GLSL in
 // a GtkGLArea behind the dashboard: four ribbons, the same waves, hues,
-// thicknesses, alphas and speeds, premultiplied and added onto a clear
-// background. GTK 4 gives the area an RGBA texture it composites as
-// premultiplied, over the window's translucent `bg` tint and the
-// compositor's blur, so no channel may exceed alpha. It renders only while
-// the dashboard is shown: a tick callback queues one frame per display
-// refresh, and `stop()` removes it, so a hidden dashboard draws nothing.
-// Without GL (no EGL, or a context that fails) the area hides itself and the
-// background is the plain blur.
+// thicknesses, alphas and speeds, premultiplied over a clear background.
+// GTK 4 gives the area an RGBA texture it composites as premultiplied, over
+// the window's translucent `bg` tint and the compositor's blur, so no
+// channel may exceed alpha. It renders only while the dashboard is shown: a
+// tick callback queues one frame per display refresh, and `stop()` removes
+// it, so a hidden dashboard draws nothing. Without GL (no EGL, or a context
+// that fails) the area hides itself and the background is the plain blur.
+//
+// With a self-blurred backdrop (`theme.backdrop: "self"`, SelfBlur.swift)
+// the same pass draws, under the ribbons, the output's blurred screenshot
+// (BackdropBlur, made once per show), with a little of the macOS material's
+// vibrancy (more saturated, a touch darker) and the palette's `bg` at
+// `theme.dim` over it: one opaque layer, the whole background. Without
+// ribbons (`background: "blur"`) it draws once per show, not per frame.
 
 final class AuroraArea {
     let widget: WidgetPtr
     private var area: UnsafeMutablePointer<GtkGLArea> { cast(widget) }
     private var program: GLuint = 0
     private var vao: GLuint = 0
-    private var timeLocation: GLint = -1
-    private var resolutionLocation: GLint = -1
+    private var header = ""
     private var tickId: guint = 0
     private let startTime = g_get_monotonic_time()
     private(set) var failed = false
     private var running = false
+    /// Called once when GL fails (at realize, or blurring a backdrop), so
+    /// the window can fall back to the compositor's blur.
+    var onFailure: (() -> Void)?
+
+    /// Draw the aurora's ribbons (`background: "aurora"`); off, only the
+    /// backdrop (`blur`).
+    var ribbons = true {
+        didSet { if ribbons != oldValue, running { stop(); start() } }
+    }
+    /// The palette's `bg`, and how much of it covers the backdrop.
+    var tint = RGBA.clear {
+        didSet { if tint != oldValue { gtk_gl_area_queue_render(area) } }
+    }
+
+    // The backdrop: a capture waiting for the next frame to blur it, then
+    // the blurred texture.
+    private let blur = BackdropBlur()
+    private var pendingCapture: OutputCapture?
+    private var pendingRadius = 0.0
+    /// Whether a backdrop is set (waiting to be blurred, or drawn).
+    private(set) var hasBackdrop = false
+    /// Called after each blur with the time it took, in ms, for the log.
+    var onBackdropBlurred: ((Double) -> Void)?
 
     init() {
         widget = gtk_gl_area_new()
@@ -52,10 +80,13 @@ final class AuroraArea {
         g_object_unref(UnsafeMutableRawPointer(widget))
     }
 
-    /// Animate: one frame per display refresh while mapped.
+    /// Draw while mapped: one frame per display refresh with ribbons, else
+    /// one frame now (the backdrop is still).
     func start() {
         running = true
-        guard tickId == 0, !failed else { return }
+        guard !failed else { return }
+        guard ribbons else { return gtk_gl_area_queue_render(area) }
+        guard tickId == 0 else { return }
         let tick: GtkTickCallback = { widget, _, _ in
             gtk_gl_area_queue_render(cast(UnsafeMutableRawPointer(widget)))
             return 1 // G_SOURCE_CONTINUE
@@ -72,6 +103,29 @@ final class AuroraArea {
         }
     }
 
+    // MARK: Backdrop
+
+    /// Draws `capture` blurred by `radius` (in the capture's pixels) under
+    /// the ribbons from the next frame on. The blur runs in that frame,
+    /// once.
+    func setBackdrop(_ capture: OutputCapture, radius: Double) {
+        pendingCapture = capture
+        pendingRadius = radius
+        hasBackdrop = true
+        gtk_gl_area_queue_render(area)
+    }
+
+    /// Drops the backdrop and frees its texture (and a capture not yet
+    /// blurred).
+    func clearBackdrop() {
+        pendingCapture = nil
+        hasBackdrop = false
+        guard gtk_widget_get_realized(widget) != 0 else { return }
+        gtk_gl_area_make_current(area)
+        guard gtk_gl_area_get_error(area) == nil else { return }
+        blur.releaseResult()
+    }
+
     // MARK: GL
 
     private func realize() {
@@ -81,109 +135,108 @@ final class AuroraArea {
             return
         }
         let es = gtk_gl_area_get_api(area) == GDK_GL_API_GLES
-        let header = es ? "#version 300 es\nprecision highp float;\n" : "#version 150\n"
-        guard let vertex = compile(GLenum(GL_VERTEX_SHADER), header + Self.vertexSource),
-              let fragment = compile(GLenum(GL_FRAGMENT_SHADER), header + Self.fragmentSource) else { return }
-        let p = epoxy_glCreateProgram!()
-        epoxy_glAttachShader!(p, vertex)
-        epoxy_glAttachShader!(p, fragment)
-        epoxy_glLinkProgram!(p)
-        epoxy_glDeleteShader!(vertex)
-        epoxy_glDeleteShader!(fragment)
-        var linked: GLint = 0
-        epoxy_glGetProgramiv!(p, GLenum(GL_LINK_STATUS), &linked)
-        guard linked != 0 else {
-            fail("link: " + infoLog(p, program: true))
-            epoxy_glDeleteProgram!(p)
-            return
+        header = es ? "#version 300 es\nprecision highp float;\n" : "#version 150\n"
+        switch GLShader.program(header: header, vertex: GLShader.fullscreenVertex, fragment: Self.fragmentSource) {
+        case .success(let p): program = p
+        case .failure(let error): return fail(error.description)
         }
-        program = p
-        timeLocation = epoxy_glGetUniformLocation!(p, "time")
-        resolutionLocation = epoxy_glGetUniformLocation!(p, "resolution")
         // Core profiles need a vertex array bound, even with no buffers.
         epoxy_glGenVertexArrays!(1, &vao)
+        // The blur's programs now, not in a show's first frame. A failure
+        // here is reported when a backdrop needs them (it tries again).
+        _ = blur.prepare(header: header)
         if running { start() }
     }
 
     private func unrealize() {
         gtk_gl_area_make_current(area)
         guard gtk_gl_area_get_error(area) == nil else { return }
+        blur.destroy()
         if program != 0 { epoxy_glDeleteProgram!(program); program = 0 }
         if vao != 0 { epoxy_glDeleteVertexArrays!(1, &vao); vao = 0 }
+        // A backdrop set while realized is gone with its texture; the next
+        // show captures again.
+        if pendingCapture == nil { hasBackdrop = false }
     }
 
     private func render() {
         guard program != 0 else { return }
+        if let capture = pendingCapture {
+            pendingCapture = nil
+            blurBackdrop(capture)
+        }
         epoxy_glClearColor!(0, 0, 0, 0)
         epoxy_glClear!(GLbitfield(GL_COLOR_BUFFER_BIT))
+        epoxy_glDisable!(GLenum(GL_BLEND))
         epoxy_glUseProgram!(program)
         let seconds = Double(g_get_monotonic_time() - startTime) / 1_000_000
-        epoxy_glUniform1f!(timeLocation, GLfloat(seconds))
+        epoxy_glUniform1f!(location("time"), GLfloat(seconds))
         let scale = Double(gtk_widget_get_scale_factor(widget))
-        epoxy_glUniform2f!(resolutionLocation,
+        epoxy_glUniform2f!(location("resolution"),
                            GLfloat(Double(gtk_widget_get_width(widget)) * scale),
                            GLfloat(Double(gtk_widget_get_height(widget)) * scale))
-        // Premultiplied colour added onto the cleared buffer, as the Metal
-        // pipeline's one/one blend does.
-        epoxy_glEnable!(GLenum(GL_BLEND))
-        epoxy_glBlendFunc!(GLenum(GL_ONE), GLenum(GL_ONE))
+        epoxy_glUniform1f!(location("ribbons"), ribbons ? 1 : 0)
+        let backdrop = hasBackdrop && blur.texture != 0
+        epoxy_glUniform1f!(location("hasBackdrop"), backdrop ? 1 : 0)
+        epoxy_glUniform4f!(location("tint"), GLfloat(tint.r), GLfloat(tint.g), GLfloat(tint.b), GLfloat(tint.a))
+        epoxy_glActiveTexture!(GLenum(GL_TEXTURE0))
+        epoxy_glBindTexture!(GLenum(GL_TEXTURE_2D), backdrop ? blur.texture : 0)
+        epoxy_glUniform1i!(location("backdrop"), 0)
         epoxy_glBindVertexArray!(vao)
         epoxy_glDrawArrays!(GLenum(GL_TRIANGLES), 0, 3)
         epoxy_glBindVertexArray!(0)
-        epoxy_glDisable!(GLenum(GL_BLEND))
+        epoxy_glBindTexture!(GLenum(GL_TEXTURE_2D), 0)
         epoxy_glUseProgram!(0)
     }
 
-    private func compile(_ kind: GLenum, _ source: String) -> GLuint? {
-        let shader = epoxy_glCreateShader!(kind)
-        source.withCString { text in
-            var pointer: UnsafePointer<GLchar>? = text
-            epoxy_glShaderSource!(shader, 1, &pointer, nil)
+    private func location(_ name: String) -> GLint { epoxy_glGetUniformLocation!(program, name) }
+
+    /// Runs the blur (inside `render`, with the context current), then
+    /// rebinds the area's own framebuffer and viewport.
+    private func blurBackdrop(_ capture: OutputCapture) {
+        var viewport = [GLint](repeating: 0, count: 4)
+        epoxy_glGetIntegerv!(GLenum(GL_VIEWPORT), &viewport)
+        defer {
+            gtk_gl_area_attach_buffers(area)
+            epoxy_glViewport!(viewport[0], viewport[1], viewport[2], viewport[3])
         }
-        epoxy_glCompileShader!(shader)
-        var ok: GLint = 0
-        epoxy_glGetShaderiv!(shader, GLenum(GL_COMPILE_STATUS), &ok)
-        guard ok != 0 else {
-            fail("compile: " + infoLog(shader, program: false))
-            epoxy_glDeleteShader!(shader)
-            return nil
+        if let error = blur.prepare(header: header) {
+            return backdropFailed(error.description)
         }
-        return shader
+        switch blur.run(capture, radius: pendingRadius) {
+        case .success(let milliseconds): onBackdropBlurred?(milliseconds)
+        case .failure(let error): backdropFailed(error.description)
+        }
     }
 
-    private func infoLog(_ object: GLuint, program: Bool) -> String {
-        var buffer = [GLchar](repeating: 0, count: 2048)
-        var length: GLsizei = 0
-        if program {
-            epoxy_glGetProgramInfoLog!(object, GLsizei(buffer.count), &length, &buffer)
-        } else {
-            epoxy_glGetShaderInfoLog!(object, GLsizei(buffer.count), &length, &buffer)
-        }
-        return String(cString: buffer)
+    private func backdropFailed(_ why: String) {
+        uiLog("linux ui: can't blur the backdrop (\(why)); using the compositor's blur")
+        hasBackdrop = false
+        blur.releaseResult()
+        // The window goes back to its translucent tint (the dashboard
+        // decides; this frame draws the ribbons alone).
+        onFailure?()
     }
 
     private func fail(_ why: String) {
         uiLog("linux ui: no aurora (\(why)); drawing the plain background")
         failed = true
+        hasBackdrop = false
+        pendingCapture = nil
         stop()
         gtk_widget_set_visible(widget, 0)
+        onFailure?()
     }
 
-    // MARK: Shaders (GLSL port of AuroraView.shaderSource)
-
-    // One oversized triangle covers the viewport with no vertex buffer.
-    private static let vertexSource = """
-    out vec2 uv;
-    void main() {
-        vec2 pos = vec2(gl_VertexID == 1 ? 3.0 : -1.0, gl_VertexID == 2 ? 3.0 : -1.0);
-        uv = pos * 0.5 + 0.5;
-        gl_Position = vec4(pos, 0.0, 1.0);
-    }
-    """
+    // MARK: Shaders (GLSL port of AuroraView.shaderSource, and the backdrop)
 
     private static let fragmentSource = """
     uniform vec2 resolution;
     uniform float time;
+    uniform float ribbons;
+    uniform float hasBackdrop;
+    uniform sampler2D backdrop;
+    uniform vec4 tint;
     in vec2 uv;
     out vec4 fragColor;
 
@@ -205,7 +258,8 @@ final class AuroraArea {
     }
 
     void main() {
-        // Same flip as the Metal shader (its uv also has y up).
+        // Same flip as the Metal shader (its uv also has y up): p.y is 0 at
+        // the top, as the backdrop's rows are.
         vec2 p = vec2(uv.x, 1.0 - uv.y);
         float t = time;
 
@@ -219,13 +273,26 @@ final class AuroraArea {
         vec3 cTop = hsv2rgb(hueTop, 0.80, 1.0);
         vec3 cBot = hsv2rgb(hueBot, 0.75, 1.0);
 
-        // Premultiplied alpha, for the one/one blend and for GTK, which
-        // composites the area as premultiplied: no channel above alpha.
-        float aTop = topA * 0.55 + topB * 0.40;
-        float aBot = botA * 0.55 + botB * 0.40;
+        // Premultiplied alpha: no channel above alpha, as GTK composites the
+        // area as premultiplied.
+        float aTop = (topA * 0.55 + topB * 0.40) * ribbons;
+        float aBot = (botA * 0.55 + botB * 0.40) * ribbons;
         float alpha = min(aTop + aBot, 1.0);
-        vec3 rgb = cTop * aTop + cBot * aBot;
-        fragColor = vec4(min(rgb, vec3(alpha)), alpha);
+        vec3 rgb = min(cTop * aTop + cBot * aBot, vec3(alpha));
+
+        if (hasBackdrop < 0.5) {
+            fragColor = vec4(rgb, alpha);
+            return;
+        }
+        // The blurred desktop with the material's vibrancy: 40 % more
+        // saturated and 8 % darker. Then `bg` at `dim`, the ribbons over it,
+        // and half a level of noise against banding in the smooth gradients.
+        vec3 base = texture(backdrop, p).rgb;
+        float luma = dot(base, vec3(0.2126, 0.7152, 0.0722));
+        base = clamp(mix(vec3(luma), base, 1.4), 0.0, 1.0) * 0.92;
+        base = mix(base, tint.rgb, tint.a);
+        float noise = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+        fragColor = vec4(rgb + (1.0 - alpha) * base + noise / 255.0, 1.0);
     }
     """
 }

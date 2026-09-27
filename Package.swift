@@ -14,9 +14,16 @@ let macOS = BuildSettingCondition.when(platforms: [.macOS])
 // pkg-config module, which the Nix build and dev shell provide
 // (nix/gtk-pkgconfig.nix; it also puts gtk4-layer-shell before
 // libwayland-client on the link line, as that library requires).
+// CWaylandCapture is C: one screenshot of an output over wlr-screencopy or
+// ext-image-copy-capture (theme.backdrop "self"), with the protocol glue
+// wayland-scanner generated from protocols/ vendored next to it.
 let linuxTargets: [Target] = [
     .systemLibrary(name: "CGtk4", pkgConfig: "vestal-gtk4"),
-    .target(name: "VestalLinux", dependencies: ["VestalCore", "CGtk4"]),
+    // _GNU_SOURCE on the command line: with -fmodules, a #define in the file
+    // doesn't reach glibc's headers (memfd_create).
+    .target(name: "CWaylandCapture", dependencies: ["CGtk4"], exclude: ["protocols"],
+            cSettings: [.define("_GNU_SOURCE")]),
+    .target(name: "VestalLinux", dependencies: ["VestalCore", "CGtk4", "CWaylandCapture"]),
 ]
 let linuxUI: [Target.Dependency] = ["VestalLinux"]
 #else

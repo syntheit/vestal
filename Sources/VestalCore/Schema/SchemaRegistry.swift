@@ -198,6 +198,12 @@ public enum SchemaRegistry {
             SchemaKey("dim", .number, since: "0.4", examples: [.double(0.8)],
                       "0 to 1: the opacity of the palette's bg over the blurred desktop, for aurora and blur. Default: 0.5 on "
                       + "Linux; on macOS none (the material's own tint). About 0.75 to 0.85 hides busy windows behind."),
+            SchemaKey("backdrop", .oneOf(ThemeConfig.backdrops), since: "0.4", examples: [.string("compositor")],
+                      "Linux: self (vestal captures the screen before it shows and blurs it), compositor (a translucent "
+                      + "window over the compositor's blur) or none (translucent, no blur). Default: self where the "
+                      + "compositor can capture the screen, else compositor. macOS ignores it."),
+            SchemaKey("blur", .number, since: "0.4", examples: [.int(64)],
+                      "Linux, backdrop self: the blur's radius in points, 0 to 200. Default 48."),
             SchemaKey("palettes", .map(.shape("palette")), since: "0.4",
                       examples: [.object(["ember": .object(["extends": .string("tokyo-night"), "colors": .object(["accent": .string("#ff9e64")])])])],
                       "User palettes: name → extends and colors."),

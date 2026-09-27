@@ -32,7 +32,8 @@
         # `swift build` with the same toolchain as the package. On Linux,
         # `swift test` fails here (nixpkgs' Swift has no libIndexStore to
         # discover tests with); `nix flake check` runs the tests instead.
-        default = pkgs.mkShell (
+        # Linux: clang as $CC, for SwiftPM's C target (see package.nix).
+        default = (if pkgs.stdenv.hostPlatform.isLinux then pkgs.mkShell.override { stdenv = pkgs.clangStdenv; } else pkgs.mkShell) (
           {
             packages = [
               pkgs.swift

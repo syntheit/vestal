@@ -4,6 +4,7 @@
 #   info-plist  Vestal.app's Info.plist parses and has the keys macOS reads
 #   hm-module   the Home Manager module, against stub Home Manager options
 #   tests       (Linux) the VestalCoreTests suite under nixpkgs' Swift
+#   wayland-glue (Linux) Sources/CWaylandCapture matches wayland-scanner's output
 {
   pkgs,
   self,
@@ -145,6 +146,20 @@ in
   hm-module = import ./tests/hm-module.nix { inherit pkgs self nixpkgs; };
 }
 // lib.optionalAttrs isLinux {
+  # The protocol glue vendored in Sources/CWaylandCapture is wayland-scanner's
+  # output for the XML next to it (protocols/README).
+  wayland-glue = pkgs.runCommand "vestal-wayland-glue" { nativeBuildInputs = [ pkgs.wayland-scanner ]; } ''
+    dir=${../Sources/CWaylandCapture}
+    for x in $dir/protocols/*.xml; do
+      n=$(basename $x .xml)
+      wayland-scanner client-header $x header.h
+      wayland-scanner private-code $x code.c
+      cmp header.h $dir/$n-client-protocol.h
+      cmp code.c $dir/$n-protocol.c
+    done
+    touch $out
+  '';
+
   # `swift test`, as far as nixpkgs' Linux Swift allows: tests are listed by
   # a generated entry point (nix/gen-linuxmain.py) instead of discovered.
   tests = vestal.overrideAttrs (old: {

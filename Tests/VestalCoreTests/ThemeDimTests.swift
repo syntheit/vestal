@@ -104,7 +104,7 @@ final class ThemeDimTests: XCTestCase {
 
     func testInRangeIsClean() {
         for platform in ConfigPlatform.allCases {
-            for value in ["0.3", "0.5", "0.8", "1", "0"] where !(platform == .linux && value == "0") {
+            for value in ["0.3", "0.5", "0.8", "1", "0"] {
                 XCTAssertEqual(diagnose(#"{"theme": {"dim": \#(value)}}"#, platform: platform).filter { $0.pointer.hasPrefix("/theme") }, [],
                                "\(platform) \(value)")
             }
@@ -112,18 +112,25 @@ final class ThemeDimTests: XCTestCase {
     }
 
     /// Below Hyprland's default ignore_alpha, Linux blurs nothing behind the
-    /// dashboard: a warning there, with a blur background only.
+    /// dashboard: a warning there, with the compositor's blur only (the
+    /// default self backdrop blurs its own capture, at any dim).
     func testBelowIgnoreAlphaWarnsOnLinux() throws {
-        let linux = try XCTUnwrap(diagnose(#"{"theme": {"dim": 0.2}}"#, platform: .linux).first { $0.pointer == "/theme/dim" })
+        let compositor = #""backdrop": "compositor", "#
+        let linux = try XCTUnwrap(diagnose(#"{"theme": {\#(compositor)"dim": 0.2}}"#, platform: .linux)
+            .first { $0.pointer == "/theme/dim" })
         XCTAssertEqual(linux.severity, .warning)
         XCTAssertTrue(linux.message.contains("ignore_alpha"), linux.message)
-        XCTAssertEqual(diagnose(#"{"theme": {"background": "blur", "dim": 0}}"#, platform: .linux)
+        XCTAssertEqual(diagnose(#"{"theme": {\#(compositor)"background": "blur", "dim": 0}}"#, platform: .linux)
             .filter { $0.pointer == "/theme/dim" }.count, 1)
-        XCTAssertEqual(diagnose(#"{"theme": {"dim": 0.2}}"#, platform: .macos).filter { $0.pointer == "/theme/dim" }, [])
-        XCTAssertEqual(diagnose(#"{"theme": {"background": "none", "dim": 0.2}}"#, platform: .linux)
+        XCTAssertEqual(diagnose(#"{"theme": {\#(compositor)"dim": 0.2}}"#, platform: .macos).filter { $0.pointer == "/theme/dim" }, [])
+        XCTAssertEqual(diagnose(#"{"theme": {\#(compositor)"background": "none", "dim": 0.2}}"#, platform: .linux)
             .filter { $0.pointer == "/theme/dim" }, [])
+        for backdrop in ["", #""backdrop": "self", "#, #""backdrop": "none", "#] {
+            XCTAssertEqual(diagnose(#"{"theme": {\#(backdrop)"dim": 0.2}}"#, platform: .linux)
+                .filter { $0.pointer == "/theme/dim" }, [], backdrop)
+        }
         // Set in the Linux block, it points there.
-        let block = diagnose(#"{"platform": {"linux": {"theme": {"dim": 0.1}}}}"#, platform: .linux)
+        let block = diagnose(#"{"platform": {"linux": {"theme": {\#(compositor)"dim": 0.1}}}}"#, platform: .linux)
         XCTAssertEqual(block.map(\.pointer), ["/platform/linux/theme/dim"])
     }
 }

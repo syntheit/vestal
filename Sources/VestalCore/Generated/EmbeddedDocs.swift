@@ -1618,6 +1618,8 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 | `theme.fonts` | A family per role; `null` is the platform default. |
 | `theme.icons` | The icon font family per weight; `mode` (`native` or `phosphor`) when the config sets `theme.icons`. |
 | `theme.dim` | The config's `theme.dim`, clamped to 0 to 1, when it sets one: the opacity of `bg` over the blurred desktop for `aurora` and `blur`. Absent: the UI's default (0.5 in the GTK UI; no tint in the macOS UI). |
+| `theme.backdrop` | The config's `theme.backdrop` (`self`, `compositor` or `none`) when it sets one. Absent: `self` in the GTK UI where the compositor can capture the screen; the macOS UI ignores it. |
+| `theme.blur` | The config's `theme.blur`, clamped to 0 to 200, when it sets one: the radius in points of the GTK UI's own blur. Absent: 48. |
 | `root` | The view's tree. |
 | `popup` | `null`, or `{"id": "popup", "width": 520, "node": <node>}`. |
 | `diagnostics` | Problems found while rendering (below). |
@@ -1972,7 +1974,9 @@ A built-in source template: `{"type": "foyer", "url": "https://box.example.com"}
 |---|---|---|
 | `palette` | `tokyo-night` | A built-in palette or a key of `palettes`. |
 | `background` | `aurora` | `aurora` (animated, over the blurred desktop), `blur` (the blurred desktop) or `none` (the palette's `bg`). A UI that can't draw the aurora draws `blur`. |
-| `dim` | Linux `0.5`, macOS none | 0 to 1: the opacity of the palette's `bg` over the blurred desktop, for `aurora` and `blur`. About `0.75` to `0.85` hides busy windows behind the dashboard. macOS by default keeps the material's own tint; set, it adds `bg` over it. On Linux it is the knob for how much shows through: Hyprland can't set blur strength per layer, and below its `ignore_alpha` (0.3 by default) it blurs only behind the aurora's ribbons, not the tint (check-config warns). Clamped to 0 to 1. |
+| `dim` | Linux `0.5`, macOS none | 0 to 1: the opacity of the palette's `bg` over the blurred desktop, for `aurora` and `blur`. About `0.75` to `0.85` hides busy windows behind the dashboard. macOS by default keeps the material's own tint; set, it adds `bg` over it. On Linux it lies over vestal's own blur (`backdrop` `self`), or over the compositor's (`compositor`), where it is the knob for how much shows through: Hyprland can't set blur strength per layer, and below its `ignore_alpha` (0.3 by default) it blurs only behind the aurora's ribbons, not the tint (check-config warns). Clamped to 0 to 1. |
+| `backdrop` | Linux `self` | Linux only (macOS ignores it). `self`: vestal captures the output it is about to cover right before it shows and blurs it itself, heavily, under `bg` at `dim` (the window is opaque). `compositor`: a translucent window over the compositor's blur. `none`: translucent, no blur. Without screen capture (`ext-image-copy-capture-v1` or `wlr-screencopy-unstable-v1`) a show falls back to `compositor`. |
+| `blur` | `48` | Linux, `backdrop` `self`: the blur radius in points, 0 to 200. |
 | `palettes` | none | Name → `{ "extends": "<palette>", "colors": { name: colour } }`. |
 | `colors` | none | Colours added to, or replacing, the chosen palette's. |
 | `fonts` | platform | `{ "sans": family, "mono": family, "rounded": family }`; `null` means the platform default. |

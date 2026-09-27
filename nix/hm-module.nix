@@ -175,6 +175,25 @@ let
     in
     if linux ? hotkey then linux.hotkey else s.hotkey or null;
 
+  # A `theme` key as vestal reads it on Linux: platform.linux.theme's wins
+  # (even null), then the top level's.
+  linuxTheme =
+    key:
+    let
+      s = if builtins.isAttrs cfg.settings then cfg.settings else { };
+      platform = if builtins.isAttrs (s.platform or null) then s.platform else { };
+      linux = if builtins.isAttrs (platform.linux or null) then platform.linux else { };
+      own = if builtins.isAttrs (linux.theme or null) then linux.theme else { };
+      top = if builtins.isAttrs (s.theme or null) then s.theme else { };
+    in
+    if own ? ${key} then own.${key} else top.${key} or null;
+
+  # Whether the dashboard wants Hyprland's blur behind it: only with
+  # `theme.backdrop = "compositor"`. The default, "self", blurs vestal's own
+  # capture of the screen in an opaque window, where a blur rule would only
+  # cost GPU time; "none" asks for no blur, and a `none` background is opaque.
+  compositorBlur = linuxTheme "backdrop" == "compositor" && linuxTheme "background" != "none";
+
   # vestal's hotkey grammar (Sources/VestalCore/Hotkey.swift) in Hyprland's
   # bind syntax: modifiers as Hyprland names them, keys as XKB keysym names.
   hyprModifiers = {
@@ -319,7 +338,8 @@ in
     hyprland = {
       enable = mkEnableOption ''
         the Hyprland integration (Linux only; ignored on macOS): a bind that
-        runs `vestal toggle`, and layer rules that blur the dashboard. It
+        runs `vestal toggle`, and, with `theme.backdrop = "compositor"`,
+        layer rules that blur behind the dashboard. It
         adds to {option}`wayland.windowManager.hyprland.settings` and needs
         Hyprland 0.53 or later (the `match:` rule syntax)
       '';
@@ -345,17 +365,23 @@ in
       blur = mkOption {
         type = types.bool;
         default = true;
-        description = "Blur what is behind the dashboard (the `blur` layer rule).";
+        description = ''
+          Blur what is behind the dashboard (the `blur` layer rule) when the
+          settings choose `theme.backdrop = "compositor"` (in
+          `platform.linux.theme` or `theme`). With the default backdrop,
+          `"self"`, vestal blurs its own capture of the screen in an opaque
+          window and no rule is added.
+        '';
       };
 
       ignoreAlpha = mkOption {
         type = types.nullOr (types.numbers.between 0 1);
         default = 0.3;
         description = ''
-          The `ignore_alpha` layer rule: parts of the dashboard more
-          transparent than this get no blur behind them. `null` leaves the
-          rule out. Keep it below vestal's `theme.dim` (0.5 by default),
-          the opacity of the dashboard's tint.
+          The `ignore_alpha` layer rule, added with the `blur` rule only:
+          parts of the dashboard more transparent than this get no blur
+          behind them. `null` leaves the rule out. Keep it below vestal's
+          `theme.dim` (0.5 by default), the opacity of the dashboard's tint.
         '';
       };
 
@@ -516,8 +542,8 @@ in
       wayland.windowManager.hyprland.settings = {
         bind = lib.optional (cfg.hyprland.bind != null) "${cfg.hyprland.bind}, exec, ${lib.getExe cfg.package} toggle";
         layerrule =
-          lib.optional cfg.hyprland.blur (layerRule "blur on")
-          ++ lib.optional (cfg.hyprland.ignoreAlpha != null) (
+          lib.optional (cfg.hyprland.blur && compositorBlur) (layerRule "blur on")
+          ++ lib.optional (cfg.hyprland.blur && compositorBlur && cfg.hyprland.ignoreAlpha != null) (
             layerRule "ignore_alpha ${toString cfg.hyprland.ignoreAlpha}"
           )
           ++ lib.optional (cfg.hyprland.animation != null) (layerRule "animation ${cfg.hyprland.animation}")
