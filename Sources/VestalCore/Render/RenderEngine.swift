@@ -60,7 +60,10 @@ public final class RenderEngine {
     private let runtime: AppRuntime
     private var loaded: LoadedConfig
     private var model: RenderConfigModel
-    private var currentView: String
+    /// The view on screen; the runtime fetches visible-only sources for it.
+    private var currentView: String {
+        didSet { if currentView != oldValue { runtime.setView(currentView) } }
+    }
     private let queue = DispatchQueue(label: "vestal.render", qos: .userInitiated)
     /// Lives on `queue`.
     private let worker: Worker
@@ -89,6 +92,7 @@ public final class RenderEngine {
         let initial = view.flatMap { model.views[$0] != nil ? $0 : nil } ?? model.defaultView
         currentView = initial
         worker = Worker(model: model, view: initial)
+        runtime.setView(initial)
         runtimeObservation = runtime.observe { [weak self] event in
             guard let self, case .snapshot(let key) = event else { return }
             self.sourceChanged(key)
@@ -291,7 +295,8 @@ public final class RenderEngine {
            let pending = self.optimistic[source] {
             self.optimistic[source] = (pending.data, min(pending.since, now()))
         }
-        guard let error else { return }
+        guard let raw = error else { return }
+        let error = runtime.scrub(raw)
         vestalLog("action: \(error)")
         failures.append(RenderDiagnostic(id: nil, field: "action", severity: "error", code: "action-failed", message: error))
         if failures.count > 5 { failures.removeFirst(failures.count - 5) }
@@ -535,8 +540,11 @@ public final class RenderActionRunner: RenderActionHandler {
                 do {
                     let result = try await run(argv, timeout ?? Self.defaultTimeout, env)
                     if result.status != 0 {
+                        // The first line of stderr says why; the engine scrubs
+                        // secret values from it before it is logged or shown.
                         let stderr = String(decoding: result.stderr, as: UTF8.self)
                             .trimmingCharacters(in: .whitespacesAndNewlines)
+                            .split(separator: "\n").first.map(String.init) ?? ""
                         failure = "\(name) exited with status \(result.status)" + (stderr.isEmpty ? "" : ": \(stderr.prefix(200))")
                     }
                 } catch {
@@ -546,10 +554,12 @@ public final class RenderActionRunner: RenderActionHandler {
                 engine?.refresh(refreshAfter)
             }
         case .open(let target):
+            // A target that looks like an option is a relative path.
+            let operand = target.hasPrefix("-") ? "./" + target : target
             #if os(macOS)
-            let argv = ["open", target]
+            let argv = ["open", operand]
             #else
-            let argv = ["xdg-open", target]
+            let argv = ["xdg-open", operand]
             #endif
             let run = runCommand
             Task { @MainActor [weak engine] in

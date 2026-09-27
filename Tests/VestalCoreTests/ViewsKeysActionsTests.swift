@@ -14,20 +14,22 @@ final class ViewsKeysActionsTests: XCTestCase {
           "sources": {
             "m": { "type": "media", "player": "Spotify", "refresh": "1h" },
             "sys": { "type": "http", "url": "https://sys.example", "refresh": "1h" },
-            "t": { "type": "http", "url": "https://t.example", "refresh": "1h" }
+            "t": { "type": "http", "url": "https://t.example", "refresh": "1h" },
+            "f": { "type": "http", "url": "https://f.example", "refresh": "1h", "when": "visible" }
           },
           "keys": { "c": { "copy": "hello {{ $view }}" }, "o": { "open": "https://example.com/{{ $view }}" },
-                    "g": { "refresh": "*" } },
+                    "g": { "refresh": "*" }, "d": { "open": "-x" } },
           "widgets": {
             "play": { "type": "text", "source": "m", "text": "{{ .state }}", "key": "x", "action": { "media": "playPause" } },
             "mute": { "type": "text", "source": "sys", "text": "{{ .audio.muted }}", "key": "u", "action": { "audio": "toggleMute" } },
             "flag": { "type": "text", "source": "t", "text": "{{ .on }}", "key": "f",
                       "action": { "run": ["toggle", "{{ .on }}"], "optimistic": ". + {on: (.on | not)}" } },
-            "big": { "type": "text", "text": "focus view" }
+            "big": { "type": "text", "text": "focus view" },
+            "note": { "type": "text", "source": "f", "text": "{{ .v }}" }
           },
           "views": {
             "main": { "key": "1", "children": ["play", "mute", "flag"], "keys": { "v": { "view": "focus" } } },
-            "focus": { "key": "2", "title": "Focus", "children": ["big"] }
+            "focus": { "key": "2", "title": "Focus", "children": ["big", "note"] }
           } }
         """
 
@@ -63,6 +65,7 @@ final class ViewsKeysActionsTests: XCTestCase {
             fetcher.reply("media", .data(#"{"state": "playing", "title": "T", "player": "Spotify"}"#))
             fetcher.reply("https://sys.example", .data(#"{"audio": {"muted": false, "volume": 40}}"#))
             fetcher.reply("https://t.example", .data(#"{"on": false}"#))
+            fetcher.reply("https://f.example", .data(#"{"v": "from f"}"#))
             let loaded = ConfigLoader.load(data: Data(config.utf8), path: "/test/config.json")
             runtime = AppRuntime(config: loaded.config, fetcher: fetcher, cache: nil)
             runner = RenderActionRunner(media: media, audio: audio)
@@ -206,6 +209,21 @@ final class ViewsKeysActionsTests: XCTestCase {
         XCTAssertTrue(h.resident.isVisible)
     }
 
+    /// A visible-only source read only by another view is fetched when that
+    /// view is shown, not before (§9.1: views not shown cost nothing).
+    @MainActor
+    func testVisibleOnlySourcesFollowTheView() async {
+        let h = Harness()
+        h.resident.start(hidden: false)
+        await eventually("main") { h.text("main/play") == "playing" }
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertEqual(h.fetcher.count("https://f.example"), 0)
+        XCTAssertEqual(h.runtime.view, "main")
+        h.engine.key("2")
+        await eventually("f fetched") { h.text("focus/note") == "from f" }
+        XCTAssertEqual(h.runtime.view, "focus")
+    }
+
     @MainActor
     func testViewKeysTabAndPress() async {
         let h = Harness()
@@ -346,6 +364,16 @@ final class ViewsKeysActionsTests: XCTestCase {
         #else
         XCTAssertEqual(h.commands.last, ["xdg-open", "https://example.com/main"])
         #endif
+        // A target that looks like an option is opened as a relative path.
+        h.resident.show()
+        await eventually("shown for d") { h.engine.isVisible && h.engine.snapshot != nil }
+        h.engine.key("d")
+        await eventually("open -x") { !h.resident.isVisible }
+        #if os(macOS)
+        XCTAssertEqual(h.commands.last, ["open", "./-x"])
+        #else
+        XCTAssertEqual(h.commands.last, ["xdg-open", "./-x"])
+        #endif
         // refresh "*": every source fetched now.
         h.resident.show()
         await eventually("shown again") { h.engine.isVisible && h.engine.snapshot != nil }
@@ -385,11 +413,12 @@ final class ViewsKeysActionsTests: XCTestCase {
 
     // MARK: Keys (7c) and the CLI
 
-    func testBindingsFollowThePrecedence() {
+    func testBindingsFollowThePrecedence() throws {
         let loaded = ConfigLoader.load(data: Data(Self.config.utf8), path: "/test/config.json")
         let model = RenderConfigModel(loaded: loaded)
         let session = RenderSession(model: model)
-        let data = RenderData(sources: [:], metas: [:], names: model.sourceNames)
+        // A widget whose source has no data yet is not drawn, so has no key.
+        let data = RenderData(sources: ["m": try JQValue.parse(#"{"state": "playing"}"#)], metas: [:], names: model.sourceNames)
         _ = session.render(data: data, now: Date())
         XCTAssertEqual(session.binding(for: "x")?.level, "widget")
         XCTAssertEqual(session.binding(for: "x")?.id, "main/play")
@@ -429,6 +458,21 @@ final class ViewsKeysActionsTests: XCTestCase {
         XCTAssertTrue(out.stdout.contains("does: close the popup"), out.stdout)
         out = press(["x", "--view", "nope"])
         XCTAssertEqual(out.status, 4)
+
+        // The config vestal loads itself (not a draft): still no command runs.
+        let marker = dir.appendingPathComponent("ran").path
+        let commandConfig = """
+            { "sources": { "c": { "type": "command", "argv": ["touch", "\(marker)"] } },
+              "widgets": { "w": { "type": "text", "source": "c", "loading": "show", "text": "x", "key": "k", "action": { "refresh": true } } },
+              "views": { "main": { "children": ["w"] } } }
+            """
+        let own = dir.appendingPathComponent("own.json").path
+        try Data(commandConfig.utf8).write(to: URL(fileURLWithPath: own))
+        let ownOut = PressCommand.run(["k", "--dry-run", "--fetch"], environment: ["VESTAL_CONFIG": own, "HOME": dir.path],
+                                      home: dir.path, platform: SourcePlatform(), client: noInstance,
+                                      send: { _ in throw IPCError.notRunning(path: "/none") })
+        XCTAssertTrue(ownOut.stdout.contains("does: refresh c"), ownOut.stdout + ownOut.stderr)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: marker), "--dry-run ran a command source")
 
         // Without --dry-run: the instance, or exit 1.
         let sent = PressCommand.run(["h"], platform: SourcePlatform(), client: noInstance, send: { request in

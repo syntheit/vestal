@@ -153,10 +153,13 @@ public enum RenderCommands {
 
     /// Loads the config and its data (§11.1) and renders `options.view`,
     /// pressing `options.press` first. With `local`, never asks the
-    /// running instance (a session is needed afterwards).
+    /// running instance (a session is needed afterwards). With
+    /// `runsNothing`, no `command` source runs whatever the config
+    /// (`press --dry-run`).
     public static func prepare(
         _ options: Options,
         local: Bool = false,
+        runsNothing: Bool = false,
         environment: [String: String] = ProcessInfo.processInfo.environment,
         home: String = NSHomeDirectory(),
         platform: SourcePlatform,
@@ -199,7 +202,7 @@ public enum RenderCommands {
         }
         let data = RenderSources.load(
             model: model, view: session.view, mode: options.mode, platform: platform, cache: cache,
-            allowCommands: !draft || options.allowCommands, allowNetwork: !options.noNetwork,
+            allowCommands: !runsNothing && (!draft || options.allowCommands), allowNetwork: !options.noNetwork,
             timeout: options.timeout, now: now, secrets: loaded.config.secrets, environment: environment, home: home)
         var snapshot = session.render(data: data, now: now)
         for key in options.press {

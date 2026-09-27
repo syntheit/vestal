@@ -10,7 +10,7 @@ import Foundation
 // `--dry-run` works here, without an instance: it renders the view (the
 // data modes of §11.1), presses `--press` keys first, then says what the
 // key is bound to (§9.2 precedence) and what the action would do. Nothing
-// runs: rendering never runs a command.
+// runs: no `command` source (whatever the config), and no action.
 //
 // Exit: 0; 1 not running, hidden, or no binding (dry run); 2 usage; 4
 // unknown view.
@@ -80,7 +80,7 @@ public enum PressCommand {
         case .success(let parsed): options = parsed
         }
         let prepared: RenderCommands.Prepared
-        switch RenderCommands.prepare(options, local: true, environment: environment, home: home,
+        switch RenderCommands.prepare(options, local: true, runsNothing: true, environment: environment, home: home,
                                       platform: platform, client: client) {
         case .failure(let failure): return failure.output
         case .success(let p): prepared = p
