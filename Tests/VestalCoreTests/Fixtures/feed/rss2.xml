@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Example News &amp; Notes</title>
+    <atom:link href="https://example.com/feed.xml" rel="self" type="application/rss+xml"/>
+    <link>https://example.com/</link>
+    <description>Things that happened.</description>
+    <item>
+      <title><![CDATA[Show HN: A <tiny> parser]]></title>
+      <link>https://example.com/posts/parser</link>
+      <guid isPermaLink="false">tag:example.com,2026:parser</guid>
+      <pubDate>Sat, 07 Sep 2002 00:00:01 GMT</pubDate>
+      <dc:creator>Ada Lovelace</dc:creator>
+      <description><![CDATA[<p>A parser in <b>200</b> lines.</p>
+<p>Tom &amp; Jerry&#39;s &quot;favourite&quot; &#8212; it&#x2019;s&nbsp;&lt;fine&gt;.</p><script>alert("<p>")</script>]]></description>
+    </item>
+    <item>
+      <title>Offset date, escaped HTML</title>
+      <link>https://example.com/posts/offset</link>
+      <pubDate>Tue, 10 Jun 03 04:00:00 -0500</pubDate>
+      <author>editor@example.com (Editor)</author>
+      <description>&lt;ul&gt;&lt;li&gt;one&lt;/li&gt;&lt;li&gt;two&lt;/li&gt;&lt;/ul&gt;</description>
+    </item>
+    <item>
+      <title>No date</title>
+      <link>https://example.com/posts/undated</link>
+      <content:encoded><![CDATA[<div>Only <em>encoded</em> content.</div>]]></content:encoded>
+    </item>
+    <item>
+      <description>Named zone EST, no title, no link.</description>
+      <pubDate>Mon, 1 Jan 2024 09:30 EST</pubDate>
+    </item>
+  </channel>
+</rss>

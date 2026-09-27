@@ -1,0 +1,31 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Example JSON Feed",
+  "home_page_url": "https://example.net/",
+  "feed_url": "https://example.net/feed.json",
+  "authors": [{ "name": "Feed Author" }],
+  "items": [
+    {
+      "id": "https://example.net/2026/first",
+      "url": "https://example.net/2026/first",
+      "title": "First post",
+      "content_html": "<p>Hello, <a href=\"https://example.net\">world</a> &amp; friends.</p>",
+      "date_published": "2026-09-20T08:15:30-07:00",
+      "authors": [{ "name": "Linus", "url": "https://example.net/linus" }, { "name": "Second" }]
+    },
+    {
+      "id": 42,
+      "external_url": "https://elsewhere.example/story",
+      "content_text": "Numeric id, no date, no title.",
+      "tags": ["misc"]
+    },
+    {
+      "id": "modified-only",
+      "title": "Summary wins",
+      "summary": "The summary.",
+      "content_text": "The text.",
+      "date_modified": "2026-01-02T03:04:05Z",
+      "author": { "name": "One-point-oh" }
+    }
+  ]
+}
