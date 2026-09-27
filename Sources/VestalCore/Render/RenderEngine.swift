@@ -22,8 +22,16 @@ import Foundation
 //
 // Actions: `popup`, `close` and `view` change the model. `hide` and Escape
 // call `onHide` (the resident hides, which calls `setVisible(false)`).
-// `copy` goes to the UI as an effect. `run`, `open`, `refresh`, `media` and
+// `copy` goes to the UI as an effect (with no UI observing, to the
+// handler's clipboard fallback). `run`, `open`, `refresh`, `media` and
 // `audio` go to the `actions` handler; `RenderActionRunner` is the default.
+//
+// Optimistic updates (§9.3): a `run` action's `optimistic` expression, a
+// play/pause and a mute or volume step replace their source's data at once.
+// The replacement stays until a fetch that started after the action took
+// effect (v0.3's rule: a poll that began before the click can't undo it):
+// the click for `media` and `audio`, the command's exit for `run` (the
+// handler reports it with `actionFinished`; its timeout at the latest).
 
 public enum RenderUpdate: Sendable {
     case snapshot(RenderSnapshot)
@@ -70,7 +78,10 @@ public final class RenderEngine {
     private let runtime: AppRuntime
     private var loaded: LoadedConfig
     private var model: RenderConfigModel
-    private var currentView: String
+    /// The view on screen; the runtime fetches visible-only sources for it.
+    private var currentView: String {
+        didSet { if currentView != oldValue { runtime.setView(currentView) } }
+    }
     private let queue = DispatchQueue(label: "vestal.render", qos: .userInitiated)
     /// Lives on `queue`.
     private let worker: Worker
@@ -84,9 +95,11 @@ public final class RenderEngine {
     private var seq = 0
     /// Send `visibility` after the next snapshot (a show).
     private var announce = false
-    /// Sources whose data an optimistic action replaced, until their next
-    /// fetch (§9.3): name → (data, the fetch it replaced).
-    private var optimistic: [String: (data: Data, fetchedAt: Date?)] = [:]
+    /// Sources whose data an optimistic action replaced (§9.3): name →
+    /// (raw data, the earliest start of a fetch that replaces it).
+    private var optimistic: [String: (data: Data, since: Date)] = [:]
+    /// Actions that failed lately (`run`), shown in `diagnostics`.
+    private var failures: [RenderDiagnostic] = []
     public var now: () -> Date = Date.init
 
     public init(runtime: AppRuntime, loaded: LoadedConfig, view: String? = nil) {
@@ -97,6 +110,7 @@ public final class RenderEngine {
         let initial = view.flatMap { model.views[$0] != nil ? $0 : nil } ?? model.defaultView
         currentView = initial
         worker = Worker(model: model, view: initial)
+        runtime.setView(initial)
         runtimeObservation = runtime.observe { [weak self] event in
             guard let self, case .snapshot(let key) = event else { return }
             self.sourceChanged(key)
@@ -144,10 +158,14 @@ public final class RenderEngine {
                 tick?.cancel()
                 tick = nil
             }
+            failures = []
             queue.async { [worker] in worker.session.closePopup() }
             send(.visibility(visible: false, view: currentView))
         }
     }
+
+    /// Whether the config has a view called `name`.
+    public func hasView(_ name: String) -> Bool { model.views[name] != nil }
 
     /// Switches to `view` (and shows the dashboard's content for it).
     public func show(view: String?) {
@@ -218,18 +236,110 @@ public final class RenderEngine {
             case .hide:
                 onHide?()
             case .copy(let text):
-                send(.effect(.copy(text)))
-            case .run(_, _, _, _, let optimistic, let source):
+                // The UI owns the clipboard; without one, the handler's fallback.
+                if observers.isEmpty { actions?.perform(effect, engine: self) } else { send(.effect(.copy(text))) }
+            case .run(_, _, let timeout, _, let optimistic, let source):
                 if let optimistic, let source, let data = try? JSONEncoder().encode(optimistic) {
-                    self.optimistic[source] = (data, runtime.snapshot(SourceListing.key(source))?.fetchedAt)
-                    changed.insert(source)
-                    schedule()
+                    setOptimistic(source, data, since: now().addingTimeInterval((timeout ?? RenderActionRunner.defaultTimeout) + 1))
+                }
+                actions?.perform(effect, engine: self)
+            case .media(let command, let source):
+                if command == "playPause", let source, let flipped = edit(source, { Self.optimisticPlayPause($0) }) {
+                    setOptimistic(source, flipped, since: now())
+                }
+                actions?.perform(effect, engine: self)
+            case .audio(let command, let source):
+                if let source, let changed = edit(source, { Self.optimisticAudio($0, command) }) {
+                    setOptimistic(source, changed, since: now())
                 }
                 actions?.perform(effect, engine: self)
             default:
                 actions?.perform(effect, engine: self)
             }
         }
+    }
+
+    // MARK: Optimistic updates
+
+    private func setOptimistic(_ source: String, _ data: Data, since: Date) {
+        optimistic[source] = (data, since)
+        changed.insert(source)
+        schedule()
+    }
+
+    /// `source`'s raw data (an optimistic replacement first) changed by
+    /// `change`; nil when there is none or nothing changed.
+    private func edit(_ source: String, _ change: (AnyJSON) -> AnyJSON?) -> Data? {
+        guard let data = optimistic[source]?.data ?? runtime.snapshot(SourceListing.key(source))?.data,
+              let json = AnyJSON.decode(data), let changed = change(json), changed != json else { return nil }
+        return try? JSONEncoder().encode(changed)
+    }
+
+    /// A `media` reading with `state` flipped between playing and paused.
+    public static func optimisticPlayPause(_ media: AnyJSON) -> AnyJSON? {
+        guard var object = media.objectValue else { return nil }
+        switch object["state"]?.stringValue {
+        case "playing": object["state"] = .string("paused")
+        case "paused": object["state"] = .string("playing")
+        default: return nil
+        }
+        return .object(object)
+    }
+
+    /// A `system` reading with its `audio` muted or unmuted, or its volume
+    /// a step (5) up or down.
+    public static func optimisticAudio(_ system: AnyJSON, _ command: String) -> AnyJSON? {
+        guard var object = system.objectValue, var audio = object["audio"]?.objectValue else { return nil }
+        switch command {
+        case "toggleMute":
+            guard case .bool(let muted)? = audio["muted"] else { return nil }
+            audio["muted"] = .bool(!muted)
+        case "volumeUp", "volumeDown":
+            let level: Int
+            switch audio["volume"] {
+            case .int(let v)?: level = v
+            case .double(let v)?: level = Int(exactly: v.rounded()) ?? 0
+            default: return nil
+            }
+            audio["volume"] = .int(max(0, min(100, level + (command == "volumeUp" ? 5 : -5))))
+        default:
+            return nil
+        }
+        object["audio"] = .object(audio)
+        return .object(object)
+    }
+
+    /// From the actions handler: a command started by a `run` action
+    /// ended (`error` says why it failed). Its optimistic data now stays
+    /// only until the next fetch; a failure is logged, goes to
+    /// `diagnostics` and to the UI as a `notify` effect.
+    public func actionFinished(_ effect: RenderActionEffect, error: String?) {
+        if case .run(_, _, _, _, let optimistic, let source) = effect, optimistic != nil, let source,
+           let pending = self.optimistic[source] {
+            self.optimistic[source] = (pending.data, min(pending.since, now()))
+        }
+        guard let raw = error else { return }
+        let error = runtime.scrub(raw)
+        vestalLog("action: \(error)")
+        failures.append(RenderDiagnostic(id: nil, field: "action", severity: "error", code: "action-failed", message: error))
+        if failures.count > 5 { failures.removeFirst(failures.count - 5) }
+        send(.effect(.notify(level: "error", text: error)))
+        if isVisible {
+            fullPending = true
+            schedule()
+        }
+    }
+
+    /// For action handlers: the player a `media` source reads now (the
+    /// one `auto` resolved to), else the first one it names.
+    public func mediaPlayer(source: String?) -> String? {
+        guard let source else { return nil }
+        let key = SourceListing.key(source)
+        if let data = runtime.snapshot(key)?.data, let player = AnyJSON.decode(data)?.objectValue?["player"]?.stringValue,
+           !player.isEmpty {
+            return player
+        }
+        return (runtime.source(key) ?? model.sources[source])?.player?.first
     }
 
     private func snapshotView() -> String? {
@@ -254,7 +364,7 @@ public final class RenderEngine {
         case .source(let n): name = n
         case .host(let n): name = "host:\(n)"
         }
-        if let replaced = optimistic[name], runtime.snapshot(key)?.fetchedAt != replaced.fetchedAt {
+        if let replaced = optimistic[name], let fetchedAt = runtime.snapshot(key)?.fetchedAt, fetchedAt >= replaced.since {
             optimistic[name] = nil
         }
         changed.insert(name)
@@ -293,6 +403,7 @@ public final class RenderEngine {
         var next = fresh
         next.seq = seq
         next.visible = isVisible
+        next.diagnostics += failures
         if full || previous == nil || snapshot != previous {
             // A show, a resync or a view change: the whole model.
             snapshot = next
@@ -412,47 +523,108 @@ public protocol RenderActionHandler: AnyObject {
     func perform(_ effect: RenderActionEffect, engine: RenderEngine)
 }
 
-/// The default handler: `run` through CommandRunner (no shell, `~`
-/// expanded, off the main actor) then refreshes, `open` with `open` or
-/// `xdg-open`, `refresh` through the runtime. `media` and `audio` go to the
-/// platform's closures.
+/// The default handler, portable, with the platform's providers:
+/// - `run`: through CommandRunner (no shell, `~` expanded, off the main
+///   actor, killed after `timeout`, 30 s by default), then the sources in
+///   `refreshAfter` are fetched. A launch failure or a non-zero exit goes
+///   back to the engine (`actionFinished`), which reports it.
+/// - `open`: `open` on macOS, `xdg-open` elsewhere.
+/// - `copy`, reached only when no UI observes the engine: `wl-copy` on
+///   Linux (a UI puts it on its clipboard itself).
+/// - `refresh`: through the runtime.
+/// - `media`: the source's player (the one `auto` resolved to) through
+///   `media` (AppleScript or playerctl).
+/// - `audio`: the default output through `audio` (CoreAudio or wpctl).
 @MainActor
 public final class RenderActionRunner: RenderActionHandler {
-    public var media: ((_ command: String, _ source: String?) -> Void)?
-    public var audio: ((_ command: String) -> Void)?
+    public nonisolated static let defaultTimeout: TimeInterval = 30
 
-    public init(media: ((String, String?) -> Void)? = nil, audio: ((String) -> Void)? = nil) {
+    public var media: MediaBackend?
+    public var audio: AudioProvider?
+    /// Runs an argv; tests replace it. The default is CommandRunner.
+    public var runCommand: @Sendable ([String], TimeInterval, [String: String]) async throws -> CommandResult
+
+    public init(media: MediaBackend? = nil, audio: AudioProvider? = nil) {
         self.media = media
         self.audio = audio
+        runCommand = { argv, timeout, env in try await CommandRunner.run(argv, timeout: timeout, environment: env) }
     }
 
     public func perform(_ effect: RenderActionEffect, engine: RenderEngine) {
         switch effect {
         case .run(let argv, let env, let timeout, let refreshAfter, _, _):
-            guard !argv.isEmpty else { return }
+            guard let name = argv.first, !name.isEmpty else {
+                engine.actionFinished(effect, error: "run: empty command")
+                return
+            }
+            let run = runCommand
             Task { @MainActor [weak engine] in
+                var failure: String?
                 do {
-                    let result = try await CommandRunner.run(argv, timeout: timeout ?? 30, environment: env)
-                    if result.status != 0 { vestalLog("action \(argv[0]) exited with status \(result.status)") }
+                    let result = try await run(argv, timeout ?? Self.defaultTimeout, env)
+                    if result.status != 0 {
+                        // The first line of stderr says why; the engine scrubs
+                        // secret values from it before it is logged or shown.
+                        let stderr = String(decoding: result.stderr, as: UTF8.self)
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
+                            .split(separator: "\n").first.map(String.init) ?? ""
+                        failure = "\(name) exited with status \(result.status)" + (stderr.isEmpty ? "" : ": \(stderr.prefix(200))")
+                    }
                 } catch {
-                    vestalLog("action \(argv[0]): \(error)")
+                    failure = "\(name): \(error)"
                 }
+                engine?.actionFinished(effect, error: failure)
                 engine?.refresh(refreshAfter)
             }
         case .open(let target):
+            // A target that looks like an option is a relative path.
+            let operand = target.hasPrefix("-") ? "./" + target : target
             #if os(macOS)
-            let argv = ["open", target]
+            let argv = ["open", operand]
             #else
-            let argv = ["xdg-open", target]
+            let argv = ["xdg-open", operand]
             #endif
-            Task { _ = try? await CommandRunner.run(argv, timeout: 10) }
+            let run = runCommand
+            Task { @MainActor [weak engine] in
+                do {
+                    let result = try await run(argv, 10, [:])
+                    if result.status != 0 { engine?.actionFinished(effect, error: "\(argv[0]) \(target) exited with status \(result.status)") }
+                } catch {
+                    engine?.actionFinished(effect, error: "\(argv[0]): \(error)")
+                }
+            }
+        case .copy(let text):
+            #if os(Linux)
+            // wl-copy forks to serve the clipboard; the text is an argument.
+            let run = runCommand
+            Task { @MainActor [weak engine] in
+                do { _ = try await run(["wl-copy", "--", text], 5, [:]) } catch {
+                    engine?.actionFinished(effect, error: "copy: \(error)")
+                }
+            }
+            #else
+            engine.actionFinished(effect, error: "copy: no UI to put the text on the clipboard")
+            #endif
         case .refresh(let names):
             engine.refresh(names)
         case .media(let command, let source):
-            media?(command, source)
-        case .audio(let command):
-            audio?(command)
-        default:
+            guard let media, let player = engine.mediaPlayer(source: source) else { return }
+            let provider = media.provider(for: player)
+            switch command {
+            case "playPause": provider.playPause()
+            case "next": provider.next()
+            case "previous": provider.previous()
+            default: engine.actionFinished(effect, error: "media: unknown command \"\(command)\"")
+            }
+        case .audio(let command, _):
+            guard let audio else { return }
+            switch command {
+            case "toggleMute": audio.setMuted(!audio.volume().muted)
+            case "volumeUp": audio.volumeUp()
+            case "volumeDown": audio.volumeDown()
+            default: engine.actionFinished(effect, error: "audio: unknown command \"\(command)\"")
+            }
+        case .hide, .changed:
             break
         }
     }

@@ -50,7 +50,8 @@ public enum LinuxPlatform {
                 let volume = audio.lastKnown
                 audio.refresh()
                 return SystemStatsSample.read(stats, volume: volume)
-            })
+            },
+            audio: WirePlumberAudio())
     }
 }
 #endif

@@ -188,7 +188,7 @@ final class IPCTests: XCTestCase {
         // A server without a subscription handler refuses a stream.
         XCTAssertEqual(try IPCClient.send(.subscribe, path: path).ok, false)
         XCTAssertEqual(IPCCommand.allCases.map(\.rawValue),
-                       ["toggle", "show", "hide", "reload", "status", "quit", "sources", "fetch", "render", "eval", "subscribe"])
+                       ["toggle", "show", "hide", "reload", "status", "quit", "sources", "fetch", "render", "eval", "subscribe", "press"])
     }
 
     func testFailureRepliesReachTheClient() throws {
@@ -307,7 +307,7 @@ final class IPCTests: XCTestCase {
         let unknown = try exchangeRaw("bogus\n", path: path)
         XCTAssertEqual(unknown.ok, false)
         XCTAssertEqual(unknown.error,
-                       "unknown command 'bogus' (expected one of toggle, show, hide, reload, status, quit, sources, fetch, render, eval, subscribe)")
+                       "unknown command 'bogus' (expected one of toggle, show, hide, reload, status, quit, sources, fetch, render, eval, subscribe, press)")
         XCTAssertEqual(try exchangeRaw("STATUS\n", path: path).ok, false, "commands are lowercase")
         XCTAssertEqual(try exchangeRaw("\n", path: path).error?.hasPrefix("empty request"), true)
 

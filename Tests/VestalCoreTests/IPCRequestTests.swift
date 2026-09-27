@@ -21,7 +21,7 @@ final class IPCRequestTests: XCTestCase {
         XCTAssertEqual(parse(#"{"cmd": "show", "view": null, "later": 1}"#), .success(IPCRequest(.show)),
                        "keys from later versions are ignored")
 
-        let known = "toggle, show, hide, reload, status, quit, sources, fetch, render, eval, subscribe"
+        let known = "toggle, show, hide, reload, status, quit, sources, fetch, render, eval, subscribe, press"
         XCTAssertEqual(parse("bogus"), .failure(IPCRequestError("unknown command 'bogus' (expected one of \(known))")))
         XCTAssertEqual(parse(""), .failure(IPCRequestError("empty request (expected one of \(known))")))
         XCTAssertEqual(parse(#"{"cmd": "fly"}"#), .failure(IPCRequestError("unknown command 'fly' (expected one of \(known))")))

@@ -20,10 +20,10 @@ import Glibc
 // later replaces `HeadlessSurface` with its window (a `ResidentSurface`) and
 // keeps the rest.
 //
-// It also runs the render engine, following that visibility, so UIs in other
-// processes can draw the dashboard: `vestal subscribe` and the socket
-// protocol (SubscriptionHub, EXTENSIBILITY.md §10.7). Nothing is evaluated
-// while hidden. A `copy` action with no UI to take it goes to `wl-copy`.
+// The resident's render engine follows that visibility, so UIs in other
+// processes can draw the dashboard over the socket (`vestal subscribe`,
+// SubscriptionHub, EXTENSIBILITY.md §10.7); `ResidentInbox.attach` hands
+// the engine to the hub. Nothing is evaluated while hidden.
 
 /// A `ResidentSurface` that draws nothing.
 @MainActor
@@ -32,16 +32,14 @@ public final class HeadlessSurface: ResidentSurface {
 
     /// Called by `quit()`, after the reply to `vestal quit` is sent.
     public var onQuit: () -> Void
-    /// Follows the visibility, for subscribers; nil evaluates nothing.
-    public var engine: RenderEngine?
 
     public init(onQuit: @escaping () -> Void = {}) {
         self.onQuit = onQuit
     }
 
-    public func show() { engine?.setVisible(true) }
-    public func hide() { engine?.setVisible(false) }
-    public func apply(_ loaded: LoadedConfig) { engine?.apply(loaded) }
+    public func show() {}
+    public func hide() {}
+    public func apply(_ loaded: LoadedConfig) {}
     public func quit() { onQuit() }
     public var notice: String? { Self.noUI }
 }
@@ -55,15 +53,19 @@ public struct HeadlessPlatform {
     /// This machine's stats for `vestal status`; nil reports none. Called on
     /// the main actor for each status request.
     public var stats: (@MainActor () -> SystemStatsSample)?
+    /// The default output, for `audio` actions; nil ignores them.
+    public var audio: AudioProvider?
 
     public init(
         sources: SourcePlatform = SourcePlatform(),
         watcher: (@MainActor () -> ConfigWatcher)? = nil,
-        stats: (@MainActor () -> SystemStatsSample)? = nil
+        stats: (@MainActor () -> SystemStatsSample)? = nil,
+        audio: AudioProvider? = nil
     ) {
         self.sources = sources
         self.watcher = watcher
         self.stats = stats
+        self.audio = audio
     }
 }
 
@@ -82,8 +84,12 @@ public enum HeadlessApp {
         MainActor.assumeIsolated {
             let runtime = AppRuntime(config: config, fetcher: LiveFetcher(platform: platform.sources), cache: SnapshotCache())
             let surface = HeadlessSurface()
+            // The render engine runs too, with no UI observing: `vestal show
+            // <view>`, `vestal press` and actions work (copy falls back to
+            // wl-copy), and a UI in this process can observe it later.
             let resident = Resident(loaded: loaded, runtime: runtime, surface: surface,
-                                    watcher: platform.watcher?(), stats: platform.stats)
+                                    watcher: platform.watcher?(), stats: platform.stats,
+                                    actions: RenderActionRunner(media: platform.sources.media, audio: platform.audio))
             let quit: @MainActor () -> Void = {
                 // The socket goes first, so a new instance can start at once;
                 // running fetches are cancelled and running commands killed.
@@ -93,14 +99,12 @@ public enum HeadlessApp {
                 exit(0)
             }
             surface.onQuit = quit
-            // The render model for subscribers (§10.8).
-            let engine = RenderEngine(runtime: runtime, loaded: loaded)
-            engine.actions = RenderActionRunner()
-            engine.onHide = { resident.hide() }
-            surface.engine = engine
-            SubscriptionHub.shared.attach(engine)
-            SubscriptionHub.shared.copyFallback = HeadlessApp.copyWithProgram
-            Holder.shared.engine = engine
+            // No UI in this process takes a `copy`: without a subscribed UI
+            // that can, the engine's action runner does (wl-copy).
+            SubscriptionHub.shared.copyFallback = { [weak resident] text in
+                guard let engine = resident?.engine else { return }
+                engine.actions?.perform(.copy(text), engine: engine)
+            }
             // The resident keeps its surface weakly.
             Holder.shared.surface = surface
             Holder.shared.resident = resident
@@ -123,40 +127,10 @@ public enum HeadlessApp {
         }
     }
 
-    /// A `copy` no UI took: `wl-copy` (Linux) or `pbcopy` (macOS), with the
-    /// text on stdin, off the main actor. Failures are logged.
-    public static func copyWithProgram(_ text: String) {
-        #if os(macOS)
-        let program = "pbcopy"
-        #else
-        let program = "wl-copy"
-        #endif
-        DispatchQueue.global(qos: .utility).async {
-            guard let path = CommandRunner.resolveExecutable(program, environment: ProcessInfo.processInfo.environment) else {
-                return vestalLog("copy: \(program) not found")
-            }
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: path)
-            let input = Pipe()
-            process.standardInput = input
-            process.standardOutput = FileHandle.nullDevice
-            process.standardError = FileHandle.nullDevice
-            do {
-                try process.run()
-                input.fileHandleForWriting.write(Data(text.utf8))
-                try? input.fileHandleForWriting.close()
-                process.waitUntilExit()
-            } catch {
-                vestalLog("copy: \(program): \(error)")
-            }
-        }
-    }
-
     /// Keeps the app's objects alive for the life of the process.
     @MainActor
     private final class Holder {
         static let shared = Holder()
-        var engine: RenderEngine?
         var surface: HeadlessSurface?
         var resident: Resident?
         var signals: [SignalWatch] = []

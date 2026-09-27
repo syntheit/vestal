@@ -67,19 +67,18 @@ var capabilitiesHost: CapabilitiesCommand.Host {
     #endif
 }
 
-/// `vestal screenshot`'s offscreen renderer: the render-file command of this
-/// build's UI, why there is none when it can't run, and whether it takes
-/// `--size`, `--scale` and `--background` (the GTK window is the screen).
-var screenshotRenderer: (renderer: ScreenshotCommand.Renderer?, unsupported: String?, fixedSize: Bool) {
-    #if os(macOS)
-    return ({ MacRenderFileCommand.run($0) }, nil, true)
-    #elseif os(Linux)
+/// `vestal screenshot` on Linux: the portable ScreenshotCommand drawing with
+/// the GTK UI's render-file command, which needs a Wayland session and
+/// draws the screen as it is (no `--size`, `--scale` or `--background`).
+/// macOS has its own (MacScreenshotCommand).
+var linuxScreenshotRenderer: (renderer: ScreenshotCommand.Renderer?, unsupported: String?) {
+    #if os(Linux)
     guard let display = ProcessInfo.processInfo.environment["WAYLAND_DISPLAY"], !display.isEmpty else {
-        return (nil, "the GTK renderer needs a Wayland session (WAYLAND_DISPLAY is not set)", false)
+        return (nil, "the GTK renderer needs a Wayland session (WAYLAND_DISPLAY is not set)")
     }
-    return ({ RenderFileCommand.run($0) }, nil, false)
+    return ({ RenderFileCommand.run($0) }, nil)
     #else
-    return (nil, "this build has no renderer", true)
+    return (nil, "this build has no renderer")
     #endif
 }
 
@@ -126,6 +125,20 @@ case .command(.render(let arguments)):
 case .command(.explain(let arguments)):
     emit(RenderCommands.explain(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
 
+case .command(.press(let arguments)):
+    emit(PressCommand.run(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) },
+                          send: { try IPCClient.send($0) }))
+
+case .command(.screenshot(let arguments)):
+    #if os(macOS)
+    exit(MacScreenshotCommand.run(arguments))
+    #else
+    // The GTK renderer offscreen (needs Wayland; exit 5 without it).
+    let (renderer, unsupported) = linuxScreenshotRenderer
+    emit(ScreenshotCommand.run(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) },
+                               renderer: renderer, unsupported: unsupported, fixedSize: false))
+    #endif
+
 case .command(.schema(let arguments)):
     emit(ConfigCommands.schema(arguments))
 
@@ -144,11 +157,6 @@ case .command(.subscribe(let arguments)):
 
 case .command(.capabilities(let arguments)):
     emit(CapabilitiesCommand.run(arguments, host: capabilitiesHost, client: { try IPCClient.send($0, timeout: $1) }))
-
-case .command(.screenshot(let arguments)):
-    let (renderer, unsupported, fixedSize) = screenshotRenderer
-    emit(ScreenshotCommand.run(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) },
-                               renderer: renderer, unsupported: unsupported, fixedSize: fixedSize))
 
 case .command(.sendRequest(let request)):
     if let view = request.view, let failure = CLI.checkView(view) { emit(failure) }

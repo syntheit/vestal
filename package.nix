@@ -78,6 +78,9 @@ let
       LSUIElement = true;
       NSHighResolutionCapable = true;
       NSPrincipalClass = "NSApplication";
+      # The bundled Phosphor icon fonts (Contents/Resources/Fonts), activated
+      # for this process by macOS at launch (§8.6, TASKS-v0.4 6c).
+      ATSApplicationFontsPath = "Fonts";
       # Shown by macOS the first time vestal asks for calendar access (agenda).
       NSCalendarsUsageDescription = "Vestal shows your upcoming events on the dashboard.";
       NSCalendarsFullAccessUsageDescription = "Vestal shows your upcoming events on the dashboard.";

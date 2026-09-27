@@ -28,7 +28,7 @@ Any vestal instance serves subscribers, including a Linux `vestal daemon` with n
 | `protocol` | `[1]` | The major versions the client speaks. Without `1`: an `error` message, and the connection closes. |
 | `minor` | `0` | The minor version the client understands; newer node types come as `text` with their `alt`. |
 | `client` | none | A name for logs. |
-| `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise the headless daemon runs `wl-copy` (`pbcopy` on macOS). (`screenshot` delegation is specified but not implemented yet.) |
+| `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise vestal's own UI takes it (macOS), or the headless daemon runs `wl-copy`. (`screenshot` delegation is specified but not implemented yet.) |
 | `whileHidden` | `false` | Keep evaluating and sending patches while the dashboard is hidden (debugging). |
 | `control` | `false` | Let an observer's `invoke`, `key`, `hide` and `view` count. |
 | `view` | none | Switch to this view, as a `view` command right after subscribing (primary UI or control only, while shown). |
@@ -78,4 +78,4 @@ A conforming UI:
 3. draws every node type and field of `vestal docs render-model`, with the icon fonts of `vestal docs icons`;
 4. sends `invoke` for clicks on `action` nodes and `key` for key presses, and carries out `copy` effects.
 
-vestal's own UIs draw the same model in-process, through the same `RenderEngine` the hub serves: SwiftUI on macOS and GTK on Linux (both being switched over to it in v0.4; until then a Linux `vestal daemon` is headless and serves only subscribers).
+vestal's own UIs draw the same model in-process, from the resident's `RenderEngine`, which is also the engine the socket serves: on macOS the SwiftUI dashboard and subscribers see the same model, keys and popups. A Linux `vestal daemon` without a display is headless and serves only subscribers.

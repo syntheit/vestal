@@ -138,6 +138,12 @@ public final class AppRuntime {
     static let minCacheInterval: TimeInterval = 30
 
     public private(set) var isVisible = false
+    /// The view whose widgets count as readers: visible-only sources are
+    /// fetched for this view only (§9.1: views not shown cost nothing). The
+    /// render engine sets it when it switches views.
+    public private(set) var view = "main"
+    /// The config in effect, for replanning on a view switch.
+    private var config: Config
     /// The histories of every source (EXTENSIBILITY.md 5.6).
     public let histories: HistoryStore
 
@@ -182,6 +188,7 @@ public final class AppRuntime {
     ) {
         self.fetcher = fetcher
         self.cache = cache
+        self.config = config
         self.fixedExpressions = expressions
         self.expressions = expressions ?? EngineSourceExpressions(config: config)
         self.makeSecrets = secrets
@@ -189,7 +196,7 @@ public final class AppRuntime {
         self.now = now
         self.jitter = jitter
         histories = HistoryStore(cache: cache)
-        for (key, plan) in Self.plans(for: config) {
+        for (key, plan) in Self.plans(for: config, view: view) {
             jobs[.snapshot(key)] = makeJob(key, plan)
         }
         configureHistories()
@@ -200,6 +207,27 @@ public final class AppRuntime {
         // that is gone.
         timer?.cancel()
         for task in tasks.values { task.cancel() }
+    }
+
+    /// `text` with every secret value that has been read replaced, for
+    /// messages that may quote a command's output (failed actions).
+    public func scrub(_ text: String) -> String {
+        secrets.scrub(text)
+    }
+
+    /// Makes `view`'s widgets the readers (the dashboard switched views):
+    /// its visible-only sources become due (stale ones fetch at once while
+    /// shown), the previous view's stop. Sources keep their data.
+    public func setView(_ view: String) {
+        guard view != self.view else { return }
+        self.view = view
+        let plans = Self.plans(for: config, view: view)
+        for (id, job) in jobs {
+            guard case .snapshot(let key) = id, let old = job.plan, let plan = plans[key], plan != old,
+                  plan.source == old.source else { continue }
+            jobs[id] = job.replanned(plan)
+        }
+        replan()
     }
 
     /// The latest snapshot for `key`; nil if the config has no such source
@@ -286,10 +314,11 @@ public final class AppRuntime {
     /// Visible-only fetches in flight are cancelled (and start again at once
     /// if still due), and secrets are read again when next needed.
     public func apply(_ config: Config) {
+        self.config = config
         secrets = makeSecrets(config)
         if fixedExpressions == nil { expressions = EngineSourceExpressions(config: config) }
         cancelVisibleOnlyFetches()
-        let plans = Self.plans(for: config)
+        let plans = Self.plans(for: config, view: view)
         var changed: [RuntimeKey] = []
         for (id, job) in jobs {
             guard case .snapshot(let key) = id, let old = job.plan else { continue }
@@ -751,9 +780,9 @@ public final class AppRuntime {
     /// instead. A name listed twice keeps its first entry, as on the
     /// dashboard (`DashboardLayout.hosts`), so a later `url` host of that
     /// name gets no job.
-    private static func plans(for config: Config) -> [RuntimeKey: Plan] {
+    private static func plans(for config: Config, view: String) -> [RuntimeKey: Plan] {
         var plans: [RuntimeKey: Plan] = [:]
-        let readers = SourceReaders.readers(of: config)
+        let readers = SourceReaders.readers(of: config, view: view)
         for (name, source) in config.runtimeSources {
             let visibleOnly = source.isVisibleOnly
             let used = readers[name] ?? []

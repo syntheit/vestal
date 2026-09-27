@@ -121,78 +121,96 @@ public enum RenderCommands {
         case .failure(let error): return Output(status: 2, stderr: "vestal: \(error.description)\n\(usage)\n")
         case .success(let parsed): options = parsed
         }
-        switch snapshot(options, environment: environment, home: home, platform: platform, client: client, cache: cache) {
+        switch prepare(options, environment: environment, home: home, platform: platform, client: client, cache: cache) {
         case .failure(let failure):
-            return failure
-        case .success(let built):
-            var result = output(built.snapshot, options: options)
-            if options.strict, !built.configErrors.isEmpty {
+            return failure.output
+        case .success(let prepared):
+            var result = output(prepared.snapshot, options: options)
+            if options.strict, !prepared.configErrors.isEmpty {
                 result.status = 3
-                result.stderr += built.configErrors.map { "vestal: config error: \($0)\n" }.joined()
+                result.stderr += prepared.configErrors.map { "vestal: config error: \($0)\n" }.joined()
             }
             return result
         }
     }
 
-    /// A render's result, and the config's errors (for `--strict`).
-    /// (`Output` is also the failure: what to print instead.)
-    public struct Built {
+    /// A render ready to print or draw: the snapshot after `--press`, and
+    /// (for a local render) the session and data behind it.
+    public struct Prepared {
         public var snapshot: RenderSnapshot
+        /// Nil when the running instance rendered it.
+        public var session: RenderSession?
+        public var data: RenderData?
+        public var now: Date
+        public var loaded: LoadedConfig
+        /// Config errors, for `--strict`.
         public var configErrors: [ConfigWarning]
     }
 
-    /// The render model `vestal render` (and `vestal screenshot`) prints:
-    /// the running instance's when this is its config and data mode auto,
-    /// else rendered here from fixtures, the cache or fresh fetches, with
-    /// `press` applied. The failure is the output to print.
-    public static func snapshot(
+    public struct Failure: Error {
+        public var output: Output
+    }
+
+    /// Loads the config and its data (§11.1) and renders `options.view`,
+    /// pressing `options.press` first. With `local`, never asks the
+    /// running instance (a session is needed afterwards). With
+    /// `runsNothing`, no `command` source runs whatever the config
+    /// (`press --dry-run`).
+    public static func prepare(
         _ options: Options,
+        local: Bool = false,
+        runsNothing: Bool = false,
         environment: [String: String] = ProcessInfo.processInfo.environment,
         home: String = NSHomeDirectory(),
         platform: SourcePlatform,
         client: Client,
         cache: SnapshotCache = SnapshotCache()
-    ) -> Result<Built, Output> {
+    ) -> Result<Prepared, Failure> {
         guard let loaded = SourceCommands.load(options.configPath, environment: environment, home: home) else {
-            return .failure(Output(status: 1, stderr: "vestal: can't read \(options.configPath ?? "-")\n"))
+            return .failure(Failure(output: Output(status: 1, stderr: "vestal: can't read \(options.configPath ?? "-")\n")))
         }
         if loaded.hasErrors {
-            return .failure(Output(status: 1, stderr: loaded.warnings.filter(\.isError).map { "vestal: \($0)\n" }.joined()))
+            return .failure(Failure(output: Output(status: 1, stderr: loaded.warnings.filter(\.isError).map { "vestal: \($0)\n" }.joined())))
         }
-        let configErrors = loaded.warnings.filter { ConfigDiagnostics.severity(of: $0) == .error }
         let model = RenderConfigModel(loaded: loaded)
         if let view = options.view, model.views[view] == nil {
             let close = DidYouMean.suggestions(for: view, among: model.viewNames)
-            return .failure(Output(status: 4, stderr: "vestal: no view named \"\(view)\""
-                + (close.isEmpty ? "" : "; did you mean \(close.map { "\"\($0)\"" }.joined(separator: " or "))?") + "\n"))
+            return .failure(Failure(output: Output(status: 4, stderr: "vestal: no view named \"\(view)\""
+                + (close.isEmpty ? "" : "; did you mean \(close.map { "\"\($0)\"" }.joined(separator: " or "))?") + "\n")))
         }
+        let configErrors = loaded.warnings.filter { ConfigDiagnostics.severity(of: $0) == .error }
         let session = RenderSession(model: model, view: options.view)
         // For reproducible output: TZ picks the zone, VESTAL_LOCALE the locale.
         if let locale = environment["VESTAL_LOCALE"], !locale.isEmpty { session.locale = Locale(identifier: locale) }
         let now = options.at ?? Date()
-        let draft = options.configPath != nil
+        // Fixture data runs nothing and asks no instance.
+        var fixtures = false
+        if case .fixtures = options.mode { fixtures = true }
+        let draft = fixtures || options.configPath != nil
             && !SourceCommands.isRunningConfig(options.configPath, environment: environment, home: home, client: client)
         // The running instance's live data, when this is its config (§11.1).
-        if !draft, options.mode == .auto {
+        if !local, !draft, options.mode == .auto {
             var request = IPCRequest(.render, view: options.view)
             request.press = options.press.isEmpty ? nil : options.press
             request.at = options.at?.timeIntervalSince1970
             if let response = try? client(request, 15), response.ok, let json = response.data,
                let bytes = try? JSONEncoder().encode(json),
                let snapshot = try? RenderJSON.decoder.decode(RenderSnapshot.self, from: bytes) {
-                return .success(Built(snapshot: snapshot, configErrors: configErrors))
+                return .success(Prepared(snapshot: snapshot, session: nil, data: nil, now: now, loaded: loaded,
+                                         configErrors: configErrors))
             }
         }
         let data = RenderSources.load(
             model: model, view: session.view, mode: options.mode, platform: platform, cache: cache,
-            allowCommands: !draft || options.allowCommands, allowNetwork: !options.noNetwork,
+            allowCommands: !runsNothing && (!draft || options.allowCommands), allowNetwork: !options.noNetwork,
             timeout: options.timeout, now: now, secrets: loaded.config.secrets, environment: environment, home: home)
         var snapshot = session.render(data: data, now: now)
         for key in options.press {
             let effects = session.key(key, data: data, now: now)
             if effects.contains(.changed) { snapshot = session.render(data: data, now: now) }
         }
-        return .success(Built(snapshot: snapshot, configErrors: configErrors))
+        return .success(Prepared(snapshot: snapshot, session: session, data: data, now: now, loaded: loaded,
+                                 configErrors: configErrors))
     }
 
     static func output(_ snapshot: RenderSnapshot, options: Options) -> Output {
@@ -211,9 +229,6 @@ public enum RenderCommands {
         return String(decoding: data, as: UTF8.self)
     }
 }
-
-/// A command that stops early fails with what it prints.
-extension ConfigCommands.Output: Error {}
 
 // MARK: - Data for a render outside the running instance
 

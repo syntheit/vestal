@@ -213,6 +213,8 @@ diagnostics: 0
 - `--data <dir>` renders from fixture files (`<dir>/<source>.json`) instead of live data, to test states you can't produce: a CPU at 95%, an empty list, a failed source (`<dir>/<source>.error`). `--at <time>` freezes the clock.
 - Anything but `diagnostics: 0` is a problem: an expression that failed at runtime, an unknown icon or colour. `--strict` exits 3 on any.
 
+To see what a key does, without running anything: `vestal press <key> --dry-run --config /tmp/vestal-draft.json` prints its binding (widget, view or global) and each effect (`run [argv]`, `open <url>`, `show view …`). `vestal press <key>` sends it to the running dashboard for real.
+
 When a widget is missing or wrong, ask why:
 
 ```text

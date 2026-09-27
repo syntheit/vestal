@@ -270,6 +270,8 @@ diagnostics: 0
 - `--data <dir>` renders from fixture files (`<dir>/<source>.json`) instead of live data, to test states you can't produce: a CPU at 95%, an empty list, a failed source (`<dir>/<source>.error`). `--at <time>` freezes the clock.
 - Anything but `diagnostics: 0` is a problem: an expression that failed at runtime, an unknown icon or colour. `--strict` exits 3 on any.
 
+To see what a key does, without running anything: `vestal press <key> --dry-run --config /tmp/vestal-draft.json` prints its binding (widget, view or global) and each effect (`run [argv]`, `open <url>`, `show view …`). `vestal press <key>` sends it to the running dashboard for real.
+
 When a widget is missing or wrong, ask why:
 
 ```text
@@ -971,7 +973,8 @@ With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "..
 |---|---|
 | `vestal` | Start the dashboard and show it, or show the instance that runs already. |
 | `vestal daemon` | Start hidden (the launch agent and the systemd service run this). If an instance of this build runs, exit 0; one of another build is asked to quit and replaced. |
-| `vestal show [view]`, `vestal toggle [view]` | Show, or show or hide, the dashboard; start vestal if needed. `view` must name a view of the config (exit 4 otherwise). |
+| `vestal show [view]`, `vestal toggle [view]` | Show, or show or hide, the dashboard; start vestal if needed. `show` opens `view`, or `defaultView` without one (also when the dashboard is shown on another view). `toggle view` hides the dashboard when it is shown on that view, and otherwise shows that view. `view` must name a view of the config (exit 4 otherwise). |
+| `vestal press <key>` | Send a key to the running dashboard, as if typed on it (`h`, `2`, `tab`, `shift+tab`, `alt+i`, `escape`). Exit 1 when none runs or it is hidden. |
 | `vestal hide`, `vestal reload`, `vestal quit` | Tell the running instance. Exit 1 when none runs; they never start one. |
 | `vestal status [--json]` | The running instance: pid, build, config file, warnings, each source's age and last error, and this machine's stats. |
 | `vestal subscribe [--view <name>] [--while-hidden] [--role ui\|observer\|control] [--control] [--minor <n>] [--input]` | Print the live render-model stream (`vestal docs protocol`) until the instance hangs up or Ctrl-C; `--input` forwards JSON commands typed on stdin. Exit 1 when none runs. |
@@ -1020,13 +1023,19 @@ Evaluates a jq expression exactly as a widget would: the vestal functions, the c
 
 Builds the render model once and prints it. `tree` (the default): an indented outline with node ids, the texts as shown and the style fields; the cheapest way to see what is on screen. `json` (or `--json`): the snapshot message (`vestal docs render-model`). `text`: a rough picture. `--press` presses keys first, in order: opening popups and switching views, never running commands. It ends with `diagnostics: N`. `--strict` exits 3 when there are diagnostics or config errors; an unknown view exits 4.
 
-`vestal screenshot <out.png> [--view <name>] [--config <path>|-] [--cached|--fetch|--data <dir>] [--at <time>] [--press <key>]... [--size <w>x<h>] [--scale <n>] [--background solid|transparent] [--frames <file.json>] [--allow-commands] [--no-network] [--json]`
-
-The same render, drawn offscreen by the platform's UI into a PNG you can look at: SwiftUI on macOS (no window, no running instance, no screen-recording permission), GTK on Linux (needs a Wayland session; without a way to draw, exit 5; the PNG is the screen as drawn, so `--size`, `--scale` and `--background` are macOS-only and exit 2 there). On macOS the desktop blur and the aurora can't be captured: the background is the palette's `bg` (`solid`) or `transparent`. On Linux the GTK UI draws its aurora into the PNG (not the compositor's blur). `--frames` also writes every node's frame, with `clipped: true` on nodes cut off by the window or a `clip` ancestor and `truncated: true` on texts cut by `lines`: check layout without looking. It prints the path, or `{"path", "width", "height", "scale", "clipped", "truncated"}` with `--json`.
-
 `vestal explain <node id or widget key> [--view <name>] [--json] [--config <path>] [--cached|--fetch|--data <dir>] [--at <time>]`
 
 Everything about one widget, for "why is it missing or wrong": its template chain, source (name and `$meta`), `input`, each `vars` value, the `when` result, the widget as written (expanded) and as rendered, what it depends on (sources, `now`), its key and action, and its diagnostics. A node id inside a widget (a list row) adds that node and its scope.
+
+## Seeing the result
+
+`vestal press <key> --dry-run [--json] [--view <name>] [--press <key>]... [--config <path>|-] [--cached|--fetch|--data <dir>] [--at <time>]`
+
+Says what a key is bound to and what it would do, without running anything and without an instance: the binding's level (`reserved`, `popup`, `widget` with its node id, `view`, `global`, `view-key`, `tab`), the action as written, and each effect (`run [argv]…`, `open <url>`, `copy "…"`, `refresh …`, `media …`, `audio …`, `hide the dashboard`, `show view …`, `open a popup`). `--press` presses keys first (open a popup, switch views). Exit 1 when the key is unbound.
+
+`vestal screenshot <out.png|-> [--view <name>] [--press <key>]... [--config <path>|-] [--cached|--fetch|--data <dir>] [--at <time>] [--size <w>x<h>] [--scale <n>] [--background solid|transparent] [--frames <file.json>] [--json] [--strict]`
+
+The same render as `vestal render`, drawn by the dashboard's own renderer. macOS: offscreen with the SwiftUI renderer, into a PNG. It needs no window, no running instance and no screen-recording permission, and shows nothing. The data is `vestal render`'s. The blur and the aurora can't be captured: the background is the palette's `bg`, or transparent. `--size` defaults to the main screen in points, `--scale` to 2. `--frames` also writes every node's frame with `clipped` and `truncated` flags (`-` as the PNG path writes only the frames). It prints the path, or with `--json` `{"path", "width", "height", "scale", "clipped", "truncated"}`. Linux: the same, drawn offscreen by the GTK UI; it needs a Wayland session (exit 5 without one) and draws the screen as it is, so `--size`, `--scale` and `--background` are macOS-only (exit 2) and the reported size is the PNG's in pixels (scale 1). The GTK UI draws its aurora into the PNG; the compositor's blur is never captured.
 
 ## Documentation
 
@@ -1499,7 +1508,7 @@ Any vestal instance serves subscribers, including a Linux `vestal daemon` with n
 | `protocol` | `[1]` | The major versions the client speaks. Without `1`: an `error` message, and the connection closes. |
 | `minor` | `0` | The minor version the client understands; newer node types come as `text` with their `alt`. |
 | `client` | none | A name for logs. |
-| `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise the headless daemon runs `wl-copy` (`pbcopy` on macOS). (`screenshot` delegation is specified but not implemented yet.) |
+| `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise vestal's own UI takes it (macOS), or the headless daemon runs `wl-copy`. (`screenshot` delegation is specified but not implemented yet.) |
 | `whileHidden` | `false` | Keep evaluating and sending patches while the dashboard is hidden (debugging). |
 | `control` | `false` | Let an observer's `invoke`, `key`, `hide` and `view` count. |
 | `view` | none | Switch to this view, as a `view` command right after subscribing (primary UI or control only, while shown). |
@@ -1549,7 +1558,7 @@ A conforming UI:
 3. draws every node type and field of `vestal docs render-model`, with the icon fonts of `vestal docs icons`;
 4. sends `invoke` for clicks on `action` nodes and `key` for key presses, and carries out `copy` effects.
 
-vestal's own UIs draw the same model in-process, through the same `RenderEngine` the hub serves: SwiftUI on macOS and GTK on Linux (both being switched over to it in v0.4; until then a Linux `vestal daemon` is headless and serves only subscribers).
+vestal's own UIs draw the same model in-process, from the resident's `RenderEngine`, which is also the engine the socket serves: on macOS the SwiftUI dashboard and subscribers see the same model, keys and popups. A Linux `vestal daemon` without a display is headless and serves only subscribers.
 
 """#,
         "recipes": #"""

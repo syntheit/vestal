@@ -67,7 +67,10 @@ public enum CLI {
         case subscribe([String])
         /// `vestal capabilities ...` (CapabilitiesCommand).
         case capabilities([String])
-        /// `vestal screenshot ...` (ScreenshotCommand).
+        /// `vestal press ...` (PressCommand).
+        case press([String])
+        /// `vestal screenshot ...`: MacScreenshotCommand on macOS,
+        /// ScreenshotCommand with the GTK renderer on Linux.
         case screenshot([String])
     }
 
@@ -100,6 +103,7 @@ public enum CLI {
         case "explain": return .command(.explain(rest))
         case "subscribe": return .command(.subscribe(rest))
         case "capabilities": return .command(.capabilities(rest))
+        case "press": return .command(.press(rest))
         case "screenshot": return .command(.screenshot(rest))
         case "show" where !rest.isEmpty, "toggle" where !rest.isEmpty:
             guard rest.count == 1, !rest[0].hasPrefix("-") else { return .usageError("'\(name)' takes one view at most") }
@@ -122,7 +126,9 @@ public enum CLI {
         Commands:
           daemon               Start hidden (the launch agent runs this). If vestal
                                runs already: exit 0, or replace it if it is another build
-          toggle [view]        Show or hide the dashboard; starts vestal if needed
+          toggle [view]        Show or hide the dashboard; starts vestal if needed.
+                               With a view: hide it if shown on that view, else
+                               show that view
           show [view]          Show the dashboard; starts vestal if needed. A view
                                must be one of the config's (exit 4 otherwise)
           hide                 Hide the dashboard
@@ -154,12 +160,6 @@ public enum CLI {
           explain <node id or widget key> [--view <name>] [--json]
                                Everything about one widget: template chain, source,
                                vars, when, fields as written and as resolved
-          screenshot <out.png> [--view <name>] [--config <path>] [--cached|--fetch|--data <dir>]
-                     [--at <time>] [--press <key>]... [--size <w>x<h>] [--scale <n>]
-                     [--background solid|transparent] [--frames <file.json>] [--json]
-                               Draw a view offscreen to a PNG with the dashboard's own
-                               renderer (Linux: needs a Wayland session); --frames
-                               writes every node's frame, clipped and truncated flags
           capabilities [--json] [--config <path>]
                                What works on this machine: each built-in source's
                                backend, icon fonts, screenshots, the hotkey, and the
@@ -168,6 +168,18 @@ public enum CLI {
                     [--control] [--input]
                                Print the running instance's render-model stream
                                (NDJSON: hello, snapshot, patch, visibility, effect)
+          screenshot <out.png> [--view <name>] [--press <key>]... [--at <time>]
+                     [--cached|--fetch|--data <dir>] [--size <w>x<h>] [--scale <n>]
+                     [--background solid|transparent] [--frames <file.json>] [--json]
+                               Draw a view offscreen to a PNG with the dashboard's own
+                               renderer: macOS with no window or running instance;
+                               Linux with GTK in a Wayland session (the screen as it
+                               is, so no --size, --scale or --background); --frames
+                               writes every node's frame, clipped and truncated flags
+          press <key> [--dry-run]
+                               Send a key to the running dashboard, as if typed on
+                               it; --dry-run says what it is bound to instead (local,
+                               with render's data options)
           schema [--out <file>]
                                Print the config's JSON Schema
           docs [topic] [--list] [--search <text>] [--json]
@@ -383,6 +395,7 @@ public enum CLI {
             "config: \(status.configPath ?? "none (built-in defaults)")",
             "hotkey: \(status.hotkey ?? "none")",
         ]
+        if let view = status.view { lines.append("view: \(view)") }
         if status.warnings.isEmpty {
             lines.append("warnings: none")
         } else {

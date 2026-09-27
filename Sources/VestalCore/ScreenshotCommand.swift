@@ -134,9 +134,9 @@ public enum ScreenshotCommand {
         guard let renderer, unsupported == nil else {
             return Output(status: 5, stderr: "vestal: screenshot is not supported here: \(unsupported ?? "this build has no renderer")\n")
         }
-        let built: RenderCommands.Built
-        switch RenderCommands.snapshot(options.render, environment: environment, home: home, platform: platform, client: client) {
-        case .failure(let failure): return failure
+        let built: RenderCommands.Prepared
+        switch RenderCommands.prepare(options.render, environment: environment, home: home, platform: platform, client: client) {
+        case .failure(let failure): return failure.output
         case .success(let result): built = result
         }
 
