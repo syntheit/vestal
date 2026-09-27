@@ -1,0 +1,217 @@
+import Foundation
+
+// MARK: - JSON Schema
+//
+// `vestal schema`: a JSON Schema (draft 2020-12) of the config file, built
+// from SchemaRegistry (docs/EXTENSIBILITY.md §11.3). docs/vestal.schema.json
+// is this document, checked by a golden test.
+//
+// It describes one file, not the merged config, so:
+// - every object member may be `null`, which deletes the key from a lower
+//   layer (the built-in defaults);
+// - keys a source or widget needs (`url`, `source`, ...) aren't required,
+//   since the defaults may hold them; only list elements, which replace a
+//   lower layer's list whole, require theirs;
+// - a source or widget without `type` is an override of one of a lower
+//   layer, with any of the keys some type takes;
+// - a widget `type` that isn't built in is taken as a template's (v0.4),
+//   with free-form keys. check-config reports one that isn't defined.
+//
+// Every key has a description, its default where it has one, examples,
+// `x-vestal-kind` (§4.1) and `x-vestal-since`.
+
+public enum ConfigSchema {
+    public static let id = "urn:vestal:config:1"
+
+    /// The schema as `vestal schema` prints it.
+    public static var text: String { document.prettyPrinted() + "\n" }
+
+    public static var document: AnyJSON {
+        let top = SchemaRegistry.topLevel
+        var defs: [String: AnyJSON] = [
+            "duration": .object([
+                "type": .string("string"),
+                "pattern": .string(#"^[ \t]*\+?0*[1-9][0-9]*[smhd][ \t]*$"#),
+                "description": .string("A whole number above zero and a unit: s, m, h or d."),
+                "examples": .array([.string("30s"), .string("5m"), .string("4h"), .string("1d")]),
+            ]),
+            "layer": .object([
+                "type": .string("object"),
+                "description": .string("A platform block: any top-level key except platform."),
+                "properties": properties(top.keys.filter { $0.name != "platform" }),
+                "additionalProperties": .bool(false),
+            ]),
+        ]
+        let listed = listElementShapes
+        for shape in SchemaRegistry.shapes where shape.name != top.name {
+            defs[shape.name] = object(shape.description, shape.keys, requireKeys: listed.contains(shape.name))
+        }
+        entities("source", SchemaRegistry.sourceTypes, templates: false, into: &defs)
+        entities("widget", SchemaRegistry.widgetTypes, templates: true, into: &defs)
+
+        return .object([
+            "$schema": .string("https://json-schema.org/draft/2020-12/schema"),
+            "$id": .string(id),
+            "title": .string("Vestal config"),
+            "description": .string(top.description),
+            "type": .string("object"),
+            "properties": properties(top.keys),
+            "additionalProperties": .bool(false),
+            "$defs": .object(defs),
+        ])
+    }
+
+    // MARK: Sources and widgets
+
+    /// `<what>` (a oneOf discriminated on `type`), `<what>.<type>` for each
+    /// type, `<what>.override`, and with `templates`, `<what>.template`.
+    private static func entities(_ what: String, _ types: [SchemaEntityType], templates: Bool,
+                                 into defs: inout [String: AnyJSON]) {
+        var branches: [AnyJSON] = []
+        var union: [SchemaKey] = []
+        for type in types.sorted(by: { $0.name < $1.name }) {
+            let names = [type.name] + type.aliases
+            let typeKey: [String: AnyJSON] = [
+                "enum": .array(names.map(AnyJSON.string)),
+                "description": .string("The \(what) type" + (type.aliases.isEmpty ? "." : "; " +
+                    type.aliases.map { "\($0) is an alias" }.joined(separator: ", ") + ".")),
+                "x-vestal-kind": .string(SchemaKind.literal.rawValue),
+                "x-vestal-since": .string(type.since),
+            ]
+            var branch = object(type.description, type.keys, requireKeys: false).objectValue!
+            var props = branch["properties"]!.objectValue!
+            props["type"] = .object(typeKey)
+            branch["properties"] = .object(props)
+            branch["required"] = .array([.string("type")])
+            branch["x-vestal-since"] = .string(type.since)
+            defs["\(what).\(type.name)"] = .object(branch)
+            branches.append(.object(["$ref": .string("#/$defs/\(what).\(type.name)")]))
+            for key in type.keys where !union.contains(where: { $0.name == key.name }) {
+                var general = key
+                general.defaultValue = nil  // defaults differ by type
+                union.append(general)
+            }
+        }
+        if templates {
+            let builtIn = types.flatMap { [$0.name] + $0.aliases }.sorted()
+            defs["\(what).template"] = .object([
+                "type": .string("object"),
+                "description": .string("A \(what) of a type defined by a template (v0.4); its keys are the template's parameters. "
+                                       + "check-config reports a type that is neither built in nor defined."),
+                "properties": .object(["type": .object([
+                    "type": .string("string"),
+                    "not": .object(["enum": .array(builtIn.map(AnyJSON.string))]),
+                    "description": .string("A template's name."),
+                ])]),
+                "required": .array([.string("type")]),
+            ])
+            branches.append(.object(["$ref": .string("#/$defs/\(what).template")]))
+        }
+        var override = object("Changes to a \(what) of the same name in a lower layer (the built-in defaults): "
+                              + "any of its keys, without type.", union.sorted { $0.name < $1.name },
+                              requireKeys: false).objectValue!
+        override["not"] = .object(["required": .array([.string("type")])])
+        defs["\(what).override"] = .object(override)
+        branches.append(.object(["$ref": .string("#/$defs/\(what).override")]))
+
+        defs[what] = .object([
+            "description": .string("A \(what): an object whose type picks the keys it takes."),
+            "oneOf": .array(branches),
+        ])
+    }
+
+    // MARK: Keys
+
+    /// Shapes used as list elements. A list replaces a lower layer's whole,
+    /// so their required keys can be required.
+    private static var listElementShapes: Set<String> {
+        var names = Set<String>()
+        func visit(_ type: SchemaType) {
+            switch type {
+            case .list(.shape(let name)): names.insert(name)
+            case .list(let inner), .map(let inner): visit(inner)
+            default: break
+            }
+        }
+        for shape in SchemaRegistry.shapes { shape.keys.forEach { visit($0.type) } }
+        for type in SchemaRegistry.sourceTypes + SchemaRegistry.widgetTypes { type.keys.forEach { visit($0.type) } }
+        return names
+    }
+
+    private static func object(_ description: String, _ keys: [SchemaKey], requireKeys: Bool) -> AnyJSON {
+        var object: [String: AnyJSON] = [
+            "type": .string("object"),
+            "description": .string(description),
+            "properties": properties(keys),
+            "additionalProperties": .bool(false),
+        ]
+        let required = keys.filter(\.required).map(\.name)
+        if requireKeys && !required.isEmpty { object["required"] = .array(required.map(AnyJSON.string)) }
+        return .object(object)
+    }
+
+    private static func properties(_ keys: [SchemaKey]) -> AnyJSON {
+        .object(Dictionary(uniqueKeysWithValues: keys.map { ($0.name, property($0)) }))
+    }
+
+    /// A key's schema: its type (null allowed, which deletes it) and its
+    /// annotations.
+    private static func property(_ key: SchemaKey) -> AnyJSON {
+        var schema = nullable(typeSchema(key.type))
+        schema["description"] = .string(key.description)
+        if let value = key.defaultValue { schema["default"] = value }
+        if !key.examples.isEmpty { schema["examples"] = .array(key.examples) }
+        schema["x-vestal-kind"] = .string(key.kind.rawValue)
+        schema["x-vestal-since"] = .string(key.since)
+        return .object(schema)
+    }
+
+    private static func typeSchema(_ type: SchemaType) -> [String: AnyJSON] {
+        switch type {
+        case .string:
+            return ["type": .string("string")]
+        case .integer(let minimum):
+            var schema: [String: AnyJSON] = ["type": .string("integer")]
+            if let minimum { schema["minimum"] = .int(minimum) }
+            return schema
+        case .boolean:
+            return ["type": .string("boolean")]
+        case .duration:
+            return ref("duration")
+        case .oneOf(let values):
+            return ["type": .string("string"), "enum": .array(values.map(AnyJSON.string))]
+        case .list(let element):
+            return ["type": .string("array"), "items": .object(typeSchema(element))]
+        case .map(let value):
+            return ["type": .string("object"), "additionalProperties": .object(nullable(typeSchema(value)))]
+        case .shape(let name):
+            return ref(name)
+        case .source:
+            return ref("source")
+        case .widget:
+            return ref("widget")
+        case .layer:
+            return ref("layer")
+        case .any:
+            return [:]
+        }
+    }
+
+    private static func ref(_ name: String) -> [String: AnyJSON] {
+        ["$ref": .string("#/$defs/\(name)")]
+    }
+
+    /// `schema`, also accepting null.
+    private static func nullable(_ schema: [String: AnyJSON]) -> [String: AnyJSON] {
+        var schema = schema
+        if case .string(let type)? = schema["type"] {
+            schema["type"] = .array([.string(type), .string("null")])
+            if case .array(let values)? = schema["enum"] { schema["enum"] = .array(values + [.null]) }
+            return schema
+        }
+        if schema["$ref"] != nil {
+            return ["anyOf": .array([.object(schema), .object(["type": .string("null")])])]
+        }
+        return schema  // any value, null included
+    }
+}
