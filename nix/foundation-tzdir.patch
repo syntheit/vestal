@@ -11,7 +11,7 @@
  
  #ifndef TZDEFAULT
  #define TZDEFAULT	"/etc/localtime"
-@@ -813,9 +817,35 @@
+@@ -813,9 +817,52 @@
  #elif TARGET_OS_ANDROID
  // Nothing
  #elif TARGET_OS_LINUX || TARGET_OS_BSD || TARGET_OS_WASI
@@ -19,6 +19,8 @@
 +// (/usr/share/zoneinfo/, which NixOS doesn't have): $TZDIR, then
 +// /usr/share/zoneinfo/, then NixOS's /etc/zoneinfo/, then the tzdata this
 +// Foundation was built with.
++#include <pthread.h>
++
 +static Boolean __CFTZDirUsable(const char *dir) {
 +    char path[CFMaxPathSize];
 +    struct stat sb;
@@ -27,29 +29,44 @@
 +    return stat(path, &sb) == 0 && S_ISREG(sb.st_mode);
 +}
 +
- static void __InitTZStrings(void) {
--    __tzZoneInfo = CFSTR(TZDIR);
--    __tzDir = TZDIR "zone.tab";
-+    const char *candidates[] = { __CFgetenv("TZDIR"), TZDIR, "/etc/zoneinfo/", NIX_TZDIR };
-+    const char *dir = NIX_TZDIR;
-+    for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); i++) {
-+        if (__CFTZDirUsable(candidates[i])) { dir = candidates[i]; break; }
-+    }
++// Sets both strings for `dir`, or neither.
++static Boolean __CFTZSetDir(const char *dir) {
 +    size_t len = strlen(dir);
 +    Boolean slash = len > 0 && dir[len - 1] == '/';
 +    char *zoneInfo = malloc(len + 2);
 +    char *zoneTab = malloc(len + sizeof("/zone.tab"));
-+    if (!zoneInfo || !zoneTab) { free(zoneInfo); free(zoneTab); return; }
++    if (!zoneInfo || !zoneTab) { free(zoneInfo); free(zoneTab); return false; }
 +    snprintf(zoneInfo, len + 2, "%s%s", dir, slash ? "" : "/");
 +    snprintf(zoneTab, len + sizeof("/zone.tab"), "%szone.tab", zoneInfo);
-+    // Both live for the rest of the process, like the constants they replace.
-+    __tzZoneInfo = CFStringCreateWithCString(kCFAllocatorSystemDefault, zoneInfo, kCFStringEncodingUTF8);
-+    __tzDir = zoneTab;
++    // NULL for a path that isn't UTF-8.
++    CFStringRef info = CFStringCreateWithCString(kCFAllocatorSystemDefault, zoneInfo, kCFStringEncodingUTF8);
 +    free(zoneInfo);
++    if (!info) { free(zoneTab); return false; }
++    // Both live for the rest of the process, like the constants they replace.
++    __tzDir = zoneTab;
++    __tzZoneInfo = info;
++    return true;
++}
++
++static void __InitTZStringsOnce(void) {
++    const char *candidates[] = { __CFgetenv("TZDIR"), TZDIR, "/etc/zoneinfo/" };
++    for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); i++) {
++        if (__CFTZDirUsable(candidates[i]) && __CFTZSetDir(candidates[i])) return;
++    }
++    // Callers treat NULL strings as "no time zone data".
++    (void)__CFTZSetDir(NIX_TZDIR);
++}
++
++// Once: the callers check the strings without a lock.
+ static void __InitTZStrings(void) {
+-    __tzZoneInfo = CFSTR(TZDIR);
+-    __tzDir = TZDIR "zone.tab";
++    static pthread_once_t once = PTHREAD_ONCE_INIT;
++    pthread_once(&once, __InitTZStringsOnce);
  }
  
  #else
-@@ -873,9 +903,16 @@
+@@ -873,9 +920,16 @@
          linkbuf[ret] = '\0';
          const char *tzZoneInfo = CFStringGetCStringPtr(__tzZoneInfo, kCFStringEncodingASCII);
          size_t zoneInfoDirLen = CFStringGetLength(__tzZoneInfo);
