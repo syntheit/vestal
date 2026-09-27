@@ -8,7 +8,10 @@ import Foundation
 // once, in any order.
 //
 //   keys       f1-f20, a-z, 0-9, space, escape (or esc), home, end
-//   modifiers  cmd (command), ctrl (control), alt (opt, option), shift
+//   modifiers  cmd (command, super), ctrl (control), alt (opt, option), shift
+//
+// `super` is the Linux name for the same modifier: Super on Linux, Command
+// on macOS.
 //
 // The hotkey is global: the key is taken from every app. So letters,
 // digits, space and escape need cmd, ctrl or alt (shift alone just types a
@@ -53,7 +56,7 @@ public struct HotkeySpec: Equatable, Hashable, Sendable, CustomStringConvertible
 
     /// Accepted modifier names, aliases included.
     private static let modifierNames: [String: Modifiers] = [
-        "cmd": .command, "command": .command,
+        "cmd": .command, "command": .command, "super": .command,
         "ctrl": .control, "control": .control,
         "alt": .option, "opt": .option, "option": .option,
         "shift": .shift,
@@ -253,7 +256,7 @@ public struct HotkeyParseError: Error, Equatable, CustomStringConvertible {
             return "more than one key (\(names.joined(separator: ", "))); use exactly one"
         case .unknownName(let name):
             return "unknown name '\(name)'; keys are f1-f20, a-z, 0-9, space, escape (esc),"
-                + " home and end; modifiers are cmd, ctrl, alt (opt) and shift"
+                + " home and end; modifiers are cmd (super), ctrl, alt (opt) and shift"
         case .duplicateModifier(let name):
             return "'\(name)' repeats a modifier"
         case .needsModifier(let name):
