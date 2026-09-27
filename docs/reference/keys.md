@@ -31,6 +31,6 @@ Where bindings come from, highest precedence first:
 
 **`"key": "auto"`** gives a widget the first letter of its `keyHint` (letters only, in order) that no other binding took. Explicit keys are assigned first, then `auto` ones in tree order. `auto` never assigns `i` or `p` (v0.3's info and privacy keys). The `systemHealth` preset gives each host `auto` with its name as the hint, so `h` opens `harbor`.
 
-check-config reports two explicit bindings of one key at the same level as an error, and a widget key hiding a global one as info.
+check-config reports keys that aren't keys (`invalid-key`) and bindings of the reserved ones (`key-conflict`). When two widgets bind the same key explicitly, the first in tree order wins: check with `vestal render --press <key>`.
 
 Test a key without a screen: `vestal render --press h` renders the model after pressing `h` (it opens popups and switches views, but never runs a command).

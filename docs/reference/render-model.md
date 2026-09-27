@@ -37,7 +37,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 | Field | |
 |---|---|
 | `seq` | Increases by one with every message that changes the tree (per subscriber). |
-| `view`, `views` | The current view, and every view in config order, for UIs with a switcher. |
+| `view`, `views` | The current view, and every view sorted by name (JSON objects keep no order), for UIs with a switcher. |
 | `visible` | Whether the dashboard should be on screen. |
 | `theme.colors` | Every palette name a node may use, resolved to `#rrggbbaa`. |
 | `theme.fonts` | A family per role; `null` is the platform default. |
