@@ -102,22 +102,66 @@ final class ThemeDensityTests: XCTestCase {
         XCTAssertEqual(stack.children.count, 2)
     }
 
-    /// Compact aiUsage is a fixed-height line: with no Claude or Codex data
-    /// it hides instead of leaving an empty one.
-    func testCompactAIUsageHidesWithoutData() throws {
+    /// The snapshot of a compact config with the given source data.
+    private func snapshot(_ widgets: String, _ sources: [String: JQValue] = [:]) throws -> RenderSnapshot {
         let model = RenderConfigModel(expanded: ConfigExpansion.expand(try tree("""
-            { "theme": { "density": "compact" },
-              "widgets": { "usage": { "type": "aiUsage" } },
-              "views": { "main": { "children": ["usage"] } } }
+            { "theme": { "density": "compact" }, "widgets": { \(widgets) },
+              "sources": { "claude": { "type": "claude" }, "codex": { "type": "codex" } },
+              "views": { "main": { "children": ["w"] } } }
             """)))
-        func ids(_ sources: [String: JQValue]) -> [String] {
-            let session = RenderSession(model: model)
-            let data = RenderData(sources: sources, metas: [:], names: model.sourceNames)
-            return session.render(data: data, now: Self.at).root.children.map(\.id)
+        let session = RenderSession(model: model)
+        session.timeZone = try XCTUnwrap(TimeZone(identifier: "America/Argentina/Buenos_Aires"))
+        let snapshot = session.render(data: RenderData(sources: sources, metas: [:], names: model.sourceNames), now: Self.at)
+        XCTAssertEqual(snapshot.diagnostics, [])
+        return snapshot
+    }
+
+    private func texts(_ snapshot: RenderSnapshot) -> [String] {
+        var texts: [String] = []
+        snapshot.root.walk { node in
+            if case .text(let text) = node.content { texts.append(text.text) }
         }
-        XCTAssertEqual(ids([:]), [])
-        let claude = try JQValue.parse(#"{"session": {"percent": 18, "resetsAt": 1790540000}, "weekly": null}"#)
-        XCTAssertEqual(ids(["claude": claude]), ["main/usage"])
+        return texts
+    }
+
+    /// Compact aiUsage (the claude source's shape, `extra` included): a
+    /// service without data is left out, and each window says when it
+    /// resets beside its bar ("new" once it has reset, nothing when the
+    /// reset time couldn't be read).
+    func testCompactAIUsage() throws {
+        XCTAssertEqual(texts(try snapshot(#""w": { "type": "aiUsage" }"#)), [])
+        let at = Int(Self.at.timeIntervalSince1970)
+        let claude = try JQValue.parse("""
+            {"session": {"percent": 18, "resetsAt": \(at + 3 * 3600 + 60), "resetsText": "7:10pm"},
+             "weekly": {"percent": 0, "resetsAt": null, "resetsText": null},
+             "extra": [{"label": "Fable", "percent": 3, "resetsAt": null, "resetsText": "Oct 3"}],
+             "updatedAt": \(at), "source": "cli", "plan": null}
+            """)
+        XCTAssertEqual(texts(try snapshot(#""w": { "type": "aiUsage" }"#, ["claude": claude])),
+                       ["Claude", "5h", "18%", "in 3h", "wk", "0%", "new"])
+        let unread = try JQValue.parse(#"{"session": {"percent": 40, "resetsAt": null, "resetsText": "someday"}, "weekly": null}"#)
+        XCTAssertEqual(texts(try snapshot(#""w": { "type": "aiUsage", "show": ["claude"] }"#, ["claude": unread])),
+                       ["Claude", "5h", "40%", "wk", "–"])
+    }
+
+    /// Up to three world clocks share the date's line; more get their own.
+    func testCompactWorldClocks() throws {
+        func clock(_ count: Int) throws -> [RenderNode] {
+            let clocks = (0..<count).map { #"{"label": "C\#($0)", "tz": "America/New_York"}"# }.joined(separator: ", ")
+            let root = try snapshot(#""w": { "type": "clock", "worldClocks": [\#(clocks)] }"#).root
+            guard case .stack(let stack)? = root.node(withId: "main/w")?.content else { return [] }
+            return stack.children
+        }
+        func count(_ node: RenderNode) -> Int {
+            if case .stack(let stack) = node.content { return stack.children.count }
+            return 0
+        }
+        let three = try clock(3)
+        XCTAssertEqual(three.count, 2, "the time, then the date with the clocks")
+        XCTAssertEqual(three.last.map(count), 2)
+        let four = try clock(4)
+        XCTAssertEqual(four.count, 3, "the time, the date, the clocks")
+        XCTAssertEqual(count(four[1]), 1, "the date alone")
     }
 
     func testCompactHalvesTheViewGap() throws {
@@ -139,6 +183,9 @@ final class ThemeDensityTests: XCTestCase {
               "widgets": { "clock": { "type": "clock" } } }
             """))
         XCTAssertEqual(expanded.top["widgets"]?.objectValue?["clock"]?.objectValue?["text"], .string("mine"))
+        // The presets not overridden keep their compact bodies.
+        XCTAssertEqual(expanded.registry.lookup("media")?.widget, DefaultPresets.compactTree.objectValue?["media"])
+        XCTAssertEqual(expanded.registry.lookup("clock")?.widget?.objectValue?["text"], .string("mine"))
     }
 
     func testCheckConfig() throws {

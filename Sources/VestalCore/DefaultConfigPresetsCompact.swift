@@ -6,21 +6,22 @@ import Foundation
 // `compact`, by template name. The templates keep their descriptions and
 // parameters (DefaultPresets.json), so a config validates and expands the
 // same way at either density; only the bodies differ. A template not named
-// here (stat, badge, claudeItem, hostDetail) keeps its standard body.
+// here (stat, badge, hostDetail) keeps its standard body.
 //
 // Compact: about half the space between blocks, a clock about two thirds
 // the size with the date and world clocks on one line under it, no section
 // titles or rules where the rows explain themselves (hosts, currencies,
 // weather; the agenda keeps a small one), host rows with shorter, thinner
 // bars, currencies and weather on one line each, and the plan-usage resets
-// beside the bars instead of under them.
+// beside the bars instead of under them. The titles of systemHealth,
+// keyValueList and weatherCard are accepted and not drawn.
 
 extension DefaultPresets {
     /// Template name → compact widget body.
     public static let compactJSON = #"""
     {
       "section": {
-        "type": "stack", "gap": { "expr": "$gap / 2" }, "align": "start", "width": "fill",
+        "type": "stack", "gap": { "param": "gap" }, "align": "start", "width": "fill",
         "children": [
           { "type": "text", "text": { "param": "title" },
             "style": { "size": 9, "weight": "semibold", "color": "dim", "tracking": 1.2, "case": "upper" } },
@@ -35,15 +36,17 @@ extension DefaultPresets {
           { "type": "text", "text": "{{ now | fmt_time(if $hour12 then \"h:mm:ss a\" else \"HH:mm:ss\" end) }}", "style": { "size": 38, "weight": "ultralight", "font": "mono" } },
           { "type": "row", "gap": 16, "align": "baseline", "children": [
             { "type": "text", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}", "style": { "size": 13, "font": "rounded", "color": "subtle" } },
-            {
-              "type": "list", "direction": "row", "gap": 12, "align": "baseline", "when": "$clocks | length > 0",
-              "items": "$clocks", "rowId": ".label",
-              "row": { "type": "row", "gap": 4, "align": "baseline", "children": [
-                { "type": "text", "text": "{{ .label }}", "style": { "size": 11, "weight": "semibold", "color": "dim" } },
-                { "type": "text", "text": "{{ now | fmt_time(if $hour12 then \"h:mm a\" else \"HH:mm\" end; $item.tz) }}", "style": { "size": 11, "font": "mono", "color": "subtle" } }
-              ] }
-            }
-          ] }
+            @WORLDCLOCKS($clocks | length > 0 and length <= 3)@
+          ] },
+          @WORLDCLOCKS($clocks | length > 3)@
+        ]
+      },
+
+      "claudeItem": {
+        "type": "row", "gap": 4,
+        "children": [
+          { "type": "icon", "name": { "param": "icon" }, "size": 9, "color": "dim" },
+          { "type": "text", "text": "{{ [.session, .weekly] | map(if . == null then \"–\" else \"\\(.percent)%\" end) | join(\" / \") }}", "style": { "size": 11, "font": "mono", "color": "subtle" } }
         ]
       },
 
@@ -54,35 +57,34 @@ extension DefaultPresets {
       },
 
       "aiWindow": {
-        "type": "row", "gap": 6, "align": "center",
+        "type": "row", "gap": 5, "align": "center",
         "vars": {
           "w": { "param": "window" },
           "p": "if $w == null then null elif $w.resetsAt != null and $w.resetsAt <= now then 0 else $w.percent end"
         },
         "children": [
           { "type": "progress", "label": { "param": "label" }, "value": "$p // 0",
-            "width": 32, "height": 4, "textWidth": 26,
+            "width": 28, "height": 4, "textWidth": 24,
             "text": "{{ if $p == null then \"–\" else \"\\($p)%\" end }}",
             "color": { "expr": "if ($p // 0) >= 90 then \"bad\" else $color end" } },
-          { "type": "text", "when": "$w != null and ($w.resetsAt // 0) > now",
-            "text": "resets {{ ($w.resetsAt - now) | fmt_duration(1) }}",
+          { "type": "text", "when": "$w != null and ((($w.resetsAt // 0) > now) or $p == 0)",
+            "text": "{{ if ($w.resetsAt // 0) > now then \"in \" + (($w.resetsAt - now) | fmt_duration(1)) else \"new\" end }}",
             "style": { "size": 9, "font": "mono", "color": "dim" } }
         ]
       },
 
       "aiUsage": {
-        "type": "row", "gap": 20, "width": "fill", "height": 18, "spaceBefore": 4,
-        "when": "(($show | any(. == \"claude\")) and $sources[$claudeSource] != null) or (($show | any(. == \"codex\")) and $sources[$codexSource] != null)",
+        "type": "row", "gap": 16, "width": "fill", "spaceBefore": 4,
         "children": [
-          { "type": "list", "direction": "row", "gap": 20, "rowId": ".",
+          { "type": "list", "direction": "row", "gap": 16, "rowId": ".",
             "items": "$show | map(select(. == \"claude\" or . == \"codex\")) | uniq_by(.)",
             "row": { "type": "switch", "on": ".", "cases": {
-              "claude": { "type": "row", "gap": 10, "source": { "param": "claudeSource" }, "children": [
+              "claude": { "type": "row", "gap": 8, "height": 18, "source": { "param": "claudeSource" }, "children": [
                 { "type": "text", "text": "Claude", "style": { "size": 11, "weight": "semibold", "color": "subtle" } },
                 { "type": "aiWindow", "label": "5h", "window": ".session", "color": "orange" },
                 { "type": "aiWindow", "label": "wk", "window": ".weekly", "color": "orange" }
               ] },
-              "codex": { "type": "row", "gap": 10, "source": { "param": "codexSource" }, "children": [
+              "codex": { "type": "row", "gap": 8, "height": 18, "source": { "param": "codexSource" }, "children": [
                 { "type": "text", "text": "Codex", "style": { "size": 11, "weight": "semibold", "color": "subtle" } },
                 { "type": "aiWindow", "label": "5h", "window": ".session", "color": "teal", "when": ".session != null" },
                 { "type": "aiWindow", "label": "wk", "window": ".weekly", "color": "teal" }
@@ -130,7 +132,7 @@ extension DefaultPresets {
       },
 
       "agendaList": {
-        "type": "section", "title": { "param": "title" }, "spaceBefore": 14,
+        "type": "section", "title": { "param": "title" }, "gap": 4, "spaceBefore": 14,
         "source": { "param": "source" },
         "vars": { "events": "[.[]? | select(.end > now)] | sort_by(.start) | .[:$maxEvents]" },
         "when": "$events | length > 0",
@@ -163,16 +165,18 @@ extension DefaultPresets {
           { "type": "text", "text": "{{ .location | titlecase }}", "lines": 1, "style": { "size": 12, "weight": "medium" } },
           { "type": "text", "text": "{{ .condition }}", "lines": 1, "style": { "size": 12, "color": "subtle" } },
           { "type": "text", "text": "{{ .temp }}", "style": { "size": 12, "weight": "semibold", "font": "mono" } },
-          { "type": "row", "gap": 4, "spaceBefore": 14, "when": ".sunrise != null", "children": [
-            { "type": "icon", "name": "sunrise", "weight": "fill", "size": 9, "color": "warn" },
-            { "type": "text", "text": "{{ .sunrise }}", "style": { "size": 11, "font": "mono", "color": "subtle" } }
+          { "type": "row", "gap": 10, "spaceBefore": 14, "when": ".sunrise != null or .sunset != null", "children": [
+            { "type": "row", "gap": 4, "when": ".sunrise != null", "children": [
+              { "type": "icon", "name": "sunrise", "weight": "fill", "size": 9, "color": "warn" },
+              { "type": "text", "text": "{{ .sunrise }}", "style": { "size": 11, "font": "mono", "color": "subtle" } }
+            ] },
+            { "type": "row", "gap": 4, "when": ".sunset != null", "children": [
+              { "type": "icon", "name": "sunset", "weight": "fill", "size": 9, "color": "warn" },
+              { "type": "text", "text": "{{ .sunset }}", "style": { "size": 11, "font": "mono", "color": "subtle" } }
+            ] },
+            { "type": "text", "vars": { "ctx": "sun_context(.sunrise; .sunset)" }, "when": "$ctx != null",
+              "text": "{{ $ctx }}", "style": { "size": 11, "color": "dim" } }
           ] },
-          { "type": "row", "gap": 4, "when": ".sunset != null", "children": [
-            { "type": "icon", "name": "sunset", "weight": "fill", "size": 9, "color": "warn" },
-            { "type": "text", "text": "{{ .sunset }}", "style": { "size": 11, "font": "mono", "color": "subtle" } }
-          ] },
-          { "type": "text", "vars": { "ctx": "sun_context(.sunrise; .sunset)" }, "when": "$ctx != null",
-            "text": "{{ $ctx }}", "style": { "size": 11, "color": "dim" } },
           { "type": "spacer" }
         ]
       },
@@ -265,9 +269,34 @@ extension DefaultPresets {
     }
     """#
 
+    /// The world clocks in a row, shown when `when` holds.
+    static func worldClocks(_ when: String) -> String {
+        #"""
+        {
+          "type": "list", "direction": "row", "gap": 12, "align": "baseline", "when": "\#(when)",
+          "items": "$clocks", "rowId": ".label",
+          "row": { "type": "row", "gap": 4, "align": "baseline", "children": [
+            { "type": "text", "text": "{{ .label }}", "style": { "size": 11, "weight": "semibold", "color": "dim" } },
+            { "type": "text", "text": "{{ now | fmt_time(if $hour12 then \"h:mm a\" else \"HH:mm\" end; $item.tz) }}", "style": { "size": 11, "font": "mono", "color": "subtle" } }
+          ] }
+        }
+        """#
+    }
+
+    /// `compactJSON` with the `@WORLDCLOCKS(when)@` shorthand written out.
+    static let expandedCompactJSON: String = {
+        var text = compactJSON
+        while let start = text.range(of: "@WORLDCLOCKS("),
+              let end = text.range(of: ")@", range: start.upperBound..<text.endIndex) {
+            text.replaceSubrange(start.lowerBound..<end.upperBound,
+                                 with: worldClocks(String(text[start.upperBound..<end.lowerBound])))
+        }
+        return text
+    }()
+
     /// `compactJSON` as JSON.
     public static let compactTree: AnyJSON = {
-        guard case .success(let tree) = AnyJSON.parse(Data(compactJSON.utf8)) else { return .object([:]) }
+        guard case .success(let tree) = AnyJSON.parse(Data(expandedCompactJSON.utf8)) else { return .object([:]) }
         return tree
     }()
 }

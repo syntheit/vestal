@@ -54,6 +54,8 @@ final class DocsTests: XCTestCase {
             let page = DocsCommand.run(["preset/\(name)"])
             XCTAssertEqual(page.status, 0, name)
             XCTAssertTrue(page.stdout.contains("\n## Its JSON\n\n"), name)
+            let compact = DefaultPresets.compactTree.objectValue?[name] != nil
+            XCTAssertEqual(page.stdout.contains("\n## Its compact body\n\n"), compact, name)
         }
         let stat = DocsCommand.run(["preset/stat"]).stdout
         XCTAssertTrue(stat.contains("| `value` | string | required | expr |"), stat)

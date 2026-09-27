@@ -705,6 +705,13 @@ public enum ConfigChecks {
                 checker.sourceFields(source, path: "templates.\(name).source", params: Set(data))
             }
         }
+        // The compact bodies (`theme.density`), with the same parameters.
+        let compact = TemplateRegistry(userTemplates: nil, density: "compact")
+        for name in (DefaultPresets.compactTree.objectValue ?? [:]).keys.sorted() {
+            guard let template = compact.builtins[name], let body = template.widget else { continue }
+            let data = template.params.filter(\.value.isData).map(\.key)
+            checker.templateBody(body, path: "templates.\(name).widget (compact)", scope: V04Checker.baseScope.adding(data))
+        }
         return checker.warnings
     }
 }
