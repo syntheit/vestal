@@ -27,6 +27,10 @@ public struct Config: Equatable, Sendable {
     public var views: [String: ViewConfig] = [:]
     /// Named secrets for source definitions (EXTENSIBILITY.md 5.3).
     public var secrets: [String: SecretConfig] = [:]
+    /// The config with templates expanded and the legacy adapter applied
+    /// (ConfigExpansion), when it came from ConfigLoader: what the render
+    /// engine draws, and where template-made sources are read from.
+    public var expanded: AnyJSON?
 
     public init(
         version: Int = 1,
@@ -48,6 +52,14 @@ public struct Config: Equatable, Sendable {
 }
 
 extension Config {
+    /// Takes the expansion's sources (named ones with source templates
+    /// expanded, template-made inline ones, the adapter's `host:<name>`)
+    /// and its tree.
+    public mutating func adopt(_ expansion: ExpandedConfig) {
+        expanded = expansion.tree
+        for (name, source) in expansion.sources { sources[name] = source }
+    }
+
     /// Where a system bar's "claudeUsage" item takes its options: the first
     /// widget of type claudeUsage, by key. Nil means the defaults.
     public var claudeUsageWidget: WidgetConfig? {

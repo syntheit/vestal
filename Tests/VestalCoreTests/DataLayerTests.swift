@@ -139,7 +139,7 @@ final class SecretsTests: XCTestCase {
         XCTAssertEqual(plain, "plain")
         do {
             _ = try await LoadTimeText.evaluate("{{ .x | round }}", lookup: lookup)
-            XCTFail("an expression needs the engine")
+            XCTFail("source definitions have no data")
         } catch let error as SourceError {
             XCTAssertTrue(error.description.contains("only $secrets"), error.description)
         }

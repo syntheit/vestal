@@ -143,7 +143,10 @@ public final class AppRuntime {
 
     private let fetcher: SourceFetcher
     private let cache: SnapshotCache?
-    private let expressions: SourceExpressions
+    private var expressions: SourceExpressions
+    /// Expressions a test injected; nil: the engine with the config's
+    /// `functions` (EngineSourceExpressions), renewed on every `apply`.
+    private let fixedExpressions: SourceExpressions?
     private var secrets: SecretStore
     /// Makes a secret store for a config (tests pass their own).
     private let makeSecrets: (Config) -> SecretStore
@@ -172,14 +175,15 @@ public final class AppRuntime {
         config: Config,
         fetcher: SourceFetcher = LiveFetcher(),
         cache: SnapshotCache? = SnapshotCache(),
-        expressions: SourceExpressions = PathExpressions(),
+        expressions: SourceExpressions? = nil,
         secrets: @escaping (Config) -> SecretStore = { SecretStore($0.secrets) },
         now: @escaping () -> Date = Date.init,
         jitter: @escaping () -> Double = { Double.random(in: 0.9...1.1) }
     ) {
         self.fetcher = fetcher
         self.cache = cache
-        self.expressions = expressions
+        self.fixedExpressions = expressions
+        self.expressions = expressions ?? EngineSourceExpressions(config: config)
         self.makeSecrets = secrets
         self.secrets = secrets(config)
         self.now = now
@@ -201,23 +205,32 @@ public final class AppRuntime {
     /// The latest snapshot for `key`; nil if the config has no such source
     /// or foyer host.
     public func snapshot(_ key: RuntimeKey) -> SourceSnapshot? {
-        jobs[.snapshot(key)]?.snapshot
+        job(key)?.snapshot
     }
 
     /// The definition behind `key`: the source, or a host's health command.
     public func source(_ key: RuntimeKey) -> SourceConfig? {
-        jobs[.snapshot(key)]?.plan?.source
+        job(key)?.plan?.source
     }
 
     /// The main view's widgets that read `key` (`view/widget`).
     public func readers(_ key: RuntimeKey) -> [String] {
-        jobs[.snapshot(key)]?.plan?.readers ?? []
+        job(key)?.plan?.readers ?? []
     }
 
     /// `key`'s metadata now (EXTENSIBILITY.md 5.1).
     public func meta(_ key: RuntimeKey) -> SourceMeta? {
-        guard let job = jobs[.snapshot(key)] else { return nil }
+        guard let job = job(key) else { return nil }
         return SourceMeta(name: key.description, snapshot: job.snapshot, refresh: job.interval, now: now())
+    }
+
+    /// The job for `key`. A host's health is the source `host:<name>` when
+    /// the legacy adapter made one (EXTENSIBILITY.md 7.5): its data is the
+    /// same foyer payload, untransformed.
+    private func job(_ key: RuntimeKey) -> Job? {
+        if let job = jobs[.snapshot(key)] { return job }
+        if case .host(let name) = key { return jobs[.snapshot(.source("host:\(name)"))] }
+        return nil
     }
 
     /// Every source and host health job, sources first, each sorted by name.
@@ -274,6 +287,7 @@ public final class AppRuntime {
     /// if still due), and secrets are read again when next needed.
     public func apply(_ config: Config) {
         secrets = makeSecrets(config)
+        if fixedExpressions == nil { expressions = EngineSourceExpressions(config: config) }
         cancelVisibleOnlyFetches()
         let plans = Self.plans(for: config)
         var changed: [RuntimeKey] = []
@@ -755,6 +769,8 @@ public final class AppRuntime {
             let provider = widget.provider ?? WidgetConfig.Defaults.provider
             for host in widget.hosts ?? [] where names.insert(host.name).inserted {
                 guard host.source == nil, let url = host.url else { continue }
+                // The adapter's `host:<name>` source fetches it.
+                if config.runtimeSources["host:\(host.name)"] != nil { continue }
                 let command = SourceConfig(type: "command", refresh: host.interval,
                                            argv: AsyncData.foyerHealthArgv(url: url), timeout: hostTimeout)
                 plans[.host(host.name)] = Plan(

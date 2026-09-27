@@ -78,6 +78,15 @@ case .command(.sources(let arguments)):
 case .command(.fetch(let arguments)):
     emit(SourceCommands.fetch(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
 
+case .command(.eval(let arguments)):
+    emit(EvalCommand.run(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
+
+case .command(.render(let arguments)):
+    emit(RenderCommands.render(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
+
+case .command(.explain(let arguments)):
+    emit(RenderCommands.explain(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
+
 case .command(.schema(let arguments)):
     emit(ConfigCommands.schema(arguments))
 

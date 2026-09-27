@@ -163,6 +163,15 @@ public enum SourceReaders {
             for source in LegacySources.sources(for: entry, in: config) { add(source.inlineName, entry.key) }
             for name in widget.sourceNames.sorted() { add(name, entry.key) }
         }
+        // The expanded tree the render engine draws (templates, v0.4 widgets).
+        if let tree = config.expanded {
+            let names = Set(config.sources.keys)
+            for (source, widgets) in TreeReaders.readers(of: tree, view: view, sourceNames: names) {
+                for reader in widgets where !(readers[source] ?? []).contains(reader) {
+                    readers[source, default: []].append(reader)
+                }
+            }
+        }
         return readers
     }
 }

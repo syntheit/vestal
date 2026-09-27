@@ -53,6 +53,12 @@ public enum CLI {
         case docs([String])
         /// `vestal icons ...` (IconsCommand).
         case icons([String])
+        /// `vestal eval ...` (EvalCommand).
+        case eval([String])
+        /// `vestal render ...` (RenderCommands).
+        case render([String])
+        /// `vestal explain ...` (RenderCommands).
+        case explain([String])
     }
 
     public enum Parsed: Equatable, Sendable {
@@ -79,6 +85,9 @@ public enum CLI {
         case "schema": return .command(.schema(rest))
         case "docs": return .command(.docs(rest))
         case "icons": return .command(.icons(rest))
+        case "eval": return .command(.eval(rest))
+        case "render": return .command(.render(rest))
+        case "explain": return .command(.explain(rest))
         case "show" where !rest.isEmpty, "toggle" where !rest.isEmpty:
             guard rest.count == 1, !rest[0].hasPrefix("-") else { return .usageError("'\(name)' takes one view at most") }
             return .command(.sendRequest(IPCRequest(IPCCommand(rawValue: name)!, view: rest[0])))
@@ -116,9 +125,22 @@ public enum CLI {
                                - reads stdin): each finding with its JSON pointer,
                                line and a did-you-mean. --commands lists every
                                program the config can run
-          print-config [path|-] [--origins]
+          print-config [path|-] [--origins | --expanded | --templates]
                                Print the effective config as JSON, defaults merged
-                               in; --origins shows which layer set each value
+                               in; --origins shows which layer set each value,
+                               --expanded the config after templates and the
+                               legacy adapter, --templates every template
+          eval <expr> [--source <name> | --input <file|-> | --null-input] [--template]
+                      [--var <name>=<json>]... [--at <time>] [--cached|--fetch] [--json]
+                               Evaluate a jq expression as a widget would, with the
+                               vestal functions and the config's functions
+          render [--format tree|json|text] [--view <name>] [--press <key>]... [--at <time>]
+                 [--cached|--fetch|--data <dir>] [--strict]
+                               Print the render model of a view: an outline (tree),
+                               the snapshot (json) or a rough picture (text)
+          explain <node id or widget key> [--view <name>] [--json]
+                               Everything about one widget: template chain, source,
+                               vars, when, fields as written and as resolved
           schema [--out <file>]
                                Print the config's JSON Schema
           docs [topic] [--list] [--search <text>] [--json]

@@ -57,13 +57,19 @@ public struct ConfigWarning: Equatable, Sendable, CustomStringConvertible {
     /// For a wrong type or value: what was expected and what was found.
     public var expected: String?
     public var found: String?
+    /// Set for the v0.4 findings that aren't warnings: template errors
+    /// (`error`) and the legacy adapter's notes (`info`). Nil: the kind
+    /// decides (`isError`).
+    public var severity: ConfigDiagnostic.Severity?
 
     public init(kind: Kind, path: String = "", message: String,
                 line: Int? = nil, column: Int? = nil, platform: ConfigPlatform? = nil,
-                code: String? = nil, suggestions: [String] = [], expected: String? = nil, found: String? = nil) {
+                code: String? = nil, severity: ConfigDiagnostic.Severity? = nil, suggestions: [String] = [],
+                expected: String? = nil, found: String? = nil) {
         self.kind = kind; self.path = path; self.message = message
         self.line = line; self.column = column; self.platform = platform
-        self.specificCode = code; self.suggestions = suggestions; self.expected = expected; self.found = found
+        self.specificCode = code; self.severity = severity; self.suggestions = suggestions
+        self.expected = expected; self.found = found
     }
 
     /// The diagnostic code (§11.2).
@@ -104,9 +110,17 @@ public struct LoadedConfig: Equatable, Sendable {
     /// The merged JSON the config was decoded from (what `print-config` shows).
     public var merged: AnyJSON
     public var warnings: [ConfigWarning]
+    /// Info diagnostics (the legacy adapter's `legacy` notes); never warnings.
+    public var notes: [ConfigWarning]
+    /// `merged` after the legacy adapter and template expansion (what the
+    /// render engine reads, and `print-config --expanded` shows).
+    public var expanded: ExpandedConfig
 
-    public init(path: String?, config: Config, merged: AnyJSON, warnings: [ConfigWarning]) {
+    public init(path: String?, config: Config, merged: AnyJSON, warnings: [ConfigWarning],
+                notes: [ConfigWarning] = [], expanded: ExpandedConfig? = nil) {
         self.path = path; self.config = config; self.merged = merged; self.warnings = warnings
+        self.notes = notes
+        self.expanded = expanded ?? ConfigExpansion.expand(merged)
     }
 
     /// The file couldn't be read or parsed; the defaults are in effect.
@@ -161,8 +175,7 @@ public enum ConfigLoader {
     /// The config from a given file; nil means the defaults alone.
     public static func load(path: String?, platform: ConfigPlatform = .current) -> LoadedConfig {
         guard let path else {
-            return LoadedConfig(path: nil, config: decode(DefaultConfig.tree),
-                                merged: DefaultConfig.tree, warnings: [])
+            return make(path: nil, merged: DefaultConfig.tree, warnings: [])
         }
         let data: Data
         do {
@@ -220,12 +233,21 @@ public enum ConfigLoader {
             }
         }
 
-        return LoadedConfig(path: path, config: decode(merged), merged: merged, warnings: warnings)
+        return make(path: path, merged: merged, warnings: warnings)
     }
 
     private static func failed(path: String?, _ warning: ConfigWarning) -> LoadedConfig {
-        LoadedConfig(path: path, config: decode(DefaultConfig.tree),
-                     merged: DefaultConfig.tree, warnings: [warning])
+        make(path: path, merged: DefaultConfig.tree, warnings: [warning])
+    }
+
+    /// The loaded config for a merged tree: decoded, and expanded
+    /// (templates, legacy adapter), with the expansion's findings.
+    static func make(path: String?, merged: AnyJSON, warnings: [ConfigWarning]) -> LoadedConfig {
+        let expanded = ConfigExpansion.expand(merged)
+        var config = decode(merged)
+        config.adopt(expanded)
+        return LoadedConfig(path: path, config: config, merged: merged, warnings: warnings + expanded.warnings,
+                            notes: expanded.notes, expanded: expanded)
     }
 
     // MARK: Layering

@@ -109,7 +109,7 @@ public enum SourceData {
 
     /// The data widgets see: `source.transform` applied (none: as is).
     public static func transformed(
-        _ data: Data, source: SourceConfig, expressions: SourceExpressions = PathExpressions()
+        _ data: Data, source: SourceConfig, expressions: SourceExpressions = EngineSourceExpressions()
     ) throws -> AnyJSON {
         guard let json = json(data, parse: source.parse) else { throw SourceError("not valid JSON") }
         guard let transform = source.transform else { return json }

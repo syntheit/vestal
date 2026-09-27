@@ -87,13 +87,21 @@ public enum ConfigCommands {
         if input.loaded.hasErrors {
             return Output(status: status, stdout: input.loaded.warnings.map { "\(label): \($0)\n" }.joined())
         }
-        if diagnostics.isEmpty {
-            return Output(status: status, stdout: "\(label): ok\n")
+        let errors = diagnostics.filter { $0.severity == .error }.count
+        let warnings = diagnostics.filter { $0.severity == .warning }.count
+        var text: String
+        switch (errors, warnings) {
+        case (0, 0): text = "\(label): ok\n"
+        case (0, _): text = "\(label): \(warnings) warning\(warnings == 1 ? "" : "s")\n"
+        default:
+            text = "\(label): \(errors) error\(errors == 1 ? "" : "s")"
+                + (warnings > 0 ? ", \(warnings) warning\(warnings == 1 ? "" : "s")" : "") + "\n"
         }
-        let count = diagnostics.count
-        var text = "\(label): \(count) warning\(count == 1 ? "" : "s")\n"
-        for diagnostic in diagnostics {
-            text += "  \(diagnostic.warning)\n"
+        // Errors and warnings in the v0.3 line format; info (the legacy
+        // adapter's notes) after them.
+        for diagnostic in diagnostics.filter({ $0.severity != .info }) + diagnostics.filter({ $0.severity == .info }) {
+            let prefix = diagnostic.severity == .warning ? "" : "\(diagnostic.severity.rawValue): "
+            text += "  \(prefix)\(diagnostic.warning)\n"
             if let hint = diagnostic.hint { text += "    \(hint)\n" }
         }
         return Output(status: status, stdout: text)
@@ -229,7 +237,7 @@ public enum ConfigCommands {
 
     // MARK: print-config
 
-    static let printUsage = "usage: vestal print-config [path|-] [--origins]"
+    static let printUsage = "usage: vestal print-config [path|-] [--origins | --expanded | --templates]"
 
     /// `vestal print-config [path|-] [--origins]`: the effective config
     /// (defaults and platform block merged in) as pretty JSON with sorted
@@ -242,7 +250,7 @@ public enum ConfigCommands {
         stdin: () -> Data = { FileHandle.standardInput.readDataToEndOfFile() }
     ) -> Output {
         let options: Options
-        switch Options.parse(arguments, flags: ["origins"], valued: ["config"]) {
+        switch Options.parse(arguments, flags: ["origins", "expanded", "templates"], valued: ["config"]) {
         case .success(let parsed): options = parsed
         case .failure(let problem): return usageError(problem.message, usage: printUsage, json: false)
         }
@@ -258,6 +266,20 @@ public enum ConfigCommands {
         if options.flags.contains("origins") {
             return Output(status: 0, stdout: origins(loaded.merged, user: input.user ?? [:], platform: .current),
                           stderr: warnings)
+        }
+        if options.flags.contains("templates") {
+            // Built-ins and the user's, each marked (EXTENSIBILITY.md 7.2 rule 8).
+            let registry = loaded.expanded.registry
+            var out: [String: AnyJSON] = [:]
+            for name in registry.names {
+                guard var entry = registry.lookup(name)?.json.objectValue else { continue }
+                entry["builtin"] = .bool(registry.user[name] == nil)
+                out[name] = .object(entry)
+            }
+            return Output(status: 0, stdout: AnyJSON.object(out).prettyPrinted() + "\n", stderr: warnings)
+        }
+        if options.flags.contains("expanded") {
+            return Output(status: 0, stdout: loaded.expanded.tree.prettyPrinted() + "\n", stderr: warnings)
         }
         return Output(status: 0, stdout: loaded.merged.prettyPrinted() + "\n", stderr: warnings)
     }

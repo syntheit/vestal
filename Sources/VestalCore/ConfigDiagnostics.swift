@@ -99,7 +99,7 @@ public enum ConfigDiagnostics {
                             positions: JSONPositions? = nil) -> [ConfigDiagnostic] {
         let user = user ?? [:]
         var merged: [ConfigPlatform: AnyJSON] = [:]
-        return loaded.warnings.map { warning in
+        return (loaded.warnings + loaded.notes).map { warning in
             let target = warning.platform ?? platform
             let segments: [String]
             if warning.path.isEmpty {
@@ -133,7 +133,8 @@ public enum ConfigDiagnostics {
     /// all (unreadable, not JSON), which is an error. No v0.3 config has an
     /// error severity otherwise, so none exits 3.
     static func severity(of warning: ConfigWarning) -> ConfigDiagnostic.Severity {
-        warning.isError ? .error : .warning
+        if let severity = warning.severity { return severity }
+        return warning.isError ? .error : .warning
     }
 
     // MARK: Paths and pointers

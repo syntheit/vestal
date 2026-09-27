@@ -168,7 +168,7 @@ public enum SourceCommands {
             guard let entry = cache.load(options.name), let data = entry.snapshot.data else {
                 return failure("\(options.name): nothing cached", code: 1, options: options)
             }
-            return printData(data, source: source, options: options)
+            return printData(data, source: source, config: config, options: options)
         }
 
         let allowCommands = !draft || options.allowCommands
@@ -191,7 +191,7 @@ public enum SourceCommands {
         }
         switch result {
         case .success(let fetched):
-            var output = printData(fetched.data, source: source, options: options)
+            var output = printData(fetched.data, source: source, config: config, options: options)
             if let info = fetched.info { output.stderr += "vestal: \(options.name): \(secrets.scrub(info))\n" }
             return output
         case .failure(let error):
@@ -201,7 +201,7 @@ public enum SourceCommands {
 
     // MARK: Output
 
-    private static func printData(_ data: Data, source: SourceConfig, options: FetchOptions) -> Output {
+    private static func printData(_ data: Data, source: SourceConfig, config: Config, options: FetchOptions) -> Output {
         if options.raw {
             if source.parse == "raw" && !options.shape { return Output(status: 0, stdout: String(decoding: data, as: UTF8.self)) }
             guard let json = SourceData.json(data, parse: source.parse) else {
@@ -210,7 +210,8 @@ public enum SourceCommands {
             return print(json, options: options)
         }
         do {
-            return print(try SourceData.transformed(data, source: source), options: options)
+            return print(try SourceData.transformed(data, source: source, expressions: EngineSourceExpressions(config: config)),
+                         options: options)
         } catch {
             return failure("\(options.name): \(AppRuntime.describe(error))", code: 1, options: options)
         }
@@ -426,7 +427,7 @@ public enum SourceListing {
 
     /// A `fetch` reply: the data, after `transform` unless `raw`.
     public static func reply(_ snapshot: SourceSnapshot, source: SourceConfig, raw: Bool,
-                             expressions: SourceExpressions = PathExpressions()) -> IPCResponse {
+                             expressions: SourceExpressions = EngineSourceExpressions()) -> IPCResponse {
         guard let data = snapshot.data else { return .failure("no data yet") }
         let value: AnyJSON
         if raw {

@@ -11,10 +11,9 @@ import Foundation
 // secret value before it reaches `vestal status`, `vestal sources` or the
 // log.
 //
-// Until the expression engine lands (phase 3), a `{{ … }}` hole may hold only
-// `$secrets.<name>`, `$env.<NAME>` or, in a template, `$<param>`; anything
-// else fails the fetch with a message that says so. `LoadTimeText.evaluate`
-// is the seam phase 3 replaces with the full template evaluator.
+// A `{{ … }}` hole is any jq expression over `$secrets` and `$env`; a
+// template's parameters were written into the text when the config was
+// expanded (ConfigExpansion.bindParameters).
 
 public enum LoadTimeText {
     /// Whether `text` has anything to evaluate.
@@ -22,33 +21,53 @@ public enum LoadTimeText {
         text.contains("{{")
     }
 
-    /// `text` with each `{{ … }}` replaced by its value; `{{{{` writes a
-    /// literal `{{`. `lookup` answers one variable path such as
-    /// `$secrets.gh` (nil: unknown, an error).
+    /// `text` with each `{{ … }}` replaced by its value (EXTENSIBILITY.md
+    /// §4.1 R2); `{{{{` writes a literal `{{`. A hole is any jq expression
+    /// over `$secrets` and `$env` (template parameters were filled in when
+    /// the config was expanded). `lookup` answers one variable path such as
+    /// `$secrets.gh` or `$env.HOME` (nil: unknown, an error).
     public static func evaluate(_ text: String, lookup: (String) async throws -> String?) async throws -> String {
         guard hasHoles(text) else { return text }
-        var out = ""
-        var rest = Substring(text)
-        while let open = rest.range(of: "{{") {
-            out += rest[..<open.lowerBound]
-            let after = rest[open.upperBound...]
-            if after.hasPrefix("{{") {
-                out += "{{"
-                rest = after.dropFirst(2)
-                continue
-            }
-            guard let close = after.range(of: "}}") else {
-                throw SourceError("unclosed \"{{\" in \(quoted(text))")
-            }
-            let expression = after[..<close.lowerBound].trimmingCharacters(in: .whitespaces)
-            guard isVariablePath(expression), let value = try await lookup(expression) else {
-                throw SourceError("\"{{ \(expression) }}\": only $secrets.<name> and $env.<NAME> work in "
-                    + "source definitions until expressions are supported")
-            }
-            out += value
-            rest = after[close.upperBound...]
+        let template: TextTemplate
+        switch TextTemplate.parse(text) {
+        case .failure(let error): throw SourceError("\(quoted(text)): \(error.message)")
+        case .success(let parsed): template = parsed
         }
-        return out + rest
+        var out = ""
+        for part in template.parts {
+            switch part {
+            case .literal(let literal):
+                out += literal
+            case .hole(let expression, _):
+                let compiled: JQExpression
+                switch ExprEnvironment.standard.compile(expression) {
+                case .failure(let error): throw SourceError("\"{{ \(expression) }}\": \(error.message)")
+                case .success(let c): compiled = c
+                }
+                var scopes: [String: [String: AnyJSON]] = ["secrets": [:], "env": [:]]
+                for use in compiled.references.variables {
+                    guard use.name == "secrets" || use.name == "env" else {
+                        throw SourceError("\"{{ \(expression) }}\": only $secrets and $env are in scope in source definitions")
+                    }
+                    guard let key = use.path.first else {
+                        throw SourceError("\"{{ \(expression) }}\": name the \(use.name == "env" ? "variable" : "secret"), "
+                            + "as in $\(use.name).<name>")
+                    }
+                    guard let value = try await lookup("$\(use.name).\(key)") else {
+                        throw SourceError("\"{{ \(expression) }}\": unknown $\(use.name).\(key)")
+                    }
+                    scopes[use.name]?[key] = .string(value)
+                }
+                let variables = scopes.mapValues { JQValue(AnyJSON.object($0)) }
+                switch ExprEnvironment.standard.first(compiled, input: .null, variables: variables, context: JQEvalContext()) {
+                case .failure(let error):
+                    throw SourceError("\"{{ \(expression) }}\": \(error.message) (source definitions see only $secrets and $env)")
+                case .success(let value):
+                    out += TextTemplate.stringify(value)
+                }
+            }
+        }
+        return out
     }
 
     /// `$name` or `$name.field`.
