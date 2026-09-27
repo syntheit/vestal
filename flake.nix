@@ -47,6 +47,11 @@
               (pkgs.callPackage ./nix/gtk-pkgconfig.nix { })
             ];
           }
+          // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
+            # Where a dev build of the macOS UI finds the Phosphor icon fonts
+            # (the app bundle has them in Contents/Resources/Fonts).
+            VESTAL_FONT_DIRS = "${./Resources/icons}";
+          }
           // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
             # SwiftPM compiles and runs Package.swift against libdispatch.
             LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.swiftPackages.Dispatch ];

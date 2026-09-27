@@ -1,0 +1,54 @@
+{
+  "comment": "The values of ../dashboard.json and ../dashboard-popup.json for the v0.3 views: vestal render-file --legacy <this> --config examples/full.json. Add \"popup\": \"harbor\" for the popup.",
+  "time": "2026-09-27T14:03:22-07:00",
+  "timeZone": "America/Los_Angeles",
+  "cpu": 23,
+  "ram": 61,
+  "pressure": 12,
+  "temp": 54,
+  "uptime": "3d 4h",
+  "disk": "412/994GB",
+  "battery": { "percent": 82, "charging": false, "timeRemaining": 312 },
+  "network": { "in": 1258291, "out": 86016 },
+  "privacy": { "systemBar": false },
+  "claude": { "blockTokens": 1440000, "weeklyTokens": 19950000 },
+  "volume": { "level": 64, "muted": false },
+  "nowPlaying": {
+    "Spotify": { "title": "Clair de Lune", "artist": "Claude Debussy", "state": "playing" }
+  },
+  "agenda": {
+    "agenda": [
+      { "title": "Rent due", "allDay": true, "start": "2026-09-27T00:00:00-07:00" },
+      { "title": "Design review", "time": "15:00", "start": "2026-09-27T15:00:00-07:00" },
+      { "title": "1:1 with Ana", "time": "16:30", "start": "2026-09-27T16:30:00-07:00" },
+      { "title": "Dinner at Don Julio", "time": "19:00", "start": "2026-09-27T19:00:00-07:00" }
+    ]
+  },
+  "servers": [
+    { "name": "harbor", "ok": true, "cpu": 8, "ram": 34, "pressure": 0, "temp": 47, "uptime": 1814400 },
+    { "name": "raven", "ok": true, "cpu": 71, "ram": 78, "pressure": 30, "temp": 82, "uptime": 777600 },
+    { "name": "conduit", "ok": false }
+  ],
+  "details": {
+    "harbor": {
+      "ok": true, "cpu": 8, "ram": 34, "compressed": 6, "temp": 47, "uptime": 1814400,
+      "gpu": { "name": "NVIDIA GeForce GTX 1660 Ti", "util": 12, "memUsedMB": 1229, "memTotalMB": 6144, "temp": 44, "watts": 31 },
+      "pools": [
+        { "name": "tank", "percent": 71, "total": 7916483719987, "used": 5607509301657, "health": "ONLINE" },
+        { "name": "rpool", "percent": 38, "total": 483183820800, "used": 183609851904, "health": "ONLINE" }
+      ],
+      "rx": 2516582, "tx": 317440, "docker": 14
+    }
+  },
+  "keyValues": {
+    "exchange": [
+      { "label": "Blue", "buy": "1215", "sell": "1235" },
+      { "label": "Official", "buy": "1045", "sell": "1085" },
+      { "label": "MEP", "buy": "1198", "sell": "1203" },
+      { "label": "BRL", "buy": "5.31", "sell": "" }
+    ]
+  },
+  "weather": {
+    "weather": { "location": "buenos aires", "condition": "Partly cloudy", "temp": "18°C", "sunrise": "07:02", "sunset": "19:14" }
+  }
+}

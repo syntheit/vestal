@@ -44,14 +44,17 @@ var sourcePlatform: SourcePlatform {
     #endif
 }
 
-#if os(Linux)
-// The GTK UI's development entry point: draws a render-model JSON file
-// (VestalLinux/RenderFileCommand.swift). Not in `CLI` yet, since it exists
-// only until the render engine drives the UI.
+// The UIs' development entry point: draws a render-model JSON file, on
+// screen with GTK (VestalLinux/RenderFileCommand.swift) or offscreen to a PNG
+// on macOS (VestalMac/Render/RenderFileCommand.swift). Not in `CLI` yet,
+// since it exists only until the render engine drives the UI.
 if CommandLine.arguments.count > 1, CommandLine.arguments[1] == "render-file" {
+    #if os(Linux)
     exit(RenderFileCommand.run(Array(CommandLine.arguments.dropFirst(2))))
+    #elseif os(macOS)
+    exit(MacRenderFileCommand.run(Array(CommandLine.arguments.dropFirst(2))))
+    #endif
 }
-#endif
 
 switch CLI.parse(Array(CommandLine.arguments.dropFirst())) {
 case .usageError(let message):

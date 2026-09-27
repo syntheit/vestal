@@ -102,6 +102,16 @@ final class RenderModelTests: XCTestCase {
         XCTAssertEqual(decoded, .view(name: "work"))
     }
 
+    func testIconModeIsOptional() throws {
+        // Omitted by default, so existing snapshots and goldens are unchanged.
+        XCTAssertEqual(try encode(RenderTheme.Icons()), #"{"fonts":{"fill":"Phosphor-Fill","regular":"Phosphor"},"set":"phosphor"}"#)
+        let native = RenderTheme.Icons(mode: "native")
+        XCTAssertTrue(try encode(native).contains(#""mode":"native""#))
+        let decoded = try RenderJSON.decoder.decode(RenderTheme.Icons.self, from: RenderJSON.encoder.encode(native))
+        XCTAssertEqual(decoded, native)
+        XCTAssertNil(try snapshot("dashboard.json").theme.icons.mode)
+    }
+
     func testSnapshotWritesNullPopupAndFonts() throws {
         let json = try encode(RenderSnapshot(root: RenderNode(id: "main", .stack(.init()))))
         XCTAssertTrue(json.contains(#""popup":null"#))

@@ -40,8 +40,8 @@ let
     in
     if m == null then throw "package.nix: no BuildInfo.version found" else builtins.head m;
 
-  # The Linux UI's libraries as one pkg-config module. Its icon fonts are
-  # vendored in Resources/icons (Phosphor, see the README there).
+  # The Linux UI's libraries as one pkg-config module. The icon fonts (both
+  # UIs) are vendored in Resources/icons (Phosphor, see the README there).
   gtkPkgConfig = callPackage ./nix/gtk-pkgconfig.nix { };
 
   # Linux: swift-corelibs-foundation reads time zones only from its
@@ -160,6 +160,11 @@ stdenv.mkDerivation {
         install -Dm755 "$(swiftpmBinPath)/vestal" "$app/Contents/MacOS/vestal"
         install -Dm644 ${infoPlist} "$app/Contents/Info.plist"
         printf 'APPL????' > "$app/Contents/PkgInfo"
+        # The Phosphor icon fonts, for icons without an SF Symbol; the app
+        # registers them with CoreText at launch (VestalMac/Render/RenderIcons.swift).
+        install -Dm644 Resources/icons/Phosphor.ttf "$app/Contents/Resources/Fonts/Phosphor.ttf"
+        install -Dm644 Resources/icons/Phosphor-Fill.ttf "$app/Contents/Resources/Fonts/Phosphor-Fill.ttf"
+        install -Dm644 Resources/icons/LICENSE "$app/Contents/Resources/Fonts/LICENSE-Phosphor"
         makeBinaryWrapper "$app/Contents/MacOS/vestal" "$out/bin/vestal"
       ''
     else
