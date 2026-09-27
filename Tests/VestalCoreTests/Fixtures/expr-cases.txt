@@ -600,6 +600,19 @@ fromstream(([1,[2]] | tostream))
 {"a":{"b":{"c":1}}} | [paths(..)]
 [paths(numbers)]
 
+## Path identity (review)
+@null
+1 | path(1)
+1 | path(. + 0)
+1 | (1 = 2)
+null | [path(null)]
+{"a":true} | [path(.a | true)]
+"a\nc" | test("a.c"; "m")
+@loose
+1 ?// 2
+@loose
+{"a":1} | .a?//1
+
 ## Assignment operators
 @input {"a":1,"b":[1,2,3],"c":{"d":"x"}}
 .a = 5

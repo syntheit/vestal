@@ -294,7 +294,7 @@ enum JQRegex {
                 case "x": options.insert(.allowCommentsAndWhitespace)
                 case "n": skipEmpty = true
                 case "s", "l": break
-                case "p": options.insert(.dotMatchesLineSeparators)
+                case "p", "m": options.insert(.dotMatchesLineSeparators)
                 default: throw JQError.runtime("\(f) is not a valid modifier string")
                 }
             }

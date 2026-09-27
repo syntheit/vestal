@@ -32,6 +32,8 @@ public struct JQExpression: Sendable {
 
     private let root: JQOp
     private let declared: Set<String>
+    /// Calls hold definitions unowned; keep the registered ones alive.
+    private let definitions: [JQFunc]
 
     /// Compile `source`.
     /// - functions: extra functions (Swift or jq-defined), see JQFunctions.
@@ -55,6 +57,7 @@ public struct JQExpression: Sendable {
         self.root = JQOptimizer.optimize(try compiler.compile(ast))
         self.references = compiler.references
         self.declared = Set(variables)
+        self.definitions = Array(functions.defs.values)
     }
 
     /// Same as `init`: the evaluator contract's `compile(String) -> Program`.
@@ -66,6 +69,10 @@ public struct JQExpression: Sendable {
 
     /// Every output of the expression for `input`, in order (at most
     /// `limits.maxOutputs`).
+    ///
+    /// Inputs and variables should nest at most `JQBuiltins.maxValueDepth`
+    /// (512) levels, as values from `JQValue.parse` do (256 by default):
+    /// printing and comparing recurse per level.
     public func run(input: JQValue, variables: [String: JQValue] = [:],
                     context: JQEvalContext = JQEvalContext()) throws -> [JQValue] {
         var outputs: [JQValue] = []
@@ -125,8 +132,9 @@ public struct JQExpression: Sendable {
 // MARK: - Evaluation context
 
 /// Per-evaluation state shared with builtins and registered functions.
-/// Use one per evaluation: it records what the evaluation did.
-public final class JQEvalContext: @unchecked Sendable {
+/// Use one per evaluation: it records what the evaluation did, and it is
+/// not meant to be shared between threads.
+public final class JQEvalContext {
     /// The time `now` returns; nil means the system clock. Freeze it for
     /// tests or to render "as of" a moment.
     public var now: Date?

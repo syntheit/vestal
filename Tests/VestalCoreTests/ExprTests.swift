@@ -401,6 +401,29 @@ final class ExprTests: XCTestCase {
         XCTAssertEqual(error("[range(2000)] | reduce .[] as $i ([0]; [.] | group_by(.))")?.kind, .limit)
     }
 
+    func testLongPathsAreRefused() {
+        XCTAssertEqual(error("setpath([range(10000) | 0]; 1)")?.kind, .limit)
+        XCTAssertEqual(error("delpaths([[range(10000) | 0]])")?.kind, .limit)
+        XCTAssertEqual(error("path(getpath([range(10000) | 0])) as $p | null | .[0] |= 1 | setpath($p; 1)")?.kind, .limit)
+    }
+
+    func testUnusableDurationsMeanNoDeadline() throws {
+        for duration in [Double.infinity, .nan, 1e300, -1] {
+            let e = try JQExpression("[range(10)] | length", limits: JQLimits(maxDuration: duration))
+            XCTAssertEqual(try e.first(.null), .number(10))
+        }
+    }
+
+    func testExpressionsKeepDefinedFunctionsAlive() throws {
+        func make() throws -> JQExpression {
+            var functions = JQFunctions()
+            try functions.define("def twice: . * 2; def quad: twice | twice;")
+            return try JQExpression("quad", functions: functions)
+        }
+        let e = try make()
+        XCTAssertEqual(try e.first(3), .number(12))
+    }
+
     func testDeepJSONIsRejectedWhenParsing() {
         let deep = String(repeating: "[", count: 300) + String(repeating: "]", count: 300)
         XCTAssertThrowsError(try JQValue.parse(deep))

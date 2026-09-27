@@ -156,6 +156,9 @@ struct JQParser {
 
     mutating func expectEOF() throws {
         guard peek.tok == .eof else {
+            if isOp("?//") {
+                throw error("'?//' only separates alternative patterns after 'as'; for a default value write '(.a?) // x'")
+            }
             if isOp(")") { throw error("unmatched ')'") }
             if isOp("]") { throw error("unmatched ']'") }
             if isOp("}") { throw error("unmatched '}'") }
@@ -616,8 +619,8 @@ struct JQParser {
 
     mutating func parsePatterns() throws -> [JQPatternAST] {
         var patterns = [try parsePattern()]
-        while isOp("?"), peek(1).tok == .op("//") {
-            _ = advance(); _ = advance()
+        while isOp("?//") {
+            _ = advance()
             patterns.append(try parsePattern())
         }
         return patterns

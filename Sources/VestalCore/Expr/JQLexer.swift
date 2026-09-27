@@ -143,12 +143,6 @@ struct JQLexer {
         let three = ["?//", "//="]
         let two = ["|=", "+=", "-=", "*=", "/=", "%=", "==", "!=", "<=", ">=", "//"]
         for op in three where matches(op) {
-            if op == "?//" {
-                // `?//` is the destructuring alternative; lex it as `?`
-                // then `//` and let the parser decide.
-                pos += 1
-                return tok(.op("?"))
-            }
             pos += 3
             return tok(.op(op))
         }

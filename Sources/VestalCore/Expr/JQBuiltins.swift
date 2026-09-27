@@ -299,6 +299,7 @@ enum JQBuiltins {
                 var root = input
                 try interp.paths(args[0], input, env) { path in
                     try interp.tick()
+                    try JQOps.checkPathLength(path.count)
                     try JQOps.setpathInPlace(&root, path[...], value)
                 }
                 try checkDepth(root)
@@ -322,6 +323,7 @@ enum JQBuiltins {
                     }
                 } catch is FirstOutput {}
                 if let replacement {
+                    try JQOps.checkPathLength(path.count)
                     try JQOps.setpathInPlace(&root, path[...], replacement)
                 } else {
                     deletions.append(.array(path))
@@ -573,7 +575,7 @@ enum JQBuiltins {
                     let piece: JQValue
                     switch item {
                     case .bool, .number: piece = .string(item.textValue)
-                    case .null, .bool(false): piece = .string("")
+                    case .null: piece = .string("")
                     default: piece = item
                     }
                     try JQOps.addInPlace(&acc, piece)

@@ -126,7 +126,7 @@ final class JQInterpreter {
         self.limits = limits
         self.context = context
         self.regexCache = regexCache
-        if let seconds = limits.maxDuration, seconds > 0 {
+        if let seconds = limits.maxDuration, seconds > 0, seconds < 1e9 {
             deadline = DispatchTime.now().uptimeNanoseconds &+ UInt64(seconds * 1e9)
         } else {
             deadline = 0
@@ -491,6 +491,8 @@ final class JQInterpreter {
 
     func interpolate(_ parts: [JQOpStrPart], _ format: JQFormat?, _ k: Int, _ suffix: String,
                      _ input: JQValue, _ env: JQEnv?, _ out: JQEmit) throws {
+        try enter()
+        defer { depth -= 1 }
         if k < 0 { try out(.string(suffix)); return }
         switch parts[k] {
         case .literal(let s):
@@ -505,6 +507,8 @@ final class JQInterpreter {
 
     func buildObject(_ entries: [JQOpObjEntry], _ k: Int, _ obj: JQObject, _ input: JQValue,
                      _ env: JQEnv?, _ out: JQEmit) throws {
+        try enter()
+        defer { depth -= 1 }
         if k == entries.count { try out(.object(obj)); return }
         let entry = entries[k]
         try eval(entry.key, input, env) { key in
@@ -645,9 +649,19 @@ final class JQInterpreter {
     // anything else produces a plain value, which is only allowed to flow on
     // if it is the value at the current path (jq's "path intact" rule).
 
-    func nonPath(_ v: JQValue, _ from: JQPath) -> JQPath {
+    /// A plain value flowing through path mode. jq accepts it only if it is
+    /// *identical* to the value at the current path: the same copy, which
+    /// for null and booleans means the same kind. Here that is: a variable
+    /// holding the value (`limit`'s `$item`), or null/true/false.
+    func nonPath(_ v: JQValue, _ from: JQPath, stored: Bool = false) -> JQPath {
         let reference = from.atPath ?? from.value
-        return JQPath(value: v, path: from.path, atPath: v.isIdentical(to: reference) ? nil : reference)
+        let identical: Bool
+        switch (v, reference) {
+        case (.null, .null): identical = true
+        case (.bool(let a), .bool(let b)): identical = a == b
+        default: identical = stored && v.isIdentical(to: reference)
+        }
+        return JQPath(value: v, path: from.path, atPath: identical ? nil : reference)
     }
 
     func requireIntact(_ p: JQPath, _ message: @autoclosure () -> String) throws {
@@ -743,9 +757,7 @@ final class JQInterpreter {
                             acc = state
                             // jq keeps the source's path while extracting, so
                             // `$item` (the value at that path) stays intact.
-                            let reference = item.atPath ?? item.value
-                            let current = JQPath(value: state, path: item.path,
-                                                 atPath: state.isIdentical(to: reference) ? nil : reference)
+                            let current = self.nonPath(state, JQPath(value: item.atPath ?? item.value, path: item.path, atPath: nil))
                             if let extract {
                                 try self.evalPath(extract, current, env2, out)
                             } else {
@@ -803,7 +815,12 @@ final class JQInterpreter {
         default:
             // Literals, arithmetic, construction, variables, reduce...:
             // plain values.
-            try eval(op, input.value, env) { try out(self.nonPath($0, input)) }
+            var stored = false
+            switch op {
+            case .variable, .external: stored = true
+            default: break
+            }
+            try eval(op, input.value, env) { try out(self.nonPath($0, input, stored: stored)) }
         }
     }
 

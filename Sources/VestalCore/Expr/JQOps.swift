@@ -281,7 +281,7 @@ enum JQOps {
         var start = 0
         var i = 0
         while i + needle.count <= hay.count {
-            if hay[i] == needle[0] && Array(hay[i..<(i + needle.count)]) == needle {
+            if hay[i] == needle[0] && hay[i..<(i + needle.count)].elementsEqual(needle) {
                 out.append(String(decoding: hay[start..<i], as: UTF8.self))
                 i += needle.count
                 start = i
@@ -350,7 +350,17 @@ enum JQOps {
         guard case .array(let comps) = path else {
             throw JQError.runtime("Path must be specified as an array")
         }
+        try checkPathLength(comps.count)
         return try setpath(t, comps[...], v)
+    }
+
+    /// setpath and delpaths recurse once per path component, and the
+    /// result nests at least that deep: longer paths than values may be
+    /// deep are refused up front.
+    static func checkPathLength(_ n: Int) throws {
+        if n > JQBuiltins.maxValueDepth {
+            throw JQError(kind: .limit, message: "path longer than \(JQBuiltins.maxValueDepth) components")
+        }
     }
 
     static func setpath(_ t: JQValue, _ comps: ArraySlice<JQValue>, _ v: JQValue) throws -> JQValue {
@@ -447,6 +457,7 @@ enum JQOps {
             guard case .array(let comps) = p else {
                 throw JQError.runtime("Path must be specified as an array")
             }
+            try checkPathLength(comps.count)
             sorted.append(comps)
         }
         if sorted.isEmpty { return t }

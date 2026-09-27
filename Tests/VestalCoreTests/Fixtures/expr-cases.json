@@ -8535,6 +8535,86 @@
  },
  {
   "line": 605,
+  "expr": "1 | path(1)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Invalid path expression with result 1",
+  "kind": "runtime"
+ },
+ {
+  "line": 606,
+  "expr": "1 | path(. + 0)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Invalid path expression with result 1",
+  "kind": "runtime"
+ },
+ {
+  "line": 607,
+  "expr": "1 | (1 = 2)",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "Invalid path expression with result 1",
+  "kind": "runtime"
+ },
+ {
+  "line": 608,
+  "expr": "null | [path(null)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    []
+   ]
+  ]
+ },
+ {
+  "line": 609,
+  "expr": "{\"a\":true} | [path(.a | true)]",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   [
+    [
+     "a"
+    ]
+   ]
+  ]
+ },
+ {
+  "line": 610,
+  "expr": "\"a\\nc\" | test(\"a.c\"; \"m\")",
+  "input": null,
+  "nullInput": true,
+  "outputs": [
+   true
+  ]
+ },
+ {
+  "line": 612,
+  "expr": "1 ?// 2",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected ?//, expecting end of file (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 614,
+  "expr": "{\"a\":1} | .a?//1",
+  "input": null,
+  "nullInput": true,
+  "outputs": [],
+  "error": "jq: error: syntax error, unexpected ?//, expecting end of file (Unix shell quoting issues?) at <top-level>, line 1:",
+  "kind": "compile",
+  "loose": true
+ },
+ {
+  "line": 618,
   "expr": ".a = 5",
   "input": {
    "a": 1,
@@ -8562,7 +8642,7 @@
   ]
  },
  {
-  "line": 606,
+  "line": 619,
   "expr": ".a = (5, 6)",
   "input": {
    "a": 1,
@@ -8601,7 +8681,7 @@
   ]
  },
  {
-  "line": 607,
+  "line": 620,
   "expr": ".x = 1",
   "input": {
    "a": 1,
@@ -8630,7 +8710,7 @@
   ]
  },
  {
-  "line": 608,
+  "line": 621,
   "expr": ".b[0] = 9",
   "input": {
    "a": 1,
@@ -8658,7 +8738,7 @@
   ]
  },
  {
-  "line": 609,
+  "line": 622,
   "expr": ".b[5] = 1",
   "input": {
    "a": 1,
@@ -8689,7 +8769,7 @@
   ]
  },
  {
-  "line": 610,
+  "line": 623,
   "expr": ".b[-1] = 9",
   "input": {
    "a": 1,
@@ -8717,7 +8797,7 @@
   ]
  },
  {
-  "line": 611,
+  "line": 624,
   "expr": ".b[-10] = 9",
   "input": {
    "a": 1,
@@ -8735,7 +8815,7 @@
   "kind": "runtime"
  },
  {
-  "line": 612,
+  "line": 625,
   "expr": ".c.d = .a",
   "input": {
    "a": 1,
@@ -8763,7 +8843,7 @@
   ]
  },
  {
-  "line": 613,
+  "line": 626,
   "expr": ".a |= . + 1",
   "input": {
    "a": 1,
@@ -8791,7 +8871,7 @@
   ]
  },
  {
-  "line": 614,
+  "line": 627,
   "expr": ".b[] |= . * 10",
   "input": {
    "a": 1,
@@ -8819,7 +8899,7 @@
   ]
  },
  {
-  "line": 615,
+  "line": 628,
   "expr": ".b |= map(. + 1)",
   "input": {
    "a": 1,
@@ -8847,7 +8927,7 @@
   ]
  },
  {
-  "line": 616,
+  "line": 629,
   "expr": ".b[1:] = [\"x\"]",
   "input": {
    "a": 1,
@@ -8874,7 +8954,7 @@
   ]
  },
  {
-  "line": 617,
+  "line": 630,
   "expr": ".b[1:] |= map(. * 100)",
   "input": {
    "a": 1,
@@ -8902,7 +8982,7 @@
   ]
  },
  {
-  "line": 618,
+  "line": 631,
   "expr": ".b[:1] = []",
   "input": {
    "a": 1,
@@ -8929,7 +9009,7 @@
   ]
  },
  {
-  "line": 619,
+  "line": 632,
   "expr": ".a += 10",
   "input": {
    "a": 1,
@@ -8957,7 +9037,7 @@
   ]
  },
  {
-  "line": 620,
+  "line": 633,
   "expr": ".a -= 1",
   "input": {
    "a": 1,
@@ -8985,7 +9065,7 @@
   ]
  },
  {
-  "line": 621,
+  "line": 634,
   "expr": ".a *= 3",
   "input": {
    "a": 1,
@@ -9013,7 +9093,7 @@
   ]
  },
  {
-  "line": 622,
+  "line": 635,
   "expr": ".a /= 2",
   "input": {
    "a": 1,
@@ -9041,7 +9121,7 @@
   ]
  },
  {
-  "line": 623,
+  "line": 636,
   "expr": ".a %= 2",
   "input": {
    "a": 1,
@@ -9069,7 +9149,7 @@
   ]
  },
  {
-  "line": 624,
+  "line": 637,
   "expr": ".b += [4]",
   "input": {
    "a": 1,
@@ -9098,7 +9178,7 @@
   ]
  },
  {
-  "line": 625,
+  "line": 638,
   "expr": ".c.e //= \"default\"",
   "input": {
    "a": 1,
@@ -9127,7 +9207,7 @@
   ]
  },
  {
-  "line": 626,
+  "line": 639,
   "expr": ".c.d //= \"default\"",
   "input": {
    "a": 1,
@@ -9155,7 +9235,7 @@
   ]
  },
  {
-  "line": 627,
+  "line": 640,
   "expr": ".a += (1, 2)",
   "input": {
    "a": 1,
@@ -9194,7 +9274,7 @@
   ]
  },
  {
-  "line": 628,
+  "line": 641,
   "expr": ".b[] += 1",
   "input": {
    "a": 1,
@@ -9222,7 +9302,7 @@
   ]
  },
  {
-  "line": 629,
+  "line": 642,
   "expr": ".b[] |= empty",
   "input": {
    "a": 1,
@@ -9246,7 +9326,7 @@
   ]
  },
  {
-  "line": 630,
+  "line": 643,
   "expr": ".b |= (., 10)",
   "input": {
    "a": 1,
@@ -9274,7 +9354,7 @@
   ]
  },
  {
-  "line": 631,
+  "line": 644,
   "expr": ".[] |= type",
   "input": {
    "a": 1,
@@ -9296,7 +9376,7 @@
   ]
  },
  {
-  "line": 632,
+  "line": 645,
   "expr": ".missing |= 1",
   "input": {
    "a": 1,
@@ -9325,7 +9405,7 @@
   ]
  },
  {
-  "line": 633,
+  "line": 646,
   "expr": ".a |= empty",
   "input": {
    "a": 1,
@@ -9352,7 +9432,7 @@
   ]
  },
  {
-  "line": 634,
+  "line": 647,
   "expr": ".b[1] |= empty",
   "input": {
    "a": 1,
@@ -9379,7 +9459,7 @@
   ]
  },
  {
-  "line": 635,
+  "line": 648,
   "expr": ".a = .b",
   "input": {
    "a": 1,
@@ -9411,7 +9491,7 @@
   ]
  },
  {
-  "line": 636,
+  "line": 649,
   "expr": ".a |= .b",
   "input": {
    "a": 1,
@@ -9429,7 +9509,7 @@
   "kind": "runtime"
  },
  {
-  "line": 637,
+  "line": 650,
   "expr": ".c |= with_entries(.value = 0)",
   "input": {
    "a": 1,
@@ -9457,7 +9537,7 @@
   ]
  },
  {
-  "line": 638,
+  "line": 651,
   "expr": "(.a, .x) = 0",
   "input": {
    "a": 1,
@@ -9486,7 +9566,7 @@
   ]
  },
  {
-  "line": 639,
+  "line": 652,
   "expr": ".b[] = 7",
   "input": {
    "a": 1,
@@ -9514,7 +9594,7 @@
   ]
  },
  {
-  "line": 640,
+  "line": 653,
   "expr": "(.b | .[0]) = 42",
   "input": {
    "a": 1,
@@ -9542,7 +9622,7 @@
   ]
  },
  {
-  "line": 641,
+  "line": 654,
   "expr": ".b.x = 1",
   "input": {
    "a": 1,
@@ -9560,7 +9640,7 @@
   "kind": "runtime"
  },
  {
-  "line": 642,
+  "line": 655,
   "expr": ".a.x = 1",
   "input": {
    "a": 1,
@@ -9578,7 +9658,7 @@
   "kind": "runtime"
  },
  {
-  "line": 643,
+  "line": 656,
   "expr": ".a[0] = 1",
   "input": {
    "a": 1,
@@ -9596,7 +9676,7 @@
   "kind": "runtime"
  },
  {
-  "line": 644,
+  "line": 657,
   "expr": ".b[\"x\"] = 1",
   "input": {
    "a": 1,
@@ -9614,7 +9694,7 @@
   "kind": "runtime"
  },
  {
-  "line": 645,
+  "line": 658,
   "expr": ".b[1.5] = 7",
   "input": {
    "a": 1,
@@ -9642,7 +9722,7 @@
   ]
  },
  {
-  "line": 646,
+  "line": 659,
   "expr": "null | .[2] = 1",
   "input": {
    "a": 1,
@@ -9664,7 +9744,7 @@
   ]
  },
  {
-  "line": 647,
+  "line": 660,
   "expr": "null | .a.b = 1",
   "input": {
    "a": 1,
@@ -9686,7 +9766,7 @@
   ]
  },
  {
-  "line": 648,
+  "line": 661,
   "expr": "null | .[1:2] = [\"x\"]",
   "input": {
    "a": 1,
@@ -9706,7 +9786,7 @@
   ]
  },
  {
-  "line": 649,
+  "line": 662,
   "expr": "[1,2,3,4,5] | .[1:3] |= map(. * 10)",
   "input": {
    "a": 1,
@@ -9730,7 +9810,7 @@
   ]
  },
  {
-  "line": 650,
+  "line": 663,
   "expr": "[1,2,3] | .[1:] = 5",
   "input": {
    "a": 1,
@@ -9748,7 +9828,7 @@
   "kind": "runtime"
  },
  {
-  "line": 651,
+  "line": 664,
   "expr": "{} | .a += 1",
   "input": {
    "a": 1,
@@ -9768,7 +9848,7 @@
   ]
  },
  {
-  "line": 652,
+  "line": 665,
   "expr": "{} | .a //= 3",
   "input": {
    "a": 1,
@@ -9788,7 +9868,7 @@
   ]
  },
  {
-  "line": 653,
+  "line": 666,
   "expr": "{\"a\":[{\"b\":1},{\"b\":2}]} | .a[].b |= . + 1",
   "input": {
    "a": 1,
@@ -9815,7 +9895,7 @@
   ]
  },
  {
-  "line": 654,
+  "line": 667,
   "expr": "{\"a\":[{\"b\":1},{\"b\":2}]} | .a |= map(select(.b > 1))",
   "input": {
    "a": 1,
@@ -9839,7 +9919,7 @@
   ]
  },
  {
-  "line": 655,
+  "line": 668,
   "expr": "{\"a\":1} | .a = (.a | tostring)",
   "input": {
    "a": 1,
@@ -9859,7 +9939,7 @@
   ]
  },
  {
-  "line": 656,
+  "line": 669,
   "expr": "[[1,2],[3,4]] | .[][0] = 0",
   "input": {
    "a": 1,
@@ -9886,7 +9966,7 @@
   ]
  },
  {
-  "line": 657,
+  "line": 670,
   "expr": "{\"x\":{\"y\":1}} | .x.y as $v | .x.z = $v",
   "input": {
    "a": 1,
@@ -9909,7 +9989,7 @@
   ]
  },
  {
-  "line": 658,
+  "line": 671,
   "expr": ". as $orig | .a = 100 | [., $orig.a]",
   "input": {
    "a": 1,
@@ -9940,7 +10020,7 @@
   ]
  },
  {
-  "line": 659,
+  "line": 672,
   "expr": "map_values(tostring)",
   "input": {
    "a": 1,
@@ -9962,7 +10042,7 @@
   ]
  },
  {
-  "line": 660,
+  "line": 673,
   "expr": ".b | map_values(. + 1)",
   "input": {
    "a": 1,
@@ -9984,7 +10064,7 @@
   ]
  },
  {
-  "line": 661,
+  "line": 674,
   "expr": ".b | map_values(empty)",
   "input": {
    "a": 1,
@@ -10002,7 +10082,7 @@
   ]
  },
  {
-  "line": 662,
+  "line": 675,
   "expr": "{\"a\":1,\"b\":null} | map_values(values)",
   "input": {
    "a": 1,
@@ -10022,7 +10102,7 @@
   ]
  },
  {
-  "line": 666,
+  "line": 679,
   "expr": "[..]",
   "input": {
    "a": [
@@ -10060,7 +10140,7 @@
   ]
  },
  {
-  "line": 667,
+  "line": 680,
   "expr": "[.. | numbers]",
   "input": {
    "a": [
@@ -10079,7 +10159,7 @@
   ]
  },
  {
-  "line": 668,
+  "line": 681,
   "expr": "[.. | .b? // empty]",
   "input": {
    "a": [
@@ -10097,7 +10177,7 @@
   ]
  },
  {
-  "line": 669,
+  "line": 682,
   "expr": "[..|scalars]",
   "input": {
    "a": [
@@ -10117,7 +10197,7 @@
   ]
  },
  {
-  "line": 670,
+  "line": 683,
   "expr": "[recurse]",
   "input": {
    "a": [
@@ -10155,7 +10235,7 @@
   ]
  },
  {
-  "line": 671,
+  "line": 684,
   "expr": "[recurse(.[]?)]",
   "input": {
    "a": [
@@ -10193,7 +10273,7 @@
   ]
  },
  {
-  "line": 672,
+  "line": 685,
   "expr": "[recurse(.a?; . != null)]",
   "input": {
    "a": [
@@ -10225,7 +10305,7 @@
   ]
  },
  {
-  "line": 673,
+  "line": 686,
   "expr": "2 | [recurse(if . < 20 then . * 2 else empty end)]",
   "input": {
    "a": [
@@ -10247,7 +10327,7 @@
   ]
  },
  {
-  "line": 674,
+  "line": 687,
   "expr": "[recurse(.[]?; type == \"array\" or type == \"object\")]",
   "input": {
    "a": [
@@ -10282,7 +10362,7 @@
   ]
  },
  {
-  "line": 675,
+  "line": 688,
   "expr": "[.. | select(type == \"string\")]",
   "input": {
    "a": [
@@ -10300,7 +10380,7 @@
   ]
  },
  {
-  "line": 676,
+  "line": 689,
   "expr": "..|numbers",
   "input": {
    "a": [
@@ -10317,7 +10397,7 @@
   ]
  },
  {
-  "line": 677,
+  "line": 690,
   "expr": "{\"a\":{\"a\":{\"a\":null}}} | [recurse(.a; . != null)]",
   "input": {
    "a": [
@@ -10349,7 +10429,7 @@
   ]
  },
  {
-  "line": 681,
+  "line": 694,
   "expr": "[null, true, 1, -5, \"héllo\", [1,2], {\"a\":1}] | map(try length catch \"err\")",
   "input": null,
   "nullInput": true,
@@ -10366,7 +10446,7 @@
   ]
  },
  {
-  "line": 682,
+  "line": 695,
   "expr": "true | length",
   "input": null,
   "nullInput": true,
@@ -10375,7 +10455,7 @@
   "kind": "runtime"
  },
  {
-  "line": 683,
+  "line": 696,
   "expr": "\"héllo\" | utf8bytelength",
   "input": null,
   "nullInput": true,
@@ -10384,7 +10464,7 @@
   ]
  },
  {
-  "line": 684,
+  "line": 697,
   "expr": "1 | utf8bytelength",
   "input": null,
   "nullInput": true,
@@ -10393,7 +10473,7 @@
   "kind": "runtime"
  },
  {
-  "line": 685,
+  "line": 698,
   "expr": "{\"b\":1,\"a\":2,\"é\":3,\"B\":4} | keys",
   "input": null,
   "nullInput": true,
@@ -10407,7 +10487,7 @@
   ]
  },
  {
-  "line": 686,
+  "line": 699,
   "expr": "{\"b\":1,\"a\":2} | keys_unsorted",
   "input": null,
   "nullInput": true,
@@ -10419,7 +10499,7 @@
   ]
  },
  {
-  "line": 687,
+  "line": 700,
   "expr": "[5,6] | keys",
   "input": null,
   "nullInput": true,
@@ -10431,7 +10511,7 @@
   ]
  },
  {
-  "line": 688,
+  "line": 701,
   "expr": "null | keys",
   "input": null,
   "nullInput": true,
@@ -10440,7 +10520,7 @@
   "kind": "runtime"
  },
  {
-  "line": 689,
+  "line": 702,
   "expr": "1 | keys",
   "input": null,
   "nullInput": true,
@@ -10449,7 +10529,7 @@
   "kind": "runtime"
  },
  {
-  "line": 690,
+  "line": 703,
   "expr": "{\"a\":1} | has(\"a\"), has(\"b\")",
   "input": null,
   "nullInput": true,
@@ -10459,7 +10539,7 @@
   ]
  },
  {
-  "line": 691,
+  "line": 704,
   "expr": "[1,2] | has(0), has(2), has(-1), has(1.5)",
   "input": null,
   "nullInput": true,
@@ -10471,7 +10551,7 @@
   ]
  },
  {
-  "line": 692,
+  "line": 705,
   "expr": "{\"a\":1} | has(0)",
   "input": null,
   "nullInput": true,
@@ -10480,7 +10560,7 @@
   "kind": "runtime"
  },
  {
-  "line": 693,
+  "line": 706,
   "expr": "[1] | has(\"a\")",
   "input": null,
   "nullInput": true,
@@ -10489,7 +10569,7 @@
   "kind": "runtime"
  },
  {
-  "line": 694,
+  "line": 707,
   "expr": "\"a\" | has(\"a\")",
   "input": null,
   "nullInput": true,
@@ -10498,7 +10578,7 @@
   "kind": "runtime"
  },
  {
-  "line": 695,
+  "line": 708,
   "expr": "\"a\" | in({\"a\":1})",
   "input": null,
   "nullInput": true,
@@ -10507,7 +10587,7 @@
   ]
  },
  {
-  "line": 696,
+  "line": 709,
   "expr": "0 | in([5])",
   "input": null,
   "nullInput": true,
@@ -10516,7 +10596,7 @@
   ]
  },
  {
-  "line": 697,
+  "line": 710,
   "expr": "\"foobar\" | contains(\"bar\")",
   "input": null,
   "nullInput": true,
@@ -10525,7 +10605,7 @@
   ]
  },
  {
-  "line": 698,
+  "line": 711,
   "expr": "\"foobar\" | contains(\"baz\")",
   "input": null,
   "nullInput": true,
@@ -10534,7 +10614,7 @@
   ]
  },
  {
-  "line": 699,
+  "line": 712,
   "expr": "\"foobar\" | contains(\"\")",
   "input": null,
   "nullInput": true,
@@ -10543,7 +10623,7 @@
   ]
  },
  {
-  "line": 700,
+  "line": 713,
   "expr": "[\"foobar\",\"baz\"] | contains([\"bar\"])",
   "input": null,
   "nullInput": true,
@@ -10552,7 +10632,7 @@
   ]
  },
  {
-  "line": 701,
+  "line": 714,
   "expr": "[\"foobar\",\"baz\"] | contains([\"bar\",\"qux\"])",
   "input": null,
   "nullInput": true,
@@ -10561,7 +10641,7 @@
   ]
  },
  {
-  "line": 702,
+  "line": 715,
   "expr": "{\"a\":[1,2,3],\"b\":\"x\"} | contains({\"a\":[1]})",
   "input": null,
   "nullInput": true,
@@ -10570,7 +10650,7 @@
   ]
  },
  {
-  "line": 703,
+  "line": 716,
   "expr": "{\"a\":[1,2,3],\"b\":\"x\"} | contains({\"a\":[4]})",
   "input": null,
   "nullInput": true,
@@ -10579,7 +10659,7 @@
   ]
  },
  {
-  "line": 704,
+  "line": 717,
   "expr": "{\"a\":1} | contains({\"b\":null})",
   "input": null,
   "nullInput": true,
@@ -10588,7 +10668,7 @@
   ]
  },
  {
-  "line": 705,
+  "line": 718,
   "expr": "1 | contains(1)",
   "input": null,
   "nullInput": true,
@@ -10597,7 +10677,7 @@
   ]
  },
  {
-  "line": 706,
+  "line": 719,
   "expr": "1 | contains(2)",
   "input": null,
   "nullInput": true,
@@ -10606,7 +10686,7 @@
   ]
  },
  {
-  "line": 707,
+  "line": 720,
   "expr": "true | contains(false)",
   "input": null,
   "nullInput": true,
@@ -10615,7 +10695,7 @@
   "kind": "runtime"
  },
  {
-  "line": 708,
+  "line": 721,
   "expr": "true | contains(true)",
   "input": null,
   "nullInput": true,
@@ -10624,7 +10704,7 @@
   ]
  },
  {
-  "line": 709,
+  "line": 722,
   "expr": "null | contains(null)",
   "input": null,
   "nullInput": true,
@@ -10633,7 +10713,7 @@
   ]
  },
  {
-  "line": 710,
+  "line": 723,
   "expr": "\"a\" | contains(1)",
   "input": null,
   "nullInput": true,
@@ -10642,7 +10722,7 @@
   "kind": "runtime"
  },
  {
-  "line": 711,
+  "line": 724,
   "expr": "[1,[2,3]] | contains([[2]])",
   "input": null,
   "nullInput": true,
@@ -10651,7 +10731,7 @@
   ]
  },
  {
-  "line": 712,
+  "line": 725,
   "expr": "[1,[2,3]] | contains([2])",
   "input": null,
   "nullInput": true,
@@ -10660,7 +10740,7 @@
   ]
  },
  {
-  "line": 713,
+  "line": 726,
   "expr": "\"bar\" | inside(\"foobar\")",
   "input": null,
   "nullInput": true,
@@ -10669,7 +10749,7 @@
   ]
  },
  {
-  "line": 714,
+  "line": 727,
   "expr": "[\"a\"] | inside([\"a\",\"b\"])",
   "input": null,
   "nullInput": true,
@@ -10678,7 +10758,7 @@
   ]
  },
  {
-  "line": 715,
+  "line": 728,
   "expr": "{\"a\":1} | inside({\"a\":1,\"b\":2})",
   "input": null,
   "nullInput": true,
@@ -10687,7 +10767,7 @@
   ]
  },
  {
-  "line": 716,
+  "line": 729,
   "expr": "\"\\u0000x\" | contains(\"x\")",
   "input": null,
   "nullInput": true,
@@ -10696,7 +10776,7 @@
   ]
  },
  {
-  "line": 720,
+  "line": 733,
   "expr": "[1,2,3] | map(. * 2)",
   "input": null,
   "nullInput": true,
@@ -10709,7 +10789,7 @@
   ]
  },
  {
-  "line": 721,
+  "line": 734,
   "expr": "{\"a\":1,\"b\":2} | map(. + 1)",
   "input": null,
   "nullInput": true,
@@ -10721,7 +10801,7 @@
   ]
  },
  {
-  "line": 722,
+  "line": 735,
   "expr": "1 | map(.)",
   "input": null,
   "nullInput": true,
@@ -10730,7 +10810,7 @@
   "kind": "runtime"
  },
  {
-  "line": 723,
+  "line": 736,
   "expr": "[1,2,3] | map(select(. != 2))",
   "input": null,
   "nullInput": true,
@@ -10742,7 +10822,7 @@
   ]
  },
  {
-  "line": 724,
+  "line": 737,
   "expr": "[1,2,3] | map(empty)",
   "input": null,
   "nullInput": true,
@@ -10751,7 +10831,7 @@
   ]
  },
  {
-  "line": 725,
+  "line": 738,
   "expr": "[1,2] | map(., .)",
   "input": null,
   "nullInput": true,
@@ -10765,7 +10845,7 @@
   ]
  },
  {
-  "line": 726,
+  "line": 739,
   "expr": "[1,2,3,4] | [.[] | select(. % 2 == 0)]",
   "input": null,
   "nullInput": true,
@@ -10777,7 +10857,7 @@
   ]
  },
  {
-  "line": 727,
+  "line": 740,
   "expr": "[1, null, 2] | map(values)",
   "input": null,
   "nullInput": true,
@@ -10789,7 +10869,7 @@
   ]
  },
  {
-  "line": 728,
+  "line": 741,
   "expr": "[1,2,3] | add",
   "input": null,
   "nullInput": true,
@@ -10798,7 +10878,7 @@
   ]
  },
  {
-  "line": 729,
+  "line": 742,
   "expr": "[\"a\",\"b\"] | add",
   "input": null,
   "nullInput": true,
@@ -10807,7 +10887,7 @@
   ]
  },
  {
-  "line": 730,
+  "line": 743,
   "expr": "[[1],[2]] | add",
   "input": null,
   "nullInput": true,
@@ -10819,7 +10899,7 @@
   ]
  },
  {
-  "line": 731,
+  "line": 744,
   "expr": "[{\"a\":1},{\"b\":2}] | add",
   "input": null,
   "nullInput": true,
@@ -10831,7 +10911,7 @@
   ]
  },
  {
-  "line": 732,
+  "line": 745,
   "expr": "[] | add",
   "input": null,
   "nullInput": true,
@@ -10840,7 +10920,7 @@
   ]
  },
  {
-  "line": 733,
+  "line": 746,
   "expr": "null | add",
   "input": null,
   "nullInput": true,
@@ -10849,7 +10929,7 @@
   "kind": "runtime"
  },
  {
-  "line": 734,
+  "line": 747,
   "expr": "[1, null, 2] | add",
   "input": null,
   "nullInput": true,
@@ -10858,7 +10938,7 @@
   ]
  },
  {
-  "line": 735,
+  "line": 748,
   "expr": "[1, \"a\"] | add",
   "input": null,
   "nullInput": true,
@@ -10867,7 +10947,7 @@
   "kind": "runtime"
  },
  {
-  "line": 736,
+  "line": 749,
   "expr": "{\"a\":1,\"b\":2} | add",
   "input": null,
   "nullInput": true,
@@ -10876,7 +10956,7 @@
   ]
  },
  {
-  "line": 737,
+  "line": 750,
   "expr": "[true, false] | any, all",
   "input": null,
   "nullInput": true,
@@ -10886,7 +10966,7 @@
   ]
  },
  {
-  "line": 738,
+  "line": 751,
   "expr": "[] | any, all",
   "input": null,
   "nullInput": true,
@@ -10896,7 +10976,7 @@
   ]
  },
  {
-  "line": 739,
+  "line": 752,
   "expr": "[null, 1] | any",
   "input": null,
   "nullInput": true,
@@ -10905,7 +10985,7 @@
   ]
  },
  {
-  "line": 740,
+  "line": 753,
   "expr": "[1, 2] | all(. > 0)",
   "input": null,
   "nullInput": true,
@@ -10914,7 +10994,7 @@
   ]
  },
  {
-  "line": 741,
+  "line": 754,
   "expr": "[1, 2] | any(. > 1)",
   "input": null,
   "nullInput": true,
@@ -10923,7 +11003,7 @@
   ]
  },
  {
-  "line": 742,
+  "line": 755,
   "expr": "any(1, 2; . == 2)",
   "input": null,
   "nullInput": true,
@@ -10932,7 +11012,7 @@
   ]
  },
  {
-  "line": 743,
+  "line": 756,
   "expr": "all(1, 2; . == 2)",
   "input": null,
   "nullInput": true,
@@ -10941,7 +11021,7 @@
   ]
  },
  {
-  "line": 744,
+  "line": 757,
   "expr": "any(error(\"x\"); true)",
   "input": null,
   "nullInput": true,
@@ -10950,7 +11030,7 @@
   "kind": "runtime"
  },
  {
-  "line": 745,
+  "line": 758,
   "expr": "[1,[2,[3,[4]]]] | flatten",
   "input": null,
   "nullInput": true,
@@ -10964,7 +11044,7 @@
   ]
  },
  {
-  "line": 746,
+  "line": 759,
   "expr": "[1,[2,[3,[4]]]] | flatten(1)",
   "input": null,
   "nullInput": true,
@@ -10982,7 +11062,7 @@
   ]
  },
  {
-  "line": 747,
+  "line": 760,
   "expr": "[1,[2,[3,[4]]]] | flatten(0)",
   "input": null,
   "nullInput": true,
@@ -11002,7 +11082,7 @@
   ]
  },
  {
-  "line": 748,
+  "line": 761,
   "expr": "[1,[2]] | flatten(-1)",
   "input": null,
   "nullInput": true,
@@ -11011,7 +11091,7 @@
   "kind": "runtime"
  },
  {
-  "line": 749,
+  "line": 762,
   "expr": "[[]] | flatten",
   "input": null,
   "nullInput": true,
@@ -11020,7 +11100,7 @@
   ]
  },
  {
-  "line": 750,
+  "line": 763,
   "expr": "{\"a\":[1]} | flatten",
   "input": null,
   "nullInput": true,
@@ -11031,7 +11111,7 @@
   ]
  },
  {
-  "line": 751,
+  "line": 764,
   "expr": "[1.5, -1.5, 2.5, -0.5] | map(floor)",
   "input": null,
   "nullInput": true,
@@ -11045,7 +11125,7 @@
   ]
  },
  {
-  "line": 752,
+  "line": 765,
   "expr": "[1.5, -1.5, 2.5, -0.5] | map(ceil)",
   "input": null,
   "nullInput": true,
@@ -11059,7 +11139,7 @@
   ]
  },
  {
-  "line": 753,
+  "line": 766,
   "expr": "[1.5, -1.5, 2.5, -0.5, 0.5] | map(round)",
   "input": null,
   "nullInput": true,
@@ -11074,7 +11154,7 @@
   ]
  },
  {
-  "line": 754,
+  "line": 767,
   "expr": "[1.5, -1.5, 2.5] | map(fabs)",
   "input": null,
   "nullInput": true,
@@ -11087,7 +11167,7 @@
   ]
  },
  {
-  "line": 755,
+  "line": 768,
   "expr": "[1.7, -1.7] | map(trunc)",
   "input": null,
   "nullInput": true,
@@ -11099,7 +11179,7 @@
   ]
  },
  {
-  "line": 756,
+  "line": 769,
   "expr": "[2.5, 3.5, -2.5] | map(rint)",
   "input": null,
   "nullInput": true,
@@ -11112,7 +11192,7 @@
   ]
  },
  {
-  "line": 757,
+  "line": 770,
   "expr": "[4, 2, 0] | map(sqrt)",
   "input": null,
   "nullInput": true,
@@ -11125,7 +11205,7 @@
   ]
  },
  {
-  "line": 758,
+  "line": 771,
   "expr": "-1 | sqrt | isnan",
   "input": null,
   "nullInput": true,
@@ -11134,7 +11214,7 @@
   ]
  },
  {
-  "line": 759,
+  "line": 772,
   "expr": "pow(2; 10)",
   "input": null,
   "nullInput": true,
@@ -11143,7 +11223,7 @@
   ]
  },
  {
-  "line": 760,
+  "line": 773,
   "expr": "pow(2; 0.5)",
   "input": null,
   "nullInput": true,
@@ -11152,7 +11232,7 @@
   ]
  },
  {
-  "line": 761,
+  "line": 774,
   "expr": "[pow(2,3; 1,2)]",
   "input": null,
   "nullInput": true,
@@ -11166,7 +11246,7 @@
   ]
  },
  {
-  "line": 762,
+  "line": 775,
   "expr": "[1, 10, 100] | map(log10)",
   "input": null,
   "nullInput": true,
@@ -11179,7 +11259,7 @@
   ]
  },
  {
-  "line": 763,
+  "line": 776,
   "expr": "1 | exp",
   "input": null,
   "nullInput": true,
@@ -11188,7 +11268,7 @@
   ]
  },
  {
-  "line": 764,
+  "line": 777,
   "expr": "0 | log",
   "input": null,
   "nullInput": true,
@@ -11197,7 +11277,7 @@
   ]
  },
  {
-  "line": 765,
+  "line": 778,
   "expr": "[8] | map(log2)",
   "input": null,
   "nullInput": true,
@@ -11208,7 +11288,7 @@
   ]
  },
  {
-  "line": 766,
+  "line": 779,
   "expr": "[-3, 3] | map(abs)",
   "input": null,
   "nullInput": true,
@@ -11220,7 +11300,7 @@
   ]
  },
  {
-  "line": 767,
+  "line": 780,
   "expr": "\"abc\" | abs",
   "input": null,
   "nullInput": true,
@@ -11229,7 +11309,7 @@
   ]
  },
  {
-  "line": 768,
+  "line": 781,
   "expr": "null | abs",
   "input": null,
   "nullInput": true,
@@ -11238,7 +11318,7 @@
   "kind": "runtime"
  },
  {
-  "line": 769,
+  "line": 782,
   "expr": "[3.7] | map(significand)",
   "input": null,
   "nullInput": true,
@@ -11249,7 +11329,7 @@
   ]
  },
  {
-  "line": 770,
+  "line": 783,
   "expr": "8 | logb",
   "input": null,
   "nullInput": true,
@@ -11258,7 +11338,7 @@
   ]
  },
  {
-  "line": 771,
+  "line": 784,
   "expr": "[0.75] | map(frexp)",
   "input": null,
   "nullInput": true,
@@ -11272,7 +11352,7 @@
   ]
  },
  {
-  "line": 772,
+  "line": 785,
   "expr": "3.5 | modf",
   "input": null,
   "nullInput": true,
@@ -11284,7 +11364,7 @@
   ]
  },
  {
-  "line": 773,
+  "line": 786,
   "expr": "[1, 2] | map(exp10)",
   "input": null,
   "nullInput": true,
@@ -11296,7 +11376,7 @@
   ]
  },
  {
-  "line": 774,
+  "line": 787,
   "expr": "2 | exp2",
   "input": null,
   "nullInput": true,
@@ -11305,7 +11385,7 @@
   ]
  },
  {
-  "line": 775,
+  "line": 788,
   "expr": "10 | fmin(3; 4)",
   "input": null,
   "nullInput": true,
@@ -11314,7 +11394,7 @@
   ]
  },
  {
-  "line": 776,
+  "line": 789,
   "expr": "[atan2(1; 1)] | map(. * 4)",
   "input": null,
   "nullInput": true,
@@ -11325,7 +11405,7 @@
   ]
  },
  {
-  "line": 777,
+  "line": 790,
   "expr": "1 | [sin, cos] | map(. * 1000 | round)",
   "input": null,
   "nullInput": true,
@@ -11337,7 +11417,7 @@
   ]
  },
  {
-  "line": 778,
+  "line": 791,
   "expr": "5 | ldexp(.; 2)",
   "input": null,
   "nullInput": true,
@@ -11346,7 +11426,7 @@
   ]
  },
  {
-  "line": 779,
+  "line": 792,
   "expr": "fma(2; 3; 4)",
   "input": null,
   "nullInput": true,
@@ -11355,7 +11435,7 @@
   ]
  },
  {
-  "line": 780,
+  "line": 793,
   "expr": "3 | fmod(.; 2)",
   "input": null,
   "nullInput": true,
@@ -11364,7 +11444,7 @@
   ]
  },
  {
-  "line": 781,
+  "line": 794,
   "expr": "\"a\" | floor",
   "input": null,
   "nullInput": true,
@@ -11373,7 +11453,7 @@
   "kind": "runtime"
  },
  {
-  "line": 782,
+  "line": 795,
   "expr": "infinite",
   "input": null,
   "nullInput": true,
@@ -11382,7 +11462,7 @@
   ]
  },
  {
-  "line": 783,
+  "line": 796,
   "expr": "-infinite",
   "input": null,
   "nullInput": true,
@@ -11391,7 +11471,7 @@
   ]
  },
  {
-  "line": 784,
+  "line": 797,
   "expr": "nan | isnan",
   "input": null,
   "nullInput": true,
@@ -11400,7 +11480,7 @@
   ]
  },
  {
-  "line": 785,
+  "line": 798,
   "expr": "[infinite, nan, 1] | map(isinfinite)",
   "input": null,
   "nullInput": true,
@@ -11413,7 +11493,7 @@
   ]
  },
  {
-  "line": 786,
+  "line": 799,
   "expr": "[infinite, nan, 1, 0] | map(isnormal)",
   "input": null,
   "nullInput": true,
@@ -11427,7 +11507,7 @@
   ]
  },
  {
-  "line": 787,
+  "line": 800,
   "expr": "[1, infinite, nan] | map(isfinite)",
   "input": null,
   "nullInput": true,
@@ -11440,7 +11520,7 @@
   ]
  },
  {
-  "line": 788,
+  "line": 801,
   "expr": "[infinite] | tojson",
   "input": null,
   "nullInput": true,
@@ -11449,7 +11529,7 @@
   ]
  },
  {
-  "line": 789,
+  "line": 802,
   "expr": "nan | tostring",
   "input": null,
   "nullInput": true,
@@ -11458,7 +11538,7 @@
   ]
  },
  {
-  "line": 790,
+  "line": 803,
   "expr": "[nan] | tojson",
   "input": null,
   "nullInput": true,
@@ -11467,7 +11547,7 @@
   ]
  },
  {
-  "line": 791,
+  "line": 804,
   "expr": "[1, nan] | sort",
   "input": null,
   "nullInput": true,
@@ -11479,7 +11559,7 @@
   ]
  },
  {
-  "line": 792,
+  "line": 805,
   "expr": "[nan, 1, null] | sort",
   "input": null,
   "nullInput": true,
@@ -11492,7 +11572,7 @@
   ]
  },
  {
-  "line": 793,
+  "line": 806,
   "expr": "[1,2,3] | min, max",
   "input": null,
   "nullInput": true,
@@ -11502,7 +11582,7 @@
   ]
  },
  {
-  "line": 794,
+  "line": 807,
   "expr": "[] | min, max",
   "input": null,
   "nullInput": true,
@@ -11512,7 +11592,7 @@
   ]
  },
  {
-  "line": 795,
+  "line": 808,
   "expr": "[{\"a\":2},{\"a\":1},{\"a\":1}] | min_by(.a), max_by(.a)",
   "input": null,
   "nullInput": true,
@@ -11526,7 +11606,7 @@
   ]
  },
  {
-  "line": 796,
+  "line": 809,
   "expr": "[{\"a\":1,\"i\":0},{\"a\":1,\"i\":1}] | min_by(.a).i, max_by(.a).i",
   "input": null,
   "nullInput": true,
@@ -11536,7 +11616,7 @@
   ]
  },
  {
-  "line": 797,
+  "line": 810,
   "expr": "1 | min",
   "input": null,
   "nullInput": true,
@@ -11545,7 +11625,7 @@
   "kind": "runtime"
  },
  {
-  "line": 798,
+  "line": 811,
   "expr": "[1] | min_by(error(\"x\"))",
   "input": null,
   "nullInput": true,
@@ -11554,7 +11634,7 @@
   "kind": "runtime"
  },
  {
-  "line": 802,
+  "line": 815,
   "expr": "[3,1,2] | sort",
   "input": null,
   "nullInput": true,
@@ -11567,7 +11647,7 @@
   ]
  },
  {
-  "line": 803,
+  "line": 816,
   "expr": "[null, true, false, 0, -1, \"a\", \"B\", [], {}, [0], {\"a\":1}] | sort",
   "input": null,
   "nullInput": true,
@@ -11592,7 +11672,7 @@
   ]
  },
  {
-  "line": 804,
+  "line": 817,
   "expr": "[\"b\",\"a\",\"B\",\"é\",\"z\"] | sort",
   "input": null,
   "nullInput": true,
@@ -11607,7 +11687,7 @@
   ]
  },
  {
-  "line": 805,
+  "line": 818,
   "expr": "[{\"a\":2,\"b\":1},{\"a\":1,\"b\":2}] | sort",
   "input": null,
   "nullInput": true,
@@ -11625,7 +11705,7 @@
   ]
  },
  {
-  "line": 806,
+  "line": 819,
   "expr": "[[2],[1,3],[1]] | sort",
   "input": null,
   "nullInput": true,
@@ -11645,7 +11725,7 @@
   ]
  },
  {
-  "line": 807,
+  "line": 820,
   "expr": "{\"a\":1} | sort",
   "input": null,
   "nullInput": true,
@@ -11654,7 +11734,7 @@
   "kind": "runtime"
  },
  {
-  "line": 808,
+  "line": 821,
   "expr": "[{\"a\":2},{\"a\":1},{\"a\":2,\"b\":0}] | sort_by(.a)",
   "input": null,
   "nullInput": true,
@@ -11674,7 +11754,7 @@
   ]
  },
  {
-  "line": 809,
+  "line": 822,
   "expr": "[{\"a\":2,\"i\":0},{\"a\":1,\"i\":1},{\"a\":2,\"i\":2}] | sort_by(.a) | map(.i)",
   "input": null,
   "nullInput": true,
@@ -11687,7 +11767,7 @@
   ]
  },
  {
-  "line": 810,
+  "line": 823,
   "expr": "[{\"a\":1,\"b\":2},{\"a\":1,\"b\":1}] | sort_by(.a, .b)",
   "input": null,
   "nullInput": true,
@@ -11705,7 +11785,7 @@
   ]
  },
  {
-  "line": 811,
+  "line": 824,
   "expr": "[3,1,2] | sort_by(-.)",
   "input": null,
   "nullInput": true,
@@ -11718,7 +11798,7 @@
   ]
  },
  {
-  "line": 812,
+  "line": 825,
   "expr": "[1,2,3,4,5] | group_by(. % 2)",
   "input": null,
   "nullInput": true,
@@ -11737,7 +11817,7 @@
   ]
  },
  {
-  "line": 813,
+  "line": 826,
   "expr": "[{\"a\":1},{\"a\":null},{\"b\":1}] | group_by(.a)",
   "input": null,
   "nullInput": true,
@@ -11760,7 +11840,7 @@
   ]
  },
  {
-  "line": 814,
+  "line": 827,
   "expr": "[] | group_by(.)",
   "input": null,
   "nullInput": true,
@@ -11769,7 +11849,7 @@
   ]
  },
  {
-  "line": 815,
+  "line": 828,
   "expr": "[1,2,1,3,2] | unique",
   "input": null,
   "nullInput": true,
@@ -11782,7 +11862,7 @@
   ]
  },
  {
-  "line": 816,
+  "line": 829,
   "expr": "[1,1.0,\"1\"] | unique",
   "input": null,
   "nullInput": true,
@@ -11794,7 +11874,7 @@
   ]
  },
  {
-  "line": 817,
+  "line": 830,
   "expr": "[{\"a\":1,\"b\":1},{\"a\":1,\"b\":2},{\"a\":2}] | unique_by(.a)",
   "input": null,
   "nullInput": true,
@@ -11811,7 +11891,7 @@
   ]
  },
  {
-  "line": 818,
+  "line": 831,
   "expr": "[\"ab\",\"c\",\"de\"] | unique_by(length)",
   "input": null,
   "nullInput": true,
@@ -11823,7 +11903,7 @@
   ]
  },
  {
-  "line": 819,
+  "line": 832,
   "expr": "[1,2,3] | reverse",
   "input": null,
   "nullInput": true,
@@ -11836,7 +11916,7 @@
   ]
  },
  {
-  "line": 820,
+  "line": 833,
   "expr": "[] | reverse",
   "input": null,
   "nullInput": true,
@@ -11845,7 +11925,7 @@
   ]
  },
  {
-  "line": 821,
+  "line": 834,
   "expr": "null | reverse",
   "input": null,
   "nullInput": true,
@@ -11854,7 +11934,7 @@
   ]
  },
  {
-  "line": 822,
+  "line": 835,
   "expr": "\"abc\" | reverse",
   "input": null,
   "nullInput": true,
@@ -11863,7 +11943,7 @@
   "kind": "runtime"
  },
  {
-  "line": 823,
+  "line": 836,
   "expr": "[1,[2]] | reverse",
   "input": null,
   "nullInput": true,
@@ -11877,7 +11957,7 @@
   ]
  },
  {
-  "line": 824,
+  "line": 837,
   "expr": "1 | sort_by(.)",
   "input": null,
   "nullInput": true,
@@ -11886,7 +11966,7 @@
   "kind": "runtime"
  },
  {
-  "line": 828,
+  "line": 841,
   "expr": "\"Hello World\" | ascii_downcase, ascii_upcase",
   "input": null,
   "nullInput": true,
@@ -11896,7 +11976,7 @@
   ]
  },
  {
-  "line": 829,
+  "line": 842,
   "expr": "\"ÀÉ\" | ascii_downcase",
   "input": null,
   "nullInput": true,
@@ -11905,7 +11985,7 @@
   ]
  },
  {
-  "line": 830,
+  "line": 843,
   "expr": "1 | ascii_downcase",
   "input": null,
   "nullInput": true,
@@ -11914,7 +11994,7 @@
   "kind": "runtime"
  },
  {
-  "line": 831,
+  "line": 844,
   "expr": "\"test\" | ltrimstr(\"te\"), rtrimstr(\"st\"), ltrimstr(\"x\"), ltrimstr(1)",
   "input": null,
   "nullInput": true,
@@ -11926,7 +12006,7 @@
   ]
  },
  {
-  "line": 832,
+  "line": 845,
   "expr": "1 | ltrimstr(\"a\")",
   "input": null,
   "nullInput": true,
@@ -11935,7 +12015,7 @@
   ]
  },
  {
-  "line": 833,
+  "line": 846,
   "expr": "\"aaa\" | ltrimstr(\"a\")",
   "input": null,
   "nullInput": true,
@@ -11944,7 +12024,7 @@
   ]
  },
  {
-  "line": 834,
+  "line": 847,
   "expr": "\"test\" | startswith(\"te\"), endswith(\"st\"), startswith(\"x\")",
   "input": null,
   "nullInput": true,
@@ -11955,7 +12035,7 @@
   ]
  },
  {
-  "line": 835,
+  "line": 848,
   "expr": "1 | startswith(\"a\")",
   "input": null,
   "nullInput": true,
@@ -11964,7 +12044,7 @@
   "kind": "runtime"
  },
  {
-  "line": 836,
+  "line": 849,
   "expr": "\"a\" | endswith(1)",
   "input": null,
   "nullInput": true,
@@ -11973,7 +12053,7 @@
   "kind": "runtime"
  },
  {
-  "line": 837,
+  "line": 850,
   "expr": "\"a,b, c\" | split(\", \")",
   "input": null,
   "nullInput": true,
@@ -11985,7 +12065,7 @@
   ]
  },
  {
-  "line": 838,
+  "line": 851,
   "expr": "\"a,b,c\" | split(\",\")",
   "input": null,
   "nullInput": true,
@@ -11998,7 +12078,7 @@
   ]
  },
  {
-  "line": 839,
+  "line": 852,
   "expr": "\"abc\" | split(\"\")",
   "input": null,
   "nullInput": true,
@@ -12011,7 +12091,7 @@
   ]
  },
  {
-  "line": 840,
+  "line": 853,
   "expr": "\"\" | split(\",\")",
   "input": null,
   "nullInput": true,
@@ -12020,7 +12100,7 @@
   ]
  },
  {
-  "line": 841,
+  "line": 854,
   "expr": "\"a1b22c\" | split(\"[0-9]+\"; null)",
   "input": null,
   "nullInput": true,
@@ -12033,7 +12113,7 @@
   ]
  },
  {
-  "line": 842,
+  "line": 855,
   "expr": "\"a1b22c\" | split(\"[0-9]+\"; \"g\")",
   "input": null,
   "nullInput": true,
@@ -12046,7 +12126,7 @@
   ]
  },
  {
-  "line": 843,
+  "line": 856,
   "expr": "\"a1B2c\" | [splits(\"[a-z]\"; \"i\")]",
   "input": null,
   "nullInput": true,
@@ -12060,7 +12140,7 @@
   ]
  },
  {
-  "line": 844,
+  "line": 857,
   "expr": "\"a, b,c\" | [splits(\", *\")]",
   "input": null,
   "nullInput": true,
@@ -12073,7 +12153,7 @@
   ]
  },
  {
-  "line": 845,
+  "line": 858,
   "expr": "1 | split(\",\")",
   "input": null,
   "nullInput": true,
@@ -12082,7 +12162,7 @@
   "kind": "runtime"
  },
  {
-  "line": 846,
+  "line": 859,
   "expr": "\"a\" | split(1)",
   "input": null,
   "nullInput": true,
@@ -12091,7 +12171,7 @@
   "kind": "runtime"
  },
  {
-  "line": 847,
+  "line": 860,
   "expr": "[\"a\",\"b\",\"c\"] | join(\", \")",
   "input": null,
   "nullInput": true,
@@ -12100,7 +12180,7 @@
   ]
  },
  {
-  "line": 848,
+  "line": 861,
   "expr": "[\"a\",1,null,true,false] | join(\"-\")",
   "input": null,
   "nullInput": true,
@@ -12109,7 +12189,7 @@
   ]
  },
  {
-  "line": 849,
+  "line": 862,
   "expr": "[] | join(\",\")",
   "input": null,
   "nullInput": true,
@@ -12118,7 +12198,7 @@
   ]
  },
  {
-  "line": 850,
+  "line": 863,
   "expr": "[\"a\"] | join(\",\")",
   "input": null,
   "nullInput": true,
@@ -12127,7 +12207,7 @@
   ]
  },
  {
-  "line": 851,
+  "line": 864,
   "expr": "[[1]] | join(\",\")",
   "input": null,
   "nullInput": true,
@@ -12136,7 +12216,7 @@
   "kind": "runtime"
  },
  {
-  "line": 852,
+  "line": 865,
   "expr": "[{\"a\":1}] | join(\",\")",
   "input": null,
   "nullInput": true,
@@ -12145,7 +12225,7 @@
   "kind": "runtime"
  },
  {
-  "line": 853,
+  "line": 866,
   "expr": "[\"a\",\"b\"] | join(1)",
   "input": null,
   "nullInput": true,
@@ -12154,7 +12234,7 @@
   "kind": "runtime"
  },
  {
-  "line": 854,
+  "line": 867,
   "expr": "\"abc\" | explode",
   "input": null,
   "nullInput": true,
@@ -12167,7 +12247,7 @@
   ]
  },
  {
-  "line": 855,
+  "line": 868,
   "expr": "[65, 98, 128512] | implode",
   "input": null,
   "nullInput": true,
@@ -12176,7 +12256,7 @@
   ]
  },
  {
-  "line": 856,
+  "line": 869,
   "expr": "\"héllo\" | explode | implode",
   "input": null,
   "nullInput": true,
@@ -12185,7 +12265,7 @@
   ]
  },
  {
-  "line": 857,
+  "line": 870,
   "expr": "[1,[2]] | implode",
   "input": null,
   "nullInput": true,
@@ -12194,7 +12274,7 @@
   "kind": "runtime"
  },
  {
-  "line": 858,
+  "line": 871,
   "expr": "\"x\" | implode",
   "input": null,
   "nullInput": true,
@@ -12203,7 +12283,7 @@
   "kind": "runtime"
  },
  {
-  "line": 859,
+  "line": 872,
   "expr": "[-1] | implode",
   "input": null,
   "nullInput": true,
@@ -12212,7 +12292,7 @@
   ]
  },
  {
-  "line": 860,
+  "line": 873,
   "expr": "\"a\" | explode | map(. + 1) | implode",
   "input": null,
   "nullInput": true,
@@ -12221,7 +12301,7 @@
   ]
  },
  {
-  "line": 861,
+  "line": 874,
   "expr": "\"abc\" | test(\"b\")",
   "input": null,
   "nullInput": true,
@@ -12230,7 +12310,7 @@
   ]
  },
  {
-  "line": 862,
+  "line": 875,
   "expr": "\"abc\" | test(\"B\")",
   "input": null,
   "nullInput": true,
@@ -12239,7 +12319,7 @@
   ]
  },
  {
-  "line": 863,
+  "line": 876,
   "expr": "\"abc\" | test(\"B\"; \"i\")",
   "input": null,
   "nullInput": true,
@@ -12248,7 +12328,7 @@
   ]
  },
  {
-  "line": 864,
+  "line": 877,
   "expr": "\"abc\" | test(\"B\"; \"x\")",
   "input": null,
   "nullInput": true,
@@ -12257,7 +12337,7 @@
   ]
  },
  {
-  "line": 865,
+  "line": 878,
   "expr": "\"abc\" | test([\"B\", \"i\"])",
   "input": null,
   "nullInput": true,
@@ -12266,7 +12346,7 @@
   ]
  },
  {
-  "line": 866,
+  "line": 879,
   "expr": "\"abc\" | test(\"a.c\")",
   "input": null,
   "nullInput": true,
@@ -12275,7 +12355,7 @@
   ]
  },
  {
-  "line": 867,
+  "line": 880,
   "expr": "\"a\\nc\" | test(\"a.c\")",
   "input": null,
   "nullInput": true,
@@ -12284,7 +12364,7 @@
   ]
  },
  {
-  "line": 868,
+  "line": 881,
   "expr": "\"a\\nc\" | test(\"a.c\"; \"s\")",
   "input": null,
   "nullInput": true,
@@ -12293,7 +12373,7 @@
   ]
  },
  {
-  "line": 869,
+  "line": 882,
   "expr": "1 | test(\"a\")",
   "input": null,
   "nullInput": true,
@@ -12302,7 +12382,7 @@
   "kind": "runtime"
  },
  {
-  "line": 870,
+  "line": 883,
   "expr": "\"a\" | test(1)",
   "input": null,
   "nullInput": true,
@@ -12311,7 +12391,7 @@
   "kind": "runtime"
  },
  {
-  "line": 871,
+  "line": 884,
   "expr": "\"a\" | test(\"a\"; \"q\")",
   "input": null,
   "nullInput": true,
@@ -12320,7 +12400,7 @@
   "kind": "runtime"
  },
  {
-  "line": 872,
+  "line": 885,
   "expr": "\"a\" | test(\"a\"; 1)",
   "input": null,
   "nullInput": true,
@@ -12329,7 +12409,7 @@
   "kind": "runtime"
  },
  {
-  "line": 873,
+  "line": 886,
   "expr": "\"test 123 foo 45\" | [match(\"[0-9]+\"; \"g\") | .string]",
   "input": null,
   "nullInput": true,
@@ -12341,7 +12421,7 @@
   ]
  },
  {
-  "line": 874,
+  "line": 887,
   "expr": "\"aXbxc\" | [match(\"x\"; \"gi\")]",
   "input": null,
   "nullInput": true,
@@ -12363,7 +12443,7 @@
   ]
  },
  {
-  "line": 875,
+  "line": 888,
   "expr": "\"foo bar\" | match(\"(?<a>\\\\w+) (?<b>\\\\w+)\")",
   "input": null,
   "nullInput": true,
@@ -12390,7 +12470,7 @@
   ]
  },
  {
-  "line": 876,
+  "line": 889,
   "expr": "\"foo bar\" | match(\"(\\\\w+) (\\\\w+)\")",
   "input": null,
   "nullInput": true,
@@ -12417,7 +12497,7 @@
   ]
  },
  {
-  "line": 877,
+  "line": 890,
   "expr": "\"ab\" | match(\"(a)(x)?\")",
   "input": null,
   "nullInput": true,
@@ -12444,7 +12524,7 @@
   ]
  },
  {
-  "line": 878,
+  "line": 891,
   "expr": "\"ab\" | match(\"(?<x>a)(b)\")",
   "input": null,
   "nullInput": true,
@@ -12471,7 +12551,7 @@
   ]
  },
  {
-  "line": 879,
+  "line": 892,
   "expr": "\"abc\" | [match(\"\"; \"g\")]",
   "input": null,
   "nullInput": true,
@@ -12505,7 +12585,7 @@
   ]
  },
  {
-  "line": 880,
+  "line": 893,
   "expr": "\"abc\" | [match(\"x*\"; \"g\")] | length",
   "input": null,
   "nullInput": true,
@@ -12514,7 +12594,7 @@
   ]
  },
  {
-  "line": 881,
+  "line": 894,
   "expr": "\"ab\" | [match(\"(?<n>x)?\"; \"g\")]",
   "input": null,
   "nullInput": true,
@@ -12563,7 +12643,7 @@
   ]
  },
  {
-  "line": 882,
+  "line": 895,
   "expr": "\"ab\" | [match(\"a|\"; \"g\")]",
   "input": null,
   "nullInput": true,
@@ -12591,7 +12671,7 @@
   ]
  },
  {
-  "line": 883,
+  "line": 896,
   "expr": "\"éa1\" | match(\"[0-9]\")",
   "input": null,
   "nullInput": true,
@@ -12605,7 +12685,7 @@
   ]
  },
  {
-  "line": 884,
+  "line": 897,
   "expr": "\"😀a1\" | match(\"a1\")",
   "input": null,
   "nullInput": true,
@@ -12619,7 +12699,7 @@
   ]
  },
  {
-  "line": 885,
+  "line": 898,
   "expr": "\"a1b2\" | [match(\"\\\\d\"; \"g\") | .offset]",
   "input": null,
   "nullInput": true,
@@ -12631,7 +12711,7 @@
   ]
  },
  {
-  "line": 886,
+  "line": 899,
   "expr": "\"aaa\" | [match(\"a*?\"; \"g\") | .offset]",
   "input": null,
   "nullInput": true,
@@ -12645,7 +12725,7 @@
   ]
  },
  {
-  "line": 887,
+  "line": 900,
   "expr": "\"xyz\" | [match(\"q\"; \"g\")]",
   "input": null,
   "nullInput": true,
@@ -12654,7 +12734,7 @@
   ]
  },
  {
-  "line": 888,
+  "line": 901,
   "expr": "\"foo bar foo\" | capture(\"(?<first>\\\\w+) (?<second>\\\\w+)\")",
   "input": null,
   "nullInput": true,
@@ -12666,7 +12746,7 @@
   ]
  },
  {
-  "line": 889,
+  "line": 902,
   "expr": "\"xyz-123\" | capture(\"(?<letters>[a-z]+)-(?<numbers>[0-9]+)\")",
   "input": null,
   "nullInput": true,
@@ -12678,7 +12758,7 @@
   ]
  },
  {
-  "line": 890,
+  "line": 903,
   "expr": "\"k1=v1 k2=v2\" | [capture(\"(?<key>\\\\w+)=(?<value>\\\\w+)\"; \"g\")]",
   "input": null,
   "nullInput": true,
@@ -12696,7 +12776,7 @@
   ]
  },
  {
-  "line": 891,
+  "line": 904,
   "expr": "\"abc\" | capture(\"(?<x>z)?\")",
   "input": null,
   "nullInput": true,
@@ -12707,7 +12787,7 @@
   ]
  },
  {
-  "line": 892,
+  "line": 905,
   "expr": "\"a1b22c333\" | [scan(\"[0-9]+\")]",
   "input": null,
   "nullInput": true,
@@ -12720,7 +12800,7 @@
   ]
  },
  {
-  "line": 893,
+  "line": 906,
   "expr": "\"a1b22\" | [scan(\"([a-z])([0-9]+)\")]",
   "input": null,
   "nullInput": true,
@@ -12738,7 +12818,7 @@
   ]
  },
  {
-  "line": 894,
+  "line": 907,
   "expr": "\"AbAb\" | [scan(\"a\"; \"i\")]",
   "input": null,
   "nullInput": true,
@@ -12750,7 +12830,7 @@
   ]
  },
  {
-  "line": 895,
+  "line": 908,
   "expr": "\"abc\" | sub(\"b\"; \"X\")",
   "input": null,
   "nullInput": true,
@@ -12759,7 +12839,7 @@
   ]
  },
  {
-  "line": 896,
+  "line": 909,
   "expr": "\"abcb\" | sub(\"b\"; \"X\")",
   "input": null,
   "nullInput": true,
@@ -12768,7 +12848,7 @@
   ]
  },
  {
-  "line": 897,
+  "line": 910,
   "expr": "\"abcb\" | gsub(\"b\"; \"X\")",
   "input": null,
   "nullInput": true,
@@ -12777,7 +12857,7 @@
   ]
  },
  {
-  "line": 898,
+  "line": 911,
   "expr": "\"abc\" | sub(\"(?<x>b)\"; \"[\\(.x)]\")",
   "input": null,
   "nullInput": true,
@@ -12786,7 +12866,7 @@
   ]
  },
  {
-  "line": 899,
+  "line": 912,
   "expr": "\"foo bar foo\" | gsub(\"(?<w>foo)\"; \"<\\(.w)>\")",
   "input": null,
   "nullInput": true,
@@ -12795,7 +12875,7 @@
   ]
  },
  {
-  "line": 900,
+  "line": 913,
   "expr": "\"abab\" | [gsub(\"a\"; \"x\", \"y\")]",
   "input": null,
   "nullInput": true,
@@ -12807,7 +12887,7 @@
   ]
  },
  {
-  "line": 901,
+  "line": 914,
   "expr": "\"abc\" | gsub(\"\"; \"-\")",
   "input": null,
   "nullInput": true,
@@ -12816,7 +12896,7 @@
   ]
  },
  {
-  "line": 902,
+  "line": 915,
   "expr": "\"abc\" | gsub(\"x\"; \"y\")",
   "input": null,
   "nullInput": true,
@@ -12825,7 +12905,7 @@
   ]
  },
  {
-  "line": 903,
+  "line": 916,
   "expr": "\"aAa\" | gsub(\"a\"; \"b\"; \"i\")",
   "input": null,
   "nullInput": true,
@@ -12834,7 +12914,7 @@
   ]
  },
  {
-  "line": 904,
+  "line": 917,
   "expr": "\"abc\" | sub(\"(?<a>.)\"; \"\\(.a|ascii_upcase)\")",
   "input": null,
   "nullInput": true,
@@ -12843,7 +12923,7 @@
   ]
  },
  {
-  "line": 905,
+  "line": 918,
   "expr": "\"2023-01-15\" | sub(\"(?<y>\\\\d+)-(?<m>\\\\d+)-(?<d>\\\\d+)\"; \"\\(.d)/\\(.m)/\\(.y)\")",
   "input": null,
   "nullInput": true,
@@ -12852,7 +12932,7 @@
   ]
  },
  {
-  "line": 906,
+  "line": 919,
   "expr": "\"  x  \" | gsub(\"^\\\\s+|\\\\s+$\"; \"\")",
   "input": null,
   "nullInput": true,
@@ -12861,7 +12941,7 @@
   ]
  },
  {
-  "line": 907,
+  "line": 920,
   "expr": "\"a.b.c\" | gsub(\"\\\\.\"; \"/\")",
   "input": null,
   "nullInput": true,
@@ -12870,7 +12950,7 @@
   ]
  },
  {
-  "line": 908,
+  "line": 921,
   "expr": "\"abc\" | [sub(\"(?<x>.)\"; \"\\(.x)1\", \"\\(.x)2\")]",
   "input": null,
   "nullInput": true,
@@ -12882,7 +12962,7 @@
   ]
  },
  {
-  "line": 910,
+  "line": 923,
   "expr": "\"abc\" | test(\"(\")",
   "input": null,
   "nullInput": true,
@@ -12892,7 +12972,7 @@
   "loose": true
  },
  {
-  "line": 911,
+  "line": 924,
   "expr": "\"a,b\" | index(\",\"), rindex(\",\")",
   "input": null,
   "nullInput": true,
@@ -12902,7 +12982,7 @@
   ]
  },
  {
-  "line": 912,
+  "line": 925,
   "expr": "\"a,b,c,b\" | indices(\"b\")",
   "input": null,
   "nullInput": true,
@@ -12914,7 +12994,7 @@
   ]
  },
  {
-  "line": 913,
+  "line": 926,
   "expr": "\"a,b\" | indices(\", \")",
   "input": null,
   "nullInput": true,
@@ -12923,7 +13003,7 @@
   ]
  },
  {
-  "line": 914,
+  "line": 927,
   "expr": "\"xxx\" | indices(\"xx\")",
   "input": null,
   "nullInput": true,
@@ -12935,7 +13015,7 @@
   ]
  },
  {
-  "line": 915,
+  "line": 928,
   "expr": "\"\" | indices(\"x\")",
   "input": null,
   "nullInput": true,
@@ -12944,7 +13024,7 @@
   ]
  },
  {
-  "line": 916,
+  "line": 929,
   "expr": "\"abc\" | index(\"z\")",
   "input": null,
   "nullInput": true,
@@ -12953,7 +13033,7 @@
   ]
  },
  {
-  "line": 917,
+  "line": 930,
   "expr": "[1,2,1,2] | indices(1)",
   "input": null,
   "nullInput": true,
@@ -12965,7 +13045,7 @@
   ]
  },
  {
-  "line": 918,
+  "line": 931,
   "expr": "[1,2,1,2] | indices([1,2])",
   "input": null,
   "nullInput": true,
@@ -12977,7 +13057,7 @@
   ]
  },
  {
-  "line": 919,
+  "line": 932,
   "expr": "[1,2,1,2] | index(2), rindex(2)",
   "input": null,
   "nullInput": true,
@@ -12987,7 +13067,7 @@
   ]
  },
  {
-  "line": 920,
+  "line": 933,
   "expr": "null | indices(1)",
   "input": null,
   "nullInput": true,
@@ -12996,7 +13076,7 @@
   ]
  },
  {
-  "line": 921,
+  "line": 934,
   "expr": "\"a\" | tostring",
   "input": null,
   "nullInput": true,
@@ -13005,7 +13085,7 @@
   ]
  },
  {
-  "line": 922,
+  "line": 935,
   "expr": "1 | tostring",
   "input": null,
   "nullInput": true,
@@ -13014,7 +13094,7 @@
   ]
  },
  {
-  "line": 923,
+  "line": 936,
   "expr": "[1,\"a\"] | tostring",
   "input": null,
   "nullInput": true,
@@ -13023,7 +13103,7 @@
   ]
  },
  {
-  "line": 924,
+  "line": 937,
   "expr": "{\"a\":[1,2]} | tostring",
   "input": null,
   "nullInput": true,
@@ -13032,7 +13112,7 @@
   ]
  },
  {
-  "line": 925,
+  "line": 938,
   "expr": "\"1.5\" | tonumber",
   "input": null,
   "nullInput": true,
@@ -13041,7 +13121,7 @@
   ]
  },
  {
-  "line": 926,
+  "line": 939,
   "expr": "\"  12  \" | tonumber",
   "input": null,
   "nullInput": true,
@@ -13050,7 +13130,7 @@
   ]
  },
  {
-  "line": 927,
+  "line": 940,
   "expr": "\"-1e3\" | tonumber",
   "input": null,
   "nullInput": true,
@@ -13059,7 +13139,7 @@
   ]
  },
  {
-  "line": 929,
+  "line": 942,
   "expr": "\"abc\" | tonumber",
   "input": null,
   "nullInput": true,
@@ -13069,7 +13149,7 @@
   "loose": true
  },
  {
-  "line": 930,
+  "line": 943,
   "expr": "\"[1]\" | tonumber",
   "input": null,
   "nullInput": true,
@@ -13078,7 +13158,7 @@
   "kind": "runtime"
  },
  {
-  "line": 932,
+  "line": 945,
   "expr": "\"\" | tonumber",
   "input": null,
   "nullInput": true,
@@ -13088,7 +13168,7 @@
   "loose": true
  },
  {
-  "line": 933,
+  "line": 946,
   "expr": "null | tonumber",
   "input": null,
   "nullInput": true,
@@ -13097,7 +13177,7 @@
   "kind": "runtime"
  },
  {
-  "line": 934,
+  "line": 947,
   "expr": "5 | tonumber",
   "input": null,
   "nullInput": true,
@@ -13106,7 +13186,7 @@
   ]
  },
  {
-  "line": 935,
+  "line": 948,
   "expr": "\"nan\" | tonumber | isnan",
   "input": null,
   "nullInput": true,
@@ -13115,7 +13195,7 @@
   ]
  },
  {
-  "line": 936,
+  "line": 949,
   "expr": "[1, \"1\", null, true, [1], {\"a\":\"b\"}] | map(type)",
   "input": null,
   "nullInput": true,
@@ -13131,7 +13211,7 @@
   ]
  },
  {
-  "line": 937,
+  "line": 950,
   "expr": "65 | [.] | implode",
   "input": null,
   "nullInput": true,
@@ -13140,7 +13220,7 @@
   ]
  },
  {
-  "line": 938,
+  "line": 951,
   "expr": "\"  pad \" | ltrimstr(\" \")",
   "input": null,
   "nullInput": true,
@@ -13149,7 +13229,7 @@
   ]
  },
  {
-  "line": 939,
+  "line": 952,
   "expr": "\"a\\u0000b\" | length",
   "input": null,
   "nullInput": true,
@@ -13158,7 +13238,7 @@
   ]
  },
  {
-  "line": 940,
+  "line": 953,
   "expr": "\"\\t\\n\" | tojson",
   "input": null,
   "nullInput": true,
@@ -13167,7 +13247,7 @@
   ]
  },
  {
-  "line": 941,
+  "line": 954,
   "expr": "\"\\u007f\\u0000é\\u001f\" | tojson",
   "input": null,
   "nullInput": true,
@@ -13176,7 +13256,7 @@
   ]
  },
  {
-  "line": 942,
+  "line": 955,
   "expr": "\"x\" | tojson | fromjson",
   "input": null,
   "nullInput": true,
@@ -13185,7 +13265,7 @@
   ]
  },
  {
-  "line": 943,
+  "line": 956,
   "expr": "\"{\\\"a\\\":1,\\\"b\\\":[1,2]}\" | fromjson",
   "input": null,
   "nullInput": true,
@@ -13200,7 +13280,7 @@
   ]
  },
  {
-  "line": 945,
+  "line": 958,
   "expr": "\"[1,2\" | fromjson",
   "input": null,
   "nullInput": true,
@@ -13210,7 +13290,7 @@
   "loose": true
  },
  {
-  "line": 947,
+  "line": 960,
   "expr": "\"1 2\" | fromjson",
   "input": null,
   "nullInput": true,
@@ -13220,7 +13300,7 @@
   "loose": true
  },
  {
-  "line": 948,
+  "line": 961,
   "expr": "1 | fromjson",
   "input": null,
   "nullInput": true,
@@ -13229,7 +13309,7 @@
   "kind": "runtime"
  },
  {
-  "line": 949,
+  "line": 962,
   "expr": "\"nan\" | fromjson | isnan",
   "input": null,
   "nullInput": true,
@@ -13238,7 +13318,7 @@
   ]
  },
  {
-  "line": 950,
+  "line": 963,
   "expr": "{\"b\":1,\"a\":[1,{\"c\":null}]} | tojson",
   "input": null,
   "nullInput": true,
@@ -13247,7 +13327,7 @@
   ]
  },
  {
-  "line": 951,
+  "line": 964,
   "expr": "{\"b\":1,\"a\":[1,{\"c\":null}]} | tostring",
   "input": null,
   "nullInput": true,
@@ -13256,7 +13336,7 @@
   ]
  },
  {
-  "line": 952,
+  "line": 965,
   "expr": "\"é\\n\\\"\" | tojson",
   "input": null,
   "nullInput": true,
@@ -13265,7 +13345,7 @@
   ]
  },
  {
-  "line": 953,
+  "line": 966,
   "expr": "\"x\" | @text",
   "input": null,
   "nullInput": true,
@@ -13274,7 +13354,7 @@
   ]
  },
  {
-  "line": 954,
+  "line": 967,
   "expr": "\"aXbXc\" | ascii_downcase | split(\"x\")",
   "input": null,
   "nullInput": true,
@@ -13287,7 +13367,7 @@
   ]
  },
  {
-  "line": 958,
+  "line": 971,
   "expr": "[1, \"a\", null, true, [], {}] | map(type)",
   "input": null,
   "nullInput": true,
@@ -13303,7 +13383,7 @@
   ]
  },
  {
-  "line": 959,
+  "line": 972,
   "expr": "[1, \"a\", null, true, [], {}] | [.[] | numbers]",
   "input": null,
   "nullInput": true,
@@ -13314,7 +13394,7 @@
   ]
  },
  {
-  "line": 960,
+  "line": 973,
   "expr": "[1, \"a\", null, true, [], {}] | [.[] | strings]",
   "input": null,
   "nullInput": true,
@@ -13325,7 +13405,7 @@
   ]
  },
  {
-  "line": 961,
+  "line": 974,
   "expr": "[1, \"a\", null, true, [], {}] | [.[] | nulls]",
   "input": null,
   "nullInput": true,
@@ -13336,7 +13416,7 @@
   ]
  },
  {
-  "line": 962,
+  "line": 975,
   "expr": "[1, \"a\", null, true, [], {}] | [.[] | booleans]",
   "input": null,
   "nullInput": true,
@@ -13347,7 +13427,7 @@
   ]
  },
  {
-  "line": 963,
+  "line": 976,
   "expr": "[1, \"a\", null, true, [], {}] | [.[] | arrays]",
   "input": null,
   "nullInput": true,
@@ -13358,7 +13438,7 @@
   ]
  },
  {
-  "line": 964,
+  "line": 977,
   "expr": "[1, \"a\", null, true, [], {}] | [.[] | objects]",
   "input": null,
   "nullInput": true,
@@ -13369,7 +13449,7 @@
   ]
  },
  {
-  "line": 965,
+  "line": 978,
   "expr": "[1, \"a\", null, true, [], {}] | [.[] | iterables]",
   "input": null,
   "nullInput": true,
@@ -13381,7 +13461,7 @@
   ]
  },
  {
-  "line": 966,
+  "line": 979,
   "expr": "[1, \"a\", null, true, [], {}] | [.[] | scalars]",
   "input": null,
   "nullInput": true,
@@ -13395,7 +13475,7 @@
   ]
  },
  {
-  "line": 967,
+  "line": 980,
   "expr": "[1, \"a\", null, true, [], {}] | [.[] | values]",
   "input": null,
   "nullInput": true,
@@ -13410,7 +13490,7 @@
   ]
  },
  {
-  "line": 968,
+  "line": 981,
   "expr": "[1, infinite, nan] | [.[] | finites]",
   "input": null,
   "nullInput": true,
@@ -13422,7 +13502,7 @@
   ]
  },
  {
-  "line": 969,
+  "line": 982,
   "expr": "[1, 0, infinite] | [.[] | normals]",
   "input": null,
   "nullInput": true,
@@ -13433,7 +13513,7 @@
   ]
  },
  {
-  "line": 973,
+  "line": 986,
   "expr": "2 | IN(1, 2, 3)",
   "input": null,
   "nullInput": true,
@@ -13442,7 +13522,7 @@
   ]
  },
  {
-  "line": 974,
+  "line": 987,
   "expr": "5 | IN(1, 2, 3)",
   "input": null,
   "nullInput": true,
@@ -13451,7 +13531,7 @@
   ]
  },
  {
-  "line": 975,
+  "line": 988,
   "expr": "IN(1, 2; 2, 3)",
   "input": null,
   "nullInput": true,
@@ -13460,7 +13540,7 @@
   ]
  },
  {
-  "line": 976,
+  "line": 989,
   "expr": "[{\"id\":\"a\",\"v\":1},{\"id\":\"b\",\"v\":2}] | INDEX(.id)",
   "input": null,
   "nullInput": true,
@@ -13478,7 +13558,7 @@
   ]
  },
  {
-  "line": 977,
+  "line": 990,
   "expr": "INDEX({\"id\":1},{\"id\":2}; .id)",
   "input": null,
   "nullInput": true,
@@ -13494,7 +13574,7 @@
   ]
  },
  {
-  "line": 978,
+  "line": 991,
   "expr": "[[1,2],[3,4]] | [combinations]",
   "input": null,
   "nullInput": true,
@@ -13520,7 +13600,7 @@
   ]
  },
  {
-  "line": 979,
+  "line": 992,
   "expr": "[0,1] | [combinations(2)]",
   "input": null,
   "nullInput": true,
@@ -13546,7 +13626,7 @@
   ]
  },
  {
-  "line": 980,
+  "line": 993,
   "expr": "[[1,2],[3]] | transpose",
   "input": null,
   "nullInput": true,
@@ -13564,7 +13644,7 @@
   ]
  },
  {
-  "line": 981,
+  "line": 994,
   "expr": "[[1],[2,3]] | transpose",
   "input": null,
   "nullInput": true,
@@ -13582,7 +13662,7 @@
   ]
  },
  {
-  "line": 982,
+  "line": 995,
   "expr": "[1,[2,{\"a\":3}]] | walk(if type == \"number\" then . + 1 else . end)",
   "input": null,
   "nullInput": true,
@@ -13599,7 +13679,7 @@
   ]
  },
  {
-  "line": 983,
+  "line": 996,
   "expr": "{\"b\":2,\"a\":1} | walk(if type == \"object\" then to_entries | sort_by(.key) | from_entries else . end)",
   "input": null,
   "nullInput": true,
@@ -13611,7 +13691,7 @@
   ]
  },
  {
-  "line": 984,
+  "line": 997,
   "expr": "[1,[2]] | walk(numbers |= . * 10)",
   "input": null,
   "nullInput": true,
@@ -13625,7 +13705,7 @@
   ]
  },
  {
-  "line": 985,
+  "line": 998,
   "expr": "[1,2,3] | bsearch(2)",
   "input": null,
   "nullInput": true,
@@ -13634,7 +13714,7 @@
   ]
  },
  {
-  "line": 986,
+  "line": 999,
   "expr": "[1,2,3] | bsearch(0)",
   "input": null,
   "nullInput": true,
@@ -13643,7 +13723,7 @@
   ]
  },
  {
-  "line": 987,
+  "line": 1000,
   "expr": "[1,2,3] | bsearch(4)",
   "input": null,
   "nullInput": true,
@@ -13652,7 +13732,7 @@
   ]
  },
  {
-  "line": 988,
+  "line": 1001,
   "expr": "[1,3] | bsearch(2)",
   "input": null,
   "nullInput": true,
@@ -13661,7 +13741,7 @@
   ]
  },
  {
-  "line": 989,
+  "line": 1002,
   "expr": "[] | bsearch(1)",
   "input": null,
   "nullInput": true,
@@ -13670,7 +13750,7 @@
   ]
  },
  {
-  "line": 990,
+  "line": 1003,
   "expr": "[1] | bsearch(1)",
   "input": null,
   "nullInput": true,
@@ -13679,7 +13759,7 @@
   ]
  },
  {
-  "line": 991,
+  "line": 1004,
   "expr": "[{\"a\":1}] | JOIN({\"1\":\"x\"}; .a | tostring)",
   "input": null,
   "nullInput": true,
@@ -13695,7 +13775,7 @@
   ]
  },
  {
-  "line": 992,
+  "line": 1005,
   "expr": "[1,2] | tojson | fromjson",
   "input": null,
   "nullInput": true,
@@ -13707,14 +13787,14 @@
   ]
  },
  {
-  "line": 993,
+  "line": 1006,
   "expr": "{\"a\":1} | [splits(\"x\")]?",
   "input": null,
   "nullInput": true,
   "outputs": []
  },
  {
-  "line": 994,
+  "line": 1007,
   "expr": "[3,2,1] | sort | first",
   "input": null,
   "nullInput": true,
@@ -13723,7 +13803,7 @@
   ]
  },
  {
-  "line": 995,
+  "line": 1008,
   "expr": "\"abc\" | [limit(2; splits(\"\"))]",
   "input": null,
   "nullInput": true,
@@ -13735,7 +13815,7 @@
   ]
  },
  {
-  "line": 996,
+  "line": 1009,
   "expr": "[1,2,3] | [.[] | tostring] | join(\"\")",
   "input": null,
   "nullInput": true,
@@ -13744,7 +13824,7 @@
   ]
  },
  {
-  "line": 997,
+  "line": 1010,
   "expr": "{\"a\":{\"b\":{\"c\":1}}} | [getpath([\"a\",\"b\",\"c\"], [\"a\",\"x\"])]",
   "input": null,
   "nullInput": true,
@@ -13756,7 +13836,7 @@
   ]
  },
  {
-  "line": 998,
+  "line": 1011,
   "expr": "{\"a\":[1,2]} | [.a | .. ]",
   "input": null,
   "nullInput": true,
@@ -13772,7 +13852,7 @@
   ]
  },
  {
-  "line": 999,
+  "line": 1012,
   "expr": "{} | .a.b.c",
   "input": null,
   "nullInput": true,
@@ -13781,7 +13861,7 @@
   ]
  },
  {
-  "line": 1000,
+  "line": 1013,
   "expr": "{\"items\":[{\"n\":\"a\",\"ok\":true},{\"n\":\"b\",\"ok\":false}]} | [.items[] | select(.ok) | .n]",
   "input": null,
   "nullInput": true,
@@ -13792,7 +13872,7 @@
   ]
  },
  {
-  "line": 1001,
+  "line": 1014,
   "expr": "{\"items\":[{\"n\":\"a\",\"v\":3},{\"n\":\"b\",\"v\":1}]} | .items | sort_by(.v) | map(.n) | join(\",\")",
   "input": null,
   "nullInput": true,
@@ -13801,7 +13881,7 @@
   ]
  },
  {
-  "line": 1002,
+  "line": 1015,
   "expr": "{\"items\":[{\"n\":\"a\",\"v\":3},{\"n\":\"b\",\"v\":1}]} | .items | map(.v) | add / length",
   "input": null,
   "nullInput": true,
@@ -13810,7 +13890,7 @@
   ]
  },
  {
-  "line": 1003,
+  "line": 1016,
   "expr": "{\"rates\":{\"BRL\":5.1,\"EUR\":0.9}} | .rates | to_entries | map(\"\\(.key)=\\(.value)\") | join(\" \")",
   "input": null,
   "nullInput": true,
@@ -13819,7 +13899,7 @@
   ]
  },
  {
-  "line": 1004,
+  "line": 1017,
   "expr": "{\"cpu\":[{\"load\":0.5},{\"load\":0.7}]} | [.cpu[].load] | max * 100 | floor",
   "input": null,
   "nullInput": true,
@@ -13828,7 +13908,7 @@
   ]
  },
  {
-  "line": 1005,
+  "line": 1018,
   "expr": "{\"t\":\"2015-03-05T23:51:47Z\"} | .t | fromdate",
   "input": null,
   "nullInput": true,
@@ -13837,7 +13917,7 @@
   ]
  },
  {
-  "line": 1006,
+  "line": 1019,
   "expr": "[1,2,3] | length as $n | add / $n",
   "input": null,
   "nullInput": true,
@@ -13846,7 +13926,7 @@
   ]
  },
  {
-  "line": 1007,
+  "line": 1020,
   "expr": "\"x\" as $s | [range(3)] | map($s * (. + 1))",
   "input": null,
   "nullInput": true,
@@ -13859,7 +13939,7 @@
   ]
  },
  {
-  "line": 1008,
+  "line": 1021,
   "expr": "[{\"name\":\"a\",\"tags\":[\"x\",\"y\"]},{\"name\":\"b\",\"tags\":[\"y\"]}] | map(select(.tags | index(\"x\"))) | map(.name)",
   "input": null,
   "nullInput": true,
@@ -13870,7 +13950,7 @@
   ]
  },
  {
-  "line": 1009,
+  "line": 1022,
   "expr": "[{\"name\":\"a\",\"tags\":[\"x\",\"y\"]},{\"name\":\"b\",\"tags\":[\"y\"]}] | map(select(any(.tags[]; . == \"y\"))) | length",
   "input": null,
   "nullInput": true,
@@ -13879,7 +13959,7 @@
   ]
  },
  {
-  "line": 1010,
+  "line": 1023,
   "expr": "{\"a\":{\"x\":1},\"b\":{\"x\":2}} | to_entries | map({(.key): .value.x}) | add",
   "input": null,
   "nullInput": true,
@@ -13891,7 +13971,7 @@
   ]
  },
  {
-  "line": 1011,
+  "line": 1024,
   "expr": "{\"a\":{\"x\":1},\"b\":{\"x\":2}} | with_entries(.value |= .x)",
   "input": null,
   "nullInput": true,
@@ -13903,7 +13983,7 @@
   ]
  },
  {
-  "line": 1012,
+  "line": 1025,
   "expr": "{\"a\":1,\"b\":2} | to_entries | map(select(.value > 1)) | from_entries",
   "input": null,
   "nullInput": true,
@@ -13914,7 +13994,7 @@
   ]
  },
  {
-  "line": 1013,
+  "line": 1026,
   "expr": "[{\"k\":\"a\"},{\"k\":\"b\"},{\"k\":\"a\"}] | group_by(.k) | map({key: .[0].k, count: length})",
   "input": null,
   "nullInput": true,
@@ -13932,7 +14012,7 @@
   ]
  },
  {
-  "line": 1014,
+  "line": 1027,
   "expr": "{\"a\":null,\"b\":1} | del(..|nulls)",
   "input": null,
   "nullInput": true,
@@ -13943,7 +14023,7 @@
   ]
  },
  {
-  "line": 1015,
+  "line": 1028,
   "expr": "{\"a\":[1,null,{\"b\":null}]} | del(.. | nulls)",
   "input": null,
   "nullInput": true,
@@ -13957,7 +14037,7 @@
   ]
  },
  {
-  "line": 1016,
+  "line": 1029,
   "expr": "[1,[2,[3]]] | getpath([1,1,0])",
   "input": null,
   "nullInput": true,
@@ -13966,7 +14046,7 @@
   ]
  },
  {
-  "line": 1017,
+  "line": 1030,
   "expr": "[1,[2]] | getpath([1,0,0])",
   "input": null,
   "nullInput": true,
@@ -13975,7 +14055,7 @@
   "kind": "runtime"
  },
  {
-  "line": 1018,
+  "line": 1031,
   "expr": "{\"a\":\"x\"} | getpath([\"a\", 0])",
   "input": null,
   "nullInput": true,
@@ -13984,7 +14064,7 @@
   "kind": "runtime"
  },
  {
-  "line": 1022,
+  "line": 1035,
   "expr": "0 | todate",
   "input": null,
   "nullInput": true,
@@ -13993,7 +14073,7 @@
   ]
  },
  {
-  "line": 1023,
+  "line": 1036,
   "expr": "1425599507 | todate",
   "input": null,
   "nullInput": true,
@@ -14002,7 +14082,7 @@
   ]
  },
  {
-  "line": 1024,
+  "line": 1037,
   "expr": "1425599507 | todateiso8601",
   "input": null,
   "nullInput": true,
@@ -14011,7 +14091,7 @@
   ]
  },
  {
-  "line": 1025,
+  "line": 1038,
   "expr": "\"2015-03-05T23:51:47Z\" | fromdate",
   "input": null,
   "nullInput": true,
@@ -14020,7 +14100,7 @@
   ]
  },
  {
-  "line": 1026,
+  "line": 1039,
   "expr": "\"2015-03-05T23:51:47Z\" | fromdateiso8601",
   "input": null,
   "nullInput": true,
@@ -14029,7 +14109,7 @@
   ]
  },
  {
-  "line": 1027,
+  "line": 1040,
   "expr": "\"2015-03-05T23:51:47Z\" | strptime(\"%Y-%m-%dT%H:%M:%SZ\")",
   "input": null,
   "nullInput": true,
@@ -14047,7 +14127,7 @@
   ]
  },
  {
-  "line": 1028,
+  "line": 1041,
   "expr": "\"2015-03-05T23:51:47Z\" | strptime(\"%Y-%m-%dT%H:%M:%SZ\") | mktime",
   "input": null,
   "nullInput": true,
@@ -14056,7 +14136,7 @@
   ]
  },
  {
-  "line": 1029,
+  "line": 1042,
   "expr": "1425599507 | gmtime",
   "input": null,
   "nullInput": true,
@@ -14074,7 +14154,7 @@
   ]
  },
  {
-  "line": 1030,
+  "line": 1043,
   "expr": "1425599507 | gmtime | mktime",
   "input": null,
   "nullInput": true,
@@ -14083,7 +14163,7 @@
   ]
  },
  {
-  "line": 1031,
+  "line": 1044,
   "expr": "1425599507.9 | gmtime",
   "input": null,
   "nullInput": true,
@@ -14101,7 +14181,7 @@
   ]
  },
  {
-  "line": 1032,
+  "line": 1045,
   "expr": "1425599507 | gmtime | todate",
   "input": null,
   "nullInput": true,
@@ -14110,7 +14190,7 @@
   ]
  },
  {
-  "line": 1033,
+  "line": 1046,
   "expr": "-1 | gmtime",
   "input": null,
   "nullInput": true,
@@ -14128,7 +14208,7 @@
   ]
  },
  {
-  "line": 1034,
+  "line": 1047,
   "expr": "-1.5 | gmtime",
   "input": null,
   "nullInput": true,
@@ -14146,7 +14226,7 @@
   ]
  },
  {
-  "line": 1035,
+  "line": 1048,
   "expr": "0 | gmtime",
   "input": null,
   "nullInput": true,
@@ -14164,7 +14244,7 @@
   ]
  },
  {
-  "line": 1036,
+  "line": 1049,
   "expr": "951782400 | gmtime",
   "input": null,
   "nullInput": true,
@@ -14182,7 +14262,7 @@
   ]
  },
  {
-  "line": 1037,
+  "line": 1050,
   "expr": "4102444800 | gmtime | todate",
   "input": null,
   "nullInput": true,
@@ -14191,7 +14271,7 @@
   ]
  },
  {
-  "line": 1038,
+  "line": 1051,
   "expr": "[2015,2,5,23,51,47,4,63] | mktime",
   "input": null,
   "nullInput": true,
@@ -14200,7 +14280,7 @@
   ]
  },
  {
-  "line": 1039,
+  "line": 1052,
   "expr": "[2015,14,40,25,61,61,0,0] | mktime",
   "input": null,
   "nullInput": true,
@@ -14209,7 +14289,7 @@
   ]
  },
  {
-  "line": 1040,
+  "line": 1053,
   "expr": "[2015,2,5,23,51,47] | mktime",
   "input": null,
   "nullInput": true,
@@ -14218,7 +14298,7 @@
   "kind": "runtime"
  },
  {
-  "line": 1041,
+  "line": 1054,
   "expr": "[2015,2,5] | mktime",
   "input": null,
   "nullInput": true,
@@ -14227,7 +14307,7 @@
   "kind": "runtime"
  },
  {
-  "line": 1042,
+  "line": 1055,
   "expr": "\"x\" | mktime",
   "input": null,
   "nullInput": true,
@@ -14236,7 +14316,7 @@
   "kind": "runtime"
  },
  {
-  "line": 1043,
+  "line": 1056,
   "expr": "[2015,\"a\",5,23,51,47,4,63] | mktime",
   "input": null,
   "nullInput": true,
@@ -14245,7 +14325,7 @@
   "kind": "runtime"
  },
  {
-  "line": 1044,
+  "line": 1057,
   "expr": "1425599507 | strftime(\"%Y-%m-%d %H:%M:%S\")",
   "input": null,
   "nullInput": true,
@@ -14254,7 +14334,7 @@
   ]
  },
  {
-  "line": 1045,
+  "line": 1058,
   "expr": "1425599507 | strftime(\"%A, %B %d, %Y\")",
   "input": null,
   "nullInput": true,
@@ -14263,7 +14343,7 @@
   ]
  },
  {
-  "line": 1046,
+  "line": 1059,
   "expr": "1425599507 | strftime(\"%a %b %e %I:%M %p %j\")",
   "input": null,
   "nullInput": true,
@@ -14272,7 +14352,7 @@
   ]
  },
  {
-  "line": 1047,
+  "line": 1060,
   "expr": "1425599507 | strftime(\"%c|%D|%e|%j|%k|%l|%p|%r|%s|%u|%U|%V|%w|%W|%x|%X|%y|%Z|%z|%G|%g|%C|%h|%T|%F|%R|%%\")",
   "input": null,
   "nullInput": true,
@@ -14281,7 +14361,7 @@
   ]
  },
  {
-  "line": 1048,
+  "line": 1061,
   "expr": "0 | strftime(\"%V %G %U %W %u %w %j\")",
   "input": null,
   "nullInput": true,
@@ -14290,7 +14370,7 @@
   ]
  },
  {
-  "line": 1049,
+  "line": 1062,
   "expr": "1609459200 | strftime(\"%V %G %g %U %W\")",
   "input": null,
   "nullInput": true,
@@ -14299,7 +14379,7 @@
   ]
  },
  {
-  "line": 1050,
+  "line": 1063,
   "expr": "1609459200 | gmtime | strftime(\"%V %G\")",
   "input": null,
   "nullInput": true,
@@ -14308,7 +14388,7 @@
   ]
  },
  {
-  "line": 1051,
+  "line": 1064,
   "expr": "1704067200 | strftime(\"%V %G %U %W\")",
   "input": null,
   "nullInput": true,
@@ -14317,7 +14397,7 @@
   ]
  },
  {
-  "line": 1052,
+  "line": 1065,
   "expr": "1735603200 | strftime(\"%V %G %U %W\")",
   "input": null,
   "nullInput": true,
@@ -14326,7 +14406,7 @@
   ]
  },
  {
-  "line": 1053,
+  "line": 1066,
   "expr": "[2015,2,5,23,51,47,4,63] | strftime(\"%Y %H\")",
   "input": null,
   "nullInput": true,
@@ -14335,7 +14415,7 @@
   ]
  },
  {
-  "line": 1054,
+  "line": 1067,
   "expr": "\"x\" | strftime(\"%Y\")",
   "input": null,
   "nullInput": true,
@@ -14344,7 +14424,7 @@
   "kind": "runtime"
  },
  {
-  "line": 1055,
+  "line": 1068,
   "expr": "[1] | strftime(\"%Y\")",
   "input": null,
   "nullInput": true,
@@ -14353,7 +14433,7 @@
   "kind": "runtime"
  },
  {
-  "line": 1056,
+  "line": 1069,
   "expr": "\"10:15 2015-03-05\" | strptime(\"%H:%M %Y-%m-%d\")",
   "input": null,
   "nullInput": true,
@@ -14371,7 +14451,7 @@
   ]
  },
  {
-  "line": 1057,
+  "line": 1070,
   "expr": "\"10:15 2015-03-05\" | strptime(\"%H:%M %Y-%m-%d\") | mktime",
   "input": null,
   "nullInput": true,
@@ -14380,7 +14460,7 @@
   ]
  },
  {
-  "line": 1058,
+  "line": 1071,
   "expr": "\"5 March 2015\" | strptime(\"%d %B %Y\")",
   "input": null,
   "nullInput": true,
@@ -14398,7 +14478,7 @@
   ]
  },
  {
-  "line": 1059,
+  "line": 1072,
   "expr": "\"  5 Mar 2015\" | strptime(\"%e %b %Y\")",
   "input": null,
   "nullInput": true,
@@ -14416,7 +14496,7 @@
   ]
  },
  {
-  "line": 1060,
+  "line": 1073,
   "expr": "\"Thu, 05 Mar 2015 23:51:47\" | strptime(\"%a, %d %b %Y %H:%M:%S\")",
   "input": null,
   "nullInput": true,
@@ -14434,7 +14514,7 @@
   ]
  },
  {
-  "line": 1061,
+  "line": 1074,
   "expr": "\"2015-03-05 \" | strptime(\"%Y-%m-%d\")",
   "input": null,
   "nullInput": true,
@@ -14453,7 +14533,7 @@
   ]
  },
  {
-  "line": 1062,
+  "line": 1075,
   "expr": "\"2015-03-05T23:51:47+0100\" | strptime(\"%Y-%m-%dT%H:%M:%S%z\") | mktime",
   "input": null,
   "nullInput": true,
@@ -14462,7 +14542,7 @@
   ]
  },
  {
-  "line": 1063,
+  "line": 1076,
   "expr": "\"15/03/05\" | strptime(\"%y/%m/%d\")",
   "input": null,
   "nullInput": true,
@@ -14480,7 +14560,7 @@
   ]
  },
  {
-  "line": 1064,
+  "line": 1077,
   "expr": "\"2015 070\" | strptime(\"%Y %j\")",
   "input": null,
   "nullInput": true,
@@ -14498,7 +14578,7 @@
   ]
  },
  {
-  "line": 1065,
+  "line": 1078,
   "expr": "\"2015-03-05 11:30 PM\" | strptime(\"%Y-%m-%d %I:%M %p\")",
   "input": null,
   "nullInput": true,
@@ -14516,7 +14596,7 @@
   ]
  },
  {
-  "line": 1066,
+  "line": 1079,
   "expr": "\"1425599507\" | strptime(\"%s\") | mktime",
   "input": null,
   "nullInput": true,
@@ -14525,7 +14605,7 @@
   ]
  },
  {
-  "line": 1067,
+  "line": 1080,
   "expr": "\"x\" | strptime(\"%Y\")",
   "input": null,
   "nullInput": true,
@@ -14534,7 +14614,7 @@
   "kind": "runtime"
  },
  {
-  "line": 1068,
+  "line": 1081,
   "expr": "\"2015-03-05\" | strptime(\"%Y-%m\")",
   "input": null,
   "nullInput": true,
@@ -14543,7 +14623,7 @@
   "kind": "runtime"
  },
  {
-  "line": 1069,
+  "line": 1082,
   "expr": "1 | strptime(\"%Y\")",
   "input": null,
   "nullInput": true,
@@ -14552,7 +14632,7 @@
   "kind": "runtime"
  },
  {
-  "line": 1070,
+  "line": 1083,
   "expr": "\"2015-03-05T23:51:47.123Z\" | fromdate",
   "input": null,
   "nullInput": true,
@@ -14561,7 +14641,7 @@
   "kind": "runtime"
  },
  {
-  "line": 1071,
+  "line": 1084,
   "expr": "\"2015-13-05\" | strptime(\"%Y-%m-%d\")",
   "input": null,
   "nullInput": true,
@@ -14570,7 +14650,7 @@
   "kind": "runtime"
  },
  {
-  "line": 1072,
+  "line": 1085,
   "expr": "now | type",
   "input": null,
   "nullInput": true,
@@ -14579,7 +14659,7 @@
   ]
  },
  {
-  "line": 1073,
+  "line": 1086,
   "expr": "now > 1600000000",
   "input": null,
   "nullInput": true,
@@ -14588,7 +14668,7 @@
   ]
  },
  {
-  "line": 1078,
+  "line": 1091,
   "expr": "1 +",
   "input": null,
   "nullInput": true,
@@ -14598,7 +14678,7 @@
   "loose": true
  },
  {
-  "line": 1080,
+  "line": 1093,
   "expr": "(1",
   "input": null,
   "nullInput": true,
@@ -14608,7 +14688,7 @@
   "loose": true
  },
  {
-  "line": 1082,
+  "line": 1095,
   "expr": "[1, 2",
   "input": null,
   "nullInput": true,
@@ -14618,7 +14698,7 @@
   "loose": true
  },
  {
-  "line": 1084,
+  "line": 1097,
   "expr": "{a: 1 + 2}",
   "input": null,
   "nullInput": true,
@@ -14628,7 +14708,7 @@
   "loose": true
  },
  {
-  "line": 1086,
+  "line": 1099,
   "expr": ".a.",
   "input": null,
   "nullInput": true,
@@ -14638,7 +14718,7 @@
   "loose": true
  },
  {
-  "line": 1088,
+  "line": 1101,
   "expr": "if 1 then 2",
   "input": null,
   "nullInput": true,
@@ -14648,7 +14728,7 @@
   "loose": true
  },
  {
-  "line": 1090,
+  "line": 1103,
   "expr": "\"unterminated",
   "input": null,
   "nullInput": true,
@@ -14658,7 +14738,7 @@
   "loose": true
  },
  {
-  "line": 1092,
+  "line": 1105,
   "expr": "1 == 1 == 1",
   "input": null,
   "nullInput": true,
@@ -14668,7 +14748,7 @@
   "loose": true
  },
  {
-  "line": 1094,
+  "line": 1107,
   "expr": ".[",
   "input": null,
   "nullInput": true,
@@ -14678,7 +14758,7 @@
   "loose": true
  },
  {
-  "line": 1096,
+  "line": 1109,
   "expr": "reduce . as $x (0)",
   "input": null,
   "nullInput": true,
@@ -14688,7 +14768,7 @@
   "loose": true
  },
  {
-  "line": 1098,
+  "line": 1111,
   "expr": "{1: 2}",
   "input": null,
   "nullInput": true,
@@ -14698,7 +14778,7 @@
   "loose": true
  },
  {
-  "line": 1100,
+  "line": 1113,
   "expr": "def f: 1",
   "input": null,
   "nullInput": true,
@@ -14708,7 +14788,7 @@
   "loose": true
  },
  {
-  "line": 1102,
+  "line": 1115,
   "expr": ".a | | .b",
   "input": null,
   "nullInput": true,
@@ -14718,7 +14798,7 @@
   "loose": true
  },
  {
-  "line": 1104,
+  "line": 1117,
   "expr": "\"\\q\"",
   "input": null,
   "nullInput": true,
@@ -14728,7 +14808,7 @@
   "loose": true
  },
  {
-  "line": 1106,
+  "line": 1119,
   "expr": "f(1, 2)",
   "input": null,
   "nullInput": true,
@@ -14738,7 +14818,7 @@
   "loose": true
  },
  {
-  "line": 1108,
+  "line": 1121,
   "expr": "$__loc__ as $x | 1",
   "input": null,
   "nullInput": true,
@@ -14748,7 +14828,7 @@
   "loose": true
  },
  {
-  "line": 1110,
+  "line": 1123,
   "expr": "@nope",
   "input": null,
   "nullInput": true,
@@ -14758,7 +14838,7 @@
   "loose": true
  },
  {
-  "line": 1112,
+  "line": 1125,
   "expr": "import \"a\" as a; 1",
   "input": null,
   "nullInput": true,
@@ -14768,7 +14848,7 @@
   "loose": true
  },
  {
-  "line": 1114,
+  "line": 1127,
   "expr": "input",
   "input": null,
   "nullInput": true,
@@ -14778,7 +14858,7 @@
   "loose": true
  },
  {
-  "line": 1119,
+  "line": 1132,
   "expr": "\" x \" | trim, ltrim, rtrim",
   "input": null,
   "nullInput": true,
@@ -14790,7 +14870,7 @@
   "jq": "1.8"
  },
  {
-  "line": 1121,
+  "line": 1134,
   "expr": "\"xabcx\" | trimstr(\"x\")",
   "input": null,
   "nullInput": true,
@@ -14800,7 +14880,7 @@
   "jq": "1.8"
  },
  {
-  "line": 1123,
+  "line": 1136,
   "expr": "[skip(2; range(5))]",
   "input": null,
   "nullInput": true,
@@ -14814,7 +14894,7 @@
   "jq": "1.8"
  },
  {
-  "line": 1125,
+  "line": 1138,
   "expr": "[\"true\", \"false\", true] | map(toboolean)",
   "input": null,
   "nullInput": true,
@@ -14828,7 +14908,7 @@
   "jq": "1.8"
  },
  {
-  "line": 1127,
+  "line": 1140,
   "expr": "[1,2,3] | add(.[] * 10)",
   "input": null,
   "nullInput": true,
@@ -14838,7 +14918,7 @@
   "jq": "1.8"
  },
  {
-  "line": 1129,
+  "line": 1142,
   "expr": "add(1, 2, 3)",
   "input": null,
   "nullInput": true,
@@ -14848,7 +14928,7 @@
   "jq": "1.8"
  },
  {
-  "line": 1131,
+  "line": 1144,
   "expr": "[1,2] | add(.[])",
   "input": null,
   "nullInput": true,
@@ -14858,7 +14938,7 @@
   "jq": "1.8"
  },
  {
-  "line": 1133,
+  "line": 1146,
   "expr": "1 | trim",
   "input": null,
   "nullInput": true,
