@@ -445,7 +445,9 @@ public struct RenderNode: Equatable, Sendable, Codable {
         opacity = try opt("opacity") ?? 1
         clip = try opt("clip") ?? false
         spaceBefore = try opt("spaceBefore")
-        alignSelf = lenient("alignSelf", RenderAlign?.none)
+        // `alignSelf` takes start, center, end or stretch; `baseline` is only
+        // a stack's `align` (§10.3).
+        alignSelf = lenient("alignSelf", RenderAlign?.none).flatMap { $0 == .baseline ? nil : $0 }
         span = try opt("span") ?? 1
         action = try opt("action") ?? false
         alt = try opt("alt")

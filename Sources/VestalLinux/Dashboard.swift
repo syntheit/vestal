@@ -77,8 +77,13 @@ public final class LinuxDashboard {
             for edge in [GTK_LAYER_SHELL_EDGE_LEFT, GTK_LAYER_SHELL_EDGE_RIGHT, GTK_LAYER_SHELL_EDGE_TOP, GTK_LAYER_SHELL_EDGE_BOTTOM] {
                 gtk_layer_set_anchor(gtkWindow, edge, 1)
             }
+            // -1: over panels and bars, reserving nothing.
             gtk_layer_set_exclusive_zone(gtkWindow, -1)
             gtk_layer_set_keyboard_mode(gtkWindow, GTK_LAYER_SHELL_KEYBOARD_MODE_NONE)
+            // The compositor's `closed` (its output went away) becomes a
+            // close-request, which hides and tells the core; the next show
+            // maps a new surface.
+            gtk_layer_set_respect_close(gtkWindow, 1)
         } else {
             uiLog("linux ui: the compositor has no wlr-layer-shell; using a fullscreen window")
             gtk_window_fullscreen(gtkWindow)
@@ -87,6 +92,16 @@ public final class LinuxDashboard {
         installKeys()
         installCloseRequest()
         applyThemeCSS()
+    }
+
+    deinit {
+        aurora.stop()
+        if fadeTick != 0 { gtk_widget_remove_tick_callback(stage.widget, fadeTick) }
+        gtk_style_context_remove_provider_for_display(gdk_display_get_default(), OpaquePointer(css))
+        g_object_unref(UnsafeMutableRawPointer(css))
+        // GTK owns toplevels until they are destroyed; this drops the whole
+        // widget tree and with it every NodeView and signal closure.
+        gtk_window_destroy(gtkWindow)
     }
 
     // MARK: Model
@@ -112,7 +127,7 @@ public final class LinuxDashboard {
             do { try model.apply(op) } catch { return false }
             switch op {
             case .replace(let id, let node):
-                guard replaceNode(id: id, with: node) else { return false }
+                guard replaceNode(id: id, with: node, popup: model.popup) else { return false }
             case .root(let node, _):
                 stage.setRoot(node)
             case .popup(let popup):
@@ -130,11 +145,13 @@ public final class LinuxDashboard {
         return true
     }
 
-    private func replaceNode(id: String, with node: RenderNode) -> Bool {
+    /// `popup` is the popup as patched so far (an earlier op may have
+    /// replaced it).
+    private func replaceNode(id: String, with node: RenderNode, popup current: RenderPopup?) -> Bool {
         guard let old = context.nodes[id] else { return false }
         if old === stage.root {
             stage.setRoot(node)
-        } else if let card = stage.card, card.children.first === old, let popup = snapshot?.popup {
+        } else if let card = stage.card, card.children.first === old, let popup = current {
             // The popup's own root: rebuild the card around the new node.
             stage.setPopup(RenderPopup(id: popup.id, width: popup.width, node: node))
         } else if let parent = old.parent {

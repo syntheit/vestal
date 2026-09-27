@@ -20,9 +20,9 @@ import VestalCore
 // `--exit-after` says when.
 //
 // Clicks and keys print as the `{"cmd": …}` lines a core would receive
-// (§10.7). Standing in for the core, it hides on `escape` (and on `invoke`
-// of nothing: there are no actions without a core). SIGUSR1 toggles the
-// dashboard, so hidden-state CPU can be measured; SIGINT and SIGTERM quit.
+// (§10.7). Standing in for the core, it hides on `escape`; other input has
+// no effect without a core. SIGUSR1 toggles the dashboard, so hidden-state
+// CPU can be measured; SIGINT and SIGTERM quit.
 
 public enum RenderFileCommand {
     static let usage = """
@@ -50,10 +50,10 @@ public enum RenderFileCommand {
         while i < arguments.count {
             switch arguments[i] {
             case "--patch": guard let v = value() else { return nil }; o.patches.append(v)
-            case "--interval": guard let v = value().flatMap(Double.init) else { return nil }; o.interval = v
+            case "--interval": guard let v = seconds(value()) else { return nil }; o.interval = v
             case "--screenshot": guard let v = value() else { return nil }; o.screenshot = v
             case "--frames": guard let v = value() else { return nil }; o.frames = v
-            case "--exit-after": guard let v = value().flatMap(Double.init) else { return nil }; o.exitAfter = v
+            case "--exit-after": guard let v = seconds(value()) else { return nil }; o.exitAfter = v
             case "--hidden": o.hidden = true
             case let arg where arg.hasPrefix("-"): return nil
             case let arg:
@@ -63,6 +63,16 @@ public enum RenderFileCommand {
             i += 1
         }
         return o.model.isEmpty ? nil : o
+    }
+
+    /// A duration option: 0 up to a day.
+    static func seconds(_ text: String?) -> Double? {
+        guard let v = text.flatMap(Double.init), v.isFinite, v >= 0, v <= 86_400 else { return nil }
+        return v
+    }
+
+    static func milliseconds(_ seconds: Double) -> UInt32 {
+        UInt32(min(max(0, seconds * 1000), Double(UInt32.max)))
     }
 
     static func load<T: Decodable>(_ type: T.Type, _ path: String) throws -> T {
@@ -122,7 +132,7 @@ public enum RenderFileCommand {
         var delay = 0.0
         for (n, patch) in patches.enumerated() {
             delay += options.interval
-            afterMilliseconds(UInt32(delay * 1000)) {
+            afterMilliseconds(milliseconds(delay)) {
                 if !dashboard.apply(patch) {
                     FileHandle.standardError.write(Data("vestal render-file: patch \(n + 1) (seq \(patch.seq), base \(patch.base)) does not apply; a core would resend the snapshot\n".utf8))
                     status = 1
@@ -131,7 +141,7 @@ public enum RenderFileCommand {
         }
         if options.screenshot != nil || options.frames != nil {
             // After the patches, the 0.2 s fade and a few aurora frames.
-            afterMilliseconds(UInt32((delay + 0.8) * 1000)) {
+            afterMilliseconds(milliseconds(delay + 0.8)) {
                 if let path = options.screenshot, !dashboard.screenshot(to: path) {
                     status = fail("could not write \(path)")
                 }
@@ -148,7 +158,7 @@ public enum RenderFileCommand {
             }
         }
         if let seconds = options.exitAfter {
-            afterMilliseconds(UInt32(seconds * 1000)) { MainLoop.quit() }
+            afterMilliseconds(milliseconds(seconds)) { MainLoop.quit() }
         }
         MainLoop.run()
         withExtendedLifetime(dashboard) {}

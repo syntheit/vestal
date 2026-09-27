@@ -72,10 +72,13 @@ class NodeView {
     // MARK: Building
 
     private func build() {
+        // Ids are unique (§10.5). Should one repeat, the first keeps it, as
+        // RenderSnapshot.apply finds the first match (root before popup).
         if context.nodes[node.id] != nil {
             uiLog("linux ui: duplicate node id \(node.id)")
+        } else {
+            context.nodes[node.id] = self
         }
-        context.nodes[node.id] = self
         if node.opacity < 1 { gtk_widget_set_opacity(widget, max(0, node.opacity)) }
         if node.action { makeClickable() }
 
@@ -107,7 +110,7 @@ class NodeView {
             } else {
                 gtk_label_set_wrap(l, 1)
                 gtk_label_set_wrap_mode(l, PANGO_WRAP_WORD_CHAR)
-                gtk_label_set_lines(l, Int32(lines))
+                gtk_label_set_lines(l, Int32(clamping: lines))
             }
         } else {
             gtk_label_set_wrap(l, 1)
@@ -144,7 +147,7 @@ class NodeView {
         pango_attr_list_insert(attrs, pango_attr_foreground_new(UInt16(c.r * 65535), UInt16(c.g * 65535), UInt16(c.b * 65535)))
         pango_attr_list_insert(attrs, pango_attr_foreground_alpha_new(UInt16(max(1, c.a * 65535))))
         if text.tracking != 0 {
-            pango_attr_list_insert(attrs, pango_attr_letter_spacing_new(Int32(text.tracking * Double(PANGO_SCALE))))
+            pango_attr_list_insert(attrs, pango_attr_letter_spacing_new(pixels(text.tracking * Double(PANGO_SCALE))))
         }
         return attrs
     }
@@ -210,13 +213,13 @@ class NodeView {
 
     /// GTK's measure. Overridden by the stage, scrim and card.
     func measure(horizontal: Bool, forSize: Double) -> Measure {
-        if horizontal {
-            let natural = fitWidth()
-            return Measure(minimum: min(minimumContentWidth(), natural), natural: natural)
-        }
+        // A minimum of 0: numeric sizes are exact (§10.4 rule 1), and a
+        // label that doesn't fit its node overflows it (`place` never gives
+        // the label itself less than its minimum).
+        if horizontal { return Measure(minimum: 0, natural: fitWidth()) }
         let width = forSize >= 0 ? forSize : fitWidth()
         let (height, baseline) = fitHeight(forWidth: width)
-        return Measure(minimum: min(minimumContentHeight(forWidth: width), height), natural: height, baseline: baseline)
+        return Measure(minimum: 0, natural: height, baseline: baseline)
     }
 
     /// Natural width, border-box: the fixed width, or the content's plus
@@ -234,19 +237,11 @@ class NodeView {
         return (clampHeight(content + padding.vertical), baseline.map { $0 + padding.top })
     }
 
-    /// What GTK must never allocate less than: a text's label (its ellipsis
-    /// or longest word) plus padding. Everything else can be squeezed.
+    /// How narrow an overflowing row may squeeze a text: its label's
+    /// minimum (the ellipsis, or the longest word) plus padding.
     private func minimumContentWidth() -> Double {
         guard let label else { return 0 }
         return minimumWidth(label) + padding.horizontal
-    }
-
-    private func minimumContentHeight(forWidth width: Double) -> Double {
-        guard let label else { return 0 }
-        let inner = max(minimumWidth(label), width - padding.horizontal)
-        var minimum: Int32 = 0
-        gtk_widget_measure(label, GTK_ORIENTATION_VERTICAL, Int32(inner.rounded()), &minimum, nil, nil, nil)
-        return Double(minimum) + padding.vertical
     }
 
     /// The content's natural width, without padding.
@@ -325,8 +320,8 @@ class NodeView {
             }
         case .ring:
             if let center = children.first {
-                let w = min(center.fitWidth(), inner.width)
-                let (h, _) = center.fitHeight(forWidth: w)
+                let w = center.node.width == .fill ? center.clampWidth(inner.width) : center.offeredWidth(inner.width)
+                let h = center.node.height == .fill ? center.clampHeight(inner.height) : center.fitHeight(forWidth: w).0
                 place(center.widget, Rect(x: inner.x + (inner.width - w) / 2, y: inner.y + (inner.height - h) / 2, width: w, height: h))
             }
         default:
@@ -611,6 +606,14 @@ class NodeView {
             case .end: offset = cellWidth - w
             }
             frames[i] = Rect(x: xs[cell.column] + offset, y: 0, width: w, height: h)
+        }
+        // A row holding only fill-height cells is as tall as the tallest of
+        // their natural heights.
+        for (i, (child, cell)) in zip(children, cells).enumerated() where child.node.height == .fill && rowHeights[cell.row] == nil {
+            rowHeights[cell.row] = cells.indices
+                .filter { cells[$0].row == cell.row }
+                .map { cellHeights[$0] }
+                .max() ?? cellHeights[i]
         }
         let rows = (cells.map(\.row).max() ?? -1) + 1
         var ys: [Double] = []

@@ -70,7 +70,7 @@ final class StageView: NodeView {
         if let root {
             let w: Double
             switch root.node.width {
-            case .points(let fixed)?: w = fixed
+            case .points(let fixed)?: w = root.clampWidth(fixed)
             default: w = root.clampWidth(width)
             }
             var h: Double

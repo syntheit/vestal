@@ -70,8 +70,8 @@ enum NodeWidget {
             let m = NodeWidget.view(of: widget)?.measure(horizontal: orientation == GTK_ORIENTATION_HORIZONTAL,
                                                          forSize: Double(forSize))
                 ?? Measure(minimum: 0, natural: 0)
-            minimum?.pointee = Int32(m.minimum.rounded(.up))
-            natural?.pointee = Int32(max(m.minimum, m.natural).rounded(.up))
+            minimum?.pointee = pixels(m.minimum.rounded(.up))
+            natural?.pointee = pixels(max(m.minimum, m.natural).rounded(.up))
             // Baselines stay inside NodeView's own layout (arrangeRow); GTK
             // would reject one below a minimum height of 0.
             minimumBaseline?.pointee = -1
@@ -119,13 +119,20 @@ func place(_ child: WidgetPtr, _ frame: Rect, baseline: Int32 = -1) {
     var minW: Int32 = 0, minH: Int32 = 0
     gtk_widget_measure(child, GTK_ORIENTATION_HORIZONTAL, -1, &minW, nil, nil, nil)
     let x0 = frame.x.rounded(), y0 = frame.y.rounded()
-    var width = Int32((frame.x + frame.width).rounded() - x0)
+    var width = pixels((frame.x + frame.width).rounded() - x0)
     width = max(width, minW)
     gtk_widget_measure(child, GTK_ORIENTATION_VERTICAL, width, &minH, nil, nil, nil)
-    var height = Int32((frame.y + frame.height).rounded() - y0)
+    var height = pixels((frame.y + frame.height).rounded() - y0)
     height = max(height, minH)
-    var allocation = GtkAllocation(x: Int32(x0), y: Int32(y0), width: width, height: height)
+    var allocation = GtkAllocation(x: pixels(x0), y: pixels(y0), width: width, height: height)
     gtk_widget_size_allocate(child, &allocation, baseline)
+}
+
+/// A size or position in whole logical pixels for GTK: non-finite values
+/// are 0, and huge ones are clamped (a model may say `"width": 1e100`).
+func pixels(_ value: Double) -> Int32 {
+    guard value.isFinite else { return 0 }
+    return Int32(max(-1_000_000, min(1_000_000, value)))
 }
 
 /// Natural width of a widget (any: a VestalNode or a label).
@@ -144,7 +151,7 @@ func minimumWidth(_ widget: WidgetPtr) -> Double {
 /// Natural height of a widget for a width, and its baseline.
 func naturalHeight(_ widget: WidgetPtr, forWidth width: Double) -> (height: Double, baseline: Double?) {
     var minimum: Int32 = 0, natural: Int32 = 0, minBase: Int32 = -1, natBase: Int32 = -1
-    gtk_widget_measure(widget, GTK_ORIENTATION_VERTICAL, Int32(width.rounded()), &minimum, &natural, &minBase, &natBase)
+    gtk_widget_measure(widget, GTK_ORIENTATION_VERTICAL, pixels(width.rounded()), &minimum, &natural, &minBase, &natBase)
     return (Double(max(minimum, natural)), natBase >= 0 ? Double(natBase) : nil)
 }
 #endif
