@@ -70,10 +70,17 @@ public struct RenderTheme: Equatable, Sendable, Codable {
         public var set: String
         /// Font family per weight: `regular`, `fill`.
         public var fonts: [String: String]
+        /// `theme.icons` (§16.1): `"native"` lets the macOS UI draw the
+        /// names it knows as SF Symbols, `"phosphor"` always uses the icon
+        /// font. Nil (omitted): the platform's default, native on macOS.
+        /// Other UIs always draw the font.
+        public var mode: String?
 
-        public init(set: String = "phosphor", fonts: [String: String] = ["regular": "Phosphor", "fill": "Phosphor-Fill"]) {
+        public init(set: String = "phosphor", fonts: [String: String] = ["regular": "Phosphor", "fill": "Phosphor-Fill"],
+                    mode: String? = nil) {
             self.set = set
             self.fonts = fonts
+            self.mode = mode
         }
     }
 
