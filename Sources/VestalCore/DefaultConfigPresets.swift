@@ -147,25 +147,25 @@ public enum DefaultPresets {
       },
 
       "aiWindow": {
-        "description": "One plan-usage window: a small bar with its percentage, and when it resets on a faint line under it",
+        "description": "One plan-usage window: a small bar with its percentage, then when it resets",
         "params": {
           "label": { "type": "text", "required": true },
           "window": { "type": "expr", "required": true, "description": "The window: .session or .weekly of a claude or codex source" },
           "color": { "type": "color", "default": "accent", "description": "The bar's colour below 90%" }
         },
         "widget": {
-          "type": "stack", "gap": 3, "align": "start",
+          "type": "row", "gap": 5, "align": "center",
           "vars": {
             "w": { "param": "window" },
             "p": "if $w == null then null elif $w.resetsAt != null and $w.resetsAt <= now then 0 else $w.percent end"
           },
           "children": [
-            { "type": "progress", "label": { "param": "label" }, "labelWidth": 50, "value": "$p // 0",
-              "width": 48, "height": 6, "textWidth": 30,
+            { "type": "progress", "label": { "param": "label" }, "value": "$p // 0",
+              "width": 32, "height": 5, "textWidth": 28,
               "text": "{{ if $p == null then \"–\" else \"\\($p)%\" end }}",
               "color": { "expr": "if ($p // 0) >= 90 then \"bad\" else $color end" } },
-            { "type": "text", "when": "$w != null", "padding": [0, 0, 0, 54],
-              "text": "{{ if ($w.resetsAt // 0) > now then \"resets \" + (($w.resetsAt - now) | fmt_duration(1)) else \"new window\" end }}",
+            { "type": "text", "when": "$w != null and ((($w.resetsAt // 0) > now) or $p == 0)",
+              "text": "{{ if ($w.resetsAt // 0) > now then \"in \" + (($w.resetsAt - now) | fmt_duration(1)) else \"new\" end }}",
               "style": { "size": 9, "font": "mono", "color": "dim" } }
           ]
         }
@@ -179,18 +179,20 @@ public enum DefaultPresets {
           "codexSource": { "type": "source", "default": "codex", "description": "What the Codex cells read" }
         },
         "widget": {
-          "type": "row", "gap": 24, "width": "fill", "align": "start", "spaceBefore": 28,
+          "type": "row", "gap": 18, "width": "fill", "spaceBefore": 14,
           "children": [
-            { "type": "list", "direction": "row", "gap": 24, "align": "start", "rowId": ".",
+            { "type": "list", "direction": "row", "gap": 18, "rowId": ".",
               "items": "$show | map(select(. == \"claude\" or . == \"codex\")) | uniq_by(.)",
               "row": { "type": "switch", "on": ".", "cases": {
-                "claude": { "type": "row", "gap": 20, "align": "start", "source": { "param": "claudeSource" }, "children": [
-                  { "type": "aiWindow", "label": "Claude 5h", "window": ".session", "color": "orange" },
-                  { "type": "aiWindow", "label": "Claude wk", "window": ".weekly", "color": "orange" }
+                "claude": { "type": "row", "gap": 8, "height": 18, "source": { "param": "claudeSource" }, "children": [
+                  { "type": "text", "text": "Claude", "style": { "size": 11, "weight": "semibold", "color": "subtle" } },
+                  { "type": "aiWindow", "label": "5h", "window": ".session", "color": "orange" },
+                  { "type": "aiWindow", "label": "wk", "window": ".weekly", "color": "orange" }
                 ] },
-                "codex": { "type": "row", "gap": 20, "align": "start", "source": { "param": "codexSource" }, "children": [
-                  { "type": "aiWindow", "label": "Codex 5h", "window": ".session", "color": "teal", "when": ".session != null" },
-                  { "type": "aiWindow", "label": "Codex wk", "window": ".weekly", "color": "teal" }
+                "codex": { "type": "row", "gap": 8, "height": 18, "source": { "param": "codexSource" }, "children": [
+                  { "type": "text", "text": "Codex", "style": { "size": 11, "weight": "semibold", "color": "subtle" } },
+                  { "type": "aiWindow", "label": "5h", "window": ".session", "color": "teal", "when": ".session != null" },
+                  { "type": "aiWindow", "label": "wk", "window": ".weekly", "color": "teal" }
                 ] }
               } }
             },

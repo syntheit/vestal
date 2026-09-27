@@ -898,7 +898,7 @@ User: *"Show how much of my Claude and Codex limits I've used."*
 }
 ```
 
-- `aiUsage` draws Claude's and Codex's 5-hour and weekly windows as bars, with `resets 4h` under each; a service with no data yet is left out. The numbers are the services' own: vestal reads no credentials.
+- `aiUsage` draws Claude's and Codex's 5-hour and weekly windows as bars, each followed by when it resets (`in 4h`), on one line; a service with no data yet is left out. The numbers are the services' own: vestal reads no credentials.
 - Claude's come from `claude -p /usage` (the user's Claude Code login, Pro or Max; no model call, no transcript); `vestal fetch claude` checks it. No status line is needed: don't set one up for vestal. If `claude` is somewhere other than `PATH`, the Nix and Homebrew directories or `~/.local/bin`, set `"argv": ["/path/to/claude", "-p", "--no-session-persistence", "/usage"]` on the `claude` source. Per-model weekly limits are in `.extra`.
 - Codex's come from `codex app-server` (the user's `codex login`); `vestal fetch codex` checks it. For the system bar instead: `"show": [..., "claudeUsage", "codexUsage", ...]`. Details: `vestal docs ai-usage`.
 
@@ -999,7 +999,7 @@ Both sources give the same shape:
 
 ## Showing it
 
-- **`aiUsage`**: one row with Claude's and Codex's windows as small bars, a percentage each and `resets 4h` under it. A service without data yet is left out. `{"type": "aiUsage"}`; `show: ["codex"]` for one service.
+- **`aiUsage`**: one row with Claude's and Codex's windows as small bars, a percentage each and `in 4h` after it, all on one line. A service without data yet is left out. `{"type": "aiUsage"}`; `show: ["codex"]` for one service.
 - **System bar items**: `"claudeUsage"` and `"codexUsage"` in a `systemBar`'s `show` draw `session% / weekly%` with an icon. `codexUsage` is only drawn when listed.
 - **`claudeUsage`**: the Claude item as a row of its own.
 - **Your own**: any widget over the sources, such as `{ "type": "progress", "source": "claude", "label": "Claude", "value": ".weekly.percent // 0" }`, `{{ .weekly.resetsAt - now | fmt_duration(1) }}` for the time left, or a `list` over `.extra` for the per-model limits.
@@ -1547,7 +1547,7 @@ The Claude plan's usage as a status row: `session% / weekly%` from the `claude` 
 
 ### `aiUsage`
 
-Claude and Codex plan usage in one row: each service's 5-hour and weekly windows as small bars with their percentage, and `resets 4h` on a faint line under each. A bar turns red from 90%. `show` (default `["claude", "codex"]`) picks the services and their order; `claudeSource` and `codexSource` (defaults `claude`, `codex`) what they read. A service whose source has no data yet is left out, and so is a Codex 5-hour window the plan doesn't have. See `vestal docs ai-usage`.
+Claude and Codex plan usage in one row: each service's 5-hour and weekly windows as small bars with their percentage, each followed by when it resets (`in 4h`), all on one line. A bar turns red from 90%. `show` (default `["claude", "codex"]`) picks the services and their order; `claudeSource` and `codexSource` (defaults `claude`, `codex`) what they read. A service whose source has no data yet is left out, and so is a Codex 5-hour window the plan doesn't have. See `vestal docs ai-usage`.
 
 ## Helpers
 

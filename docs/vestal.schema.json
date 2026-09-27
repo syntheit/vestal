@@ -4805,7 +4805,7 @@
     },
     "widget.aiWindow": {
       "additionalProperties": false,
-      "description": "One plan-usage window: a small bar with its percentage, and when it resets on a faint line under it",
+      "description": "One plan-usage window: a small bar with its percentage, then when it resets",
       "properties": {
         "action": {
           "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",

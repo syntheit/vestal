@@ -729,7 +729,7 @@ The Claude plan's usage from the [`claude` source](#claude): an hourglass and `s
 
 ### `aiUsage`
 
-Claude and Codex plan usage in one row: for each, the 5-hour and weekly windows as small bars with their percentage, and when each resets on a faint line under it (`resets 4h`). A bar turns red from 90%. A Codex plan without a 5-hour window shows only the weekly one, and a service whose source has no data yet (`claude` or `codex` missing or logged out) is left out. New in 0.4; `vestal docs ai-usage` has the setup.
+Claude and Codex plan usage in one row: for each, the 5-hour and weekly windows as small bars with their percentage, each followed by when it resets (`in 4h`), all on one line. A bar turns red from 90%. A Codex plan without a 5-hour window shows only the weekly one, and a service whose source has no data yet (`claude` or `codex` missing or logged out) is left out. New in 0.4; `vestal docs ai-usage` has the setup.
 
 | Key | Type | Default | |
 |---|---|---|---|

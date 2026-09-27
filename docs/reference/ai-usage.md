@@ -47,7 +47,7 @@ Both sources give the same shape:
 
 ## Showing it
 
-- **`aiUsage`**: one row with Claude's and Codex's windows as small bars, a percentage each and `resets 4h` under it. A service without data yet is left out. `{"type": "aiUsage"}`; `show: ["codex"]` for one service.
+- **`aiUsage`**: one row with Claude's and Codex's windows as small bars, a percentage each and `in 4h` after it, all on one line. A service without data yet is left out. `{"type": "aiUsage"}`; `show: ["codex"]` for one service.
 - **System bar items**: `"claudeUsage"` and `"codexUsage"` in a `systemBar`'s `show` draw `session% / weekly%` with an icon. `codexUsage` is only drawn when listed.
 - **`claudeUsage`**: the Claude item as a row of its own.
 - **Your own**: any widget over the sources, such as `{ "type": "progress", "source": "claude", "label": "Claude", "value": ".weekly.percent // 0" }`, `{{ .weekly.resetsAt - now | fmt_duration(1) }}` for the time left, or a `list` over `.extra` for the per-model limits.
