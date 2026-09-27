@@ -44,7 +44,11 @@ public enum LoadTimeText {
                 case .failure(let error): throw SourceError("\"{{ \(expression) }}\": \(error.message)")
                 case .success(let c): compiled = c
                 }
+                if compiled.references.callsNow {
+                    throw SourceError("\"{{ \(expression) }}\": source definitions have no `now` (they are evaluated once, at load)")
+                }
                 var scopes: [String: [String: AnyJSON]] = ["secrets": [:], "env": [:]]
+                var read: [String] = []
                 for use in compiled.references.variables {
                     guard use.name == "secrets" || use.name == "env" else {
                         throw SourceError("\"{{ \(expression) }}\": only $secrets and $env are in scope in source definitions")
@@ -57,11 +61,15 @@ public enum LoadTimeText {
                         throw SourceError("\"{{ \(expression) }}\": unknown $\(use.name).\(key)")
                     }
                     scopes[use.name]?[key] = .string(value)
+                    read.append(value)
                 }
                 let variables = scopes.mapValues { JQValue(AnyJSON.object($0)) }
                 switch ExprEnvironment.standard.first(compiled, input: .null, variables: variables, context: JQEvalContext()) {
                 case .failure(let error):
-                    throw SourceError("\"{{ \(expression) }}\": \(error.message) (source definitions see only $secrets and $env)")
+                    // The message may quote a value the hole read: scrub them.
+                    let message = read.filter { !$0.isEmpty }.sorted { $0.count > $1.count }
+                        .reduce(error.message) { $0.replacingOccurrences(of: $1, with: "<hidden>") }
+                    throw SourceError("\"{{ \(expression) }}\": \(message) (source definitions see only $secrets and $env)")
                 case .success(let value):
                     out += TextTemplate.stringify(value)
                 }

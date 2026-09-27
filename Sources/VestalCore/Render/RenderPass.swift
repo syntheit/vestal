@@ -104,7 +104,7 @@ final class RenderPass {
             "meta": .null,
         ]
         vars["item"] = nil
-        return Scope(vars: vars, source: nil, style: TextStyle(scale: model.scale))
+        return Scope(vars: vars, source: nil, style: TextStyle(size: 13 * model.scale, scale: model.scale))
     }
 
     // MARK: Views
@@ -724,8 +724,8 @@ final class RenderPass {
         var values: [Double] = []
         if case .string(let expression)? = w["values"], let result = eval(expression, id: id, field: "values", scope: scope) {
             values = (result.arrayValue ?? []).compactMap(Self.number)
-        } else if w["history"] != nil, let source = scope.source {
-            values = data.history(source, id).map(\.value)
+        } else if w["history"] != nil, case .string(let expression)? = w["value"], let source = scope.source {
+            values = data.history(source, ConfigExpansion.sparklineHistoryName(expression)).map(\.value)
         }
         var s = scope
         s.vars["value"] = values.last.map { .number($0) } ?? .null

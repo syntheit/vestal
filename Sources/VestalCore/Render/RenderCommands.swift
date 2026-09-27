@@ -159,7 +159,13 @@ public enum RenderCommands {
             let effects = session.key(key, data: data, now: now)
             if effects.contains(.changed) { snapshot = session.render(data: data, now: now) }
         }
-        return output(snapshot, options: options)
+        var result = output(snapshot, options: options)
+        let configErrors = loaded.warnings.filter { ConfigDiagnostics.severity(of: $0) == .error }
+        if options.strict, !configErrors.isEmpty {
+            result.status = 3
+            result.stderr += configErrors.map { "vestal: config error: \($0)\n" }.joined()
+        }
+        return result
     }
 
     static func output(_ snapshot: RenderSnapshot, options: Options) -> Output {

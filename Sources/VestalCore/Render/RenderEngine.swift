@@ -340,7 +340,7 @@ public final class RenderEngine {
     private final class Worker: @unchecked Sendable {
         var session: RenderSession
         var model: RenderConfigModel
-        let cache = RenderTransformCache()
+        var cache = RenderTransformCache()
 
         init(model: RenderConfigModel, view: String) {
             self.model = model
@@ -350,6 +350,7 @@ public final class RenderEngine {
         func reset(model: RenderConfigModel, view: String) {
             self.model = model
             session = RenderSession(model: model, view: view)
+            cache = RenderTransformCache()
         }
 
         func data(_ inputs: [RenderSourceInput]) -> RenderData {

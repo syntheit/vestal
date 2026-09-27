@@ -395,7 +395,7 @@ public final class AppRuntime {
     /// and takes the result as its new snapshot if the source is still the
     /// same. Fails after `timeout` seconds if given.
     public func fetchNow(_ key: RuntimeKey, timeout: TimeInterval? = nil) async -> Result<SourceSnapshot, SourceError> {
-        guard let job = jobs[.snapshot(key)], let plan = job.plan else {
+        guard let job = job(key), let plan = job.plan else {
             return .failure(SourceError("no source named \"\(key)\""))
         }
         if let problem = job.problem { return .failure(SourceError(problem)) }
@@ -416,7 +416,7 @@ public final class AppRuntime {
         }
         switch outcome {
         case .fetched(let data, let info, let samples, _):
-            if let current = jobs[.snapshot(key)], current.plan?.source == plan.source {
+            if let current = self.job(key), current.plan?.source == plan.source {
                 current.snapshot = SourceSnapshot(data: data, fetchedAt: startedAt, info: info)
                 current.failed = false
                 record(samples, source: key, at: startedAt)

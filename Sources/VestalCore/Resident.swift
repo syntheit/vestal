@@ -242,13 +242,15 @@ public final class Resident {
             guard let snapshot = runtime.snapshot(key), snapshot.data != nil else {
                 return reply(.failure("\(name): no data yet"))
             }
-            return reply(SourceListing.reply(snapshot, source: source, raw: raw))
+            return reply(SourceListing.reply(snapshot, source: source, raw: raw,
+                                              expressions: EngineSourceExpressions(config: loaded.config)))
         }
         let timeout = min(request.timeout ?? IPC.defaultFetchTimeout, IPC.maxFetchTimeout)
+        let expressions = EngineSourceExpressions(config: loaded.config)
         Task { [runtime] in
             switch await runtime.fetchNow(key, timeout: timeout) {
             case .success(let snapshot):
-                reply(SourceListing.reply(snapshot, source: source, raw: raw))
+                reply(SourceListing.reply(snapshot, source: source, raw: raw, expressions: expressions))
             case .failure(let error):
                 reply(.failure("\(name): \(error.description)"))
             }

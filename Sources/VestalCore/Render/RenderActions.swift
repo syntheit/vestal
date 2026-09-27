@@ -63,10 +63,10 @@ extension RenderSession {
             return perform(RenderActionBinding(action: .object(["view": .string(target)]), dot: .null, variables: [:], source: nil),
                            data: data, now: now)
         }
-        if key == "tab" || key == "shift+tab", model.viewNames.count > 1,
-           let index = model.viewNames.firstIndex(of: view) {
-            let step = key == "tab" ? 1 : model.viewNames.count - 1
-            setView(model.viewNames[(index + step) % model.viewNames.count])
+        let order = model.cycleOrder
+        if key == "tab" || key == "shift+tab", order.count > 1, let index = order.firstIndex(of: view) {
+            let step = key == "tab" ? 1 : order.count - 1
+            setView(order[(index + step) % order.count])
             closePopup()
             return [.changed]
         }

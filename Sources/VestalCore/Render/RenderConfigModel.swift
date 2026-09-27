@@ -62,6 +62,13 @@ public final class RenderConfigModel: @unchecked Sendable {
         scale = TextStyle.size(themeObject["scale"]) ?? 1
     }
 
+    /// The order `tab` cycles through: views with a key by key, then the
+    /// rest by name (§9.1).
+    public var cycleOrder: [String] {
+        let keyed = viewNames.filter { views[$0]?.key != nil }.sorted { (views[$0]!.key!, $0) < (views[$1]!.key!, $1) }
+        return keyed + viewNames.filter { views[$0]?.key == nil }
+    }
+
     /// The views as the snapshot lists them.
     public var viewInfos: [RenderViewInfo] {
         viewNames.map { name in

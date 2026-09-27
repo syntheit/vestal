@@ -81,7 +81,7 @@ public enum ConfigExpansion {
             }
             top["views"] = .object(views)
         }
-        let tree = extractInlineSources(.object(top))
+        let tree = registerSparklineHistories(extractInlineSources(.object(top)))
         return ExpandedConfig(tree: tree, registry: registry, warnings: expander.warnings, notes: notes)
     }
 
@@ -142,7 +142,53 @@ public enum ConfigExpansion {
         return .object(top)
     }
 
+    /// The history name a sparkline's `value` + `history` records under.
+    public static func sparklineHistoryName(_ value: String) -> String {
+        "w:" + SHA256.hex(value).prefix(8)
+    }
+
+    /// A sparkline with `value` and `history` (§6.3) registers that history
+    /// on its source (the nearest `source` name above it), so the runtime
+    /// samples it (§5.6).
+    static func registerSparklineHistories(_ tree: AnyJSON) -> AnyJSON {
+        guard case .object(var top) = tree, case .object(var sources)? = top["sources"] else { return tree }
+        var added = false
+        func walk(_ value: AnyJSON, source: String?) {
+            switch value {
+            case .object(let members):
+                var nearest = source
+                if case .string(let name)? = members["source"] { nearest = name }
+                if members["type"]?.stringValue == "sparkline", case .string(let expression)? = members["value"],
+                   case .object(let spec)? = members["history"], let name = nearest,
+                   case .object(var definition)? = sources[name] {
+                    var histories = definition["history"]?.objectValue ?? [:]
+                    var entry: [String: AnyJSON] = ["value": .string(expression)]
+                    if let size = spec["size"] { entry["size"] = size }
+                    if let every = spec["every"] { entry["every"] = every }
+                    histories[sparklineHistoryName(expression)] = .object(entry)
+                    definition["history"] = .object(histories)
+                    sources[name] = .object(definition)
+                    added = true
+                }
+                for (key, member) in members where key != "source" && key != "popup" { walk(member, source: nearest) }
+            case .array(let items):
+                for item in items { walk(item, source: source) }
+            default:
+                break
+            }
+        }
+        walk(top["widgets"] ?? .null, source: nil)
+        walk(top["views"] ?? .null, source: nil)
+        guard added else { return tree }
+        top["sources"] = .object(sources)
+        return .object(top)
+    }
+
     // MARK: Load-time text with template parameters
+
+    /// Parameter holes run while a config loads, on the main actor during a
+    /// reload: a budget far under a frame.
+    static let parameterEnvironment = ExprEnvironment(limits: JQLimits(maxSteps: 10_000, maxDuration: 0.005))
 
     /// Source-definition text fields (EXTENSIBILITY.md §5.1).
     static let loadTimeFields = ["url", "path", "body"]
@@ -158,6 +204,7 @@ public enum ConfigExpansion {
         var variables: [String: JQValue] = ["params": JQValue(.object(params))]
         for (name, value) in params { variables[name] = JQValue(value) }
         let names = Set(params.keys).union(["params"])
+        let environment = parameterEnvironment
         func text(_ value: AnyJSON) -> AnyJSON {
             guard case .string(let s) = value, TextTemplate.hasHoles(s),
                   case .success(let template) = TextTemplate.parse(s) else { return value }
@@ -168,17 +215,29 @@ public enum ConfigExpansion {
                 case .literal(let literal):
                     out += TextTemplate.escape(literal)
                 case .hole(let expression, _):
-                    guard case .success(let compiled) = ExprEnvironment.standard.compile(expression),
-                          compiled.references.variableNames.isSubset(of: names),
-                          !compiled.references.variableNames.isEmpty,
-                          case .success(let result) = ExprEnvironment.standard.first(
-                            compiled, input: .null, variables: variables, context: JQEvalContext())
-                    else {
+                    guard case .success(let compiled) = environment.compile(expression) else {
                         out += "{{ \(expression) }}"
                         continue
                     }
-                    out += TextTemplate.escape(TextTemplate.stringify(result))
-                    changed = true
+                    let used = compiled.references.variableNames
+                    if !used.isEmpty, used.isSubset(of: names),
+                       case .success(let result) = environment.first(compiled, input: .null, variables: variables,
+                                                                       context: JQEvalContext()) {
+                        out += TextTemplate.escape(TextTemplate.stringify(result))
+                        changed = true
+                    } else if !used.isDisjoint(with: names) {
+                        // Mixed with $secrets/$env: the parameters are bound
+                        // inside the hole, for load time (§5.1).
+                        var prefix = ""
+                        for name in used.intersection(names).sorted() {
+                            let value = name == "params" ? AnyJSON.object(params) : (params[name] ?? .null)
+                            prefix += "(\(value.canonicalText())) as $\(name) | "
+                        }
+                        out += "{{ \(prefix)\(expression) }}"
+                        changed = true
+                    } else {
+                        out += "{{ \(expression) }}"
+                    }
                 }
             }
             return changed ? .string(out) : value
