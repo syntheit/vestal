@@ -113,8 +113,10 @@ public final class RenderSession {
     /// Whether the open popup is the built-in info popup (`alt+i`).
     public internal(set) var infoOpen = false
 
+    /// Opens `widget` as the popup, `width` points wide before `theme.scale`
+    /// (a fixed size, §8.1).
     public func openPopup(_ widget: [String: AnyJSON], width: Double) {
-        popup = (widget, width)
+        popup = (widget, width * model.scale)
         popupChild = nil
         infoOpen = false
     }

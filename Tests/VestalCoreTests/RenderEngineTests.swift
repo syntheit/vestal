@@ -303,6 +303,11 @@ final class RenderEngineTests: XCTestCase {
         XCTAssertEqual(node(s, "main/p/2")?.minWidth, 45)
         guard case .grid(let grid)? = node(s, "main/g")?.content else { return XCTFail("no grid") }
         XCTAssertEqual(grid.columns.map(\.width), [.points(60), .fit])
+        // Popups too: 520 points by default.
+        let m = model(#"{ "theme": { "scale": 1.5 }, "widgets": { "w": { "type": "text", "text": "a" } }, "views": { "main": { "children": ["w"] } } }"#)
+        let popupSession = session(m)
+        popupSession.openPopup(["type": .string("text"), "text": .string("p")], width: 520)
+        XCTAssertEqual(popupSession.render(data: data(m, [:]), now: Self.now).popup?.width, 780)
     }
 
     func testSystemHealthNameColumnFitsTheWidestName() {
