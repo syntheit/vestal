@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "sources": {
+    "prices": {
+      "type": "http",
+      "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true",
+      "refresh": "5m"
+    },
+    "btcDay": {
+      "type": "http",
+      "url": "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1",
+      "refresh": "30m",
+      "transform": ".prices | map(.[1])"
+    }
+  },
+  "widgets": {
+    "crypto": {
+      "type": "section",
+      "title": "Crypto",
+      "children": [
+        {
+          "type": "grid",
+          "columns": [ { "width": 170 }, { "width": "fill" } ],
+          "gap": 16,
+          "rowGap": 12,
+          "children": [
+            { "type": "stat", "source": "prices", "label": "BTC", "value": ".bitcoin.usd", "format": "thousands", "prefix": "$", "delta": ".bitcoin.usd_24h_change" },
+            { "type": "sparkline", "source": "btcDay", "values": ".", "height": 36, "fill": "accent@0.15", "dot": true, "color": { "expr": "if ($data | last) >= ($data | first) then \"good\" else \"bad\" end" } },
+            { "type": "stat", "source": "prices", "label": "ETH", "value": ".ethereum.usd", "format": "thousands", "prefix": "$", "delta": ".ethereum.usd_24h_change" },
+            { "type": "sparkline", "source": "prices", "value": ".ethereum.usd", "history": { "size": 288 }, "height": 36, "color": "purple" }
+          ]
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "crypto", "agenda"] } }
+}

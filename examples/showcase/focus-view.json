@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "defaultView": "main",
+  "widgets": {
+    "bigClock": { "type": "text", "text": "{{ now | fmt_time(\"HH:mm\") }}", "alignSelf": "center", "style": { "size": 120, "weight": "thin", "font": "mono" } },
+    "todo": {
+      "type": "section",
+      "title": "Today's list",
+      "source": { "type": "file", "path": "~/notes/today.md", "parse": "lines", "refresh": "30s" },
+      "children": [
+        {
+          "type": "list",
+          "items": "map(select(startswith(\"- [ ] \"))) | map(.[6:])",
+          "limit": 8,
+          "row": { "type": "text", "icon": "circle", "iconSize": 7, "iconColor": "accent", "gap": 8, "text": "{{ . }}" },
+          "empty": "All done."
+        }
+      ]
+    }
+  },
+  "views": {
+    "main": { "key": "1", "children": ["clock", "systemBar", "media", "agenda", "systems", "weather"] },
+    "focus": { "key": "2", "title": "Focus", "gap": 32, "children": ["bigClock", "agenda", "todo"] }
+  }
+}

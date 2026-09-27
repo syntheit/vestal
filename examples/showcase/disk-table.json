@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "sources": {
+    "storage": { "type": "system", "disks": ["/", "/home", "/mnt/backup"], "refresh": "1m" }
+  },
+  "widgets": {
+    "disks": {
+      "type": "section",
+      "title": "Disks",
+      "source": "storage",
+      "children": [
+        {
+          "type": "table",
+          "items": ".disks",
+          "rowId": ".mount",
+          "columns": [
+            { "header": "Mount", "text": "{{ .mount }}", "width": "fill", "style": { "font": "mono" } },
+            { "header": "Used", "value": ".percent", "format": "percent", "align": "end", "color": { "steps": [[0, "text"], [80, "warn"], [95, "bad"]] } },
+            { "header": "Free", "value": ".free", "format": "bytes", "align": "end", "style": { "color": "subtle" } },
+            { "header": "Size", "value": ".total", "format": "bytes", "align": "end", "style": { "color": "dim" } }
+          ]
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "disks", "agenda"] } }
+}

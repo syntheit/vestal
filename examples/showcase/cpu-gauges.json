@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "sources": {
+    "stats": { "type": "system", "when": "always", "refresh": "30s", "history": { "cpu": { "value": ".cpu.percent", "size": 120 } } }
+  },
+  "widgets": {
+    "machine": {
+      "type": "section",
+      "title": "{{ .host }}",
+      "source": "system",
+      "children": [
+        {
+          "type": "row",
+          "gap": 28,
+          "width": "fill",
+          "children": [
+            { "type": "gauge", "label": "CPU", "value": ".cpu.percent", "text": "{{ .cpu.percent | round }}%", "color": { "steps": [[0, "good"], [70, "warn"], [90, "bad"]] } },
+            { "type": "gauge", "label": "RAM", "value": ".memory.percent", "text": "{{ .memory.percent | round }}%", "color": { "steps": [[0, "good"], [80, "warn"], [95, "bad"]] } },
+            { "type": "gauge", "label": "Disk", "value": ".disks[0].percent", "text": "{{ .disks[0].percent | round }}%", "color": { "steps": [[0, "good"], [85, "warn"], [95, "bad"]] } },
+            { "type": "gauge", "label": "Temp", "when": ".temperature.cpu != null", "value": ".temperature.cpu", "text": "{{ .temperature.cpu }}°", "color": { "steps": [[0, "cyan"], [70, "warn"], [85, "bad"]] } },
+            {
+              "type": "stack",
+              "gap": 4,
+              "width": "fill",
+              "children": [
+                { "type": "text", "text": "CPU, last hour", "style": { "size": 10, "weight": "semibold", "color": "subtle" } },
+                { "type": "sparkline", "values": "$history.stats.cpu", "min": 0, "max": 100, "height": 40, "fill": "accent@0.12" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "machine", "media", "agenda"] } }
+}

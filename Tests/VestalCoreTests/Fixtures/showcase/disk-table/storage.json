@@ -1,0 +1,71 @@
+{
+  "audio": {
+    "muted": false,
+    "volume": 64
+  },
+  "battery": {
+    "ac": false,
+    "charging": false,
+    "percent": 82,
+    "remaining": 18720
+  },
+  "cpu": {
+    "cores": 10,
+    "load": [
+      1.21,
+      1.43,
+      1.52
+    ],
+    "percent": 23
+  },
+  "disks": [
+    {
+      "free": 442383814656,
+      "mount": "/",
+      "percent": 55.5,
+      "total": 994662584320,
+      "used": 552278769664
+    },
+    {
+      "free": 150323855360,
+      "mount": "/home",
+      "percent": 85.0,
+      "total": 1000204886016,
+      "used": 849881030656
+    },
+    {
+      "free": 21474836480,
+      "mount": "/mnt/backup",
+      "percent": 99.0,
+      "total": 4000787030016,
+      "used": 3979312193536
+    }
+  ],
+  "gpu": null,
+  "host": "swift",
+  "memory": {
+    "compressed": 12,
+    "percent": 61,
+    "pressure": 12,
+    "psi": null,
+    "total": 34359738368,
+    "used": 20957347840
+  },
+  "network": {
+    "interfaces": [
+      {
+        "name": "en0",
+        "rx": 1258291,
+        "tx": 86016
+      }
+    ],
+    "rx": 1258291,
+    "tx": 86016
+  },
+  "os": "macos",
+  "services": {},
+  "temperature": {
+    "cpu": 54
+  },
+  "uptime": 273600
+}

@@ -1,0 +1,237 @@
+# Sources
+
+A source fetches data on a schedule and keeps the last good result. Widgets read it by name (`"source": "prs"`), and every widget reading one source shares its fetches. `vestal docs source/<type>` gives each type's keys and data shape.
+
+```json
+{
+  "version": 1,
+  "sources": {
+    "rates": { "type": "http", "url": "https://api.frankfurter.app/latest?from=USD", "refresh": "4h" }
+  },
+  "widgets": {
+    "eur": { "type": "text", "source": "rates", "text": "1 USD = {{ .rates.EUR | fmt_fixed(3) }} EUR" }
+  },
+  "views": { "main": { "children": ["clock", "eur"] } }
+}
+```
+
+## Looking at the data
+
+| Command | What you get |
+|---|---|
+| `vestal sources` | Every source: type, refresh, `when`, age, status and the widgets that read it. |
+| `vestal fetch <name> --shape` | Every path in the data with its type and a sample value: write your paths against this. |
+| `vestal fetch <name>` | The data as widgets see it (after `transform`), as pretty JSON. |
+| `vestal fetch <name> --raw` | The data before `transform`. |
+| `vestal fetch <name> --config draft.json` | A source of a draft config, fetched in this process. `command` sources need `--allow-commands`. |
+
+`vestal fetch` asks the running instance when there is one (so macOS permissions belong to the app), `--local` fetches in this process, and `--cached` prints the last data without fetching.
+
+## Keys every source takes
+
+| Key | Default | Meaning |
+|---|---|---|
+| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, or a source template such as `foyer`. |
+| `refresh` | per type | How often to fetch: `"30s"`, `"5m"`, `"4h"`, `"1d"`. |
+| `when` | per type | `always`: fetched whether or not the dashboard is shown. `visible`: only while it is shown and a widget of the view reads it, with an immediate fetch on show when stale. |
+| `transform` | none | A jq expression applied to the data before widgets see it. The cache keeps the untransformed data, so editing a transform needs no refetch. |
+| `history` | none | Named number histories for sparklines (below). |
+| `maxAge` | none | Cached data older than this is not shown at startup. |
+| `cache` | `true` | `false`: the data is never written to disk (for sensitive responses); widgets start empty after a restart. |
+
+| Type | `refresh` | `when` | Reads |
+|---|---|---|---|
+| `http` | `30m` | `always` | the network |
+| `command` | `30m` | `always` | a program's output |
+| `file` | `30s` | `always` | a file |
+| `calendar` | `30m` | `always` | EventKit (macOS) or `.ics` (both) |
+| `system` | `3s` | `visible` | this machine |
+| `media` | `3s` | `visible` | a music player |
+| `claude` | `30s` | `visible` | Claude Code's logs |
+
+**Built-in sources.** The defaults define `system`, `media` (`player: "auto"`), `claude`, `calendar` and `weather` (wttr.in). A `visible` source that nothing on screen reads is never fetched, so unused ones cost nothing.
+
+**Inline sources.** Wherever a widget takes `source`, it may give a definition instead of a name: `"source": {"type": "file", "path": "~/notes/today.md", "parse": "lines"}`. Identical definitions share one fetch. Its name in `vestal sources` and the cache is `inline:<8 hex digits>`.
+
+**Load-time text.** `url`, `argv`, `env`, `headers`, `path` and `ics` are text fields evaluated once when the config loads, with only `$env` (the environment), `$secrets` and template parameters in scope: `"url": "https://api.example.com/v1?key={{ $secrets.apiKey }}"`. There is no data and no `now` there, so one source can't depend on another's data: to chain fetches, write a `command` source. In `argv` and `path`, a leading `~/` expands to the home directory.
+
+**Failures.** A failed fetch keeps the last good data on screen and retries after `refresh` or 60 seconds, whichever is shorter. `$meta` (`vestal docs expressions`) tells a widget whether its data is current: `{{ if $meta.stale then "(old)" else "" end }}`.
+
+**Limits.** An HTTP body or command output over 10 MiB fails the fetch. A feed keeps its first 500 items. Transformed data over 4 MiB fails. The cache directory is trimmed to 256 MiB, oldest first, and is private (`0700`, files `0600`).
+
+## Secrets
+
+```json
+{
+  "version": 1,
+  "secrets": {
+    "ha": { "file": "~/.config/vestal/secrets/home-assistant.token" },
+    "gh": { "command": ["gh", "auth", "token"] },
+    "owm": { "env": "OPENWEATHER_KEY" }
+  },
+  "sources": {
+    "owm": { "type": "http", "url": "https://api.openweathermap.org/data/2.5/weather?q=Lisbon&units=metric&appid={{ $secrets.owm }}", "refresh": "30m" }
+  }
+}
+```
+
+A secret is read once when the config loads (a `command` secret has 10 seconds), trimmed, and usable only in source-definition text as `{{ $secrets.<name> }}`. Never write a secret's value into the config: under Nix the config is in the world-readable store. `print-config`, `render`, `status` and the logs never show secret values, and fetch errors are scrubbed of them. check-config warns about a literal-looking token in a URL or header.
+
+## History
+
+Sparklines need past values. A source keeps named ring buffers, and they survive restarts:
+
+```json
+{
+  "version": 1,
+  "sources": {
+    "btc": {
+      "type": "http",
+      "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+      "refresh": "5m",
+      "history": { "price": { "value": ".bitcoin.usd", "size": 288, "every": "5m" } }
+    }
+  },
+  "widgets": {
+    "btcChart": { "type": "sparkline", "values": "$history.btc.price", "height": 32 }
+  },
+  "views": { "main": { "children": ["clock", "btcChart"] } }
+}
+```
+
+- Each successful fetch evaluates `value` against the transformed data and records the number; anything else is skipped. `every` (default: the source's `refresh`) is the least time between samples; `size` (default 120, at most 10000) caps the buffer.
+- Read it as `$history.<source>.<name>` (numbers, oldest first) or `history_times("<source>"; "<name>")` (their times).
+- A history whose `value` changes starts over.
+- `visible` sources (`system` included) sample only while the dashboard is shown. To keep a CPU history while hidden, define a named copy: `{"type": "system", "when": "always", "refresh": "30s", "history": {...}}`.
+- Shortcut: a `sparkline` with `value` and `history` records its own history on its source, with no source edit.
+
+## Types
+
+### `http`
+
+Fetches a URL; the answer must have a 2xx status.
+
+| Key | Default | |
+|---|---|---|
+| `url` | required | `http://` or `https://`. Text: may use `{{ $secrets.x }}` and `{{ $env.X }}`. |
+| `method` | `GET` | `GET` or `POST`. |
+| `headers` | none | Object of text: `{"Authorization": "Bearer {{ $secrets.token }}"}`. |
+| `body` | none | The POST body: text, or a JSON value sent as `application/json`. |
+| `timeout` | `10s` | |
+| `parse` | `json` | `json`, `raw` (the body as a string), `lines` (a list of lines, the final newline dropped), `feed` (below). |
+
+A `parse: "feed"` source (on `http`, `command` or `file`) reads RSS 2.0, Atom 1.0 or JSON Feed 1.1, all as one shape. Items keep the feed's order; `date` is epoch seconds or `null`; `summary` is plain text, at most 500 characters:
+
+```jsonc
+{
+  "title": "Hacker News: Front Page",
+  "url": "https://news.ycombinator.com/",
+  "items": [
+    { "id": "https://news.ycombinator.com/item?id=1", "title": "Show HN: …", "url": "https://example.com/", "date": 1790000000, "author": "pg", "summary": "…" }
+  ]
+}
+```
+
+### `command`
+
+Runs a program **without a shell** and reads its standard output. `argv[0]` is looked up on `PATH` and the usual Nix and Homebrew directories; under Home Manager, add the program to `programs.vestal.extraPackages`. Pipes, globs and `$VARS` don't work; to use a shell, say so: `["sh", "-c", "…"]`.
+
+| Key | Default | |
+|---|---|---|
+| `argv` | required | The program and its arguments (text). |
+| `env` | none | Added to the environment (text values). |
+| `timeout` | `10s` | The command is killed after this long. |
+| `parse` | `json` | As for `http`. |
+
+A draft config (`--config` naming another file than the running instance's) never runs `command` sources by itself: `vestal fetch`, `render` and `eval` need `--allow-commands`. `vestal check-config --commands` lists every command source of a config, with where it is defined and whether its program is on `PATH`.
+
+### `file`
+
+| Key | Default | |
+|---|---|---|
+| `path` | required | A leading `~/` expands. |
+| `parse` | `json` | `json`, `raw`, `lines`, `feed`, or `exists`: `{"exists": true, "modified": 1790000000}`, which never fails. The others fail while the file is missing. |
+
+### `calendar`
+
+Events of the next `days` days, today being the first:
+
+```jsonc
+[ { "title": "Standup", "start": 1790000000, "end": 1790001800, "allDay": false, "calendar": "Work", "location": null } ]
+```
+
+| Key | Default | |
+|---|---|---|
+| `days` | `1` | Days to read, today being the first. |
+| `calendars` | all | Only calendars with these names. |
+| `ics` | none | A list (or one) of `.ics` files, directories of them (such as vdirsyncer's), or `http(s)` URLs. When set, it is used on both OSes. |
+| `timeout` | `10s` | For `ics` URLs. |
+
+Without `ics`, macOS reads EventKit (the app asks for calendar access), and Linux yields `[]` with an info note: the default agenda then stays hidden. Recurring events are expanded for `FREQ` `DAILY`, `WEEKLY`, `MONTHLY` and `YEARLY` with `COUNT`, `UNTIL`, `INTERVAL`, `BYDAY`, `EXDATE`, `RDATE`, overridden instances and `VTIMEZONE`/`TZID` zones. An event using another rule (`BYSETPOS`, `BYWEEKNO`, …) is left out rather than guessed, and counted in the source's note. The calendar name comes from `X-WR-CALNAME` or the file name.
+
+### `system`
+
+This machine, with the same shape on macOS and Linux. Units: bytes, bytes per second, seconds, epoch seconds, °C, percent 0–100. A field the machine can't read is `null`, never `0`.
+
+| Key | Default | |
+|---|---|---|
+| `disks` | `["/"]` | Mount points to report. |
+| `interfaces` | all but loopback | Network interfaces to sum. |
+
+```jsonc
+{
+  "host": "swift",
+  "os": "macos",
+  "uptime": 273600,
+  "cpu": { "percent": 12.5, "cores": 10, "load": [1.21, 1.43, 1.52] },
+  "memory": { "percent": 61, "pressure": 12, "compressed": 12, "psi": null, "used": 20957347840, "total": 34359738368 },
+  "temperature": { "cpu": 54 },
+  "battery": { "percent": 81, "charging": false, "ac": false, "remaining": 14700 },
+  "disks": [ { "mount": "/", "total": 994662584320, "free": 263066746880, "used": 731595837440, "percent": 73.6 } ],
+  "network": { "rx": 12345, "tx": 678, "interfaces": [ { "name": "en0", "rx": 12345, "tx": 678 } ] },
+  "audio": { "volume": 42, "muted": false },
+  "gpu": null,
+  "services": {}
+}
+```
+
+- `cpu.percent` and the network rates are measured between two reads; the first read after vestal starts uses the average since boot and rates of 0. `vestal fetch system --local` takes two reads half a second apart.
+- `memory.pressure` is "how hard memory is squeezed": compressed memory on macOS, `/proc/pressure/memory` on Linux. It is not comparable across OSes; the OS-specific fields are `memory.compressed` (macOS) and `memory.psi` (Linux), `null` on the other.
+- `temperature.cpu`: the SMC on macOS; `coretemp`, `k10temp` or `zenpower`, else the first thermal zone, on Linux. `null` when unknown.
+- `battery` is `null` without a battery; `remaining` (seconds) is `null` while charging.
+- `audio` is always an object; its fields are `null` with no output device (Linux reads `wpctl`).
+- A remote host's health, mapped to this shape (`foyer`, below), fills `services` and `gpu`.
+
+### `media`
+
+One music player.
+
+| Key | Default | |
+|---|---|---|
+| `player` | `auto` | A name, a list of names (the first running one wins), or `auto`. macOS: an application over AppleScript (`auto`: Spotify, then Music). Linux: an MPRIS player through `playerctl`, matched case-insensitively on its bus name or identity (`auto`: the first playing one, else the first found). |
+
+```jsonc
+{ "player": "Spotify", "state": "playing", "title": "Windowlicker", "artist": "Aphex Twin", "album": "Windowlicker", "position": 83.2, "duration": 367.0, "players": ["Spotify", "Music"] }
+```
+
+`state` is `playing`, `paused`, `stopped` or `off` (not running, or nothing loaded; the other fields are then empty or `null`). `players` lists the names this machine can see right now, which is how you find working `player` values: `vestal fetch media`. A name that exists on one OS only belongs in a `platform` block. The volume is in `system`'s `audio`.
+
+### `claude`
+
+Claude Code token usage from its logs.
+
+| Key | Default | |
+|---|---|---|
+| `path` | `~/.claude/projects` | Claude Code's projects directory. |
+| `fiveHourLimit` | `8000000` | Tokens that count as 100% over 5 hours. |
+| `weeklyLimit` | `95000000` | Tokens that count as 100% over 7 days. |
+
+```jsonc
+{ "fiveHour": { "tokens": 1500000, "limit": 8000000, "percent": 18 }, "week": { "tokens": 20000000, "limit": 95000000, "percent": 21 } }
+```
+
+`percent` is `tokens × 100 / limit`, truncated, at most 999.
+
+### `foyer`
+
+A built-in source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while shown, and maps the payload to the `system` shape with `foyer_health`. Any source whose `transform` produces the `system` shape works the same way: write a source template for another health agent (`vestal docs templates`) and name it in `systemHealth`'s `provider`.
