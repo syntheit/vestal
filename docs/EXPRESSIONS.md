@@ -87,6 +87,13 @@ Added from jq 1.6 and 1.8: `leaf_paths`, `ascii`, `add(f)`, `trim`, `ltrim`, `rt
 - **Error text** matches jq's for runtime errors, including the truncated value dumps. The exceptions are JSON parse errors from `fromjson`/`tonumber` and regex compile errors, which are worded similarly but not identically. Syntax and compile errors are vestal's own, with a position and a suggestion.
 - **Not reproduced:** jq's literal-number preservation, locale-dependent `strftime` output, and platform-specific `strptime` quirks.
 
+## Known costs and limits
+
+- `add`, `join`, `=`, `|=` and the other update operators build their result in place, so they are linear, as in jq. A `reduce` whose update copies its accumulator is quadratic, because the evaluator cannot hand the accumulator over: `reduce .[] as $x ({}; .[$x.k] = $x)` over 2,000 items takes about 60 ms in a release build. For large inputs, prefer `map`, `group_by` and `from_entries`.
+- One regex match cannot be interrupted, since ICU has no time limit in NSRegularExpression. A catastrophic pattern such as `^(a+)+$` on a long string is not stopped by `maxDuration`.
+- Printing, comparing and freeing a value recurse once per nesting level. Values built by expressions are capped at 512 levels, and `JQValue.parse` at 256 by default. Values built in Swift (`JQValue(foundation:)`, `JQValue(_: AnyJSON)`) are not checked, so keep them shallow.
+- On Linux, `JQValue(foundation:)` detects booleans by `NSNumber.objCType`, so an `NSNumber` made from an `Int8` reads as a boolean. JSONSerialization never produces those.
+
 ## Legacy paths
 
 `JQExpression.normalizeLegacyPath(_:)` turns a v0.3 path string into jq. `rates.BRL` becomes `.rates.BRL`, `BRL-X.rate` becomes `."BRL-X".rate`, `[0].name` becomes `.[0].name`, and a path already starting with `.` is returned unchanged. A bare word is a field: `length` becomes `.length`. `JSONPath` itself is unchanged.
