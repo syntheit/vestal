@@ -74,6 +74,9 @@ final class DashboardModel: ObservableObject {
     private let hosts: [HostConfig]
     /// The root volume, for the local host's popup.
     private var disk: DiskUsage?
+    /// The local host's uptime in fixed data (`showFixedData`); nil reads
+    /// this Mac's.
+    private(set) var fixedLocalUptime: Int?
     /// One provider per player that a media widget names.
     private let players: [String: MediaProvider]
     /// Each player's `media` source (its inline name).
@@ -392,7 +395,8 @@ final class DashboardModel: ObservableObject {
     private func localDetail(name: String) -> AsyncData.ServerDetail {
         let mounts = disk.map { [MountUsage(mountpoint: "/", totalBytes: $0.totalBytes, freeBytes: $0.freeBytes)] } ?? []
         return .local(name: name, cpuPercent: cpu, memory: memory, temperature: temp,
-                      uptime: ProcessInfo.processInfo.systemUptime, mounts: mounts, network: network)
+                      uptime: fixedLocalUptime.map(TimeInterval.init) ?? ProcessInfo.processInfo.systemUptime,
+                      mounts: mounts, network: network)
     }
 
     /// Assigns only real changes: each assignment to a @Published property
@@ -415,10 +419,11 @@ extension DashboardModel {
     /// Replaces what the dashboard shows with fixed values and stops
     /// following the runtime, so the v0.3 views can be drawn offscreen with
     /// the same data as a render-model fixture (`vestal render-file
-    /// --legacy`, the parity check of §13.4). The local host's row keeps
-    /// this Mac's uptime.
+    /// --legacy`, the parity check of §13.4). The local host's row shows
+    /// the data's uptime when it has one, else this Mac's.
     func showFixedData(_ data: LegacyDashboardData) {
         detach()
+        fixedLocalUptime = data.localUptime
         time = data.time
         cpu = data.cpu
         memory = MemoryInfo(ramPercent: data.ram, pressurePercent: data.pressure)

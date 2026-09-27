@@ -87,6 +87,19 @@ case .command(.render(let arguments)):
 case .command(.explain(let arguments)):
     emit(RenderCommands.explain(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
 
+case .command(.press(let arguments)):
+    emit(PressCommand.run(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) },
+                          send: { try IPCClient.send($0) }))
+
+case .command(.screenshot(let arguments)):
+    #if os(macOS)
+    exit(MacScreenshotCommand.run(arguments))
+    #else
+    // No renderer in this process; the Linux UI (L2) or a subscribed UI
+    // (phase 8) takes the request.
+    emit(CLI.Output(status: 5, stderr: "vestal: screenshot: no renderer connected\n"))
+    #endif
+
 case .command(.schema(let arguments)):
     emit(ConfigCommands.schema(arguments))
 
