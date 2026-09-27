@@ -101,10 +101,11 @@ public final class LinuxDashboard {
         stage = StageView(context: context, aurora: aurora)
         window = gtk_window_new()
         usesLayerShell = gtk_layer_is_supported() != 0
-        // hyprland_surface_manager_v1 is in every Hyprland since 0.45.
+        // Hyprland advertises hyprland_surface_manager_v1 to every client.
+        // Asked of this connection, not HYPRLAND_INSTANCE_SIGNATURE, which a
+        // user manager's environment can keep from an earlier session.
         focusedOnMap = usesLayerShell
-            && (gdk_wayland_display_query_registry(gdk_display_get_default(), "hyprland_surface_manager_v1") != 0
-                || ProcessInfo.processInfo.environment["HYPRLAND_INSTANCE_SIGNATURE"] != nil)
+            && gdk_wayland_display_query_registry(gdk_display_get_default(), "hyprland_surface_manager_v1") != 0
 
         gtk_window_set_title(gtkWindow, "vestal")
         gtk_window_set_decorated(gtkWindow, 0)

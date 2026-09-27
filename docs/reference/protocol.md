@@ -74,7 +74,7 @@ The server never waits for a client. Each connection has its own outbound queue;
 A conforming UI:
 
 1. subscribes with `role: "ui"` and applies `snapshot` and `patch` (asking for a `snapshot` when a `base` doesn't match);
-2. maps and unmaps its window on `visibility` (on Wayland: a layer-shell surface, namespace `vestal`, exclusive keyboard while shown);
+2. maps and unmaps its window on `visibility` (on Wayland: a layer-shell surface, namespace `vestal`, taking the keyboard when shown and letting the compositor hand it to other monitors: `on_demand` keyboard interactivity where the compositor focuses such a surface on map, else `exclusive` until the pointer leaves);
 3. draws every node type and field of `vestal docs render-model`, with the icon fonts of `vestal docs icons`;
 4. sends `invoke` for clicks on `action` nodes and `key` for key presses, and carries out `copy` effects.
 
