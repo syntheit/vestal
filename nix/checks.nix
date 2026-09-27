@@ -164,27 +164,19 @@ in
     doCheck = true;
     checkPhase = ''
       runHook preCheck
-      # nixpkgs' corelibs Foundation reads time zones only from
-      # /usr/share/zoneinfo/, which the build sandbox lacks, so
-      # TimeZone(identifier:) returns nil and the date tests crash. Run them
-      # against a copy of libFoundation whose zoneinfo path (a C string in
-      # the library) is a relative path of the same length to nixpkgs' tzdata.
-      foundation=${pkgs.swiftPackages.Foundation}/lib/swift/linux/libFoundation.so
-      if [[ ! -d /usr/share/zoneinfo ]] && grep -qF /usr/share/zoneinfo/ "$foundation"; then
-        mkdir tzfix
-        LC_ALL=C sed 's|/usr/share/zoneinfo/|.//////////zoneinfo/|g' "$foundation" > tzfix/libFoundation.so
-        if [[ $(stat -c %s "$foundation") != $(stat -c %s tzfix/libFoundation.so) ]]; then
-          echo "patched libFoundation.so changed size" >&2
-          exit 1
-        fi
-        ln -s ${pkgs.tzdata}/share/zoneinfo zoneinfo
-        export LD_LIBRARY_PATH="$PWD/tzfix''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-      fi
+      # Against the Foundation the package runs with (package.nix), which
+      # finds time zones without /usr/share/zoneinfo: nixpkgs' own reads only
+      # that directory, so TimeZone(identifier:) would be nil here. The
+      # sandbox has no zoneinfo directory at all, so this also tests its
+      # fallback to the tzdata it was built with.
+      export LD_LIBRARY_PATH="${vestal.foundation}/lib/swift/linux''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
       "$(swiftpmBinPath)"/*PackageTests.xctest
       runHook postCheck
     '';
     installPhase = ''
       touch $out
     '';
+    # Nothing installed, so no RUNPATH to point at that Foundation.
+    postFixup = "";
   });
 }

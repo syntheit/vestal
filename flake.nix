@@ -62,6 +62,13 @@
         );
       });
 
+      # pkgs.vestal built with the consumer's nixpkgs instead of this flake's,
+      # for a system that should share its libraries (on Linux: GTK, and the
+      # glibc the graphics drivers in /run/opengl-driver were built against).
+      overlays.default = final: _prev: {
+        vestal = final.callPackage ./package.nix { commit = buildCommit; };
+      };
+
       checks = forAllSystems (pkgs: import ./nix/checks.nix { inherit pkgs self nixpkgs; });
 
       # Home Manager module: programs.vestal. See the README.

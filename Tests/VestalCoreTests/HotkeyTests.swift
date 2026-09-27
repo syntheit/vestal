@@ -45,6 +45,7 @@ final class HotkeyTests: XCTestCase {
         XCTAssertEqual(try HotkeySpec(parsing: "cmd+esc"), HotkeySpec(key: .escape, modifiers: [.command]))
         XCTAssertEqual(try HotkeySpec(parsing: "cmd+escape"), HotkeySpec(key: .escape, modifiers: [.command]))
         XCTAssertEqual(try HotkeySpec(parsing: "command+a"), try HotkeySpec(parsing: "cmd+a"))
+        XCTAssertEqual(try HotkeySpec(parsing: "super+d"), try HotkeySpec(parsing: "cmd+d"))
         XCTAssertEqual(try HotkeySpec(parsing: "control+a"), try HotkeySpec(parsing: "ctrl+a"))
         XCTAssertEqual(try HotkeySpec(parsing: "alt+a"), try HotkeySpec(parsing: "opt+a"))
         XCTAssertEqual(try HotkeySpec(parsing: "option+a"), try HotkeySpec(parsing: "opt+a"))
@@ -115,12 +116,13 @@ final class HotkeyTests: XCTestCase {
         assertInvalid("f21", .unknownName("f21"))
         assertInvalid("f03", .unknownName("f03"))
         assertInvalid("ctl+a", .unknownName("ctl"))
-        assertInvalid("super+a", .unknownName("super"))
+        assertInvalid("hyper+a", .unknownName("hyper"))
         assertInvalid("cmd+return", .unknownName("return"))
         assertInvalid("cmd+-", .unknownName("-"))
         assertInvalid("cmd a", .unknownName("cmd a"))
         assertInvalid("cmd+cmd+a", .duplicateModifier("cmd"))
         assertInvalid("command+cmd+a", .duplicateModifier("cmd"))
+        assertInvalid("cmd+super+a", .duplicateModifier("super"))
         assertInvalid("alt+opt+a", .duplicateModifier("opt"))
         assertInvalid("Shift+SHIFT+a", .duplicateModifier("shift"))
     }
@@ -151,7 +153,7 @@ final class HotkeyTests: XCTestCase {
                         + " (only f1-f20, home and end may stand alone)")
         let unknown = message("cmd+foo")
         XCTAssertTrue(unknown.hasPrefix("hotkey 'cmd+foo': unknown name 'foo'; keys are f1-f20, a-z, 0-9"), unknown)
-        XCTAssertTrue(unknown.contains("modifiers are cmd, ctrl, alt (opt) and shift"), unknown)
+        XCTAssertTrue(unknown.contains("modifiers are cmd (super), ctrl, alt (opt) and shift"), unknown)
     }
 
     // MARK: macOS keycodes (kVK_* in HIToolbox Events.h)

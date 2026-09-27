@@ -4,6 +4,7 @@
 self:
 {
   config,
+  options,
   lib,
   pkgs,
   ...
@@ -12,6 +13,7 @@ self:
 let
   inherit (lib)
     literalExpression
+    literalMD
     mkEnableOption
     mkIf
     mkMerge
@@ -21,6 +23,7 @@ let
   inherit (pkgs.stdenv.hostPlatform) isDarwin isLinux system;
 
   cfg = config.programs.vestal;
+  opts = options.programs.vestal;
   json = pkgs.formats.json { };
   home = config.home.homeDirectory;
   signing = isDarwin && cfg.signingIdentity != null;
@@ -151,6 +154,77 @@ let
     fi
   '';
 
+  # MARK: Hyprland
+  #
+  # The hotkey vestal would use on Linux, merged as vestal merges its layers:
+  # a `hotkey` key in platform.linux wins (even null), then the top level.
+  linuxHotkey =
+    let
+      s = if builtins.isAttrs cfg.settings then cfg.settings else { };
+      platform = if builtins.isAttrs (s.platform or null) then s.platform else { };
+      linux = if builtins.isAttrs (platform.linux or null) then platform.linux else { };
+    in
+    if linux ? hotkey then linux.hotkey else s.hotkey or null;
+
+  # vestal's hotkey grammar (Sources/VestalCore/Hotkey.swift) in Hyprland's
+  # bind syntax: modifiers as Hyprland names them, keys as XKB keysym names.
+  hyprModifiers = {
+    cmd = "SUPER";
+    command = "SUPER";
+    super = "SUPER";
+    ctrl = "CTRL";
+    control = "CTRL";
+    alt = "ALT";
+    opt = "ALT";
+    option = "ALT";
+    shift = "SHIFT";
+  };
+  hyprKeys =
+    lib.genAttrs (lib.stringToCharacters "abcdefghijklmnopqrstuvwxyz") lib.toUpper
+    // lib.genAttrs (lib.stringToCharacters "0123456789") lib.id
+    // lib.listToAttrs (map (n: lib.nameValuePair "f${toString n}" "F${toString n}") (lib.range 1 20))
+    // {
+      space = "space";
+      escape = "Escape";
+      esc = "Escape";
+      home = "Home";
+      end = "End";
+    };
+  # Keys that may stand alone; the others need cmd, ctrl or alt, as in vestal.
+  hyprStandalone = map (n: "F${toString n}") (lib.range 1 20) ++ [
+    "Home"
+    "End"
+  ];
+
+  # "MODS, key" for a vestal hotkey string, or null when vestal would not
+  # accept it either.
+  hyprCombo =
+    hotkey:
+    let
+      parts = map (p: lib.toLower (lib.trim p)) (lib.splitString "+" hotkey);
+      modNames = lib.filter (p: hyprModifiers ? ${p}) parts;
+      keyNames = lib.filter (p: !(hyprModifiers ? ${p})) parts;
+      mods = map (p: hyprModifiers.${p}) modNames;
+      key = hyprKeys.${lib.head keyNames} or null;
+    in
+    if
+      lib.length keyNames == 1
+      && key != null
+      && lib.length (lib.unique mods) == lib.length mods
+      && (lib.elem key hyprStandalone || lib.any (m: m != "SHIFT") mods)
+    then
+      "${lib.concatStringsSep " " mods}, ${key}"
+    else
+      null;
+
+  derivedBind = if builtins.isString linuxHotkey then hyprCombo linuxHotkey else null;
+
+  # A layer rule for the dashboard's layer surface (namespace `vestal`), in
+  # the `match:` rule syntax of Hyprland 0.53 and later.
+  layerRule = effect: "${effect}, match:namespace ^(vestal)$";
+  # Home Manager's Hyprland module before configType existed wrote hyprlang.
+  hyprlang = (config.wayland.windowManager.hyprland.configType or "hyprlang") == "hyprlang";
+
   # With signingIdentity unset, removes the copy activation installed while
   # it was set. The stamp says the copy is ours; an app without one is never
   # touched.
@@ -219,6 +293,70 @@ in
       '';
     };
 
+    hyprland = {
+      enable = mkEnableOption ''
+        the Hyprland integration (Linux only; ignored on macOS): a bind that
+        runs `vestal toggle`, and layer rules that blur the dashboard. It
+        adds to {option}`wayland.windowManager.hyprland.settings` and needs
+        Hyprland 0.53 or later (the `match:` rule syntax)
+      '';
+
+      bind = mkOption {
+        type = types.nullOr types.str;
+        default = derivedBind;
+        defaultText = literalMD ''
+          The hotkey vestal uses on Linux (`settings.platform.linux.hotkey`,
+          else `settings.hotkey`) in Hyprland's syntax: `"home"` becomes
+          `", Home"`, `"super+d"` (or `"cmd+d"`) `"SUPER, D"`, `"ctrl+alt+f3"`
+          `"CTRL ALT, F3"`. `null` when there is no hotkey.
+        '';
+        example = "SUPER SHIFT, D";
+        description = ''
+          The modifiers and key of the Hyprland bind that runs
+          `vestal toggle`, as a `bind` line has them before the dispatcher
+          (`"MODS, key"`). `null` adds no bind. vestal registers no hotkey of
+          its own on Linux, so this bind is what its hotkey setting does there.
+        '';
+      };
+
+      blur = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Blur what is behind the dashboard (the `blur` layer rule).";
+      };
+
+      ignoreAlpha = mkOption {
+        type = types.nullOr (types.numbers.between 0 1);
+        default = 0.3;
+        description = ''
+          The `ignore_alpha` layer rule: parts of the dashboard more
+          transparent than this get no blur behind them. `null` leaves the
+          rule out.
+        '';
+      };
+
+      animation = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        example = "fade";
+        description = ''
+          The `animation` layer rule, a Hyprland layer animation style such
+          as `"fade"`, `"slide top"` or `"popin 90%"`. `null` keeps the
+          compositor's layer animation. vestal also fades its content in and
+          out itself.
+        '';
+      };
+
+      noAnim = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Turn off Hyprland's open and close animation for the dashboard (the
+          `no_anim` layer rule), leaving only vestal's own fade.
+        '';
+      };
+    };
+
     signingIdentity = mkOption {
       type = types.nullOr types.str;
       default = null;
@@ -243,6 +381,20 @@ in
         {
           assertion = builtins.isAttrs cfg.settings;
           message = "programs.vestal.settings must be an attribute set (a JSON object).";
+        }
+        {
+          # Only while the bind is derived: a set bind (even null) wins.
+          assertion =
+            !(
+              isLinux
+              && cfg.hyprland.enable
+              && linuxHotkey != null
+              && derivedBind == null
+              && opts.hyprland.bind.highestPrio >= (lib.mkOptionDefault null).priority
+            );
+          message = ''
+            programs.vestal.hyprland: the hotkey ${builtins.toJSON linuxHotkey} is not one vestal accepts (see
+            docs/CONFIG.md), so it has no Hyprland bind. Fix it, or set programs.vestal.hyprland.bind.'';
         }
       ];
 
@@ -286,23 +438,61 @@ in
       };
     })
 
+    # The session's display variables (WAYLAND_DISPLAY, DISPLAY,
+    # HYPRLAND_INSTANCE_SIGNATURE, ...) come from the systemd user manager's
+    # environment. The compositor has to import them before it starts
+    # graphical-session.target: Home Manager's Hyprland module does with
+    # `wayland.windowManager.hyprland.systemd.enable` (the default), and so
+    # does UWSM. The condition keeps the service from starting, and failing,
+    # in a session that didn't.
     (mkIf (isLinux && cfg.launchAtLogin && (cfg.package.supportsDaemon or false)) {
       systemd.user.services.vestal = {
         Unit = {
           Description = "Vestal dashboard";
           PartOf = [ "graphical-session.target" ];
           After = [ "graphical-session.target" ];
+          ConditionEnvironment = [
+            "|WAYLAND_DISPLAY"
+            "|DISPLAY"
+          ];
         };
         Service = {
           ExecStart = "${lib.getExe cfg.package} daemon";
           ExecReload = "${lib.getExe cfg.package} reload";
+          # Not after `vestal quit`, or when another instance already runs:
+          # both exit 0.
           Restart = "on-failure";
+          RestartSec = 2;
           Environment = [
             "PATH=${servicePath}"
             "XDG_CONFIG_HOME=${config.xdg.configHome}"
           ];
         };
         Install.WantedBy = [ "graphical-session.target" ];
+      };
+    })
+
+    # The lines below are hyprlang. Home Manager's Lua output would turn each
+    # into a call with the wrong name and arguments, so there it only warns.
+    (mkIf (isLinux && cfg.hyprland.enable && !hyprlang) {
+      warnings = [
+        ''
+          programs.vestal.hyprland writes hyprlang `bind` and `layerrule` lines, but
+          wayland.windowManager.hyprland.configType is not "hyprlang", so it adds nothing.
+          Bind `vestal toggle` and add layer rules for the namespace `vestal` yourself.''
+      ];
+    })
+
+    (mkIf (isLinux && cfg.hyprland.enable && hyprlang) {
+      wayland.windowManager.hyprland.settings = {
+        bind = lib.optional (cfg.hyprland.bind != null) "${cfg.hyprland.bind}, exec, ${lib.getExe cfg.package} toggle";
+        layerrule =
+          lib.optional cfg.hyprland.blur (layerRule "blur on")
+          ++ lib.optional (cfg.hyprland.ignoreAlpha != null) (
+            layerRule "ignore_alpha ${toString cfg.hyprland.ignoreAlpha}"
+          )
+          ++ lib.optional (cfg.hyprland.animation != null) (layerRule "animation ${cfg.hyprland.animation}")
+          ++ lib.optional cfg.hyprland.noAnim (layerRule "no_anim on");
       };
     })
 

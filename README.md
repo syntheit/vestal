@@ -40,10 +40,13 @@ inputs.vestal.url = "github:syntheit/vestal";
 | Option | Default | |
 |---|---|---|
 | `enable` | `false` | Install `vestal` and set it up. |
-| `package` | this flake's package | The vestal package to use. |
+| `package` | this flake's package | The vestal package to use. To build it with your own nixpkgs (on NixOS this shares GTK and glibc with the system and its graphics drivers), apply `overlays.default` and use `pkgs.vestal`. |
 | `settings` | `{ }` | The config ([docs/CONFIG.md](./docs/CONFIG.md)), written to `$XDG_CONFIG_HOME/vestal/config.json` (usually `~/.config/vestal/config.json`) with `version = 1` added unless set. It is layered over the built-in defaults. The default `{ }` writes no file: vestal then runs on its built-in defaults, or on a file you manage yourself. |
-| `launchAtLogin` | `true` | macOS: a launchd agent starts `vestal daemon` (hidden) at login and restarts it if it crashes, but not after `vestal quit`. Its output goes to `~/Library/Logs/vestal.log`. Linux: a systemd user service runs `vestal daemon`, headless until the Linux UI exists; `vestal status` shows its sources and this machine's stats. |
+| `launchAtLogin` | `true` | macOS: a launchd agent starts `vestal daemon` (hidden) at login and restarts it if it crashes, but not after `vestal quit`. Its output goes to `~/Library/Logs/vestal.log`. Linux: a systemd user service runs `vestal daemon`, headless until the Linux UI exists; `vestal status` shows its sources and this machine's stats. It is part of `graphical-session.target` and restarts after a crash; it needs `WAYLAND_DISPLAY` (or `DISPLAY`) in the systemd user environment, which Home Manager's Hyprland module imports with `wayland.windowManager.hyprland.systemd.enable` (the default), as UWSM does. Its log: `journalctl --user -u vestal`. |
 | `signingIdentity` | `null` | macOS: a code signing identity from your keychain (`security find-identity -v -p codesigning`). See below. |
+| `hyprland.enable` | `false` | Linux: adds to `wayland.windowManager.hyprland.settings` a `bind` that runs `vestal toggle`, and `layerrule`s for the layer namespace `vestal`. Needs Hyprland 0.53 or later (`match:` rules) and `configType = "hyprlang"`. |
+| `hyprland.bind` | from the hotkey | The bind's `"MODS, key"`. By default the hotkey vestal uses on Linux (`settings.platform.linux.hotkey`, else `settings.hotkey`) in Hyprland's syntax: `"home"` is `", Home"`, `"super+d"` (`"cmd+d"`) is `"SUPER, D"`. `null`: no bind. |
+| `hyprland.blur`, `.ignoreAlpha`, `.animation`, `.noAnim` | `true`, `0.3`, `null`, `false` | The `blur`, `ignore_alpha`, `animation` and `no_anim` layer rules. |
 
 Every activation also runs `vestal reload`, so a running dashboard picks up the
 new config at once. It never starts vestal and never fails the activation.

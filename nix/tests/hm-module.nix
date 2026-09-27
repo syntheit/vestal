@@ -160,6 +160,35 @@ let
           );
           default = { };
         };
+        # As in Home Manager's services/window-managers/hyprland: lists from
+        # several definitions are concatenated.
+        wayland.windowManager.hyprland = {
+          settings = mkOption {
+            type =
+              let
+                valueType = types.nullOr (
+                  types.oneOf [
+                    types.bool
+                    types.int
+                    types.float
+                    types.str
+                    types.path
+                    (types.attrsOf valueType)
+                    (types.listOf valueType)
+                  ]
+                );
+              in
+              valueType;
+            default = { };
+          };
+          configType = mkOption {
+            type = types.enum [
+              "hyprlang"
+              "lua"
+            ];
+            default = "hyprlang";
+          };
+        };
       };
     };
 
@@ -191,8 +220,8 @@ let
   fake = fakeBuild "vestal-fake";
   fakeB = fakeBuild "vestal-fake-b";
 
-  evaluate =
-    system: vestal:
+  evaluateWith =
+    extra: system: vestal:
     (hmLib.evalModules {
       modules = [
         stubs
@@ -206,8 +235,10 @@ let
           }
           // vestal;
         }
-      ];
+      ]
+      ++ extra;
     }).config;
+  evaluate = evaluateWith [ ];
 
   darwin = evaluate "aarch64-darwin" { };
   darwinSigned = evaluate "aarch64-darwin" {
@@ -224,6 +255,72 @@ let
   linuxNoDaemon = evaluate "x86_64-linux" { package = fake // { supportsDaemon = false; }; };
   linuxDaemon = evaluate "x86_64-linux" { package = fake; };
   badSettings = evaluate "x86_64-linux" { settings = [ 1 ]; };
+
+  # Hyprland: the bind comes from platform.linux.hotkey over the top-level
+  # one, and adds to the user's own binds.
+  hypr =
+    vestal:
+    evaluateWith [ { wayland.windowManager.hyprland.settings.bind = [ "SUPER, T, exec, foot" ]; } ]
+      "x86_64-linux"
+      (
+        {
+          package = fake;
+          hyprland.enable = true;
+        }
+        // vestal
+      );
+  hyprHome = hypr { inherit settings; };
+  hyprTop = hypr { settings.hotkey = "super+d"; };
+  hyprNoLinuxKey = hypr {
+    settings = {
+      hotkey = "f3";
+      platform.linux.hotkey = null;
+    };
+  };
+  hyprNone = hypr { };
+  hyprOverride = hypr {
+    inherit settings;
+    hyprland = {
+      enable = true;
+      bind = "SUPER SHIFT, D";
+      ignoreAlpha = null;
+      animation = "fade";
+      noAnim = true;
+      blur = false;
+    };
+  };
+  hyprBad = hypr { settings.hotkey = "shift+d"; };
+  hyprBadOverridden = hypr {
+    settings.hotkey = "shift+d";
+    hyprland = {
+      enable = true;
+      bind = null;
+    };
+  };
+  hyprLua = evaluateWith [ { wayland.windowManager.hyprland.configType = "lua"; } ] "x86_64-linux" {
+    package = fake;
+    hyprland.enable = true;
+  };
+  hyprOff = evaluate "x86_64-linux" {
+    package = fake;
+    inherit settings;
+  };
+  hyprDarwin = evaluate "aarch64-darwin" {
+    inherit settings;
+    hyprland.enable = true;
+  };
+  hyprBinds = c: c.wayland.windowManager.hyprland.settings.bind or [ ];
+  hyprRules = c: c.wayland.windowManager.hyprland.settings.layerrule or [ ];
+  toggle = "exec, ${fake}/bin/vestal toggle";
+  # vestal hotkey -> "MODS, key" (the module's derived bind).
+  combo =
+    hotkey:
+    (hypr {
+      settings.hotkey = hotkey;
+      hyprland = {
+        enable = true;
+      };
+    }).programs.vestal.hyprland.bind;
 
   darwinApp = "${self.packages.aarch64-darwin.vestal}/Applications/Vestal.app";
   agent = c: c.launchd.agents.vestal.config;
@@ -293,7 +390,75 @@ let
     "linux daemon: service" =
       linuxDaemon.systemd.user.services.vestal.Service.ExecStart == "${fake}/bin/vestal daemon"
       && linuxDaemon.systemd.user.services.vestal.Install.WantedBy == [ "graphical-session.target" ];
+    "linux daemon: after the session's environment, restarts on failure" =
+      let
+        s = linuxDaemon.systemd.user.services.vestal;
+      in
+      s.Unit.PartOf == [ "graphical-session.target" ]
+      && s.Unit.After == [ "graphical-session.target" ]
+      && s.Unit.ConditionEnvironment == [
+        "|WAYLAND_DISPLAY"
+        "|DISPLAY"
+      ]
+      && s.Service.Restart == "on-failure";
     "settings must be an object" = !(passes badSettings);
+
+    "hyprland: platform.linux hotkey bound, after the user's binds" =
+      hyprBinds hyprHome == [
+        "SUPER, T, exec, foot"
+        ", Home, ${toggle}"
+      ];
+    "hyprland: layer rules for the vestal namespace" =
+      hyprRules hyprHome == [
+        "blur on, match:namespace ^(vestal)$"
+        "ignore_alpha 0.300000, match:namespace ^(vestal)$"
+      ];
+    "hyprland: top-level hotkey when platform.linux has none" =
+      hyprBinds hyprTop == [
+        "SUPER, T, exec, foot"
+        "SUPER, D, ${toggle}"
+      ];
+    "hyprland: platform.linux null hotkey, no bind" =
+      hyprBinds hyprNoLinuxKey == [ "SUPER, T, exec, foot" ] && hyprRules hyprNoLinuxKey != [ ];
+    "hyprland: no hotkey, no bind" = hyprBinds hyprNone == [ "SUPER, T, exec, foot" ];
+    "hyprland: explicit bind and rule options" =
+      hyprBinds hyprOverride == [
+        "SUPER, T, exec, foot"
+        "SUPER SHIFT, D, ${toggle}"
+      ]
+      && hyprRules hyprOverride == [
+        "animation fade, match:namespace ^(vestal)$"
+        "no_anim on, match:namespace ^(vestal)$"
+      ];
+    "hyprland: hotkey mapping" =
+      combo "home" == ", Home"
+      && combo "F3" == ", F3"
+      && combo "end" == ", End"
+      && combo "cmd+shift+space" == "SUPER SHIFT, space"
+      && combo " Ctrl + Alt + h " == "CTRL ALT, H"
+      && combo "opt+1" == "ALT, 1"
+      && combo "control+esc" == "CTRL, Escape"
+      && combo "shift+f20" == "SHIFT, F20"
+      && combo "super+d" == "SUPER, D";
+    "hyprland: hotkeys vestal rejects have no bind" = lib.all (h: combo h == null) [
+      "d"
+      "shift+d"
+      "cmd+"
+      "cmd+shift"
+      "cmd+cmd+d"
+      "cmd+a+b"
+      "hyper+d"
+      "f21"
+    ];
+    "hyprland: an unusable hotkey fails, unless the bind is set" =
+      !(passes hyprBad) && passes hyprBadOverridden && hyprBinds hyprBadOverridden == [ "SUPER, T, exec, foot" ];
+    "hyprland: assertions pass" = passes hyprHome && passes hyprOverride && passes hyprNone;
+    "hyprland: with a Lua config, only a warning" =
+      hyprLua.warnings != [ ]
+      && hyprLua.wayland.windowManager.hyprland.settings == { }
+      && hyprHome.warnings == [ ];
+    "hyprland: off by default" = hyprOff.wayland.windowManager.hyprland.settings == { };
+    "hyprland: ignored on macOS" = hyprDarwin.wayland.windowManager.hyprland.settings == { };
   };
   failed = lib.attrNames (lib.filterAttrs (_: ok: !ok) expectations);
 
@@ -308,6 +473,7 @@ let
     "unsign.sh" = darwin.home.activation.vestalRemoveSignedApp.data;
     "reload.sh" = darwin.home.activation.vestalReload.data;
     "linux-service.json" = builtins.toJSON linuxDaemon.systemd.user.services.vestal;
+    "linux-hyprland.json" = builtins.toJSON hyprHome.wayland.windowManager.hyprland.settings;
   };
 in
 assert lib.assertMsg (failed == [ ]) "hm-module: failed: ${lib.concatStringsSep "; " failed}";
