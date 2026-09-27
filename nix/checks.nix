@@ -140,7 +140,7 @@ in
   tests = vestal.overrideAttrs (old: {
     pname = "vestal-tests";
     # The tests also read examples/full.json, docs/CONFIG.md, the committed
-    # schema, and the Markdown embedded as `vestal docs`.
+    # schema, the Markdown embedded as `vestal docs`, and the icon metadata.
     src = lib.fileset.toSource {
       root = ../.;
       fileset = lib.fileset.unions [
@@ -152,6 +152,7 @@ in
         ../docs/vestal.schema.json
         ../docs/reference
         ../AGENTS.md
+        ../Resources/icons
       ];
     };
     nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.python3 ];

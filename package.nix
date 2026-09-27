@@ -40,9 +40,9 @@ let
     in
     if m == null then throw "package.nix: no BuildInfo.version found" else builtins.head m;
 
-  # The Linux UI's libraries as one pkg-config module, and its icon fonts.
+  # The Linux UI's libraries as one pkg-config module. Its icon fonts are
+  # vendored in Resources/icons (Phosphor, see the README there).
   gtkPkgConfig = callPackage ./nix/gtk-pkgconfig.nix { };
-  phosphorFonts = callPackage ./nix/phosphor-fonts.nix { };
 
   # Linux: swift-corelibs-foundation reads time zones only from its
   # compile-time TZDIR, /usr/share/zoneinfo/, which NixOS doesn't have: there
@@ -99,6 +99,9 @@ stdenv.mkDerivation {
       ./Package.swift
       ./Sources
       ./Tests
+      ./Resources/icons/Phosphor.ttf
+      ./Resources/icons/Phosphor-Fill.ttf
+      ./Resources/icons/LICENSE
     ];
   };
 
@@ -166,9 +169,8 @@ stdenv.mkDerivation {
         mkdir -p "$out/share/vestal/fonts" "$out/share/vestal/icons"
         ln -s ${inter}/share/fonts "$out/share/vestal/fonts/inter"
         ln -s ${jetbrains-mono}/share/fonts/truetype "$out/share/vestal/fonts/jetbrains-mono"
-        ln -s ${phosphorFonts}/share/fonts/truetype/Phosphor.ttf "$out/share/vestal/icons/Phosphor.ttf"
-        ln -s ${phosphorFonts}/share/fonts/truetype/Phosphor-Fill.ttf "$out/share/vestal/icons/Phosphor-Fill.ttf"
-        ln -s ${phosphorFonts}/share/licenses/phosphor-icons/LICENSE "$out/share/vestal/icons/LICENSE"
+        install -m644 Resources/icons/Phosphor.ttf Resources/icons/Phosphor-Fill.ttf Resources/icons/LICENSE \
+          "$out/share/vestal/icons/"
         makeBinaryWrapper "$out/libexec/vestal/vestal" "$out/bin/vestal" \
           --suffix PATH : ${
             lib.makeBinPath [
