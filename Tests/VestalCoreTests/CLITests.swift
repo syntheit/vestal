@@ -18,6 +18,10 @@ final class CLITests: XCTestCase {
         XCTAssertEqual(CLI.parse(["-h"]), .command(.help))
         XCTAssertEqual(CLI.parse(["check-config", "a.json"]), .command(.checkConfig(["a.json"])))
         XCTAssertEqual(CLI.parse(["print-config"]), .command(.printConfig([])))
+        XCTAssertEqual(CLI.parse(["schema", "--out", "s.json"]), .command(.schema(["--out", "s.json"])))
+        XCTAssertEqual(CLI.parse(["docs", "cli"]), .command(.docs(["cli"])))
+        XCTAssertEqual(CLI.parse(["show", "focus"]), .command(.sendRequest(IPCRequest(.show, view: "focus"))))
+        XCTAssertEqual(CLI.parse(["toggle", "main"]), .command(.sendRequest(IPCRequest(.toggle, view: "main"))))
         // LaunchServices may add a process serial number.
         XCTAssertEqual(CLI.parse(["-psn_0_12345"]), .command(.start(hidden: false)))
     }
@@ -25,13 +29,15 @@ final class CLITests: XCTestCase {
     func testUsageErrors() {
         XCTAssertEqual(CLI.parse(["bogus"]), .usageError("unknown command 'bogus'"))
         XCTAssertEqual(CLI.parse(["Toggle"]), .usageError("unknown command 'Toggle'"))
-        XCTAssertEqual(CLI.parse(["toggle", "now"]), .usageError("'toggle' takes no arguments"))
+        XCTAssertEqual(CLI.parse(["toggle", "a", "b"]), .usageError("'toggle' takes one view at most"))
+        XCTAssertEqual(CLI.parse(["show", "--view"]), .usageError("'show' takes one view at most"))
+        XCTAssertEqual(CLI.parse(["hide", "main"]), .usageError("'hide' takes no arguments"))
         XCTAssertEqual(CLI.parse(["daemon", "-x"]), .usageError("'daemon' takes no arguments"))
     }
 
     func testHelpListsEveryCommand() {
         for name in ["daemon", "toggle", "show", "hide", "reload", "status", "quit",
-                     "check-config", "print-config", "version", "help"] {
+                     "check-config", "print-config", "schema", "docs", "version", "help"] {
             XCTAssertTrue(CLI.usage.contains("\n  \(name) "), "help lacks \(name)")
         }
     }
@@ -61,6 +67,27 @@ final class CLITests: XCTestCase {
         }
         let failed = CLI.send(.show, client: ScriptedClient([.notRunning]).send, launch: { throw Failure("no bundle") })
         XCTAssertEqual(failed, CLI.Output(status: 1, stderr: "vestal: not running, and it could not be started: no bundle\n"))
+    }
+
+    func testAViewGoesWithTheRequest() {
+        var sent: [IPCRequest] = []
+        let output = CLI.send(IPCRequest(.show, view: "focus"), client: { sent.append($0); return .ok },
+                              launch: { XCTFail("no launch") })
+        XCTAssertEqual(output, CLI.Output(status: 0))
+        XCTAssertEqual(sent, [IPCRequest(.show, view: "focus")])
+    }
+
+    /// Views can't be switched yet, but one the config doesn't have is
+    /// "not found" (exit 4) already, with a did-you-mean.
+    func testAnUnknownViewExitsFour() throws {
+        let dir = try makeTemporaryDirectory()
+        let path = dir.appendingPathComponent("c.json").path
+        FileManager.default.createFile(atPath: path, contents: Data(#"{"views": {"focus": {"order": []}}}"#.utf8))
+        let environment = ["VESTAL_CONFIG": path]
+        XCTAssertNil(CLI.checkView("main", environment: environment, home: dir.path))
+        XCTAssertNil(CLI.checkView("focus", environment: environment, home: dir.path))
+        XCTAssertEqual(CLI.checkView("focsu", environment: environment, home: dir.path),
+                       CLI.Output(status: 4, stderr: "vestal: no view named 'focsu'; did you mean \"focus\"? (the config has: focus, main)\n"))
     }
 
     func testTheOthersNeverStartOne() {

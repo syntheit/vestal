@@ -11,17 +11,20 @@ import Foundation
 //   vestal daemon           start it hidden (the launch agent does this); if
 //                           an instance of this build runs, exit 0; if one of
 //                           another build runs, ask it to quit and take over
-//   vestal toggle | show    tell the running instance; with none, start one
-//                           (it comes up shown)
+//   vestal toggle | show [view]
+//                           tell the running instance; with none, start one
+//                           (it comes up shown). A view must exist in the
+//                           config (exit 4 otherwise)
 //   vestal hide | reload | status | quit
 //                           tell the running instance; with none, say so and
 //                           exit 1 (reload never starts one)
 //   vestal status --json    the running instance's status as JSON, stats
 //                           included
-//   vestal version | help | check-config [path] | print-config [path]
+//   vestal version | help | check-config | print-config | schema | docs
 //                           local; no instance needed
 //
-// Exit codes: 0 ok, 1 error or not running, 2 usage.
+// Exit codes (docs/EXTENSIBILITY.md §11.1): 0 ok, 1 error or not running,
+// 2 usage, 3 the config has errors, 4 not found (a view, a docs topic).
 
 public enum CLI {
     public typealias Output = ConfigCommands.Output
@@ -31,12 +34,16 @@ public enum CLI {
         case start(hidden: Bool)
         /// A command for the running instance.
         case send(IPCCommand)
+        /// `show <view>` or `toggle <view>`.
+        case sendRequest(IPCRequest)
         /// `status --json`.
         case statusJSON
         case version
         case help
         case checkConfig([String])
         case printConfig([String])
+        case schema([String])
+        case docs([String])
     }
 
     public enum Parsed: Equatable, Sendable {
@@ -58,6 +65,11 @@ public enum CLI {
         case "help", "--help", "-h": command = .help
         case "check-config": return .command(.checkConfig(rest))
         case "print-config": return .command(.printConfig(rest))
+        case "schema": return .command(.schema(rest))
+        case "docs": return .command(.docs(rest))
+        case "show" where !rest.isEmpty, "toggle" where !rest.isEmpty:
+            guard rest.count == 1, !rest[0].hasPrefix("-") else { return .usageError("'\(name)' takes one view at most") }
+            return .command(.sendRequest(IPCRequest(IPCCommand(rawValue: name)!, view: rest[0])))
         case "status" where rest == ["--json"]: return .command(.statusJSON)
         default:
             guard let ipc = IPCCommand(rawValue: name) else { return .usageError("unknown command '\(name)'") }
@@ -76,8 +88,9 @@ public enum CLI {
         Commands:
           daemon               Start hidden (the launch agent runs this). If vestal
                                runs already: exit 0, or replace it if it is another build
-          toggle               Show or hide the dashboard; starts vestal if needed
-          show                 Show the dashboard; starts vestal if needed
+          toggle [view]        Show or hide the dashboard; starts vestal if needed
+          show [view]          Show the dashboard; starts vestal if needed. A view
+                               must be one of the config's (exit 4 otherwise)
           hide                 Hide the dashboard
           reload               Read the config file again (it is also watched)
           status [--json]      The running instance: pid, build, config file,
@@ -86,13 +99,24 @@ public enum CLI {
                                disks, battery, volume, uptime, network); --json
                                prints the same as JSON
           quit                 Quit the running instance
-          check-config [path]  Check a config file (default: the one vestal loads)
-          print-config [path]  Print the effective config as JSON, defaults merged in
+          check-config [path|-] [--json] [--strict] [--platform macos|linux|all] [--commands]
+                               Check a config file (default: the one vestal loads;
+                               - reads stdin): each finding with its JSON pointer,
+                               line and a did-you-mean. --commands lists every
+                               program the config can run
+          print-config [path|-] [--origins]
+                               Print the effective config as JSON, defaults merged
+                               in; --origins shows which layer set each value
+          schema [--out <file>]
+                               Print the config's JSON Schema
+          docs [topic] [--list] [--search <text>] [--json]
+                               The built-in documentation; start with `docs agents`
           version              Print the version and build
           help                 Show this message
 
         hide, reload, status and quit never start vestal: they exit 1 when it is
-        not running. Exit codes: 0 ok, 1 error or not running, 2 usage.
+        not running. Exit codes: 0 ok, 1 error or not running, 2 usage, 3 the
+        config has errors (check-config), 4 not found (a view, a docs topic).
         The dashboard UI is macOS-only for now. On Linux vestal runs headless: it
         fetches sources, serves these commands and reports stats, and show, hide
         and toggle only change the visibility it reports.
@@ -114,8 +138,20 @@ public enum CLI {
         launch: () throws -> Void,
         now: Date = Date()
     ) -> Output {
+        send(IPCRequest(command), json: json, client: { try client($0.command) }, launch: launch, now: now)
+    }
+
+    /// `send` for a request with arguments (`show <view>`).
+    public static func send(
+        _ request: IPCRequest,
+        json: Bool = false,
+        client: (IPCRequest) throws -> IPCResponse,
+        launch: () throws -> Void,
+        now: Date = Date()
+    ) -> Output {
+        let command = request.command
         do {
-            let response = try client(command)
+            let response = try client(request)
             guard response.ok else {
                 return Output(status: 1, stderr: "vestal: \(response.error ?? "\(command.rawValue) failed")\n")
             }
@@ -141,6 +177,21 @@ public enum CLI {
         } catch {
             return Output(status: 1, stderr: "vestal: \(error)\n")
         }
+    }
+
+    /// Nil when the config vestal loads has a view named `view`; otherwise
+    /// exit 4 with a did-you-mean. Views can't be switched yet (v0.4 phase
+    /// 7), but a name that isn't in the config is a mistake now already.
+    public static func checkView(
+        _ view: String,
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        home: String = NSHomeDirectory()
+    ) -> Output? {
+        let views = ConfigLoader.load(environment: environment, home: home).config.views.keys.sorted()
+        guard !views.contains(view) else { return nil }
+        let hint = DidYouMean.phrase(DidYouMean.suggestions(for: view, among: views)).map { "; \($0)" } ?? ""
+        let known = views.isEmpty ? "none" : views.joined(separator: ", ")
+        return Output(status: 4, stderr: "vestal: no view named '\(view)'\(hint) (the config has: \(known))\n")
     }
 
     // MARK: Starting
