@@ -23,13 +23,25 @@ func emit(_ output: CLI.Output) -> Never {
 }
 
 /// `show`/`toggle` with nothing running: start the dashboard, which comes up
-/// shown. On Linux that is bare `vestal`, started detached.
+/// shown. On Linux that is bare `vestal`, started detached; with no display
+/// to connect to it would exit at once, so this says so instead.
 func launchInstance() throws {
     #if os(macOS)
     try VestalApp.launchInstance()
     #else
+    let environment = ProcessInfo.processInfo.environment
+    guard !(environment["WAYLAND_DISPLAY"] ?? "").isEmpty || !(environment["DISPLAY"] ?? "").isEmpty else {
+        throw LaunchError.noDisplay
+    }
     try CLI.spawnDetached(executable: CLI.executablePath)
     #endif
+}
+
+enum LaunchError: Error, CustomStringConvertible {
+    case noDisplay
+    var description: String {
+        "no display here (WAYLAND_DISPLAY and DISPLAY are unset); start it in the graphical session, or run `vestal daemon --headless`"
+    }
 }
 
 /// What `vestal fetch --local` (or with no instance) reads the built-in
@@ -58,7 +70,8 @@ var capabilitiesHost: CapabilitiesCommand.Host {
     return CapabilitiesCommand.Host(
         ui: "GTK 4 (layer shell)",
         screenshot: dashboard
-            ? .init(true, "offscreen by the running dashboard (`vestal screenshot`; nothing appears while it is hidden)")
+            ? .init(true, "offscreen by the running vestal (`vestal screenshot`; nothing appears while it is hidden), "
+                    + "unless it runs --headless" + (wayland ? "" : ", which needs a Wayland session here instead"))
             : wayland
             ? .init(true, "offscreen with the GTK renderer (`vestal screenshot`)")
             : .init(false, "needs a running dashboard or a Wayland session (WAYLAND_DISPLAY is not set); `vestal render` works anywhere"),

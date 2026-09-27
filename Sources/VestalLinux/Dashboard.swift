@@ -355,6 +355,8 @@ public final class LinuxDashboard {
             fadeGeneration += 1
             if fadeTick != 0 { gtk_widget_remove_tick_callback(stage.widget, fadeTick); fadeTick = 0 }
             aurora.stop()
+            // The cancelled fade would have given the keyboard back.
+            if usesLayerShell { gtk_layer_set_keyboard_mode(gtkWindow, GTK_LAYER_SHELL_KEYBOARD_MODE_NONE) }
             apply(model)
             gtk_widget_set_opacity(window, 0)
             gtk_widget_set_opacity(stage.widget, 1)

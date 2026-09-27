@@ -114,6 +114,10 @@ final class LinuxSurface: ResidentSurface {
     /// Weak: the app holds both, and the resident holds this surface weakly.
     private weak var resident: Resident?
     private var engine: RenderEngine? { resident?.engine }
+    /// A screenshot drew its own model: the engine's snapshots and patches
+    /// wait (a clock tick would replace it before the capture); the capture
+    /// asks for a fresh snapshot when it ends.
+    private var holding = 0
 
     init() {
         // GTK calls back on the main thread, inside the main loop. Clicks,
@@ -134,10 +138,10 @@ final class LinuxSurface: ResidentSurface {
             guard let self else { return }
             switch update {
             case .snapshot(let snapshot):
-                self.dashboard.apply(snapshot)
+                if self.holding == 0 { self.dashboard.apply(snapshot) }
             case .patch(let patch):
                 // Out of step (or an unknown id): ask for the whole model.
-                if !self.dashboard.apply(patch) { self.engine?.handle(.snapshot) }
+                if self.holding == 0, !self.dashboard.apply(patch) { self.engine?.handle(.snapshot) }
             case .visibility(let visible, _):
                 // After the first snapshot of a show, so the window never
                 // maps empty; on hide, the fade and then the unmap.
@@ -178,9 +182,10 @@ final class LinuxSurface: ResidentSurface {
             if model == nil, let view = request.view, view != current {
                 return reply(.failure("the dashboard is showing \"\(current)\"; hide it to capture \"\(view)\", or show that view first"))
             }
+            if model != nil { holding += 1 }
             return dashboard.capture(model: model, png: request.path) { [weak self] result in
                 // Back to what the engine shows.
-                if model != nil { self?.engine?.handle(.snapshot) }
+                if model != nil { self?.release() }
                 // Hidden while it waited for a fade: take it the hidden way.
                 if case .failure(let error) = result, error.hiddenMeanwhile {
                     self?.captureHidden(request, model: model, reply: reply)
@@ -195,23 +200,32 @@ final class LinuxSurface: ResidentSurface {
     private func captureHidden(_ request: IPCRequest, model: RenderSnapshot?, reply: @escaping IPCReply) {
         // Shown meanwhile, the capture drew over the engine's model:
         // `.snapshot` puts it back (and does nothing while hidden).
+        holding += 1
         if let model {
             return dashboard.capture(model: model, png: request.path) { [weak self] in
-                self?.engine?.handle(.snapshot)
+                self?.release()
                 self?.finish($0, request, reply)
             }
         }
         let view = request.view ?? engine?.view
         Task { [weak self] in
             guard let snapshot = await self?.resident?.renderSnapshot(view: view) else {
+                self?.release()
                 return reply(.failure("vestal is quitting"))
             }
             guard let self else { return }
             self.dashboard.capture(model: snapshot, png: request.path) { [weak self] in
-                self?.engine?.handle(.snapshot)
+                self?.release()
                 self?.finish($0, request, reply)
             }
         }
+    }
+
+    /// After a capture of its own model: the engine's model again (a
+    /// snapshot when shown; nothing while hidden, a show sends one).
+    private func release() {
+        holding = max(0, holding - 1)
+        if holding == 0 { engine?.handle(.snapshot) }
     }
 
     private func finish(_ result: Result<LinuxDashboard.Capture, LinuxDashboard.CaptureError>, _ request: IPCRequest,

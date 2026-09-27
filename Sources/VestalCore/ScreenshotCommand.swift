@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(Glibc)
+import Glibc
+#endif
 
 // MARK: - vestal screenshot (EXTENSIBILITY.md §11.6)
 //
@@ -257,7 +260,16 @@ extension ScreenshotCommand {
         } catch {
             return nil
         }
-        if response.ok { return 0 }
+        if response.ok {
+            // The dashboard wrote them with its own umask (a service's is
+            // often 022); they get the caller's, as a file it wrote would.
+            let mask = umask(0)
+            umask(mask)
+            for path in [request.path, request.frames].compactMap({ $0 }) {
+                _ = chmod(path, 0o666 & ~mask)
+            }
+            return 0
+        }
         let message = response.error ?? "screenshot failed"
         if response.code == IPCResponse.unsupported || message.hasPrefix("unknown command 'screenshot'") { return nil }
         FileHandle.standardError.write(Data("vestal: screenshot: \(message)\n".utf8))
