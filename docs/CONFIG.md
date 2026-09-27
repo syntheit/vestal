@@ -265,7 +265,10 @@ The bottom layer (`Sources/VestalCore/DefaultConfig.swift`): a generic dashboard
       "refresh": "30m",
       "parse": "json"
     },
-    "calendar": { "type": "calendar", "refresh": "5m", "days": 1 }
+    "calendar": { "type": "calendar", "refresh": "5m", "days": 1 },
+    "system": { "type": "system" },
+    "media": { "type": "media", "player": "auto" },
+    "claude": { "type": "claude" }
   },
   "widgets": {
     "clock": { "type": "clock" },

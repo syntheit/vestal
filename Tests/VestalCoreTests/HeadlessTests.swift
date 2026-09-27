@@ -162,7 +162,7 @@ final class HeadlessTests: XCTestCase {
             """
         let warnings = ConfigLoader.load(data: Data(config.utf8), platform: .linux).warnings
         XCTAssertEqual(warnings.filter { $0.path.hasPrefix("widgets.agenda") }.map(\.description), [])
-        XCTAssertTrue(LiveFetcher.noCalendarBackend.contains("\"command\" source"))
+        XCTAssertTrue(LiveFetcher.noCalendarBackend.contains("set \"ics\""))
     }
 
     static let sample = SystemStatsSample(

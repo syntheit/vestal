@@ -72,7 +72,7 @@ private struct Walker {
     /// serves every systemHealth widget.
     private var hostKeys: [String: String] = [:]
 
-    static let topLevelKeys = ["version", "hotkey", "theme", "sources", "widgets", "views"]
+    static let topLevelKeys = ["version", "hotkey", "theme", "sources", "widgets", "views", "secrets"]
 
     init(top: [String: AnyJSON]) {
         self.top = top
@@ -99,6 +99,7 @@ private struct Walker {
             case "sources": sources(value)
             case "widgets": widgets(value)
             case "views": views(value)
+            case "secrets": secrets(value)
             default:
                 add(.unknownKey, key, "unknown key (known: \(Self.topLevelKeys.joined(separator: ", ")), platform)")
             }
@@ -134,43 +135,139 @@ private struct Walker {
     private mutating func sources(_ value: AnyJSON) {
         guard let entries = object(value, "sources") else { return }
         for (name, entry) in entries.sorted(by: { $0.key < $1.key }) {
-            let path = "sources.\(name)"
-            guard let source = object(entry, path, "source ignored"),
-                  let type = entryType(source, path, what: "source")
-            else { continue }
-            let canonical = SourceConfig.canonicalType(type)
-            guard let keys = SourceConfig.keysByType[canonical] else {
-                add(.unknownType, "\(path).type",
-                    "unknown source type \"\(type)\" (expected \(ConfigValidator.alternatives(Self.names(SourceConfig.keysByType))))")
-                continue
-            }
-            checkKeys(source, keys, path, for: "\(canonical) sources")
-            duration(source["refresh"], "\(path).refresh", default: SourceConfig.defaultRefresh)
-            if keys.contains("parse") { oneOf(source["parse"], "\(path).parse", SourceConfig.parseModes) }
+            _ = source(entry, "sources.\(name)")
+        }
+    }
 
-            switch canonical {
-            case "http":
-                if let url = string(source["url"], "\(path).url") {
-                    if !ConfigValidator.isHTTPURL(url) { add(.invalidValue, "\(path).url", "not an http(s) URL") }
-                } else if isAbsent(source["url"]) {
-                    add(.missingKey, path, "missing \"url\"; the source never fetches")
+    /// One source definition, named or inline (EXTENSIBILITY.md 5). Returns
+    /// its canonical type when it has a known one.
+    private mutating func source(_ entry: AnyJSON, _ path: String) -> String? {
+        guard let source = object(entry, path, "source ignored"),
+              let type = entryType(source, path, what: "source")
+        else { return nil }
+        let canonical = SourceConfig.canonicalType(type)
+        guard let keys = SourceConfig.keysByType[canonical] else {
+            add(.unknownType, "\(path).type",
+                "unknown source type \"\(type)\" (expected \(ConfigValidator.alternatives(Self.names(SourceConfig.keysByType))))")
+            return nil
+        }
+        checkKeys(source, keys, path, for: "\(canonical) sources")
+        duration(source["refresh"], "\(path).refresh", default: SourceConfig.defaultRefresh(for: canonical))
+        if keys.contains("parse") {
+            oneOf(source["parse"], "\(path).parse",
+                  canonical == "file" ? SourceConfig.fileParseModes : SourceConfig.parseModes)
+        }
+        oneOf(source["when"], "\(path).when", SourceConfig.whenValues)
+        _ = string(source["transform"], "\(path).transform")
+        duration(source["maxAge"], "\(path).maxAge", default: "no limit")
+        _ = boolean(source["cache"], "\(path).cache")
+        history(source["history"], "\(path).history")
+        if keys.contains("timeout") {
+            duration(source["timeout"], "\(path).timeout", default: SourceConfig.defaultTimeout)
+        }
+
+        switch canonical {
+        case "http":
+            if let url = string(source["url"], "\(path).url") {
+                if !LoadTimeText.hasHoles(url) && !ConfigValidator.isHTTPURL(url) {
+                    add(.invalidValue, "\(path).url", "not an http(s) URL")
                 }
-            case "command":
-                if let argv = strings(source["argv"], "\(path).argv") {
-                    if argv.isEmpty { add(.invalidValue, "\(path).argv", "must not be empty") }
-                } else if isAbsent(source["argv"]) {
-                    add(.missingKey, path, "missing \"argv\"; the source never runs")
+                secretLiteral(url, "\(path).url")
+            } else if isAbsent(source["url"]) {
+                add(.missingKey, path, "missing \"url\"; the source never fetches")
+            }
+            if let method = string(source["method"], "\(path).method"),
+               !SourceConfig.methods.contains(method.uppercased()) {
+                add(.invalidValue, "\(path).method",
+                    "unknown value \"\(method)\" (expected \(ConfigValidator.alternatives(SourceConfig.methods)))")
+            }
+            for (name, header) in (stringMap(source["headers"], "\(path).headers") ?? [:]).sorted(by: { $0.key < $1.key }) {
+                secretLiteral(header, "\(path).headers.\(name)")
+            }
+        case "command":
+            if let argv = strings(source["argv"], "\(path).argv") {
+                if argv.isEmpty { add(.invalidValue, "\(path).argv", "must not be empty") }
+            } else if isAbsent(source["argv"]) {
+                add(.missingKey, path, "missing \"argv\"; the source never runs")
+            }
+            _ = stringMap(source["env"], "\(path).env")
+        case "calendar":
+            atLeastOne(source["days"], "\(path).days", default: SourceConfig.defaultDays)
+            _ = strings(source["calendars"], "\(path).calendars")
+            if case .string? = source["ics"] {} else { _ = strings(source["ics"], "\(path).ics") }
+        case "file":
+            if string(source["path"], "\(path).path") == nil, isAbsent(source["path"]) {
+                add(.missingKey, path, "missing \"path\"; the source never reads")
+            }
+        case "system":
+            _ = strings(source["disks"], "\(path).disks")
+            _ = strings(source["interfaces"], "\(path).interfaces")
+        case "media":
+            if case .string? = source["player"] {} else { _ = strings(source["player"], "\(path).player") }
+        case "claude":
+            _ = string(source["path"], "\(path).path")
+            atLeastOne(source["fiveHourLimit"], "\(path).fiveHourLimit", default: ClaudeUsage.blockLimitTokens)
+            atLeastOne(source["weeklyLimit"], "\(path).weeklyLimit", default: ClaudeUsage.weeklyLimitTokens)
+        default:
+            break
+        }
+        return canonical
+    }
+
+    /// `history`: name → `{value, size, every}` (EXTENSIBILITY.md 5.6).
+    private mutating func history(_ value: AnyJSON?, _ path: String) {
+        guard let entries = object(value, path) else { return }
+        for (name, entry) in entries.sorted(by: { $0.key < $1.key }) {
+            let entryPath = "\(path).\(name)"
+            guard let spec = object(entry, entryPath, "history ignored") else { continue }
+            checkKeys(spec, ["value", "size", "every"], entryPath, for: "histories")
+            _ = requiredString(spec, "value", entryPath, dropped: "history ignored")
+            if let size = integer(spec["size"], "\(entryPath).size"), size < 1 || size > HistorySpec.maxSize {
+                add(.invalidValue, "\(entryPath).size", "must be 1 to \(HistorySpec.maxSize); using \(min(max(size, 1), HistorySpec.maxSize))")
+            }
+            duration(spec["every"], "\(entryPath).every", default: "the source's refresh")
+        }
+    }
+
+    /// A literal-looking token in a URL or header (EXTENSIBILITY.md 5.3): a
+    /// run of 20 or more of `[A-Za-z0-9_-]` after `Bearer `, `token=` or
+    /// `key=`. Secrets belong in `secrets`, not in the config (the Nix store
+    /// is world-readable).
+    private mutating func secretLiteral(_ text: String, _ path: String) {
+        let lower = text.lowercased()
+        for marker in ["bearer ", "token=", "key="] {
+            var searchStart = lower.startIndex
+            while let range = lower.range(of: marker, range: searchStart..<lower.endIndex) {
+                let run = lower[range.upperBound...].prefix { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_" || $0 == "-") }
+                if run.count >= 20 {
+                    add(.invalidValue, path, "looks like a literal token (secret-literal); define it under \"secrets\" "
+                        + "and write {{ $secrets.<name> }} instead")
+                    return
                 }
-                duration(source["timeout"], "\(path).timeout", default: SourceConfig.defaultTimeout)
-                _ = stringMap(source["env"], "\(path).env")
-            case "calendar":
-                atLeastOne(source["days"], "\(path).days", default: SourceConfig.defaultDays)
-                _ = strings(source["calendars"], "\(path).calendars")
-            default:
-                break
+                searchStart = range.upperBound
             }
         }
     }
+
+    // MARK: Secrets
+
+    private mutating func secrets(_ value: AnyJSON) {
+        guard let entries = object(value, "secrets") else { return }
+        for (name, entry) in entries.sorted(by: { $0.key < $1.key }) {
+            let path = "secrets.\(name)"
+            guard let secret = object(entry, path, "secret ignored") else { continue }
+            checkKeys(secret, ["file", "env", "command"], path, for: "secrets")
+            let given = ["file", "env", "command"].filter { secret[$0] != nil && secret[$0] != .null }
+            if given.isEmpty { add(.missingKey, path, "needs \"file\", \"env\" or \"command\"") }
+            if given.count > 1 { add(.invalidValue, path, "give one of \"file\", \"env\" or \"command\"; \"\(given[0])\" is used") }
+            _ = string(secret["file"], "\(path).file")
+            _ = string(secret["env"], "\(path).env")
+            if let argv = strings(secret["command"], "\(path).command"), argv.isEmpty {
+                add(.invalidValue, "\(path).command", "must not be empty")
+            }
+        }
+    }
+
 
     // MARK: Widgets
 
@@ -206,7 +303,8 @@ private struct Walker {
                 hosts(widget["hosts"], "\(path).hosts")
             case "keyValueList":
                 widgetSource(widget, path, required: false, calendar: false)
-                items(widget["items"], "\(path).items", widgetSource: widget["source"]?.stringValue)
+                items(widget["items"], "\(path).items",
+                      widgetSource: widget["source"]?.stringValue ?? (widget["source"]?.objectValue == nil ? nil : "inline"))
             case "weatherCard":
                 widgetSource(widget, path, required: true, calendar: false)
                 if let fields = stringMap(widget["fields"], "\(path).fields") {
@@ -233,6 +331,12 @@ private struct Walker {
     /// JSON (on Linux, which has no calendar backend yet); the others read
     /// JSON, never a calendar source.
     private mutating func widgetSource(_ widget: [String: AnyJSON], _ path: String, required: Bool, calendar: Bool) {
+        // An inline source (EXTENSIBILITY.md 5.1): checked like a named one.
+        if case .object? = widget["source"] {
+            guard let type = source(widget["source"]!, "\(path).source") else { return }
+            checkReads(type, "\(path).source", calendar: calendar, what: "the inline source")
+            return
+        }
         guard let source = string(widget["source"], "\(path).source") else {
             if required && isAbsent(widget["source"]) { add(.missingKey, path, "missing \"source\"") }
             return
@@ -241,10 +345,17 @@ private struct Walker {
             add(.missingReference, "\(path).source", "no source named \"\(source)\"")
             return
         }
-        if calendar && !["calendar", "command", "http"].contains(type) {
-            add(.invalidValue, "\(path).source", "\"\(source)\" is not a calendar, command or http source")
+        checkReads(type, "\(path).source", calendar: calendar, what: "\"\(source)\"")
+    }
+
+    /// A widget that shows events reads a calendar source, or a command,
+    /// http or file source that returns the same JSON; the others never read
+    /// a calendar source.
+    private mutating func checkReads(_ type: String, _ path: String, calendar: Bool, what: String) {
+        if calendar && !["calendar", "command", "http", "file"].contains(type) {
+            add(.invalidValue, path, "\(what) is not a calendar, command, http or file source")
         } else if !calendar && type == "calendar" {
-            add(.invalidValue, "\(path).source", "\"\(source)\" is a calendar source; this widget reads JSON")
+            add(.invalidValue, path, "\(what) is a calendar source; this widget reads JSON")
         }
     }
 

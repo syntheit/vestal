@@ -173,7 +173,7 @@ final class RuntimeTests: XCTestCase {
         let clock = FakeClock(), fetcher = FakeFetcher()
         let key = "https://a.example"
         let runtime = AppRuntime(config: runtimeConfig(sources: ["a": http(key, refresh: "30m")]),
-                                 fetcher: fetcher, cache: nil, now: { clock.now })
+                                 fetcher: fetcher, cache: nil, now: { clock.now }, jitter: { 1 })
         let events = EventLog(runtime)
         let firstFetch = clock.now
         runtime.startDueJobs()
@@ -206,7 +206,7 @@ final class RuntimeTests: XCTestCase {
         let clock = FakeClock(), fetcher = FakeFetcher()
         fetcher.reply("https://a.example", .error("down"))
         let runtime = AppRuntime(config: runtimeConfig(sources: ["a": http("https://a.example", refresh: "10s")]),
-                                 fetcher: fetcher, cache: nil, now: { clock.now })
+                                 fetcher: fetcher, cache: nil, now: { clock.now }, jitter: { 1 })
         runtime.startDueJobs()
         await waitUntil { runtime.snapshot(.source("a"))?.lastError == "down" }
         clock.advance(10)
@@ -335,7 +335,6 @@ final class RuntimeTests: XCTestCase {
         ]), fetcher: LiveFetcher(calendar: nil), cache: nil, now: { clock.now })
         let expected = [
             "ftp": "unknown source type \"ftp\"",
-            "cal": LiveFetcher.noCalendarBackend,
             "nourl": "needs an http(s) \"url\"",
             "noargv": "needs a non-empty \"argv\"",
         ]
@@ -350,6 +349,12 @@ final class RuntimeTests: XCTestCase {
         for (name, error) in expected {
             XCTAssertEqual(runtime.snapshot(.source(name)), SourceSnapshot(lastError: error), name)
         }
+        // A calendar without `ics` and without a backend (Linux) is not an
+        // error: it yields an empty list, with a note.
+        await waitUntil { runtime.snapshot(.source("cal"))?.data != nil }
+        XCTAssertEqual(runtime.snapshot(.source("cal"))?.data, Data("[]".utf8))
+        XCTAssertEqual(runtime.snapshot(.source("cal"))?.info, LiveFetcher.noCalendarBackend)
+        XCTAssertNil(runtime.snapshot(.source("cal"))?.lastError)
     }
 
     // MARK: Disk cache

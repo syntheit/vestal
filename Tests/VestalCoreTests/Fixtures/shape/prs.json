@@ -1,0 +1,22 @@
+[
+  {
+    "number": 4128,
+    "title": "Fix tray icon on HiDPI",
+    "repository": { "nameWithOwner": "acme/app" },
+    "updatedAt": "2026-09-26T18:02:11Z",
+    "isDraft": false,
+    "url": "https://github.com/acme/app/pull/4128",
+    "milestone": null
+  },
+  {
+    "number": 4131,
+    "title": "Bump deps",
+    "repository": { "nameWithOwner": "acme/lib" },
+    "updatedAt": "2026-09-25T09:00:00Z",
+    "isDraft": true,
+    "url": "https://github.com/acme/lib/pull/4131",
+    "milestone": "v2",
+    "labels": ["deps", "ci"],
+    "odd key": 1.5
+  }
+]

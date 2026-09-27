@@ -258,7 +258,7 @@ final class ConfigLoaderTests: XCTestCase {
         XCTAssertEqual(config.widgets["systems"]?.hosts, [HostConfig(name: LocalHost.shortName, source: "local")])
         XCTAssertEqual(config.sources["calendar"]?.type, "calendar")
         XCTAssertEqual(config.sources["weather"]?.url, "https://wttr.in/?m&format=j1")
-        XCTAssertEqual(Set(config.sources.keys), ["weather", "calendar"])
+        XCTAssertEqual(Set(config.sources.keys), ["weather", "calendar", "system", "media", "claude"])
     }
 
     func testFullExampleLoadsWithoutWarnings() throws {
@@ -294,6 +294,9 @@ final class ConfigLoaderTests: XCTestCase {
                     url: "https://raw.githubusercontent.com/syntheit/exchange-rates/refs/heads/main/rates.json",
                     refresh: "4h", parse: "json"),
                 "calendar": SourceConfig(type: "calendar", refresh: "5m", days: 1),
+                "system": SourceConfig(type: "system"),
+                "media": SourceConfig(type: "media", player: ["auto"]),
+                "claude": SourceConfig(type: "claude"),
             ],
             widgets: [
                 "clock": WidgetConfig(type: "clock", worldClocks: [

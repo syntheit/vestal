@@ -62,8 +62,97 @@ import Glibc
 // MARK: Protocol
 
 /// A request. The raw value is the line sent over the socket.
-public enum IPCCommand: String, CaseIterable, Sendable {
+public enum IPCCommand: String, CaseIterable, Codable, Sendable {
     case toggle, show, hide, reload, status, quit
+    /// v0.4: every source with its state (`vestal sources`).
+    case sources
+    /// v0.4: one source's data, fetched now or cached (`vestal fetch`);
+    /// needs `IPCRequest.source`.
+    case fetch
+}
+
+/// A command with its arguments. On the wire a request without arguments
+/// is its bare command word, as in v0.3, so old servers understand it; one
+/// with arguments is a line of JSON with `cmd` naming the command:
+///
+///     {"cmd":"fetch","raw":true,"source":"system","timeout":10}
+///
+/// Unknown JSON keys are ignored, so newer clients can add some.
+public struct IPCRequest: Codable, Equatable, Sendable {
+    public var command: IPCCommand
+    /// `fetch`: the source's name.
+    public var source: String?
+    /// `fetch`: the data before `transform`.
+    public var raw: Bool?
+    /// `fetch`: the latest snapshot; nothing is fetched.
+    public var cached: Bool?
+    /// `fetch`: seconds the fetch may take.
+    public var timeout: Double?
+
+    enum CodingKeys: String, CodingKey { case command = "cmd", source, raw, cached, timeout }
+
+    public init(_ command: IPCCommand, source: String? = nil, raw: Bool? = nil,
+                cached: Bool? = nil, timeout: Double? = nil) {
+        self.command = command
+        self.source = source
+        self.raw = raw
+        self.cached = cached
+        self.timeout = timeout
+    }
+
+    /// A request line, without its newline: a bare command word or JSON.
+    public init?(line: String) {
+        let text = line.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.hasPrefix("{") {
+            guard let request = try? JSONDecoder().decode(IPCRequest.self, from: Data(text.utf8)) else { return nil }
+            self = request
+        } else {
+            guard let command = IPCCommand(rawValue: text) else { return nil }
+            self.init(command)
+        }
+    }
+
+    /// The line to send, without its newline.
+    public var line: String {
+        guard source != nil || raw != nil || cached != nil || timeout != nil else { return command.rawValue }
+        var object: [String: AnyJSON] = ["cmd": .string(command.rawValue)]
+        if let source { object["source"] = .string(source) }
+        if let raw { object["raw"] = .bool(raw) }
+        if let cached { object["cached"] = .bool(cached) }
+        if let timeout { object["timeout"] = .double(timeout) }
+        return AnyJSON.object(object).canonicalText()
+    }
+}
+
+/// One source as `vestal sources` lists it (EXTENSIBILITY.md 11.4).
+public struct IPCSourceInfo: Codable, Equatable, Sendable {
+    public var name: String
+    public var type: String
+    public var refresh: String
+    /// "always" or "visible".
+    public var when: String
+    /// "config", "builtin", "inline", "adapter" (a v0.3 widget's) or
+    /// "health" (a foyer host).
+    public var origin: String
+    /// The main view's widgets that read it, as `view/widget`.
+    public var usedBy: [String]
+    public var fetchedAt: Date?
+    public var lastError: String?
+    /// A note from the last fetch (an info diagnostic).
+    public var info: String?
+    /// Bytes of data held; nil without data.
+    public var size: Int?
+    /// "ok", "error", "idle" (visible-only and not read, or not yet
+    /// fetched) or "cache" (read from the disk cache: no instance runs).
+    public var status: String
+
+    public init(name: String, type: String, refresh: String, when: String, origin: String,
+                usedBy: [String] = [], fetchedAt: Date? = nil, lastError: String? = nil,
+                info: String? = nil, size: Int? = nil, status: String) {
+        self.name = name; self.type = type; self.refresh = refresh; self.when = when
+        self.origin = origin; self.usedBy = usedBy; self.fetchedAt = fetchedAt
+        self.lastError = lastError; self.info = info; self.size = size; self.status = status
+    }
 }
 
 /// One source as `vestal status` reports it.
@@ -164,16 +253,33 @@ public struct IPCResponse: Codable, Equatable, Sendable {
     public var error: String?
     public var status: IPCStatus?
     public var message: String?
+    /// v0.4: what kind of failure, for the exit status: `not-found` (4).
+    public var code: String?
+    /// v0.4 `sources`: every source.
+    public var sources: [IPCSourceInfo]?
+    /// v0.4 `fetch`: the data (a string for `raw` sources).
+    public var data: AnyJSON?
+    /// v0.4 `fetch`: when that data was fetched.
+    public var fetchedAt: Date?
 
-    public init(ok: Bool, error: String? = nil, status: IPCStatus? = nil, message: String? = nil) {
+    public init(ok: Bool, error: String? = nil, status: IPCStatus? = nil, message: String? = nil,
+                code: String? = nil, sources: [IPCSourceInfo]? = nil, data: AnyJSON? = nil,
+                fetchedAt: Date? = nil) {
         self.ok = ok
         self.error = error
+        self.code = code
         self.status = status
         self.message = message
+        self.sources = sources
+        self.data = data
+        self.fetchedAt = fetchedAt
     }
 
     /// `{"ok":true}`
     public static let ok = IPCResponse(ok: true)
+
+    /// `code` of a failure about something that doesn't exist (exit 4).
+    public static let notFound = "not-found"
 
     /// `{"error":message,"ok":false}`
     public static func failure(_ message: String) -> IPCResponse {
@@ -247,6 +353,11 @@ public enum IPCError: Error, Equatable, CustomStringConvertible {
 // MARK: Socket path
 
 public enum IPC {
+    /// How long a `fetch` request may take when it doesn't say.
+    public static let defaultFetchTimeout: TimeInterval = 30
+    /// The most a `fetch` request may ask for.
+    public static let maxFetchTimeout: TimeInterval = 300
+
     /// Whether `$XDG_RUNTIME_DIR` is honoured: on Linux, not on macOS.
     #if os(macOS)
     public static let usesRuntimeDirectory = false
@@ -335,6 +446,8 @@ public enum IPC {
 /// from any thread, later than the handler returns; only the first call counts.
 public typealias IPCReply = @Sendable (IPCResponse) -> Void
 public typealias IPCHandler = (IPCCommand, @escaping IPCReply) -> Void
+/// The same with the whole request (its arguments), for `IPCServer.forRequests`.
+public typealias IPCRequestHandler = (IPCRequest, @escaping IPCReply) -> Void
 
 /// Listens on the socket and hands each command to `handler` on `queue`.
 ///
@@ -355,7 +468,7 @@ public final class IPCServer: @unchecked Sendable {
     private let paths: [String]
 
     private let handlerQueue: DispatchQueue
-    private let handler: IPCHandler
+    private let handler: IPCRequestHandler
     private let ioTimeout: TimeInterval
     private let replyTimeout: TimeInterval
     private let maxRequestLength: Int
@@ -402,7 +515,7 @@ public final class IPCServer: @unchecked Sendable {
     ///   - maintenanceInterval: how often the socket and lock files are
     ///     checked (and restored if they went missing) and their timestamps
     ///     refreshed.
-    public init(
+    public convenience init(
         paths: [String] = IPC.candidateSocketPaths(),
         queue: DispatchQueue = .main,
         ioTimeout: TimeInterval = 2,
@@ -410,6 +523,36 @@ public final class IPCServer: @unchecked Sendable {
         maxRequestLength: Int = 256,
         maintenanceInterval: TimeInterval = 60,
         handler: @escaping IPCHandler
+    ) {
+        self.init(paths: paths, queue: queue, ioTimeout: ioTimeout, replyTimeout: replyTimeout,
+                  maxRequestLength: maxRequestLength, maintenanceInterval: maintenanceInterval,
+                  requestHandler: { handler($0.command, $1) })
+    }
+
+    /// A server whose handler gets the whole request, arguments included
+    /// (`fetch`'s source). Otherwise as `init(paths:...)`.
+    public static func forRequests(
+        paths: [String] = IPC.candidateSocketPaths(),
+        queue: DispatchQueue = .main,
+        ioTimeout: TimeInterval = 2,
+        replyTimeout: TimeInterval = 4,
+        maxRequestLength: Int = 256,
+        maintenanceInterval: TimeInterval = 60,
+        handler: @escaping IPCRequestHandler
+    ) -> IPCServer {
+        IPCServer(paths: paths, queue: queue, ioTimeout: ioTimeout, replyTimeout: replyTimeout,
+                  maxRequestLength: maxRequestLength, maintenanceInterval: maintenanceInterval,
+                  requestHandler: handler)
+    }
+
+    init(
+        paths: [String],
+        queue: DispatchQueue,
+        ioTimeout: TimeInterval,
+        replyTimeout: TimeInterval,
+        maxRequestLength: Int,
+        maintenanceInterval: TimeInterval,
+        requestHandler handler: @escaping IPCRequestHandler
     ) {
         self.paths = paths.isEmpty ? [IPC.defaultSocketPath()] : paths
         self.path = self.paths[0]
@@ -821,7 +964,7 @@ public final class IPCServer: @unchecked Sendable {
     private func received(_ connection: IPCConnection, line: ArraySlice<UInt8>) {
         stopReading(connection)
         let text = String(decoding: line, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let command = IPCCommand(rawValue: text) else {
+        guard let request = IPCRequest(line: text) else {
             let known = IPCCommand.allCases.map(\.rawValue).joined(separator: ", ")
             respond(connection, .failure(text.isEmpty
                 ? "empty request (expected one of \(known))"
@@ -829,14 +972,19 @@ public final class IPCServer: @unchecked Sendable {
             return
         }
         connection.phase = .handling
-        connection.timer?.schedule(deadline: .now() + replyTimeout)
+        // A fetch may take as long as it asks for (a slow source), and a
+        // little more to reply.
+        let wait = request.command == .fetch
+            ? max(replyTimeout, min((request.timeout ?? IPC.defaultFetchTimeout) + 2, IPC.maxFetchTimeout))
+            : replyTimeout
+        connection.timer?.schedule(deadline: .now() + wait)
         let id = connection.id
         setAwaitingHandler(id, true)
         handlerQueue.async {
             // Skip commands whose client is gone: it timed out (and was told
             // so) or the server stopped. A late toggle would only surprise.
             guard self.isAwaitingHandler(id) else { return }
-            self.handler(command) { response in
+            self.handler(request) { response in
                 // Encode on the replying thread; a big status reply must not
                 // hold up the queue that serves everyone else.
                 let line = [UInt8](response.jsonLine())
@@ -1003,7 +1151,17 @@ public enum IPCClient {
         paths: [String] = IPC.candidateSocketPaths(),
         timeout: TimeInterval = 5
     ) throws -> IPCResponse {
-        let line = try exchange(Data((command.rawValue + "\n").utf8), paths: paths, timeout: timeout)
+        try send(IPCRequest(command), paths: paths, timeout: timeout)
+    }
+
+    /// Sends `request` (a bare word, or JSON when it has arguments); as
+    /// `send(_:paths:timeout:)` otherwise.
+    public static func send(
+        _ request: IPCRequest,
+        paths: [String] = IPC.candidateSocketPaths(),
+        timeout: TimeInterval = 5
+    ) throws -> IPCResponse {
+        let line = try exchange(Data((request.line + "\n").utf8), paths: paths, timeout: timeout)
         do {
             return try IPCResponse(jsonLine: line)
         } catch {

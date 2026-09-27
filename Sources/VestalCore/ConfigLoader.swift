@@ -232,7 +232,8 @@ public enum ConfigLoader {
     /// Decode a merged tree. Never fails: decoding is permissive (see Config),
     /// and a tree that isn't an object gives an empty config.
     public static func decode(_ merged: AnyJSON) -> Config {
-        guard let data = try? JSONEncoder().encode(merged),
+        // Inline source objects become named sources (InlineSources).
+        guard let data = try? JSONEncoder().encode(InlineSources.extract(merged)),
               let config = try? JSONDecoder().decode(Config.self, from: data)
         else { return Config() }
         return config

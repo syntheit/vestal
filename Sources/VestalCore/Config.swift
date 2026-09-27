@@ -25,6 +25,8 @@ public struct Config: Equatable, Sendable {
     public var sources: [String: SourceConfig] = [:]
     public var widgets: [String: WidgetConfig] = [:]
     public var views: [String: ViewConfig] = [:]
+    /// Named secrets for source definitions (EXTENSIBILITY.md 5.3).
+    public var secrets: [String: SecretConfig] = [:]
 
     public init(
         version: Int = 1,
@@ -32,7 +34,8 @@ public struct Config: Equatable, Sendable {
         theme: ThemeConfig = ThemeConfig(),
         sources: [String: SourceConfig] = [:],
         widgets: [String: WidgetConfig] = [:],
-        views: [String: ViewConfig] = [:]
+        views: [String: ViewConfig] = [:],
+        secrets: [String: SecretConfig] = [:]
     ) {
         self.version = version
         self.hotkey = hotkey
@@ -40,6 +43,7 @@ public struct Config: Equatable, Sendable {
         self.sources = sources
         self.widgets = widgets
         self.views = views
+        self.secrets = secrets
     }
 }
 
@@ -53,7 +57,7 @@ extension Config {
 
 extension Config: Codable {
     enum CodingKeys: String, CodingKey {
-        case version, hotkey, theme, sources, widgets, views
+        case version, hotkey, theme, sources, widgets, views, secrets
     }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -63,6 +67,7 @@ extension Config: Codable {
         sources = c.lenientEntries(SourceConfig.self, .sources)
         widgets = c.lenientEntries(WidgetConfig.self, .widgets)
         views   = c.lenientEntries(ViewConfig.self, .views)
+        secrets = c.lenientEntries(SecretConfig.self, .secrets)
     }
 }
 
@@ -93,54 +98,132 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 // `refresh` interval; widgets referencing the same source share the result
 // (dedupe is the runtime's job, not the config's).
 //
-// One flat struct for every type; `type` says which keys apply:
-//   http      url, refresh, parse
-//   command   argv, timeout, refresh, parse, env
-//   calendar  refresh, days, calendars   ("eventkit" is an alias)
+// One flat struct for every type; `type` says which keys apply (besides the
+// common `refresh`, `when`, `transform`, `history`, `maxAge` and `cache`):
+//   http      url, parse, method, headers, body, timeout
+//   command   argv, timeout, parse, env
+//   calendar  days, calendars, ics, timeout   ("eventkit" is an alias)
+//   file      path, parse
+//   system    disks, interfaces
+//   media     player
+//   claude    path, fiveHourLimit, weeklyLimit
+// docs/EXTENSIBILITY.md section 5 is the reference.
 
 public struct SourceConfig: Codable, Equatable, Sendable {
+    /// Keys every type accepts (EXTENSIBILITY.md 5.1).
+    public static let commonKeys: Set<String> = ["refresh", "when", "transform", "history", "maxAge", "cache"]
     /// Keys each type accepts besides `type`.
     public static let keysByType: [String: Set<String>] = [
-        "http": ["url", "refresh", "parse"],
-        "command": ["argv", "timeout", "refresh", "parse", "env"],
-        "calendar": ["refresh", "days", "calendars"],
+        "http": commonKeys.union(["url", "parse", "method", "headers", "body", "timeout"]),
+        "command": commonKeys.union(["argv", "timeout", "parse", "env"]),
+        "calendar": commonKeys.union(["days", "calendars", "ics", "timeout"]),
+        "file": commonKeys.union(["path", "parse"]),
+        "system": commonKeys.union(["disks", "interfaces"]),
+        "media": commonKeys.union(["player"]),
+        "claude": commonKeys.union(["path", "fiveHourLimit", "weeklyLimit"]),
     ]
     public static let aliases = ["eventkit": "calendar"]
-    public static let parseModes = ["json", "raw"]
+    public static let parseModes = ["json", "raw", "lines", "feed"]
+    /// `file` also takes `exists`.
+    public static let fileParseModes = parseModes + ["exists"]
+    public static let whenValues = ["always", "visible"]
+    public static let methods = ["GET", "POST"]
 
     public static let defaultRefresh = "30m"
     public static let defaultTimeout = "10s"
     public static let defaultDays = 1
+    public static let defaultPlayer = "auto"
+    public static let defaultDisks = ["/"]
+    public static let defaultClaudePath = "~/.claude/projects"
 
-    public var type: String                 // "http" | "command" | "calendar" (aliases resolved)
+    /// `refresh` when the source doesn't set it (EXTENSIBILITY.md 5.1).
+    public static func defaultRefresh(for type: String) -> String {
+        switch canonicalType(type) {
+        case "system", "media": return "3s"
+        case "file", "claude": return "30s"
+        default: return defaultRefresh
+        }
+    }
+
+    /// `when` when the source doesn't set it: the platform's live data only
+    /// while the dashboard is shown, everything else always.
+    public static func defaultWhen(for type: String) -> String {
+        switch canonicalType(type) {
+        case "system", "media", "claude": return "visible"
+        default: return "always"
+        }
+    }
+
+    public var type: String                 // a key of `keysByType` (aliases resolved)
     public var url: String?                 // http
-    public var refresh: String = SourceConfig.defaultRefresh // duration: "30s", "5m", "1h", "4h"
-    public var parse: String = "json"       // http, command: "json" | "raw"
+    public var refresh: String              // duration: "30s", "5m", "1h", "4h"; per type by default
+    public var parse: String = "json"       // http, command, file: see `parseModes`
     public var argv: [String]?              // command
-    public var timeout: String = SourceConfig.defaultTimeout // command
+    public var timeout: String = SourceConfig.defaultTimeout // command, http, calendar (ics URLs)
     public var env: [String: String]?       // command: extra environment
     public var days: Int = SourceConfig.defaultDays          // calendar: lookahead in days
     public var calendars: [String]?         // calendar: names to include (nil = all)
 
+    // v0.4 (EXTENSIBILITY.md 5.1, 5.2)
+    public var when: String                 // "always" | "visible"; per type by default
+    public var transform: String?           // jq, applied on read (phase 3)
+    public var history: [String: HistorySpec]?
+    public var maxAge: String?              // duration: older cached data isn't shown at startup
+    public var cache: Bool = true           // false: never written to disk
+    public var method: String = "GET"       // http: "GET" | "POST"
+    public var headers: [String: String]?   // http
+    public var body: AnyJSON?               // http POST: text, or JSON sent as application/json
+    public var path: String?                // file (required); claude (default ~/.claude/projects)
+    public var disks: [String]?             // system: mount points (default ["/"])
+    public var interfaces: [String]?        // system: interfaces to sum (nil: all but loopback)
+    public var player: [String]?            // media: names in order, or ["auto"] (a string decodes as one)
+    public var fiveHourLimit: Int?          // claude
+    public var weeklyLimit: Int?            // claude
+    public var ics: [String]?               // calendar: .ics files, directories or http(s) URLs
+
     enum CodingKeys: String, CodingKey {
         case type, url, refresh, parse, argv, timeout, env, days, calendars
+        case when, transform, history, maxAge, cache, method, headers, body, path
+        case disks, interfaces, player, fiveHourLimit, weeklyLimit, ics
     }
 
     public init(
         type: String,
         url: String? = nil,
-        refresh: String = SourceConfig.defaultRefresh,
+        refresh: String? = nil,
         parse: String = "json",
         argv: [String]? = nil,
         timeout: String = SourceConfig.defaultTimeout,
         env: [String: String]? = nil,
         days: Int = SourceConfig.defaultDays,
-        calendars: [String]? = nil
+        calendars: [String]? = nil,
+        when: String? = nil,
+        transform: String? = nil,
+        history: [String: HistorySpec]? = nil,
+        maxAge: String? = nil,
+        cache: Bool = true,
+        method: String = "GET",
+        headers: [String: String]? = nil,
+        body: AnyJSON? = nil,
+        path: String? = nil,
+        disks: [String]? = nil,
+        interfaces: [String]? = nil,
+        player: [String]? = nil,
+        fiveHourLimit: Int? = nil,
+        weeklyLimit: Int? = nil,
+        ics: [String]? = nil
     ) {
-        self.type = Self.canonicalType(type)
-        self.url = url; self.refresh = refresh; self.parse = parse
+        let type = Self.canonicalType(type)
+        self.type = type
+        self.url = url; self.refresh = refresh ?? Self.defaultRefresh(for: type); self.parse = parse
         self.argv = argv; self.timeout = timeout; self.env = env
         self.days = days; self.calendars = calendars
+        self.when = when ?? Self.defaultWhen(for: type)
+        self.transform = transform; self.history = history; self.maxAge = maxAge; self.cache = cache
+        self.method = method; self.headers = headers; self.body = body; self.path = path
+        self.disks = disks; self.interfaces = interfaces; self.player = player
+        self.fiveHourLimit = fiveHourLimit; self.weeklyLimit = weeklyLimit; self.ics = ics
+        fillDefaults()
     }
 
     public init(from decoder: Decoder) throws {
@@ -149,20 +232,145 @@ public struct SourceConfig: Codable, Equatable, Sendable {
             throw DecodingError.keyNotFound(CodingKeys.type, DecodingError.Context(
                 codingPath: c.codingPath, debugDescription: "a source needs a type"))
         }
-        self.type = Self.canonicalType(type)
+        let canonical = Self.canonicalType(type)
+        self.type = canonical
         url       = c.lenient(String.self, .url)
-        refresh   = c.lenient(String.self, .refresh) ?? Self.defaultRefresh
+        refresh   = c.lenient(String.self, .refresh) ?? Self.defaultRefresh(for: canonical)
         parse     = c.lenient(String.self, .parse) ?? "json"
         argv      = c.lenient([String].self, .argv)
         timeout   = c.lenient(String.self, .timeout) ?? Self.defaultTimeout
         env       = c.lenient([String: String].self, .env)
         days      = c.lenientPositive(.days) ?? Self.defaultDays
         calendars = c.lenient([String].self, .calendars)
+        when      = c.lenient(String.self, .when).flatMap { Self.whenValues.contains($0) ? $0 : nil }
+            ?? Self.defaultWhen(for: canonical)
+        transform = c.lenient(String.self, .transform)
+        history   = c.lenientEntries(HistorySpec.self, .history)
+        if history?.isEmpty == true { history = nil }
+        maxAge    = c.lenient(String.self, .maxAge)
+        cache     = c.lenient(Bool.self, .cache) ?? true
+        method    = c.lenient(String.self, .method).map { $0.uppercased() } ?? "GET"
+        headers   = c.lenient([String: String].self, .headers)
+        body      = c.lenient(AnyJSON.self, .body)
+        path      = c.lenient(String.self, .path)
+        disks     = c.lenient([String].self, .disks)
+        interfaces = c.lenient([String].self, .interfaces)
+        player    = c.lenient([String].self, .player) ?? c.lenient(String.self, .player).map { [$0] }
+        fiveHourLimit = c.lenientPositive(.fiveHourLimit)
+        weeklyLimit = c.lenientPositive(.weeklyLimit)
+        ics       = c.lenient([String].self, .ics) ?? c.lenient(String.self, .ics).map { [$0] }
+        fillDefaults()
+    }
+
+    /// The per-type defaults that are values rather than "absent", so two
+    /// definitions that mean the same have the same canonical JSON.
+    private mutating func fillDefaults() {
+        switch type {
+        case "media":
+            if player?.isEmpty ?? true { player = [Self.defaultPlayer] }
+        case "system":
+            if disks?.isEmpty ?? true { disks = Self.defaultDisks }
+        case "claude":
+            if path == nil { path = Self.defaultClaudePath }
+            if fiveHourLimit == nil { fiveHourLimit = ClaudeUsage.blockLimitTokens }
+            if weeklyLimit == nil { weeklyLimit = ClaudeUsage.weeklyLimitTokens }
+        default:
+            break
+        }
     }
 
     /// `type` with aliases resolved ("eventkit" → "calendar").
     public static func canonicalType(_ type: String) -> String {
         aliases[type] ?? type
+    }
+
+    /// Fetched only while the dashboard is shown.
+    public var isVisibleOnly: Bool { when == "visible" }
+
+    /// `refresh` in seconds; the type's default if it doesn't parse.
+    public var refreshSeconds: TimeInterval {
+        ConfigDuration.seconds(refresh)
+            ?? ConfigDuration.seconds(Self.defaultRefresh(for: type)) ?? 1800
+    }
+
+    /// `timeout` in seconds; 10 if it doesn't parse.
+    public var timeoutSeconds: TimeInterval {
+        ConfigDuration.seconds(timeout) ?? ConfigDuration.seconds(Self.defaultTimeout) ?? 10
+    }
+
+    /// The definition as canonical JSON (CanonicalJSON.swift): every key,
+    /// defaults filled in, text fields as written (a `{{ $secrets.x }}` is
+    /// the name `x`, never its value).
+    public var canonicalJSON: String {
+        let encoder = JSONEncoder()
+        guard let data = try? encoder.encode(self), let tree = AnyJSON.decode(data) else { return "" }
+        return tree.canonicalText()
+    }
+
+    /// SHA-256 of `canonicalJSON`, in hex: what the snapshot cache records,
+    /// and where inline sources get their names.
+    public var definitionHash: String { SHA256.hex(canonicalJSON) }
+
+    /// An inline source's name: `inline:` and the first 8 hex digits of its
+    /// definition hash (EXTENSIBILITY.md 5.1).
+    public var inlineName: String { "inline:" + definitionHash.prefix(8) }
+}
+
+/// One named history of a source (EXTENSIBILITY.md 5.6).
+public struct HistorySpec: Codable, Equatable, Sendable {
+    public static let defaultSize = 120
+    public static let maxSize = 10_000
+
+    /// jq giving the number to record, evaluated against the (transformed)
+    /// data after each successful fetch.
+    public var value: String
+    /// How many samples to keep, 1...10000.
+    public var size: Int = HistorySpec.defaultSize
+    /// The least time between samples (a duration); the source's `refresh`
+    /// when absent.
+    public var every: String?
+
+    enum CodingKeys: String, CodingKey { case value, size, every }
+
+    public init(value: String, size: Int = HistorySpec.defaultSize, every: String? = nil) {
+        self.value = value
+        self.size = min(max(size, 1), Self.maxSize)
+        self.every = every
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        guard let value = c.lenient(String.self, .value) else {
+            throw DecodingError.keyNotFound(CodingKeys.value, DecodingError.Context(
+                codingPath: c.codingPath, debugDescription: "a history needs a value"))
+        }
+        self.value = value
+        size = min(c.lenientPositive(.size) ?? Self.defaultSize, Self.maxSize)
+        every = c.lenient(String.self, .every)
+    }
+}
+
+// MARK: - Secrets
+
+/// One named secret (EXTENSIBILITY.md 5.3): read from a file, an environment
+/// variable or a command's output, once per load, and usable only in source
+/// definitions as `{{ $secrets.<name> }}`.
+public struct SecretConfig: Codable, Equatable, Sendable {
+    public var file: String?
+    public var env: String?
+    public var command: [String]?
+
+    enum CodingKeys: String, CodingKey { case file, env, command }
+
+    public init(file: String? = nil, env: String? = nil, command: [String]? = nil) {
+        self.file = file; self.env = env; self.command = command
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        file    = c.lenient(String.self, .file)
+        env     = c.lenient(String.self, .env)
+        command = c.lenient([String].self, .command)
     }
 }
 

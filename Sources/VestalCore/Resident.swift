@@ -148,7 +148,12 @@ public final class Resident {
 
     /// Answers a command from the CLI.
     public func handle(_ command: IPCCommand, reply: @escaping IPCReply) {
-        switch command {
+        handle(IPCRequest(command), reply: reply)
+    }
+
+    /// Answers a request from the CLI, arguments included.
+    public func handle(_ request: IPCRequest, reply: @escaping IPCReply) {
+        switch request.command {
         case .show:
             show()
             reply(visibilityReply())
@@ -165,6 +170,42 @@ public final class Resident {
         case .quit:
             reply(.ok)
             surface?.quit()
+        case .sources:
+            reply(IPCResponse(ok: true, sources: SourceListing.live(config: loaded.config, runtime: runtime)))
+        case .fetch:
+            fetch(request, reply: reply)
+        }
+    }
+
+    /// `vestal fetch` against this instance: the source's data fetched now
+    /// (or its latest snapshot with `cached`), after `transform` unless
+    /// `raw`. The reply comes when the fetch ends; the runtime keeps the
+    /// result as the source's new snapshot.
+    private func fetch(_ request: IPCRequest, reply: @escaping IPCReply) {
+        guard let name = request.source, !name.isEmpty else {
+            return reply(.failure("fetch needs a source name"))
+        }
+        let key = SourceListing.key(name)
+        guard let source = runtime.source(key) else {
+            let names = runtime.keys.map(\.description)
+            return reply(IPCResponse(ok: false, error: SourceCommands.unknownSourceMessage(name, among: names),
+                                     code: IPCResponse.notFound))
+        }
+        let raw = request.raw ?? false
+        if request.cached == true {
+            guard let snapshot = runtime.snapshot(key), snapshot.data != nil else {
+                return reply(.failure("\(name): no data yet"))
+            }
+            return reply(SourceListing.reply(snapshot, source: source, raw: raw))
+        }
+        let timeout = min(request.timeout ?? IPC.defaultFetchTimeout, IPC.maxFetchTimeout)
+        Task { [runtime] in
+            switch await runtime.fetchNow(key, timeout: timeout) {
+            case .success(let snapshot):
+                reply(SourceListing.reply(snapshot, source: source, raw: raw))
+            case .failure(let error):
+                reply(.failure("\(name): \(error.description)"))
+            }
         }
     }
 
@@ -281,7 +322,7 @@ public final class Resident {
             let snapshot = runtime.snapshot(key)
             switch key {
             case .source(let name):
-                sources.append(IPCSourceStatus(name: name, type: loaded.config.sources[name]?.type ?? "",
+                sources.append(IPCSourceStatus(name: name, type: runtime.source(key)?.type ?? "",
                                                fetchedAt: snapshot?.fetchedAt, lastError: snapshot?.lastError))
             case .host:
                 sources.append(IPCSourceStatus(name: key.description, type: "health",
@@ -313,15 +354,19 @@ public final class ResidentInbox {
     public static let shared = ResidentInbox()
 
     private var resident: Resident?
-    private var waiting: [(command: IPCCommand, reply: IPCReply)] = []
+    private var waiting: [(request: IPCRequest, reply: IPCReply)] = []
 
     public init() {}
 
     public func deliver(_ command: IPCCommand, reply: @escaping IPCReply) {
+        deliver(IPCRequest(command), reply: reply)
+    }
+
+    public func deliver(_ request: IPCRequest, reply: @escaping IPCReply) {
         if let resident {
-            resident.handle(command, reply: reply)
+            resident.handle(request, reply: reply)
         } else {
-            waiting.append((command, reply))
+            waiting.append((request, reply))
         }
     }
 
@@ -330,6 +375,6 @@ public final class ResidentInbox {
         self.resident = resident
         let queued = waiting
         waiting = []
-        for item in queued { resident.handle(item.command, reply: item.reply) }
+        for item in queued { resident.handle(item.request, reply: item.reply) }
     }
 }

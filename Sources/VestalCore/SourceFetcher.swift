@@ -7,13 +7,20 @@ import FoundationNetworking
 //
 // One fetch of one source, for AppRuntime. `LiveFetcher` does the real work:
 // HTTP through URLSession, commands through CommandRunner (an argv, never a
-// shell), calendars through the platform's CalendarProvider. Tests pass their
-// own fetcher.
+// shell), files, ICS calendars, and the platform's providers for `calendar`
+// (EventKit), `system`, `media` and `claude` (SourcePlatform). Tests pass
+// their own fetcher.
 //
 // A fetch either returns the bytes to keep or throws; the runtime keeps the
 // previous data on an error. `json` results must parse, HTTP must answer 2xx
 // and a command must exit 0, so an error page or a failed run never replaces
-// good data.
+// good data. The bytes kept are the parsed data before `transform`: JSON,
+// the text for `raw`, and canonical JSON for `lines`, `feed`, `exists` and
+// the built-in types.
+//
+// Limits (EXTENSIBILITY.md 5.1): an HTTP body, a command's stdout or a file
+// above 10 MiB fails the fetch; a command's stderr is kept to its first
+// 4 KiB, for the error message; a feed keeps its first 500 items.
 
 public protocol SourceFetcher: Sendable {
     /// Why `source` can never be fetched here (a missing url or argv, or a
@@ -22,10 +29,35 @@ public protocol SourceFetcher: Sendable {
     func problem(with source: SourceConfig) -> String?
     /// Fetches once. Runs off the main actor.
     func fetch(_ source: SourceConfig) async throws -> Data
+    /// Fetches once, with a note for `vestal sources` and status (an info
+    /// diagnostic, such as ICS events left out). By default `fetch` with no
+    /// note.
+    func fetchResult(_ source: SourceConfig) async throws -> FetchResult
+    /// Reads `source` synchronously if its type allows (`system`, `file`),
+    /// for the dashboard's first frame; nil otherwise (the default).
+    func fetchNow(_ source: SourceConfig) -> Data?
 }
 
 extension SourceFetcher {
     public func problem(with source: SourceConfig) -> String? { nil }
+
+    public func fetchResult(_ source: SourceConfig) async throws -> FetchResult {
+        FetchResult(data: try await fetch(source))
+    }
+
+    public func fetchNow(_ source: SourceConfig) -> Data? { nil }
+}
+
+/// A successful fetch.
+public struct FetchResult: Equatable, Sendable {
+    public var data: Data
+    /// Something worth saying although it worked; nil usually.
+    public var info: String?
+
+    public init(data: Data, info: String? = nil) {
+        self.data = data
+        self.info = info
+    }
 }
 
 /// A failed fetch, worded for logs and `vestal status`.
@@ -37,63 +69,152 @@ public struct SourceError: Error, Equatable, CustomStringConvertible {
     }
 }
 
-public struct LiveFetcher: SourceFetcher {
-    /// Every HTTP request's timeout.
-    static let httpTimeout: TimeInterval = 10
-
-    /// Serves `calendar` sources; nil where the platform has no calendar.
+/// What the platform gives the built-in source types. Missing pieces make
+/// their sources report unknown values rather than fail.
+public struct SourcePlatform: Sendable {
+    /// EventKit on macOS; nil where only ICS works (Linux).
     public var calendar: CalendarProvider?
-    /// Where a calendar source's range starts.
-    public var now: @Sendable () -> Date
+    /// The `system` source's reader; nil: `system` fails ("not supported").
+    public var system: SystemSampler?
+    /// The `media` source's backend; nil: every player is off.
+    public var media: MediaBackend?
 
-    /// Why a calendar source fails where the platform has no calendar
-    /// (Linux, for now), and what to use instead.
-    public static let noCalendarBackend = "calendar sources are not supported on this platform yet. "
-        + "For an ICS feed or CalDAV, use a \"command\" source (a script, e.g. around `khal list`) "
-        + "or an \"http\" source that returns the events as JSON: a list of "
-        + "{\"title\", \"start\", \"end\", \"allDay\", \"calendar\"}, dates in seconds since 1970; "
-        + "an agendaList widget reads it like a calendar source (docs/CONFIG.md, calendar)"
+    public init(calendar: CalendarProvider? = nil, system: SystemSampler? = nil, media: MediaBackend? = nil) {
+        self.calendar = calendar
+        self.system = system
+        self.media = media
+    }
+}
+
+public struct LiveFetcher: SourceFetcher {
+    /// An HTTP body, command stdout or file above this fails the fetch.
+    public static let maxBytes = 10 * 1024 * 1024
+    /// A command's stderr kept for the error message.
+    public static let maxStderr = 4 * 1024
+
+    public var platform: SourcePlatform
+    /// Serves `calendar` sources without `ics`; nil where the platform has
+    /// no calendar.
+    public var calendar: CalendarProvider? {
+        get { platform.calendar }
+        set { platform.calendar = newValue }
+    }
+    /// Where a calendar source's range starts, and `claude`'s windows end.
+    public var now: @Sendable () -> Date
+    /// False for a draft config (EXTENSIBILITY.md 11.1): `command` sources
+    /// fail with "not loaded (draft: pass --allow-commands)".
+    public var allowCommands: Bool
+    /// False skips HTTP (`--no-network`).
+    public var allowNetwork: Bool
+    public var home: String
+
+    /// The info note of a calendar source without `ics` where there is no
+    /// calendar backend (Linux): it yields `[]` (EXTENSIBILITY.md 5.2).
+    public static let noCalendarBackend = "no calendar backend: set \"ics\" (.ics files, directories or URLs)"
 
     public init(calendar: CalendarProvider? = nil, now: @escaping @Sendable () -> Date = { Date() }) {
-        self.calendar = calendar
+        self.init(platform: SourcePlatform(calendar: calendar), now: now)
+    }
+
+    public init(
+        platform: SourcePlatform,
+        now: @escaping @Sendable () -> Date = { Date() },
+        allowCommands: Bool = true,
+        allowNetwork: Bool = true,
+        home: String = NSHomeDirectory()
+    ) {
+        self.platform = platform
         self.now = now
+        self.allowCommands = allowCommands
+        self.allowNetwork = allowNetwork
+        self.home = home
     }
 
     public func problem(with source: SourceConfig) -> String? {
         switch source.type {
         case "http":
+            // A url with `{{ }}` holes is checked once they are filled.
+            if let url = source.url, LoadTimeText.hasHoles(url) { return nil }
             return Self.httpURL(source.url) == nil ? "needs an http(s) \"url\"" : nil
         case "command":
             return (source.argv ?? []).isEmpty ? "needs a non-empty \"argv\"" : nil
-        case "calendar":
-            return calendar == nil ? Self.noCalendarBackend : nil
+        case "file":
+            return (source.path ?? "").isEmpty ? "needs a \"path\"" : nil
+        case "system":
+            return platform.system == nil ? "system stats are not supported on this platform" : nil
+        case "calendar", "media", "claude":
+            return nil
         default:
             return "unknown source type \"\(source.type)\""
         }
     }
 
     public func fetch(_ source: SourceConfig) async throws -> Data {
+        try await fetchResult(source).data
+    }
+
+    public func fetchResult(_ source: SourceConfig) async throws -> FetchResult {
         if let problem = problem(with: source) { throw SourceError(problem) }
         switch source.type {
-        case "http": return try await fetchHTTP(source)
-        case "command": return try await runCommand(source)
-        default: return try await readCalendar(source)
+        case "http": return FetchResult(data: try await fetchHTTP(source))
+        case "command": return FetchResult(data: try await runCommand(source))
+        case "file": return FetchResult(data: try readFile(source))
+        case "system":
+            guard let system = platform.system else { throw SourceError("system stats are not supported on this platform") }
+            return FetchResult(data: await system.read(source).canonicalData())
+        case "media":
+            let reading = await platform.media?.read(source.player ?? [SourceConfig.defaultPlayer])
+                ?? MediaReading(player: nil, playing: .off, players: [])
+            return FetchResult(data: MediaSource.shape(reading).canonicalData())
+        case "claude":
+            let home = self.home, now = self.now()
+            let data = await Task.detached(priority: .utility) {
+                ClaudeSource.read(source, home: home, now: now).canonicalData()
+            }.value
+            return FetchResult(data: data)
+        default:
+            return try await readCalendar(source)
+        }
+    }
+
+    public func fetchNow(_ source: SourceConfig) -> Data? {
+        switch source.type {
+        case "system": return platform.system?.readNow(source).canonicalData()
+        case "file": return try? readFile(source)
+        default: return nil
         }
     }
 
     // MARK: HTTP
 
     private func fetchHTTP(_ source: SourceConfig) async throws -> Data {
+        guard allowNetwork else { throw SourceError("not loaded (--no-network)") }
         guard let url = Self.httpURL(source.url) else { throw SourceError("needs an http(s) \"url\"") }
-        var request = URLRequest(url: url, timeoutInterval: Self.httpTimeout)
+        let (data, status) = try await Self.download(url, source: source)
+        if let status, !(200..<300).contains(status) { throw SourceError("HTTP \(status)") }
+        return try Self.parsed(data, parse: source.parse)
+    }
+
+    /// One HTTP request with `source`'s method, headers, body and timeout.
+    /// Returns the body (at most `maxBytes`) and the status.
+    static func download(_ url: URL, source: SourceConfig) async throws -> (Data, Int?) {
+        var request = URLRequest(url: url, timeoutInterval: source.timeoutSeconds)
         // wttr.in rejects an empty User-Agent. A stable one also helps with
         // upstream rate limits.
         request.setValue("vestal/\(BuildInfo.version)", forHTTPHeaderField: "User-Agent")
-        let (data, response) = try await URLSession.shared.vestalData(for: request)
-        if let status = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(status) {
-            throw SourceError("HTTP \(status)")
+        request.httpMethod = source.method == "POST" ? "POST" : "GET"
+        if source.method == "POST", let body = source.body {
+            if case .string(let text) = body {
+                request.httpBody = Data(text.utf8)
+            } else {
+                request.httpBody = body.canonicalData()
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            }
         }
-        return try Self.checked(data, parse: source.parse)
+        for (name, value) in source.headers ?? [:] { request.setValue(value, forHTTPHeaderField: name) }
+        let (data, response) = try await URLSession.shared.vestalData(for: request)
+        guard data.count <= maxBytes else { throw SourceError("response larger than 10 MiB") }
+        return (data, (response as? HTTPURLResponse)?.statusCode)
     }
 
     static func httpURL(_ text: String?) -> URL? {
@@ -104,27 +225,113 @@ public struct LiveFetcher: SourceFetcher {
     // MARK: Command
 
     private func runCommand(_ source: SourceConfig) async throws -> Data {
+        guard allowCommands else { throw SourceError("not loaded (draft: pass --allow-commands)") }
         let argv = source.argv ?? []
-        let timeout = ConfigDuration.seconds(source.timeout)
-            ?? ConfigDuration.seconds(SourceConfig.defaultTimeout) ?? 10
-        let result = try await CommandRunner.run(argv, timeout: timeout, environment: source.env ?? [:])
+        let result = try await CommandRunner.run(argv, timeout: source.timeoutSeconds, environment: source.env ?? [:],
+                                                 maxStdout: Self.maxBytes, maxStderr: Self.maxStderr)
         guard result.status == 0 else {
             let firstLine = result.stderrString.split(whereSeparator: \.isNewline).first
                 .map { ": " + $0.trimmingCharacters(in: .whitespaces) } ?? ""
             throw SourceError("\(argv[0]) exited with status \(result.status)\(firstLine)")
         }
-        return try Self.checked(result.stdout, parse: source.parse)
+        return try Self.parsed(result.stdout, parse: source.parse)
+    }
+
+    // MARK: File
+
+    /// `exists` never fails; the other modes fail when the file is missing,
+    /// unreadable or above 10 MiB.
+    private func readFile(_ source: SourceConfig) throws -> Data {
+        let path = CommandRunner.expandTilde(source.path ?? "", home: home)
+        let attributes = try? FileManager.default.attributesOfItem(atPath: path)
+        if source.parse == "exists" {
+            let modified = (attributes?[.modificationDate] as? Date).map { AnyJSON.int(Int($0.timeIntervalSince1970)) }
+            return AnyJSON.object(["exists": .bool(attributes != nil), "modified": modified ?? .null]).canonicalData()
+        }
+        guard let attributes else { throw SourceError("no such file: \(path)") }
+        if let size = (attributes[.size] as? NSNumber)?.intValue, size > Self.maxBytes {
+            throw SourceError("\(path) is larger than 10 MiB")
+        }
+        guard let data = FileManager.default.contents(atPath: path) else { throw SourceError("can't read \(path)") }
+        return try Self.parsed(data, parse: source.parse)
     }
 
     // MARK: Calendar
 
-    private func readCalendar(_ source: SourceConfig) async throws -> Data {
-        guard let calendar else { throw SourceError(Self.noCalendarBackend) }
-        guard await calendar.requestAccess() else { throw SourceError("no access to the calendar") }
+    private func readCalendar(_ source: SourceConfig) async throws -> FetchResult {
         let range = Self.calendarRange(days: source.days, now: now())
+        if let ics = source.ics, !ics.isEmpty {
+            return try await readICS(ics, source: source, range: range)
+        }
+        guard let calendar = platform.calendar else {
+            return FetchResult(data: try CalendarEntry.encodeList([]), info: Self.noCalendarBackend)
+        }
+        guard await calendar.requestAccess() else { throw SourceError("no access to the calendar") }
         let entries = try await calendar.events(from: range.start, to: range.end, calendars: source.calendars)
-        // Sorted, so an unchanged calendar gives the same bytes.
-        return try CalendarEntry.encodeList(entries.sorted { ($0.start, $0.title) < ($1.start, $1.title) })
+        return FetchResult(data: try CalendarEntry.encodeList(Self.sorted(entries)))
+    }
+
+    /// Every `.ics` file, directory of them and URL in `locations`. A file
+    /// in a directory takes the directory's name as its default calendar
+    /// name (vdirsyncer keeps one file per event); a file or URL its own
+    /// name. X-WR-CALNAME wins over both.
+    private func readICS(_ locations: [String], source: SourceConfig, range: (start: Date, end: Date)) async throws -> FetchResult {
+        var entries: [CalendarEntry] = []
+        var skipped: [String] = []
+        for location in locations {
+            var documents: [(text: String, name: String)] = []
+            if let url = Self.httpURL(location) {
+                guard allowNetwork else { throw SourceError("not loaded (--no-network)") }
+                let (data, status) = try await Self.download(url, source: source)
+                if let status, !(200..<300).contains(status) { throw SourceError("\(location): HTTP \(status)") }
+                documents.append((String(decoding: data, as: UTF8.self), Self.baseName(url.lastPathComponent)))
+            } else {
+                let path = CommandRunner.expandTilde(location, home: home)
+                var isDirectory: ObjCBool = false
+                guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) else {
+                    throw SourceError("no such file or directory: \(path)")
+                }
+                if isDirectory.boolValue {
+                    let name = (path as NSString).lastPathComponent
+                    let files = ((try? FileManager.default.contentsOfDirectory(atPath: path)) ?? [])
+                        .filter { $0.lowercased().hasSuffix(".ics") }.sorted()
+                    for file in files {
+                        if let text = try? Self.readText("\(path)/\(file)") { documents.append((text, name)) }
+                    }
+                } else {
+                    documents.append((try Self.readText(path), Self.baseName((path as NSString).lastPathComponent)))
+                }
+            }
+            for document in documents {
+                let result = ICSCalendar.events(in: document.text, defaultCalendar: document.name,
+                                                from: range.start, to: range.end)
+                entries += result.entries
+                skipped += result.skipped
+            }
+        }
+        if let names = source.calendars { entries = entries.filter { names.contains($0.calendar) } }
+        let info = skipped.isEmpty ? nil
+            : "\(skipped.count) event\(skipped.count == 1 ? "" : "s") left out: " + skipped.prefix(3).joined(separator: "; ")
+                + (skipped.count > 3 ? "; …" : "")
+        return FetchResult(data: try CalendarEntry.encodeList(Self.sorted(entries)), info: info)
+    }
+
+    private static func readText(_ path: String) throws -> String {
+        if let size = (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? NSNumber,
+           size.intValue > maxBytes {
+            throw SourceError("\(path) is larger than 10 MiB")
+        }
+        guard let data = FileManager.default.contents(atPath: path) else { throw SourceError("can't read \(path)") }
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    private static func baseName(_ file: String) -> String {
+        file.lowercased().hasSuffix(".ics") ? String(file.dropLast(4)) : file
+    }
+
+    /// Sorted, so an unchanged calendar gives the same bytes.
+    private static func sorted(_ entries: [CalendarEntry]) -> [CalendarEntry] {
+        entries.sorted { ($0.start, $0.title) < ($1.start, $1.title) }
     }
 
     /// From `now` to the end (23:59:59) of the `days`-th day, today being
@@ -137,13 +344,35 @@ public struct LiveFetcher: SourceFetcher {
 
     // MARK: Parsing
 
-    /// `raw` keeps the bytes as they are; anything else must be JSON.
-    static func checked(_ data: Data, parse: String) throws -> Data {
-        guard parse != "raw" else { return data }
-        guard (try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)) != nil else {
-            throw SourceError("not valid JSON")
+    /// `raw` keeps the bytes as they are; `json` must be JSON; `lines` is a
+    /// list of strings (the final newline dropped, CRLF counted as one
+    /// line end); `feed` is RSS, Atom or JSON Feed (FeedParser).
+    static func parsed(_ data: Data, parse: String) throws -> Data {
+        switch parse {
+        case "raw":
+            return data
+        case "lines":
+            // By bytes: "\r\n" is one Character in Swift, so a String split
+            // on "\n" would miss it.
+            var bytes = [UInt8](data)
+            if bytes.last == 0x0A { bytes.removeLast() }
+            let lines = bytes.isEmpty ? [] : bytes.split(separator: 0x0A, omittingEmptySubsequences: false).map { line in
+                String(decoding: line.last == 0x0D ? line.dropLast() : line, as: UTF8.self)
+            }
+            return AnyJSON.array(lines.map { .string($0) }).canonicalData()
+        case "feed":
+            return try FeedParser.parse(data).canonicalData()
+        default:
+            guard (try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)) != nil else {
+                throw SourceError("not valid JSON")
+            }
+            return data
         }
-        return data
+    }
+
+    /// v0.3's name for `parsed`, for the JSON and raw modes.
+    static func checked(_ data: Data, parse: String) throws -> Data {
+        try parsed(data, parse: parse)
     }
 }
 

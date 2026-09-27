@@ -147,8 +147,11 @@ final class LiveFetcherTests: XCTestCase {
 
     func testSourcesThatCanNeverRun() {
         let fetcher = LiveFetcher()
-        XCTAssertEqual(fetcher.problem(with: SourceConfig(type: "calendar")),
-                       LiveFetcher.noCalendarBackend)
+        XCTAssertNil(fetcher.problem(with: SourceConfig(type: "calendar")), "without a backend it yields [] with a note")
+        XCTAssertEqual(fetcher.problem(with: SourceConfig(type: "file")), "needs a \"path\"")
+        XCTAssertEqual(fetcher.problem(with: SourceConfig(type: "system")), "system stats are not supported on this platform")
+        XCTAssertNil(fetcher.problem(with: SourceConfig(type: "media")))
+        XCTAssertNil(fetcher.problem(with: SourceConfig(type: "http", url: "https://x.example/{{ $secrets.k }}")))
         XCTAssertNil(LiveFetcher(calendar: FakeCalendar(entries: [])).problem(with: SourceConfig(type: "calendar")))
         XCTAssertEqual(fetcher.problem(with: SourceConfig(type: "http")), "needs an http(s) \"url\"")
         XCTAssertEqual(fetcher.problem(with: SourceConfig(type: "http", url: "ftp://x.example/a")), "needs an http(s) \"url\"")

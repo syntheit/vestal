@@ -5,10 +5,10 @@ import Foundation
 //
 // VestalCore's platform protocols on Linux, the counterpart of VestalMac's
 // MacPlatform: /proc and /sys for the stats, wpctl for the volume, playerctl
-// for media, the config's command and state file for privacy. There is no
-// calendar backend yet (LiveFetcher explains what to use instead). A Linux UI
-// takes its providers from here; `headless()` is what `vestal daemon` runs
-// with until one exists.
+// for media, the config's command and state file for privacy. Calendars come
+// from ICS only (a `calendar` source without `ics` yields `[]` with a note).
+// A Linux UI takes its providers from here; `headless()` is what
+// `vestal daemon` runs with until one exists.
 
 public enum LinuxPlatform {
     /// One shared instance for a UI's system bar and local host: its CPU and
@@ -16,7 +16,7 @@ public enum LinuxPlatform {
     /// on its own schedule needs its own `LinuxSystemStats`.
     public static let stats: SystemStatsProvider = LinuxSystemStats()
     public static let audio = WirePlumberAudio()
-    /// Nil: calendar sources report `LiveFetcher.noCalendarBackend`.
+    /// Nil: calendar sources read `ics`, or yield `[]` without it.
     public static let calendar: CalendarProvider? = nil
 
     /// A media widget's player.
@@ -24,9 +24,17 @@ public enum LinuxPlatform {
     /// A system bar's privacy toggle.
     public static func privacy(_ config: PrivacyConfig?) -> PrivacyProvider { PrivacyScript(config) }
 
-    /// For `HeadlessApp`: the inotify config watcher, and stats for
-    /// `vestal status` from their own provider, read once now so the first
-    /// status has CPU and network rates since the start.
+    /// What the runtime's built-in sources read: the `system` source's own
+    /// stats provider (kept for the process's lifetime, so a read after a
+    /// long hide is still a delta, EXTENSIBILITY.md 5.4), wpctl, playerctl.
+    public static let sources = SourcePlatform(
+        calendar: calendar,
+        system: SystemSampler(stats: LinuxSystemStats(), audio: WirePlumberAudio()),
+        media: PlayerctlBackend())
+
+    /// For `HeadlessApp`: the sources above, the inotify config watcher, and
+    /// stats for `vestal status` from their own provider, read once now so
+    /// the first status has CPU and network rates since the start.
     public static func headless() -> HeadlessPlatform {
         let stats = LinuxSystemStats()
         _ = stats.cpuPercent()
@@ -34,7 +42,7 @@ public enum LinuxPlatform {
         let audio = WirePlumberAudio()
         audio.refresh()
         return HeadlessPlatform(
-            calendar: calendar,
+            sources: sources,
             watcher: { InotifyConfigWatcher() },
             stats: {
                 // The volume is the previous reading (wpctl is a process);

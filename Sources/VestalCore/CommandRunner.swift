@@ -44,6 +44,8 @@ public enum CommandError: Error, Equatable, CustomStringConvertible {
     case notFound(String)
     case launchFailed(String, String)
     case timedOut(String, TimeInterval)
+    /// stdout went past the caller's limit, in bytes; the child was killed.
+    case outputTooLarge(String, Int)
 
     public var description: String {
         switch self {
@@ -55,6 +57,8 @@ public enum CommandError: Error, Equatable, CustomStringConvertible {
             return "\(name): failed to launch (\(reason))"
         case .timedOut(let name, let seconds):
             return "\(name): timed out after \(Self.format(seconds))s"
+        case .outputTooLarge(let name, let limit):
+            return "\(name): output larger than \(limit / 1024 / 1024) MiB"
         }
     }
 
@@ -127,7 +131,9 @@ public enum CommandRunner {
     public static func run(
         _ argv: [String],
         timeout: TimeInterval = 10,
-        environment overrides: [String: String] = [:]
+        environment overrides: [String: String] = [:],
+        maxStdout: Int? = nil,
+        maxStderr: Int? = nil
     ) async throws -> CommandResult {
         guard let name = argv.first else { throw CommandError.emptyArgv }
         var env = ProcessInfo.processInfo.environment
@@ -143,7 +149,9 @@ public enum CommandRunner {
             executable: executable,
             arguments: argv.dropFirst().map { expandTilde($0, home: home) },
             environment: env,
-            timeout: timeout
+            timeout: timeout,
+            maxStdout: maxStdout,
+            maxStderr: maxStderr
         )
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
@@ -206,6 +214,10 @@ private final class CommandExecution {
 
     private let name: String
     private let timeout: TimeInterval
+    /// Past this stdout fails the run (nil: `maxCapture`, kept quietly).
+    private let maxStdout: Int?
+    /// stderr past this is dropped.
+    private let maxStderr: Int
     private let queue = DispatchQueue(label: "vestal.command")
     private let process = Process()
     private let stdoutPipe = Pipe()
@@ -225,9 +237,11 @@ private final class CommandExecution {
     private var cancelled = false
 
     init(name: String, executable: String, arguments: [String],
-         environment: [String: String], timeout: TimeInterval) {
+         environment: [String: String], timeout: TimeInterval, maxStdout: Int?, maxStderr: Int?) {
         self.name = name
         self.timeout = timeout
+        self.maxStdout = maxStdout
+        self.maxStderr = min(maxStderr ?? Self.maxCapture, Self.maxCapture)
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
         process.environment = environment
@@ -314,11 +328,18 @@ private final class CommandExecution {
 
     private func append(_ bytes: ArraySlice<UInt8>, isStdout: Bool) {
         if isStdout {
+            if let maxStdout, stdoutData.count + bytes.count > maxStdout {
+                guard continuation != nil else { return }
+                killChild()
+                finish(.failure(CommandError.outputTooLarge(name, maxStdout)))
+                return
+            }
             guard stdoutData.count < Self.maxCapture else { return }
             stdoutData.append(contentsOf: bytes)
         } else {
-            guard stderrData.count < Self.maxCapture else { return }
-            stderrData.append(contentsOf: bytes)
+            let room = maxStderr - stderrData.count
+            guard room > 0 else { return }
+            stderrData.append(contentsOf: bytes.prefix(room))
         }
     }
 

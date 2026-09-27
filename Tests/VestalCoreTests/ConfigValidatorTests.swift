@@ -39,7 +39,7 @@ final class ConfigValidatorTests: XCTestCase {
           "extra": 1,
           "theme": {"font": "x"},
           "sources": {
-            "h": {"type": "http", "url": "https://x.example", "headers": {}},
+            "h": {"type": "http", "url": "https://x.example", "cookies": {}},
             "c": {"type": "command", "argv": ["x"], "url": "https://x.example"},
             "k": {"type": "calendar", "parse": "raw"}
           },
@@ -57,7 +57,7 @@ final class ConfigValidatorTests: XCTestCase {
         XCTAssertEqual(found, [
             "extra": .unknownKey,
             "theme.font": .unknownKey,
-            "sources.h.headers": .unknownKey,
+            "sources.h.cookies": .unknownKey,
             "sources.c.url": .unknownKey,
             "sources.k.parse": .unknownKey,
             "widgets.clock.title": .unknownKey,

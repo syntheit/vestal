@@ -1,0 +1,13 @@
+. array[2]
+.[] object
+.[].isDraft boolean  false
+.[].milestone null|string  "v2"
+.[].number number  4128
+.[].repository object
+.[].repository.nameWithOwner string  "acme/app"
+.[].title string  "Fix tray icon on HiDPI"
+.[].updatedAt string  "2026-09-26T18:02:11Z"   (ISO 8601: use to_epoch)
+.[].url string  "https://github.com/acme/app/pull/4128"
+.[].labels array[2]|null
+.[].labels[] string  "deps"
+.[]."odd key" number|null  1.5

@@ -41,8 +41,8 @@ public final class HeadlessSurface: ResidentSurface {
 
 /// What the headless app takes from the platform.
 public struct HeadlessPlatform {
-    /// Serves `calendar` sources; nil where there is no calendar backend.
-    public var calendar: CalendarProvider?
+    /// What the built-in source types read (calendar, system, media).
+    public var sources: SourcePlatform
     /// Watches the config file; nil watches nothing.
     public var watcher: (@MainActor () -> ConfigWatcher)?
     /// This machine's stats for `vestal status`; nil reports none. Called on
@@ -50,11 +50,11 @@ public struct HeadlessPlatform {
     public var stats: (@MainActor () -> SystemStatsSample)?
 
     public init(
-        calendar: CalendarProvider? = nil,
+        sources: SourcePlatform = SourcePlatform(),
         watcher: (@MainActor () -> ConfigWatcher)? = nil,
         stats: (@MainActor () -> SystemStatsSample)? = nil
     ) {
-        self.calendar = calendar
+        self.sources = sources
         self.watcher = watcher
         self.stats = stats
     }
@@ -73,7 +73,7 @@ public enum HeadlessApp {
 
         // Called from main.swift's top-level code, on the main thread.
         MainActor.assumeIsolated {
-            let runtime = AppRuntime(config: config, fetcher: LiveFetcher(calendar: platform.calendar), cache: SnapshotCache())
+            let runtime = AppRuntime(config: config, fetcher: LiveFetcher(platform: platform.sources), cache: SnapshotCache())
             let surface = HeadlessSurface()
             let resident = Resident(loaded: loaded, runtime: runtime, surface: surface,
                                     watcher: platform.watcher?(), stats: platform.stats)

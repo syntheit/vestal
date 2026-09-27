@@ -20,8 +20,10 @@ import Foundation
 //                           included
 //   vestal version | help | check-config [path] | print-config [path]
 //                           local; no instance needed
+//   vestal sources | fetch   the instance if one runs, else local
+//                           (SourceCommands)
 //
-// Exit codes: 0 ok, 1 error or not running, 2 usage.
+// Exit codes: 0 ok, 1 error or not running, 2 usage, 4 not found.
 
 public enum CLI {
     public typealias Output = ConfigCommands.Output
@@ -37,6 +39,10 @@ public enum CLI {
         case help
         case checkConfig([String])
         case printConfig([String])
+        /// `vestal sources ...` (SourceCommands).
+        case sources([String])
+        /// `vestal fetch ...` (SourceCommands).
+        case fetch([String])
     }
 
     public enum Parsed: Equatable, Sendable {
@@ -58,6 +64,8 @@ public enum CLI {
         case "help", "--help", "-h": command = .help
         case "check-config": return .command(.checkConfig(rest))
         case "print-config": return .command(.printConfig(rest))
+        case "sources": return .command(.sources(rest))
+        case "fetch": return .command(.fetch(rest))
         case "status" where rest == ["--json"]: return .command(.statusJSON)
         default:
             guard let ipc = IPCCommand(rawValue: name) else { return .usageError("unknown command '\(name)'") }
@@ -88,11 +96,20 @@ public enum CLI {
           quit                 Quit the running instance
           check-config [path]  Check a config file (default: the one vestal loads)
           print-config [path]  Print the effective config as JSON, defaults merged in
+          sources [--json]     Every source: type, refresh, when, age, status and the
+                               widgets that read it (from the running instance, or
+                               the disk cache when none runs)
+          fetch <name>         Fetch a source now and print its data as JSON;
+                               --shape prints an outline of its paths (--json too),
+                               --raw the data before transform, --cached the last
+                               data without fetching, --local fetches in this
+                               process, --timeout <duration>. See docs/CONFIG.md
           version              Print the version and build
           help                 Show this message
 
         hide, reload, status and quit never start vestal: they exit 1 when it is
-        not running. Exit codes: 0 ok, 1 error or not running, 2 usage.
+        not running. Exit codes: 0 ok, 1 error or not running, 2 usage, 4 unknown
+        source.
         The dashboard UI is macOS-only for now. On Linux vestal runs headless: it
         fetches sources, serves these commands and reports stats, and show, hide
         and toggle only change the visibility it reports.
