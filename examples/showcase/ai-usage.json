@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "widgets": {
+    "usage": { "type": "aiUsage" }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "usage", "agenda"] } }
+}
