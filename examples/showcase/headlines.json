@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "sources": {
+    "hn": { "type": "http", "url": "https://hnrss.org/frontpage?points=100", "parse": "feed", "refresh": "15m" },
+    "lobsters": {
+      "type": "http",
+      "url": "https://lobste.rs/hottest.json",
+      "refresh": "15m",
+      "transform": "map({ id: .short_id, title, url: (if .url == \"\" then .comments_url else .url end), date: (.created_at | to_epoch), tags })"
+    }
+  },
+  "widgets": {
+    "news": {
+      "type": "section",
+      "title": "Headlines",
+      "children": [
+        {
+          "type": "list",
+          "source": "hn",
+          "items": ".items",
+          "limit": 6,
+          "rowId": ".id",
+          "gap": 6,
+          "row": {
+            "type": "row",
+            "gap": 10,
+            "width": "fill",
+            "action": { "open": "{{ .url }}" },
+            "children": [
+              { "type": "badge", "text": "HN", "color": "orange" },
+              { "type": "text", "text": "{{ .title }}", "width": "fill", "lines": 1 },
+              { "type": "text", "text": "{{ .date | fmt_relative }}", "style": { "size": 11, "color": "dim" } }
+            ]
+          }
+        },
+        {
+          "type": "list",
+          "source": "lobsters",
+          "items": ".",
+          "filter": ".tags | any(. == \"meta\") | not",
+          "limit": 4,
+          "rowId": ".id",
+          "gap": 6,
+          "spaceBefore": 10,
+          "row": {
+            "type": "row",
+            "gap": 10,
+            "width": "fill",
+            "action": [ { "open": "{{ .url }}" } ],
+            "children": [
+              { "type": "badge", "text": "L", "color": "red" },
+              { "type": "text", "text": "{{ .title }}", "width": "fill", "lines": 1 },
+              { "type": "text", "text": "{{ .tags | join(\", \") }}", "lines": 1, "style": { "size": 11, "color": "dim" } }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "news", "agenda", "weather"] } }
+}

@@ -49,11 +49,20 @@ let
     else
       cfg.package;
 
-  # PATH for the login service: Nix profiles first, then Homebrew and the
-  # system. Command sources look up their executables here.
+  # Programs the daemon runs besides the user's: on Linux, playerctl for the
+  # media source and wpctl (wireplumber) for volume.
+  platformPackages = lib.optionals isLinux [
+    pkgs.playerctl
+    pkgs.wireplumber
+  ];
+
+  # PATH for the login service: extraPackages and the platform's programs
+  # first, then Nix profiles, Homebrew and the system. Command sources, `run`
+  # actions and command secrets look up their executables here.
   servicePath = lib.concatStringsSep ":" (
     lib.unique (
-      lib.optionals isLinux [ "/run/wrappers/bin" ]
+      map (p: "${lib.getBin p}/bin") (cfg.extraPackages ++ platformPackages)
+      ++ lib.optionals isLinux [ "/run/wrappers/bin" ]
       ++ [
         "${config.home.profileDirectory}/bin"
         "${home}/.nix-profile/bin"
@@ -279,6 +288,20 @@ in
 
         The default, `{ }`, writes no file: vestal then runs on its built-in
         defaults, or on a config file you manage yourself.
+      '';
+    };
+
+    extraPackages = mkOption {
+      type = types.listOf types.package;
+      default = [ ];
+      example = literalExpression "[ pkgs.gh pkgs.curl ]";
+      description = ''
+        Packages whose programs the daemon can run: they come first on the
+        PATH of the launch agent (macOS) or the systemd user service (Linux),
+        where `command` sources, `run` actions and `command` secrets look
+        their programs up. Add what the config calls, such as `gh` or
+        `foyer-api`. On Linux, `playerctl` and `wireplumber` (`wpctl`), which
+        the built-in `media` and `system` sources use, are always added.
       '';
     };
 

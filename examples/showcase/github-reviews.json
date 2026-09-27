@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "sources": {
+    "prs": {
+      "type": "command",
+      "argv": ["gh", "search", "prs", "--review-requested=@me", "--state=open", "--json", "number,title,repository,url,updatedAt,isDraft,author", "--limit", "30"],
+      "refresh": "5m",
+      "timeout": "20s"
+    }
+  },
+  "widgets": {
+    "reviews": {
+      "type": "section",
+      "title": "Review requests ({{ map(select(.isDraft | not)) | length }})",
+      "source": "prs",
+      "children": [
+        {
+          "type": "list",
+          "items": ".",
+          "filter": ".isDraft | not",
+          "sortBy": ".updatedAt | to_epoch",
+          "reverse": true,
+          "limit": 5,
+          "rowId": ".url",
+          "empty": { "type": "text", "text": "Nothing to review", "style": { "color": "dim" } },
+          "row": {
+            "type": "row",
+            "gap": 10,
+            "width": "fill",
+            "action": { "open": "{{ .url }}" },
+            "children": [
+              { "type": "text", "text": "{{ .repository.nameWithOwner }}#{{ .number }}", "width": 170, "lines": 1, "style": { "size": 12, "font": "mono", "color": "subtle" } },
+              { "type": "text", "text": "{{ .title }}", "width": "fill", "lines": 1, "style": { "weight": "medium" } },
+              { "type": "text", "text": "{{ .author.login }}", "style": { "size": 12, "color": "dim" } },
+              { "type": "text", "text": "{{ .updatedAt | fmt_relative }}", "width": 56, "align": "end", "style": { "size": 12, "color": "dim" } }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "keys": { "g": { "open": "https://github.com/pulls/review-requested" } },
+  "views": { "main": { "children": ["clock", "systemBar", "reviews", "agenda", "weather"] } }
+}

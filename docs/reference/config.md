@@ -2,6 +2,8 @@
 
 One JSON file drives vestal on macOS and Linux. `vestal schema` prints its JSON Schema; `vestal check-config` checks a file against it and against the rules below. The key tables after this text are generated from the same registry.
 
+The other topics go deeper: `sources`, `widgets`, `expressions`, `functions`, `templates`, `presets`, `styling`, `icons`, `views`, `keys`, `actions`. Under Home Manager, the same JSON is `programs.vestal.settings` (`vestal docs agents` shows the patterns).
+
 ## Where vestal looks
 
 1. `$VESTAL_CONFIG`, if it is set and not empty. A leading `~/` expands to your home directory.
@@ -21,7 +23,7 @@ The effective config is three layers, each merged over the one before:
 Merging works on the JSON:
 
 - Objects merge key by key, recursively. `{"theme": {"background": "blur"}}` keeps the default palette.
-- Lists and plain values replace the lower layer's. Lists are never concatenated: to add a widget to `views.main.order`, write the whole list.
+- Lists and plain values replace the lower layer's. Lists are never concatenated: to add a widget to `views.main.children`, write the whole list (`vestal print-config` shows the current one).
 - An explicit `null` deletes the key: `{"widgets": {"media": null}}` removes the default media widget.
 - A source or widget named like a default one merges into it, even with another `type`. Use a new name to start clean.
 

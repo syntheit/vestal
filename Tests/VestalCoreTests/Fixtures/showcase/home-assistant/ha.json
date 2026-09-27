@@ -1,0 +1,89 @@
+[
+  {
+    "entity_id": "sensor.living_room_temperature",
+    "state": "21.4",
+    "attributes": {
+      "friendly_name": "Living room",
+      "unit_of_measurement": "°C"
+    },
+    "last_changed": "2026-09-27T16:58:00+00:00"
+  },
+  {
+    "entity_id": "sensor.bedroom_temperature",
+    "state": "19.8",
+    "attributes": {
+      "friendly_name": "Bedroom",
+      "unit_of_measurement": "°C"
+    },
+    "last_changed": "2026-09-27T16:58:00+00:00"
+  },
+  {
+    "entity_id": "binary_sensor.front_door",
+    "state": "off",
+    "attributes": {
+      "friendly_name": "Front door"
+    },
+    "last_changed": "2026-09-27T16:58:00+00:00"
+  },
+  {
+    "entity_id": "sensor.solar_power",
+    "state": "2340",
+    "attributes": {
+      "friendly_name": "Solar",
+      "unit_of_measurement": "W"
+    },
+    "last_changed": "2026-09-27T16:58:00+00:00"
+  },
+  {
+    "entity_id": "sensor.grid_power",
+    "state": "-410",
+    "attributes": {
+      "friendly_name": "Grid",
+      "unit_of_measurement": "W"
+    },
+    "last_changed": "2026-09-27T16:58:00+00:00"
+  },
+  {
+    "entity_id": "sensor.washer_status",
+    "state": "rinsing",
+    "attributes": {
+      "friendly_name": "Washer"
+    },
+    "last_changed": "2026-09-27T16:58:00+00:00"
+  },
+  {
+    "entity_id": "sensor.bathroom_humidity",
+    "state": "64",
+    "attributes": {
+      "friendly_name": "Bathroom humidity",
+      "unit_of_measurement": "%"
+    },
+    "last_changed": "2026-09-27T16:58:00+00:00"
+  },
+  {
+    "entity_id": "sensor.bedroom_humidity",
+    "state": "48",
+    "attributes": {
+      "friendly_name": "Bedroom humidity",
+      "unit_of_measurement": "%"
+    },
+    "last_changed": "2026-09-27T16:58:00+00:00"
+  },
+  {
+    "entity_id": "sensor.living_room_humidity",
+    "state": "51",
+    "attributes": {
+      "friendly_name": "Living room humidity",
+      "unit_of_measurement": "%"
+    },
+    "last_changed": "2026-09-27T16:58:00+00:00"
+  },
+  {
+    "entity_id": "light.kitchen",
+    "state": "on",
+    "attributes": {
+      "friendly_name": "Kitchen"
+    },
+    "last_changed": "2026-09-27T16:58:00+00:00"
+  }
+]

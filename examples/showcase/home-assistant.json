@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "secrets": { "ha": { "file": "~/.config/vestal/secrets/home-assistant.token" } },
+  "functions": { "num": ".state | tonumber? // null" },
+  "sources": {
+    "ha": {
+      "type": "http",
+      "url": "http://homeassistant.local:8123/api/states",
+      "headers": { "Authorization": "Bearer {{ $secrets.ha }}" },
+      "refresh": "1m",
+      "transform": "map({ key: .entity_id, value: { state: .state, name: .attributes.friendly_name, unit: (.attributes.unit_of_measurement // \"\") } }) | from_entries"
+    }
+  },
+  "widgets": {
+    "home": {
+      "type": "section",
+      "title": "Home",
+      "source": "ha",
+      "children": [
+        {
+          "type": "grid",
+          "columns": 3,
+          "gap": 16,
+          "rowGap": 14,
+          "children": [
+            { "type": "stat", "size": "sm", "label": "Living room", "input": ".[\"sensor.living_room_temperature\"]", "value": "num", "format": "fixed:1", "suffix": "°C", "color": { "steps": [[0, "cyan"], [18, "text"], [26, "warn"]] } },
+            { "type": "stat", "size": "sm", "label": "Bedroom", "input": ".[\"sensor.bedroom_temperature\"]", "value": "num", "format": "fixed:1", "suffix": "°C", "color": { "steps": [[0, "cyan"], [18, "text"], [26, "warn"]] } },
+            { "type": "stat", "size": "sm", "label": "Front door", "input": ".[\"binary_sensor.front_door\"]", "value": "if .state == \"on\" then \"Open\" else \"Closed\" end", "color": { "expr": "if .state == \"on\" then \"warn\" else \"good\" end" } },
+            { "type": "stat", "size": "sm", "label": "Solar", "input": ".[\"sensor.solar_power\"]", "value": "num", "format": "compact", "suffix": " W" },
+            { "type": "stat", "size": "sm", "label": "Grid", "input": ".[\"sensor.grid_power\"]", "value": "num", "format": "compact", "suffix": " W", "color": { "steps": [[-100000, "good"], [0, "text"], [3000, "bad"]] } },
+            { "type": "stat", "size": "sm", "label": "Washer", "input": ".[\"sensor.washer_status\"]", "value": ".state", "when": ".state != \"off\"" }
+          ]
+        },
+        {
+          "type": "list",
+          "direction": "grid",
+          "columns": 3,
+          "gap": 12,
+          "spaceBefore": 14,
+          "items": "to_entries | map(select(.key | startswith(\"sensor.\") and endswith(\"_humidity\"))) | map(.value)",
+          "sortBy": ".name",
+          "row": { "type": "stat", "size": "sm", "label": "{{ .name }}", "value": "num", "format": "percent" }
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "home", "agenda", "weather"] } }
+}

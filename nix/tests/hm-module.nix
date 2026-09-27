@@ -254,6 +254,15 @@ let
   # A package from before the Linux daemon.
   linuxNoDaemon = evaluate "x86_64-linux" { package = fake // { supportsDaemon = false; }; };
   linuxDaemon = evaluate "x86_64-linux" { package = fake; };
+  linuxExtra = evaluate "x86_64-linux" {
+    package = fake;
+    extraPackages = [ fakeB ];
+  };
+  darwinExtra = evaluate "aarch64-darwin" { extraPackages = [ fakeB ]; };
+  linuxPkgs = nixpkgs.legacyPackages.x86_64-linux;
+  servicePATH =
+    c:
+    lib.removePrefix "PATH=" (lib.findFirst (lib.hasPrefix "PATH=") "" c.systemd.user.services.vestal.Service.Environment);
   badSettings = evaluate "x86_64-linux" { settings = [ 1 ]; };
 
   # Hyprland: the bind comes from platform.linux.hotkey over the top-level
@@ -402,6 +411,15 @@ let
       ]
       && s.Service.Restart == "on-failure";
     "settings must be an object" = !(passes badSettings);
+
+    "extraPackages: first on the agent PATH" =
+      lib.hasPrefix "${fakeB}/bin:${home}/.nix-profile/bin:" (agent darwinExtra).EnvironmentVariables.PATH;
+    "linux: playerctl and wpctl on the service PATH" =
+      lib.hasPrefix "${lib.getBin linuxPkgs.playerctl}/bin:${lib.getBin linuxPkgs.wireplumber}/bin:/run/wrappers/bin:" (
+        servicePATH linuxDaemon
+      );
+    "linux: extraPackages before playerctl and wpctl" =
+      lib.hasPrefix "${fakeB}/bin:${lib.getBin linuxPkgs.playerctl}/bin:" (servicePATH linuxExtra);
 
     "hyprland: platform.linux hotkey bound, after the user's binds" =
       hyprBinds hyprHome == [

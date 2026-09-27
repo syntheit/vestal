@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "sources": {
+    "media": { "type": "media", "player": ["Spotify", "Music"] }
+  },
+  "widgets": {
+    "media": { "type": "media", "player": "Spotify" },
+    "lock": {
+      "type": "row",
+      "gap": 6,
+      "key": "l",
+      "children": [
+        { "type": "icon", "name": "lock-simple", "size": 12, "color": "subtle" },
+        { "type": "text", "text": "Lock the screen", "style": { "size": 12, "color": "subtle" } },
+        { "type": "text", "text": "L", "padding": [1, 5, 1, 5], "radius": 4, "background": "track", "style": { "size": 10, "font": "mono", "color": "dim" } }
+      ]
+    }
+  },
+  "platform": {
+    "macos": {
+      "widgets": {
+        "lock": { "action": { "run": ["pmset", "displaysleepnow"], "hide": true } }
+      }
+    },
+    "linux": {
+      "theme": { "fonts": { "sans": "Inter", "mono": "JetBrains Mono" } },
+      "sources": { "media": { "player": ["spotify", "mpv"] } },
+      "widgets": {
+        "media": { "player": "spotify" },
+        "lock": { "action": { "run": ["loginctl", "lock-session"], "hide": true } }
+      }
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "media", "agenda", "lock"] } }
+}
