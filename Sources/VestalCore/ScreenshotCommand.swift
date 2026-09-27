@@ -12,9 +12,9 @@ import Foundation
 // config, data modes, `--at` and `--press`), then drawn offscreen by this
 // build's own renderer: SwiftUI's ImageRenderer on macOS (no window, no
 // running instance, no screen-recording permission), GTK on Linux (which
-// needs a Wayland session; without one it exits 5). The desktop blur and
-// the aurora can't be captured: the background is the palette's `bg`
-// (`solid`) or transparent. `--frames` writes every node's frame, with
+// needs a Wayland session; without one it exits 5). The desktop blur can't
+// be captured; on macOS neither can the aurora: the background is the
+// palette's `bg` (`solid`) or transparent (GTK draws its aurora in). `--frames` writes every node's frame, with
 // `clipped` (cut off by the window or a `clip` ancestor) and `truncated`
 // (a text cut by `lines`). It prints the path, or with `--json`
 // `{"path", "width", "height", "scale", "clipped", "truncated"}`. The GTK
