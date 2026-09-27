@@ -30,7 +30,7 @@ struct SystemHealthWidget: View {
                     ramPercent: model.memory.ramPercent,
                     memPressure: model.memory.pressurePercent,
                     cpuTemp: model.temp,
-                    uptimeSecs: Int(ProcessInfo.processInfo.systemUptime)
+                    uptimeSecs: model.fixedLocalUptime ?? Int(ProcessInfo.processInfo.systemUptime)
                 ))
             } else if let remote = model.servers[host.name] {
                 result.append(remote)

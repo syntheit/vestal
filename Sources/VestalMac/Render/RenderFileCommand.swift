@@ -36,7 +36,7 @@ public enum MacRenderFileCommand {
     static let usage = """
     usage: vestal render-file <model.json> [--patch <patch.json>]... [--screenshot <out.png>] [--frames <out.json>]
                               [--size <w>x<h>] [--scale <n>] [--background solid|transparent] [--icons native|phosphor]
-           vestal render-file --legacy <data.json> [--config <config.json>] [--popup <host>] [--screenshot <out.png>] [--size …] [--scale …]
+           vestal render-file --legacy <data.json|fixture dir> [--at <time>] [--config <config.json>] [--popup <host>] [--screenshot <out.png>] [--size …] [--scale …]
     """
 
     struct Options {
@@ -52,6 +52,8 @@ public enum MacRenderFileCommand {
         var legacy: String?
         var config = "examples/full.json"
         var popup: String?
+        /// `--at`: the time for `--legacy <fixture dir>`.
+        var at: Date?
     }
 
     static func parse(_ arguments: [String]) -> Options? {
@@ -85,6 +87,7 @@ public enum MacRenderFileCommand {
             case "--legacy": guard let v = value() else { return nil }; o.legacy = v
             case "--config": guard let v = value() else { return nil }; o.config = v
             case "--popup": guard let v = value() else { return nil }; o.popup = v
+            case "--at": guard let v = value().flatMap(RenderCommands.parseTime) else { return nil }; o.at = v
             case "--interval", "--exit-after": guard value() != nil else { return nil }
             case "--hidden": break
             case let arg where arg.hasPrefix("-"): return nil
@@ -152,6 +155,16 @@ public enum MacRenderFileCommand {
         for (n, patch) in patches.enumerated() where !store.apply(patch) {
             status = fail("patch \(n + 1) (seq \(patch.seq), base \(patch.base)) does not apply; a core would resend the snapshot")
         }
+        _ = draw(store, options: options, status: &status)
+        return status
+    }
+
+    /// Draws `store` offscreen as the app does (the stage over the
+    /// palette's `bg`, or transparent), writing the PNG and the frames the
+    /// options ask for. Returns the frames when `options.frames` is set
+    /// (nil on failure; `status` says why).
+    @MainActor
+    static func draw(_ store: RenderStore, options: Options, status: inout Int32) -> [RenderedFrame]? {
         let collector = options.frames != nil ? FrameCollector() : nil
         let background = options.transparent ? Color.clear : store.style.rgba("bg").withAlpha(1).color
         let content = RenderStageView(store: store)
@@ -159,25 +172,38 @@ public enum MacRenderFileCommand {
             .frame(width: CGFloat(options.width), height: CGFloat(options.height))
             .background(background)
             .environment(\.colorScheme, .dark)
-        if !render(content, options: options, status: &status) { return status }
-        if let path = options.frames, let collector {
-            let frames = collector.frames(of: store, window: CGRect(x: 0, y: 0, width: options.width, height: options.height))
+        if !render(content, options: options, status: &status) { return nil }
+        guard let path = options.frames, let collector else { return nil }
+        let frames = collector.frames(of: store, window: CGRect(x: 0, y: 0, width: options.width, height: options.height))
+        if path != "-" {
             do {
                 let encoder = RenderJSON.encoder
                 encoder.outputFormatting.insert(.prettyPrinted)
                 try encoder.encode(frames).write(to: URL(fileURLWithPath: path))
             } catch {
                 status = fail("could not write \(path): \(error)")
+                return nil
             }
         }
-        return status
+        return frames
     }
 
     @MainActor
     private static func runLegacy(_ options: Options) -> Int32 {
         guard let dataPath = options.legacy else { return 2 }
         var data: LegacyDashboardData
-        do { data = try LegacyDashboardData.load(dataPath) } catch { return fail("\(dataPath): \(error)") }
+        var isDirectory: ObjCBool = false
+        let fixtures = FileManager.default.fileExists(atPath: dataPath, isDirectory: &isDirectory) && isDirectory.boolValue
+        if fixtures {
+            // A render fixture directory: the v0.3 model's values derived
+            // from it, at --at, in the process's zone (TZ).
+            let config = ConfigLoader.load(path: options.config).config
+            do { data = try LegacyDashboardData.fromFixtures(dataPath, config: config, now: options.at ?? Date()) } catch {
+                return fail("\(error)")
+            }
+        } else {
+            do { data = try LegacyDashboardData.load(dataPath) } catch { return fail("\(dataPath): \(error)") }
+        }
         if let host = options.popup { data.popup = host }
         if let zone = data.timeZone {
             setenv("TZ", zone.identifier, 1)
@@ -200,7 +226,7 @@ public enum MacRenderFileCommand {
 
     /// Writes the PNG, if asked. False on failure (status set).
     @MainActor
-    private static func render<V: View>(_ content: V, options: Options, status: inout Int32) -> Bool {
+    static func render<V: View>(_ content: V, options: Options, status: inout Int32) -> Bool {
         let renderer = ImageRenderer(content: content)
         renderer.scale = CGFloat(options.scale)
         renderer.isOpaque = !options.transparent
@@ -209,7 +235,7 @@ public enum MacRenderFileCommand {
             status = fail("could not render")
             return false
         }
-        guard let path = options.screenshot else { return true }
+        guard let path = options.screenshot, path != "-" else { return true }
         let rep = NSBitmapImageRep(cgImage: image)
         rep.size = NSSize(width: options.width, height: options.height)
         guard let png = rep.representation(using: .png, properties: [:]) else {

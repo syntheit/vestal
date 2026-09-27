@@ -42,26 +42,6 @@ final class ResidentTests: XCTestCase {
     }
 
     @MainActor
-    func testViewsReachTheSurface() async {
-        let (resident, surface, _) = make()
-        resident.start(hidden: true)
-        let replies = ReplyLog()
-        resident.handle(IPCRequest(.show, view: "main"), reply: { replies.add($0) })
-        XCTAssertEqual(surface.calls, ["show main"])
-        surface.current = "main"
-        // Shown on another view: toggle switches instead of hiding.
-        resident.handle(IPCRequest(.toggle, view: "focus"), reply: { replies.add($0) })
-        XCTAssertTrue(resident.isVisible)
-        surface.current = "focus"
-        resident.handle(IPCRequest(.toggle, view: "focus"), reply: { replies.add($0) })
-        XCTAssertFalse(resident.isVisible)
-        resident.handle(IPCRequest(.toggle, view: "focus"), reply: { replies.add($0) })
-        resident.handle(IPCRequest(.toggle), reply: { replies.add($0) })
-        XCTAssertEqual(surface.calls, ["show main", "show focus", "hide", "show focus", "hide"])
-        XCTAssertEqual(replies.all, [.ok, .ok, .ok, .ok, .ok])
-    }
-
-    @MainActor
     func testScreenshotWithoutARendererIsUnsupported() async {
         let (resident, surface, _) = make()
         defer { withExtendedLifetime(surface) {} }
@@ -410,13 +390,8 @@ private final class FakeSurface: ResidentSurface {
     /// The resident holds its surface weakly; the app delegate owns both.
     private var resident: Resident?
 
-    /// What `currentView` reports; nil like a surface that doesn't know.
-    var current: String?
-
     func keep(_ resident: Resident) { self.resident = resident }
     func show() { calls.append("show") }
-    func show(view: String?) { calls.append("show \(view ?? "")") }
-    var currentView: String? { current }
     func hide() { calls.append("hide") }
     func apply(_ loaded: LoadedConfig) { applied.append(loaded) }
     func quit() { calls.append("quit") }

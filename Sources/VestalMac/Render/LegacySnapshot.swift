@@ -35,6 +35,8 @@ struct LegacyDashboardData {
     /// The host whose popup is open, if any.
     var popup: String?
     var timeZone: TimeZone?
+    /// The local host's uptime in seconds (nil: this Mac's).
+    var localUptime: Int?
 }
 
 extension LegacyDashboardData {
@@ -121,6 +123,63 @@ extension LegacyDashboardData {
                 dockerRunning: d["docker"] as? Int)
         }
         return data
+    }
+}
+
+extension LegacyDashboardData {
+    /// What the v0.3 model derives, with v0.3's own code, from the render
+    /// fixtures in `dir` (`vestal render --data <dir>`, Fixtures/full) at
+    /// `now`: the same data the render engine draws, for the parity check.
+    /// Sources are `<name>.json` (`<name>.error` for a failed one); the
+    /// v0.3 widgets' inline sources are named by type (`media.json`,
+    /// `claude.json`, `file.json` for the privacy state).
+    static func fromFixtures(_ dir: String, config: Config, now: Date) throws -> LegacyDashboardData {
+        func data(_ name: String) -> Data? { FileManager.default.contents(atPath: "\(dir)/\(name).json") }
+        func json(_ name: String) -> AnyJSON? { data(name).flatMap(AnyJSON.decode) }
+        func failure(_ name: String) -> String? {
+            FileManager.default.contents(atPath: "\(dir)/\(name).error")
+                .map { String(decoding: $0, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines) }
+        }
+        guard let system = json("system").flatMap(SystemReading.init) else {
+            throw LoadError.bad("\(dir): no system.json the v0.3 model can read")
+        }
+        let layout = DashboardLayout(config: config)
+        var d = LegacyDashboardData(
+            time: now, cpu: system.cpuPercent, ram: system.memory.ramPercent, pressure: system.memory.pressurePercent,
+            temp: system.temperature, battery: system.battery, uptime: Format.uptimeLong(Int(system.uptime)),
+            disk: Format.diskFree(system.disk), network: system.network, privacy: [:],
+            claude: json("claude").flatMap(ClaudeSource.usage) ?? .zero,
+            volume: system.volume ?? VolumeInfo(level: 0, muted: false),
+            nowPlaying: [:], weather: [:], keyValues: [:], agenda: [:], servers: [:], details: [:],
+            popup: nil, timeZone: nil, localUptime: Int(system.uptime))
+        let privacy = json("file")?.objectValue?["exists"] == .bool(true)
+        for bar in layout.privacyBars { d.privacy[bar.key] = privacy }
+        for entry in layout.entries {
+            let widget = entry.widget
+            switch entry.kind {
+            case .media:
+                if let media = json("media") { d.nowPlaying[widget.mediaPlayer] = MediaSource.nowPlaying(media) }
+            case .weatherCard:
+                d.weather[entry.key] = widget.source.flatMap(data).flatMap {
+                    AsyncData.parseWeather($0, fields: widget.fields ?? [:], units: widget.units ?? WidgetConfig.Defaults.units)
+                }
+            case .keyValueList:
+                d.keyValues[entry.key] = AsyncData.exchangeRates(for: widget) { data($0) }
+            case .agendaList:
+                d.agenda[entry.key] = AsyncData.agenda(from: widget.source.flatMap(data),
+                                                       maxEvents: widget.maxEvents ?? WidgetConfig.Defaults.maxEvents, now: now)
+            case .clock, .systemBar, .systemHealth, .claudeUsage:
+                break
+            }
+        }
+        for host in layout.hosts where !host.isLocal {
+            let name = host.source ?? "host:\(host.name)"
+            let body = data(name)
+            let snapshot = SourceSnapshot(data: body, fetchedAt: body == nil ? nil : now, lastError: failure(name))
+            if let health = AsyncData.health(name: host.name, snapshot: snapshot) { d.servers[host.name] = health }
+            if let detail = AsyncData.detail(name: host.name, snapshot: snapshot) { d.details[host.name] = detail }
+        }
+        return d
     }
 }
 

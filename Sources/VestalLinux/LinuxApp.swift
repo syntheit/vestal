@@ -12,18 +12,20 @@ import VestalCore
 // between GTK's events. Never `dispatchMain()`: on Linux it drains the main
 // queue on another thread, where `MainActor.assumeIsolated` traps.
 //
-//   Resident ── show/hide/apply/quit ──> LinuxSurface ──> RenderEngine
-//      ^                                     |  snapshot / patch / visibility / effect
-//      └── hide (Escape, `hide` actions) ────┘  v
-//                                          LinuxDashboard ── clicks, keys ──> engine
+//   IPC, Hyprland's bind ──> Resident ── owns ──> RenderEngine
+//                               |                  |  snapshot / patch / visibility / effect
+//                               | show/hide        v
+//                               └──────────> LinuxSurface ──> LinuxDashboard
+//                                                                 | clicks, keys
+//                                              engine.handle <────┘
 //
-// The resident owns visibility (`vestal toggle`, Hyprland's bind): it turns
-// the runtime's polling on and off and tells the surface, which tells the
-// engine. The engine evaluates on show and sends a snapshot, then
-// `visibility`, which maps the window; hiding stops the engine (and its 1 s
-// tick) and unmaps the window after its fade, which stops the aurora. While
-// hidden nothing runs on a timer here: no frames, no evaluation, no
-// visible-only sources.
+// The resident owns visibility and the engine (views, keys, reloads,
+// actions, Escape): `show` turns the runtime's polling on and has the
+// engine evaluate, which sends a snapshot and then `visibility`, which maps
+// the window; `hide` stops the engine (and its 1 s tick) and the polling,
+// and the window unmaps after its fade, which stops the aurora. While hidden
+// nothing here runs on a timer: no frames, no evaluation, no visible-only
+// sources. The surface only draws what the engine sends and forwards input.
 //
 // Without a display (a systemd unit started before the session exported
 // WAYLAND_DISPLAY, or an SSH shell) it exits 1 at once with a message, so
@@ -59,10 +61,12 @@ public enum LinuxApp {
         // Called from main.swift's top-level code, on the main thread.
         MainActor.assumeIsolated {
             let runtime = AppRuntime(config: config, fetcher: LiveFetcher(platform: platform.sources), cache: SnapshotCache())
-            let surface = LinuxSurface(loaded: loaded, runtime: runtime)
+            let surface = LinuxSurface()
+            // media: playerctl, audio: wpctl (RenderActionRunner runs them).
             let resident = Resident(loaded: loaded, runtime: runtime, surface: surface,
-                                    watcher: platform.watcher?(), stats: platform.stats)
-            surface.resident = resident
+                                    watcher: platform.watcher?(), stats: platform.stats,
+                                    actions: RenderActionRunner(media: platform.sources.media, audio: platform.audio))
+            surface.attach(resident)
             let quit: @MainActor () -> Void = {
                 // The socket goes first, so a new instance can start at once;
                 // running fetches are cancelled and running commands killed.
@@ -101,32 +105,31 @@ public enum LinuxApp {
 
 // MARK: - Surface
 
-/// The resident's window on Linux: the GTK dashboard, fed by a render engine.
+/// The resident's window on Linux: the GTK dashboard, drawing what the
+/// resident's render engine sends.
 @MainActor
 final class LinuxSurface: ResidentSurface {
     let dashboard: LinuxDashboard
-    let engine: RenderEngine
-    /// Hides for Escape, `hide` actions and a compositor close. Weak: the
-    /// app holds both.
-    weak var resident: Resident?
     var onQuit: () -> Void = {}
-    private let runtime: AppRuntime
-    private let wpctl = WirePlumberAudio()
-    private let players = PlayerctlBackend()
+    /// Weak: the app holds both, and the resident holds this surface weakly.
+    private weak var resident: Resident?
+    private var engine: RenderEngine? { resident?.engine }
 
-    init(loaded: LoadedConfig, runtime: AppRuntime) {
-        self.runtime = runtime
-        let engine = RenderEngine(runtime: runtime, loaded: loaded)
-        self.engine = engine
-        // GTK calls back on the main thread, inside the main loop.
-        dashboard = LinuxDashboard(send: { [weak engine] input in
-            MainActor.assumeIsolated { engine?.handle(input) }
-        })
-        let runner = RenderActionRunner()
-        runner.media = { [weak self] command, source in self?.runMedia(command, source: source) }
-        runner.audio = { [weak self] command in self?.runAudio(command) }
-        engine.actions = runner
-        engine.onHide = { [weak self] in self?.resident?.hide() }
+    init() {
+        // GTK calls back on the main thread, inside the main loop. Clicks,
+        // keys (Escape included) and a compositor close go to the engine,
+        // which calls back into the resident for `hide`.
+        var send: (RenderInput) -> Void = { _ in }
+        dashboard = LinuxDashboard(send: { send($0) })
+        send = { [weak self] input in
+            MainActor.assumeIsolated { self?.engine?.handle(input) }
+        }
+    }
+
+    /// Starts drawing `resident`'s engine.
+    func attach(_ resident: Resident) {
+        self.resident = resident
+        guard let engine = resident.engine else { return uiLog("linux ui: the resident has no render engine") }
         engine.observe { [weak self] update in
             guard let self else { return }
             switch update {
@@ -134,8 +137,10 @@ final class LinuxSurface: ResidentSurface {
                 self.dashboard.apply(snapshot)
             case .patch(let patch):
                 // Out of step (or an unknown id): ask for the whole model.
-                if !self.dashboard.apply(patch) { self.engine.handle(.snapshot) }
+                if !self.dashboard.apply(patch) { self.engine?.handle(.snapshot) }
             case .visibility(let visible, _):
+                // After the first snapshot of a show, so the window never
+                // maps empty; on hide, the fade and then the unmap.
                 self.dashboard.setVisible(visible, animated: true)
             case .effect(let effect):
                 self.dashboard.perform(effect)
@@ -145,14 +150,13 @@ final class LinuxSurface: ResidentSurface {
 
     // MARK: ResidentSurface
 
-    /// The engine evaluates, sends the snapshot, then `visibility`, which
-    /// maps the window: it never appears empty.
-    func show() { engine.setVisible(true) }
-    func show(view: String?) { engine.show(view: view) }
-    func hide() { engine.setVisible(false) }
-    func apply(_ loaded: LoadedConfig) { engine.apply(loaded) }
+    // The resident has already told the engine; its `visibility` update
+    // maps or unmaps the window.
+    func show() {}
+    func hide() {}
+    // The resident hands the engine the new config; its snapshot redraws.
+    func apply(_ loaded: LoadedConfig) {}
     func quit() { onQuit() }
-    var currentView: String? { engine.view }
 
     /// Shown: what is on screen (a named view must be the one shown).
     /// Hidden: the view rendered now with the runtime's data, drawn in a
@@ -160,12 +164,13 @@ final class LinuxSurface: ResidentSurface {
     /// fetched only while shown (host health) have their last data, if any.
     func screenshot(_ request: IPCRequest, reply: @escaping IPCReply) {
         if dashboard.isVisible {
-            if let view = request.view, view != engine.view {
-                return reply(.failure("the dashboard is showing \"\(engine.view)\"; hide it to capture \"\(view)\", or show that view first"))
+            let current = engine?.view ?? ""
+            if let view = request.view, view != current {
+                return reply(.failure("the dashboard is showing \"\(current)\"; hide it to capture \"\(view)\", or show that view first"))
             }
             return dashboard.capture(model: nil, png: request.path) { [weak self] in self?.finish($0, request, reply) }
         }
-        let view = request.view ?? engine.view
+        let view = request.view ?? engine?.view
         Task { [weak self] in
             guard let snapshot = await self?.resident?.renderSnapshot(view: view) else {
                 return reply(.failure("vestal is quitting"))
@@ -198,52 +203,6 @@ final class LinuxSurface: ResidentSurface {
             data["path"] = request.path.map(AnyJSON.string) ?? .null
             if let frames = request.frames { data["frames"] = .string(frames) }
             reply(IPCResponse(ok: true, data: .object(data)))
-        }
-    }
-
-    // MARK: Actions
-
-    /// `media` actions through playerctl: the player the source chose on its
-    /// last read, else the one its `player` list resolves to now. The source
-    /// is read again shortly after, so the play/pause icon follows.
-    private func runMedia(_ command: String, source: String?) {
-        let name = source ?? "media"
-        let key = SourceListing.key(name)
-        var chosen: String?
-        if let data = runtime.snapshot(key)?.data, case .success(let json) = AnyJSON.parse(data) {
-            chosen = json.objectValue?["player"]?.stringValue
-        }
-        let wanted = runtime.source(key)?.player ?? ["auto"]
-        let backend = players
-        Task { [weak self] in
-            var player = chosen
-            if player == nil { player = await backend.read(wanted).player }
-            guard let player else { return uiLog("media \(command): no player for \(name)") }
-            let provider = backend.provider(for: player)
-            switch command {
-            case "playPause": provider.playPause()
-            case "next": provider.next()
-            case "previous": provider.previous()
-            default: return uiLog("media: unknown command \(command)")
-            }
-            try? await Task.sleep(nanoseconds: 400_000_000)
-            self?.engine.refresh([name])
-        }
-    }
-
-    /// `audio` actions through wpctl, then the `system` source (which has
-    /// the volume) is read again.
-    private func runAudio(_ command: String) {
-        switch command {
-        case "toggleMute": wpctl.toggleMute()
-        case "volumeUp": wpctl.volumeUp()
-        case "volumeDown": wpctl.volumeDown()
-        default: return uiLog("audio: unknown command \(command)")
-        }
-        Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            guard let self, self.runtime.source(.source("system")) != nil else { return }
-            self.engine.refresh(["system"])
         }
     }
 }

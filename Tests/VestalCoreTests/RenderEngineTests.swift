@@ -525,7 +525,7 @@ final class RenderEngineTests: XCTestCase {
                        [.run(argv: ["~/bin/toggle", "false"], env: [:], timeout: nil, refreshAfter: ["s"],
                              optimistic: .object(["exists": .bool(true)]), source: "s")])
         XCTAssertEqual(session.invoke("main/m", data: d, now: Self.now),
-                       [.media("playPause", source: "s"), .refresh(["s"]), .audio("toggleMute"), .hide])
+                       [.media("playPause", source: "s"), .refresh(["s"]), .audio("toggleMute", source: "s"), .hide])
         XCTAssertEqual(session.invoke("main/nothing", data: d, now: Self.now), [])
     }
 

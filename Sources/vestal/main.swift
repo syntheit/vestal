@@ -84,11 +84,21 @@ case .command(.eval(let arguments)):
 case .command(.render(let arguments)):
     emit(RenderCommands.render(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
 
-case .command(.screenshot(let arguments)):
-    emit(ScreenshotCommand.run(arguments, client: { try IPCClient.send($0, timeout: $1) }))
-
 case .command(.explain(let arguments)):
     emit(RenderCommands.explain(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) }))
+
+case .command(.press(let arguments)):
+    emit(PressCommand.run(arguments, platform: sourcePlatform, client: { try IPCClient.send($0, timeout: $1) },
+                          send: { try IPCClient.send($0) }))
+
+case .command(.screenshot(let arguments)):
+    #if os(macOS)
+    exit(MacScreenshotCommand.run(arguments))
+    #else
+    // No renderer in this process: the running dashboard (LinuxApp) draws
+    // it; exit 5 when none runs or it is headless.
+    emit(ScreenshotCommand.run(arguments, client: { try IPCClient.send($0, timeout: $1) }))
+    #endif
 
 case .command(.schema(let arguments)):
     emit(ConfigCommands.schema(arguments))

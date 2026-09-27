@@ -17,7 +17,7 @@ public enum IconMap {
         "clock", "hard-drives", "battery-full", "battery-high", "battery-medium", "battery-low", "battery-empty",
         "battery-charging", "hourglass", "arrow-down", "arrow-up", "microphone", "microphone-slash",
         "video-camera", "video-camera-slash", "play", "pause", "speaker-none", "speaker-low", "speaker-high",
-        "speaker-x", "sun-horizon", "circle",
+        "speaker-x", "sunrise", "sunset", "circle",
     ]
 
     /// The glyph (a one-character string in the icon font) of `name` in
@@ -27,9 +27,14 @@ public enum IconMap {
         codePoint(name, weight: weight).flatMap(Unicode.Scalar.init).map { String(Character($0)) }
     }
 
+    /// vestal's names for glyphs the set shares between two meanings: the
+    /// same glyph here, told apart by native renderers (macOS draws
+    /// `sunrise.fill` and `sunset.fill`). Not in `names`, which is the set's.
+    public static let aliases: [String: String] = ["sunrise": "sun-horizon", "sunset": "sun-horizon"]
+
     /// The code point of `name` in `weight`; nil when there is none.
     public static func codePoint(_ name: String, weight: String) -> UInt32? {
-        guard let entry = table[name] else { return nil }
+        guard let entry = entry(name) else { return nil }
         switch weight {
         case "regular": return entry.regular
         case "fill": return entry.fill
@@ -39,12 +44,12 @@ public enum IconMap {
 
     /// The weights `name` exists in (`regular`, `fill`); empty when unknown.
     public static func weights(_ name: String) -> [String] {
-        guard let entry = table[name] else { return [] }
+        guard let entry = entry(name) else { return [] }
         return (entry.regular != nil ? ["regular"] : []) + (entry.fill != nil ? ["fill"] : [])
     }
 
     /// Whether the bundled set has an icon called `name`.
-    public static func contains(_ name: String) -> Bool { table[name] != nil }
+    public static func contains(_ name: String) -> Bool { entry(name) != nil }
 
     /// Every icon name, sorted.
     public static var names: [String] { sortedNames }
@@ -54,6 +59,10 @@ public enum IconMap {
     private struct Entry {
         var regular: UInt32?
         var fill: UInt32?
+    }
+
+    private static func entry(_ name: String) -> Entry? {
+        table[name] ?? aliases[name].flatMap { table[$0] }
     }
 
     private static let table: [String: Entry] = {

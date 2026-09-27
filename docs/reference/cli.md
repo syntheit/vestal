@@ -1,6 +1,6 @@
 # The vestal command
 
-Every command below except `vestal screenshot` runs headlessly. The dashboard is SwiftUI on macOS and GTK 4 on Linux (a layer-shell surface on Wayland); `--headless` runs the daemon without one.
+Every command below runs headlessly; on Linux, `vestal screenshot` asks the running dashboard to draw. The dashboard is SwiftUI on macOS and GTK 4 on Linux (a layer-shell surface on Wayland); `--headless` runs the daemon without one.
 
 ## Exit codes
 
@@ -24,10 +24,10 @@ With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "..
 | `vestal` | Start the dashboard and show it, or show the instance that runs already. |
 | `vestal daemon` | Start hidden (the launch agent and the systemd service run this). If an instance of this build runs, exit 0; one of another build is asked to quit and replaced. On Linux, with no display to connect to it exits 1 (the service restarts it). |
 | `vestal --headless`, `vestal daemon --headless` | The same without a UI (also `VESTAL_HEADLESS=1`): sources, these commands and stats; show and hide only change the state it reports. |
-| `vestal show [view]`, `vestal toggle [view]` | Show, or show or hide, the dashboard; start vestal if needed. `view` must name a view of the config (exit 4 otherwise); until views can be switched (v0.4), the dashboard shows `main`. |
+| `vestal show [view]`, `vestal toggle [view]` | Show, or show or hide, the dashboard; start vestal if needed. `show` opens `view`, or `defaultView` without one (also when the dashboard is shown on another view). `toggle view` hides the dashboard when it is shown on that view, and otherwise shows that view. `view` must name a view of the config (exit 4 otherwise). |
+| `vestal press <key>` | Send a key to the running dashboard, as if typed on it (`h`, `2`, `tab`, `shift+tab`, `alt+i`, `escape`). Exit 1 when none runs or it is hidden. |
 | `vestal hide`, `vestal reload`, `vestal quit` | Tell the running instance. Exit 1 when none runs; they never start one. |
 | `vestal status [--json]` | The running instance: pid, build, config file, warnings, each source's age and last error, and this machine's stats. |
-| `vestal screenshot <out.png\|-> [--view <name>] [--frames <file.json>] [--json]` | The running dashboard drawn offscreen to a PNG, with its live data (Linux; macOS answers exit 5 until its renderer lands). Shown: what is on screen. Hidden: the view rendered now, with nothing appearing on screen. `--frames` writes every node's frame with `clipped` and `truncated`; `-` for the image writes only the frames. `--json` prints `{path, width, height, scale, clipped, truncated}`. |
 
 ## Config
 
@@ -48,6 +48,16 @@ The effective config: all layers merged, as pretty JSON with sorted keys, before
 `vestal schema [--out <file>] [--config <path>]`
 
 The JSON Schema (draft 2020-12, `$id` `urn:vestal:config:1`) of the config file. Every key has a description, its default, examples, `x-vestal-kind` (`expr`, `text` or `literal`) and `x-vestal-since`. Widgets and sources are a `oneOf` on `type`. `--out` writes it to a file. `--config` will add a config's own templates once templates exist.
+
+## Seeing the result
+
+`vestal press <key> --dry-run [--json] [--view <name>] [--press <key>]... [--config <path>|-] [--cached|--fetch|--data <dir>] [--at <time>]`
+
+Says what a key is bound to and what it would do, without running anything and without an instance: the binding's level (`reserved`, `popup`, `widget` with its node id, `view`, `global`, `view-key`, `tab`), the action as written, and each effect (`run [argv]…`, `open <url>`, `copy "…"`, `refresh …`, `media …`, `audio …`, `hide the dashboard`, `show view …`, `open a popup`). `--press` presses keys first (open a popup, switch views). Exit 1 when the key is unbound.
+
+`vestal screenshot <out.png|-> [--view <name>] [--press <key>]... [--config <path>|-] [--cached|--fetch|--data <dir>] [--at <time>] [--size <w>x<h>] [--scale <n>] [--background solid|transparent] [--frames <file.json>] [--json] [--strict]`
+
+macOS: draws the view offscreen with the dashboard's own renderer, into a PNG. It needs no window, no running instance and no screen-recording permission, and shows nothing. The data is `vestal render`'s. The blur and the aurora can't be captured: the background is the palette's `bg`, or transparent. `--size` defaults to the main screen in points, `--scale` to 2. `--frames` also writes every node's frame with `clipped` and `truncated` flags (`-` as the PNG path writes only the frames). It prints the path, or with `--json` `{"path", "width", "height", "scale", "clipped", "truncated"}`. Linux: `vestal screenshot <out.png|-> [--view <name>] [--frames <file.json>] [--json]` (the other options are macOS-only) asks the running dashboard, which draws the same way with its live data: what is on screen when it is shown, else the view rendered now in a window the compositor maps invisibly (nothing appears, clicks go through). A `--view` other than the one shown is an error while shown. Exit 5 when no dashboard runs, or it is `--headless`.
 
 ## Documentation
 

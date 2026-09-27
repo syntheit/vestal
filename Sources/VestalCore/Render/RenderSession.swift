@@ -110,14 +110,19 @@ public final class RenderSession {
         view = name
     }
 
+    /// Whether the open popup is the built-in info popup (`alt+i`).
+    public internal(set) var infoOpen = false
+
     public func openPopup(_ widget: [String: AnyJSON], width: Double) {
         popup = (widget, width)
         popupChild = nil
+        infoOpen = false
     }
 
     public func closePopup() {
         popup = nil
         popupChild = nil
+        infoOpen = false
     }
 
     /// The model now. `changed` names the sources whose data changed since

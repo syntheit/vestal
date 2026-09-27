@@ -348,12 +348,17 @@ public protocol AudioProvider {
     /// One step (5%) up or down; fire and forget.
     func volumeUp()
     func volumeDown()
+    /// The `audio: toggleMute` action; fire and forget.
+    func toggleMute()
 }
 
 extension AudioProvider {
     public func readVolume() async -> VolumeInfo? { volume() }
     public func volumeUp() {}
     public func volumeDown() {}
+    /// From the current reading. wpctl flips the sink itself instead, since
+    /// its reading may be a poll old.
+    public func toggleMute() { setMuted(!volume().muted) }
 }
 
 // MARK: Privacy

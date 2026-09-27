@@ -4,10 +4,11 @@ import Foundation
 //
 //   vestal screenshot <out.png|-> [--view <name>] [--frames <file.json>] [--json]
 //
-// Asks the running instance, whose UI draws the dashboard offscreen with its
-// live data: what is on screen when it is shown, else the view rendered now
-// in a window the compositor maps but nobody sees (Linux,
-// VestalLinux/LinuxApp.swift). The desktop and its blur can't be captured,
+// The Linux form (macOS renders in this process: VestalMac's
+// MacScreenshotCommand). It asks the running instance, whose GTK dashboard
+// draws it offscreen with its live data: what is on screen when it is
+// shown, else the view rendered now in a window the compositor maps but
+// nobody sees (VestalLinux/LinuxApp.swift). The desktop and its blur can't be captured,
 // so the background is the palette's `bg`. `-` for the image with
 // `--frames` writes only the frames (every node's frame with `clipped` and
 // `truncated`, §10.4).
@@ -15,7 +16,7 @@ import Foundation
 // Prints the image's path, or with `--json`
 // `{"path", "width", "height", "scale", "clipped", "truncated"}` (sizes in
 // points). Exit 5 when nothing can draw it: no instance, a headless one, or
-// the macOS app before phase 6d; 4 for an unknown view.
+// an older build; 4 for an unknown view.
 
 public enum ScreenshotCommand {
     public static let usage = "usage: vestal screenshot <out.png|-> [--view <name>] [--frames <file.json>] [--json]"

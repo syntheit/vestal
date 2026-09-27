@@ -165,7 +165,10 @@ struct RenderText: View {
             .foregroundStyle(style.color(text.color))
             .lineLimit(lines)
             .truncationMode(.tail)
-            .multilineTextAlignment(multiline)
+            // One line is placed by the frame's alignment, which SwiftUI
+            // snaps to the pixel grid as v0.3's `.frame(width:alignment:)`
+            // did; a multiline alignment would place it unsnapped.
+            .multilineTextAlignment(lines == 1 ? .leading : multiline)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: frameAlignment)
     }
 
@@ -237,6 +240,9 @@ struct RenderIcon: View {
 struct BarDrawing: View {
     let bar: RenderNode.Bar
     let style: RenderStyle
+    /// Segment widths snap to device pixels, as v0.3's `.frame(width:)`
+    /// did (SwiftUI rounds frames to the pixel grid).
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
         let color = style.color(bar.color, default: "accent")
@@ -247,7 +253,8 @@ struct BarDrawing: View {
             func segment(_ fraction: Double, _ c: Color) {
                 let f = min(max(fraction, 0), 1)
                 guard f > 0 else { return }
-                let rect = CGRect(x: 0, y: 0, width: size.width * CGFloat(f), height: size.height)
+                let scale = max(displayScale, 1)
+                let rect = CGRect(x: 0, y: 0, width: (size.width * CGFloat(f) * scale).rounded() / scale, height: size.height)
                 context.fill(RoundedRectangle(cornerRadius: radius).path(in: rect), with: .color(c))
             }
             segment(1, track)
