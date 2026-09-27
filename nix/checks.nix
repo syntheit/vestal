@@ -66,14 +66,33 @@ in
           [ "$rc" = 2 ]
         ''
         + lib.optionalString isLinux ''
-          # No dashboard on Linux yet: starting one exits 1, and so do show
-          # and toggle, which would start one. No socket appears.
-          for command in "" daemon show toggle; do
-            rc=0
-            vestal $command 2> /dev/null || rc=$?
-            [ "$rc" = 1 ]
-          done
-          test -z "$(find "$TMPDIR" -maxdepth 1 -name 'vestal-*.sock*' -print -quit)"
+          # The headless daemon (no UI on Linux yet): it takes the socket,
+          # answers status with stats, keeps the visibility show and hide
+          # set while saying there is no UI, reloads, refuses a second
+          # instance, and quits.
+          export XDG_RUNTIME_DIR="$TMPDIR/run" XDG_CONFIG_HOME="$TMPDIR/config" XDG_CACHE_HOME="$TMPDIR/cache"
+          mkdir -m 700 "$XDG_RUNTIME_DIR"
+          vestal daemon 2> daemon.log &
+          daemon=$!
+          for _ in $(seq 100); do vestal status > /dev/null 2>&1 && break; sleep 0.1; done
+          vestal status | tee status
+          grep -qx 'running: pid [0-9]*, hidden' status
+          grep -qx '  cpu: [0-9]*%' status
+          grep -q '^  memory: [0-9]*% used' status
+          vestal status --json | jq -e '.stats.memory.ramPercent >= 0 and (.stats.uptime > 0)' > /dev/null
+          vestal show 2> show.err
+          grep -qxF 'vestal: no UI on this platform yet; the dashboard is now shown' show.err
+          vestal status | grep -qx 'running: pid [0-9]*, shown'
+          vestal toggle 2> /dev/null
+          vestal status | grep -qx 'running: pid [0-9]*, hidden'
+          vestal reload
+          # Same build: a second daemon leaves the first alone and exits 0.
+          vestal daemon 2> second.err
+          grep -q 'already running' second.err
+          vestal quit
+          wait "$daemon"
+          test ! -e "$XDG_RUNTIME_DIR/vestal.sock"
+          grep -q 'running headless' daemon.log
         ''
         + lib.optionalString isDarwin ''
           app=${vestal}/Applications/Vestal.app

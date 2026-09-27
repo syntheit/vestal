@@ -213,9 +213,9 @@ in
       default = true;
       description = ''
         Start vestal hidden (`vestal daemon`) at login and restart it if it
-        crashes. On macOS this is a launchd agent. On Linux it becomes a
-        systemd user service once the package supports a daemon there
-        (`passthru.supportsDaemon`); until then this option does nothing.
+        crashes. On macOS this is a launchd agent. On Linux it is a systemd
+        user service (for packages with `passthru.supportsDaemon`), which
+        runs vestal headless until the Linux UI exists.
       '';
     };
 

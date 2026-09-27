@@ -220,6 +220,8 @@ let
     launchAtLogin = false;
   };
   linux = evaluate "x86_64-linux" { signingIdentity = identity; };
+  # A package from before the Linux daemon.
+  linuxNoDaemon = evaluate "x86_64-linux" { package = fake // { supportsDaemon = false; }; };
   linuxDaemon = evaluate "x86_64-linux" { package = fake; };
   badSettings = evaluate "x86_64-linux" { settings = [ 1 ]; };
 
@@ -279,7 +281,10 @@ let
       !(darwinSignedNoAgent.launchd.agents ? vestal)
       && lib.hasInfix "local agent=''\n" darwinSignedNoAgent.home.activation.vestalSignApp.data;
 
-    "linux: no service until the package has a daemon" = linux.systemd.user.services == { };
+    "linux: the package's daemon as a service" =
+      linux.systemd.user.services.vestal.Service.ExecStart
+      == "${self.packages.x86_64-linux.vestal}/bin/vestal daemon";
+    "linux: no service without daemon support" = linuxNoDaemon.systemd.user.services == { };
     "linux: no launchd agent" = linux.launchd.agents == { };
     "linux: signing identity ignored" =
       !(linux.home.activation ? vestalSignApp) && !(linux.home.activation ? vestalRemoveSignedApp);
