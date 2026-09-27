@@ -3,9 +3,11 @@
 #
 # darwin: $out/Applications/Vestal.app, plus $out/bin/vestal for the CLI.
 # Linux: $out/bin/vestal, the CLI and a headless `vestal daemon` (sources,
-# socket, reload, stats); the Linux UI does not exist yet. Its wrapper puts
-# wpctl (WirePlumber) and playerctl on PATH, after the caller's own, for the
-# volume and media providers.
+# socket, reload, stats), and the GTK 4 UI (VestalLinux; for now reached
+# through `vestal render-file`). Its wrapper puts wpctl (WirePlumber) and
+# playerctl on PATH, after the caller's own, for the volume and media
+# providers. The UI's fonts (Inter, JetBrains Mono, Phosphor) are installed
+# in $out/share/vestal/{fonts,icons}, where the binary looks for them.
 {
   lib,
   stdenv,
@@ -14,6 +16,10 @@
   swiftPackages,
   makeBinaryWrapper,
   writeText,
+  callPackage,
+  pkg-config,
+  inter,
+  jetbrains-mono,
   # Linux runtime tools: `wpctl get-volume` and `playerctl`.
   wireplumber,
   playerctl,
@@ -30,6 +36,10 @@ let
       );
     in
     if m == null then throw "package.nix: no BuildInfo.version found" else builtins.head m;
+
+  # The Linux UI's libraries as one pkg-config module, and its icon fonts.
+  gtkPkgConfig = callPackage ./nix/gtk-pkgconfig.nix { };
+  phosphorFonts = callPackage ./nix/phosphor-fonts.nix { };
 
   # Contents/Info.plist of Vestal.app. Generated rather than templated, so it
   # is well-formed by construction; the flake's `info-plist` check parses it.
@@ -77,7 +87,10 @@ stdenv.mkDerivation {
     swift
     swiftpm
     makeBinaryWrapper
-  ];
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [ pkg-config ];
+
+  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [ gtkPkgConfig ];
 
   # SwiftPM compiles and runs Package.swift, which on Linux needs libdispatch
   # on the library path (nixpkgs' own swift-format does the same).
@@ -128,6 +141,12 @@ stdenv.mkDerivation {
       # --suffix: a wpctl or playerctl the user has on PATH comes first.
       ''
         install -Dm755 "$(swiftpmBinPath)/vestal" "$out/libexec/vestal/vestal"
+        mkdir -p "$out/share/vestal/fonts" "$out/share/vestal/icons"
+        ln -s ${inter}/share/fonts "$out/share/vestal/fonts/inter"
+        ln -s ${jetbrains-mono}/share/fonts/truetype "$out/share/vestal/fonts/jetbrains-mono"
+        ln -s ${phosphorFonts}/share/fonts/truetype/Phosphor.ttf "$out/share/vestal/icons/Phosphor.ttf"
+        ln -s ${phosphorFonts}/share/fonts/truetype/Phosphor-Fill.ttf "$out/share/vestal/icons/Phosphor-Fill.ttf"
+        ln -s ${phosphorFonts}/share/licenses/phosphor-icons/LICENSE "$out/share/vestal/icons/LICENSE"
         makeBinaryWrapper "$out/libexec/vestal/vestal" "$out/bin/vestal" \
           --suffix PATH : ${
             lib.makeBinPath [

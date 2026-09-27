@@ -3,6 +3,9 @@ import VestalCore
 #if os(macOS)
 import VestalMac
 #endif
+#if os(Linux)
+import VestalLinux
+#endif
 
 // MARK: - Entry
 //
@@ -28,6 +31,15 @@ func launchInstance() throws {
     try CLI.spawnDetached(executable: CLI.executablePath)
     #endif
 }
+
+#if os(Linux)
+// The GTK UI's development entry point: draws a render-model JSON file
+// (VestalLinux/RenderFileCommand.swift). Not in `CLI` yet, since it exists
+// only until the render engine drives the UI.
+if CommandLine.arguments.count > 1, CommandLine.arguments[1] == "render-file" {
+    exit(RenderFileCommand.run(Array(CommandLine.arguments.dropFirst(2))))
+}
+#endif
 
 switch CLI.parse(Array(CommandLine.arguments.dropFirst())) {
 case .usageError(let message):
