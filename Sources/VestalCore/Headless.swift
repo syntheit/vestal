@@ -19,6 +19,11 @@ import Glibc
 // say in their reply that nothing is drawn. A UI that runs in this process
 // later replaces `HeadlessSurface` with its window (a `ResidentSurface`) and
 // keeps the rest.
+//
+// The resident's render engine follows that visibility, so UIs in other
+// processes can draw the dashboard over the socket (`vestal subscribe`,
+// SubscriptionHub, EXTENSIBILITY.md §10.7); `ResidentInbox.attach` hands
+// the engine to the hub. Nothing is evaluated while hidden.
 
 /// A `ResidentSurface` that draws nothing.
 @MainActor
@@ -94,6 +99,12 @@ public enum HeadlessApp {
                 exit(0)
             }
             surface.onQuit = quit
+            // No UI in this process takes a `copy`: without a subscribed UI
+            // that can, the engine's action runner does (wl-copy).
+            SubscriptionHub.shared.copyFallback = { [weak resident] text in
+                guard let engine = resident?.engine else { return }
+                engine.actions?.perform(.copy(text), engine: engine)
+            }
             // The resident keeps its surface weakly.
             Holder.shared.surface = surface
             Holder.shared.resident = resident

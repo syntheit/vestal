@@ -24,6 +24,10 @@ import Foundation
 //                           local; no instance needed
 //   vestal sources | fetch   the instance if one runs, else local
 //                           (SourceCommands)
+//   vestal subscribe        stream the running instance's render model
+//                           (SubscribeCommand)
+//   vestal capabilities     what this machine supports (CapabilitiesCommand)
+//   vestal screenshot       render a view to a PNG (ScreenshotCommand)
 //
 // Exit codes (docs/EXTENSIBILITY.md §11.1): 0 ok, 1 error or not running,
 // 2 usage, 3 the config has errors, 4 not found (a view, a docs topic, a
@@ -60,10 +64,14 @@ public enum CLI {
         case render([String])
         /// `vestal explain ...` (RenderCommands).
         case explain([String])
+        /// `vestal subscribe ...` (SubscribeCommand).
+        case subscribe([String])
+        /// `vestal capabilities ...` (CapabilitiesCommand).
+        case capabilities([String])
         /// `vestal press ...` (PressCommand).
         case press([String])
-        /// `vestal screenshot ...` (the platform's renderer: MacScreenshotCommand,
-        /// or on Linux ScreenshotCommand, which asks the running dashboard).
+        /// `vestal screenshot ...`: MacScreenshotCommand on macOS,
+        /// ScreenshotCommand with the GTK renderer on Linux.
         case screenshot([String])
     }
 
@@ -99,6 +107,8 @@ public enum CLI {
         case "eval": return .command(.eval(rest))
         case "render": return .command(.render(rest))
         case "explain": return .command(.explain(rest))
+        case "subscribe": return .command(.subscribe(rest))
+        case "capabilities": return .command(.capabilities(rest))
         case "press": return .command(.press(rest))
         case "screenshot": return .command(.screenshot(rest))
         case "show" where !rest.isEmpty, "toggle" where !rest.isEmpty:
@@ -159,15 +169,24 @@ public enum CLI {
           explain <node id or widget key> [--view <name>] [--json]
                                Everything about one widget: template chain, source,
                                vars, when, fields as written and as resolved
+          capabilities [--json] [--config <path>]
+                               What works on this machine: each built-in source's
+                               backend, icon fonts, screenshots, the hotkey, and the
+                               programs the config runs (found or missing)
+          subscribe [--view <name>] [--while-hidden] [--role ui|observer|control]
+                    [--control] [--input]
+                               Print the running instance's render-model stream
+                               (NDJSON: hello, snapshot, patch, visibility, effect)
           screenshot <out.png> [--view <name>] [--press <key>]... [--at <time>]
                      [--cached|--fetch|--data <dir>] [--size <w>x<h>] [--scale <n>]
                      [--background solid|transparent] [--frames <file.json>] [--json]
                                Draw a view offscreen to a PNG with the dashboard's own
-                               renderer (macOS; no window, no running instance)
-          screenshot <out.png|-> [--view <name>] [--frames <file.json>] [--json]
-                               Linux: the running dashboard draws it offscreen with
-                               its data (while hidden, nothing appears on screen);
-                               exit 5 when none runs or it is --headless
+                               renderer: macOS with no window or running instance;
+                               Linux through the running dashboard (nothing appears
+                               while it is hidden), else with GTK in a Wayland session
+                               (the screen as it is, so no --size, --scale or
+                               --background); --frames writes every node's frame,
+                               clipped and truncated flags
           press <key> [--dry-run]
                                Send a key to the running dashboard, as if typed on
                                it; --dry-run says what it is bound to instead (local,
@@ -193,11 +212,12 @@ public enum CLI {
         hide, reload, status and quit never start vestal: they exit 1 when it is
         not running. Exit codes: 0 ok, 1 error or not running, 2 usage, 3 the
         config has errors (check-config), 4 not found (a view, a docs topic, a
-        source, an icon), 5 not supported here (a screenshot with no UI).
+        source, an icon), 5 not supported here (screenshot without a renderer).
         On Linux the dashboard is a GTK 4 layer-shell surface (Wayland; X11 gets a
-        fullscreen window). Without a display vestal exits 1; --headless runs
-        without a UI: it fetches sources, serves these commands and reports
-        stats, and show, hide and toggle only change the visibility it reports.
+        fullscreen window). Without a display vestal exits 1 (so a service
+        restarts it); --headless runs without a UI: it fetches sources, serves
+        these commands and streams the render model to subscribers (`vestal
+        subscribe`), and show, hide and toggle change the visibility it reports.
 
         The config is read from $VESTAL_CONFIG, else $XDG_CONFIG_HOME/vestal/config.json
         (default ~/.config/vestal/config.json); see docs/CONFIG.md.

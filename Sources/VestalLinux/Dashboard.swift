@@ -336,7 +336,9 @@ public final class LinuxDashboard {
 
     /// `vestal screenshot`: writes the dashboard to `png` (nil: no image) and
     /// hands back its frames. Shown, it is what is on screen, once a fade is
-    /// over (`model` is ignored). Hidden, `model` is drawn in the window
+    /// over; with a `model`, that model is drawn in place first (the caller
+    /// resyncs afterwards; it is normally what is on screen already, from
+    /// the same data). Hidden, `model` is drawn in the window
     /// mapped with opacity 0 and an empty input region (the compositor
     /// shows nothing and every click goes through; keyboard focus is never
     /// taken), laid out, captured and unmapped again, about 0.3 s. A show
@@ -358,19 +360,22 @@ public final class LinuxDashboard {
             gtk_widget_set_opacity(stage.widget, 1)
             gtk_widget_set_visible(window, 1)
             setInputRegion(empty: true)
+        } else if let model {
+            apply(model)
         }
         capturing = true
-        captureStep(attempt: 1, offscreen: offscreen, png: png, completion: completion)
+        captureStep(attempt: 1, offscreen: offscreen, settle: offscreen || model != nil, png: png, completion: completion)
     }
 
     /// Waits (100 ms steps, up to 3 s) until the window is mapped, laid out
     /// and not fading; an offscreen capture waits at least 3 steps, so the
     /// compositor has configured the surface and GTK has laid it out.
-    private func captureStep(attempt: Int, offscreen: Bool, png: String?,
+    /// `settle`: a model was just applied, so wait for a layout pass.
+    private func captureStep(attempt: Int, offscreen: Bool, settle: Bool, png: String?,
                              completion: @escaping (Result<Capture, CaptureError>) -> Void) {
-        // Shown: at once when nothing is fading, so a hide right after the
-        // request can't get in between.
-        afterMilliseconds(attempt == 1 && !offscreen ? 0 : 100) { [weak self] in
+        // Shown as it is: at once when nothing is fading, so a hide right
+        // after the request can't get in between.
+        afterMilliseconds(attempt == 1 && !settle ? 0 : 100) { [weak self] in
             guard let self else { return }
             if !offscreen, !self.isVisible {
                 self.capturing = false
@@ -378,9 +383,10 @@ public final class LinuxDashboard {
                                                         hiddenMeanwhile: true)))
             }
             let ready = gtk_widget_get_mapped(self.stage.widget) != 0 && gtk_widget_get_width(self.window) > 0
-                && self.fadeTick == 0 && (!offscreen || self.isVisible || attempt >= 3)
+                && self.fadeTick == 0 && (!offscreen || self.isVisible || attempt >= 3) && (!settle || attempt >= 2)
             if !ready, attempt < 30 {
-                return self.captureStep(attempt: attempt + 1, offscreen: offscreen, png: png, completion: completion)
+                return self.captureStep(attempt: attempt + 1, offscreen: offscreen, settle: settle, png: png,
+                                        completion: completion)
             }
             var result: Result<Capture, CaptureError>
             if !ready {

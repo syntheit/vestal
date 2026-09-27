@@ -1,0 +1,311 @@
+import Foundation
+
+// MARK: - vestal capabilities (EXTENSIBILITY.md §11.8, TASKS-v0.4 2f)
+//
+//   vestal capabilities [--json] [--config <path>]
+//
+// What works on this machine, for an agent deciding what to put on a
+// dashboard: the OS and UI; for each built-in source type its backend and
+// whether it works here (`system` fields this machine can't read, `media`
+// players seen, `calendar` EventKit or `ics`, `audio`, `claude` logs); the
+// icon fonts found; screenshot and global-hotkey support; and every program
+// the config runs (command sources, secrets, `run` actions, adapter-made
+// hosts), found on PATH or missing. Media is asked of the running instance
+// when there is one (on macOS the app holds the Apple Events permission);
+// otherwise Linux reads it here and macOS reports it unchecked.
+// Exit 0 (1 when the config can't be read, 2 for usage).
+
+public enum CapabilitiesCommand {
+    public typealias Output = ConfigCommands.Output
+
+    /// What main.swift knows about this build.
+    public struct Host: Sendable {
+        /// "macos" or "linux".
+        public var os: String
+        /// The UI linked into this binary, e.g. "SwiftUI"; nil for none.
+        public var ui: String?
+        public var screenshot: Check
+        public var hotkey: Check
+        /// Reads the built-in source types here.
+        public var platform: SourcePlatform
+
+        public init(os: String = CapabilitiesCommand.currentOS, ui: String?, screenshot: Check, hotkey: Check,
+                    platform: SourcePlatform) {
+            self.os = os
+            self.ui = ui
+            self.screenshot = screenshot
+            self.hotkey = hotkey
+            self.platform = platform
+        }
+    }
+
+    /// Whether something works, and a short note why or how.
+    public struct Check: Equatable, Sendable {
+        public var ok: Bool
+        public var detail: String
+        public init(_ ok: Bool, _ detail: String) {
+            self.ok = ok
+            self.detail = detail
+        }
+    }
+
+    static let usage = "usage: vestal capabilities [--json] [--config <path>]"
+
+    /// "macos" or "linux" ($os in expressions).
+    public static var currentOS: String { RenderPass.currentOS }
+
+    public static func run(
+        _ arguments: [String],
+        host: Host,
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        home: String = NSHomeDirectory(),
+        client: SourceCommands.Client,
+        executable: String = CLI.executablePath
+    ) -> Output {
+        var json = false
+        var configPath: String?
+        var rest = arguments[...]
+        while let argument = rest.popFirst() {
+            switch argument {
+            case "--json": json = true
+            case "--config":
+                guard let path = rest.popFirst() else { return Output(status: 2, stderr: "vestal: --config needs a path\n\(usage)\n") }
+                configPath = path
+            default: return Output(status: 2, stderr: "vestal: unknown argument '\(argument)'\n\(usage)\n")
+            }
+        }
+        guard let loaded = SourceCommands.load(configPath, environment: environment, home: home), !loaded.hasErrors else {
+            return Output(status: 1, stderr: "vestal: can't read \(configPath ?? "the config")\n")
+        }
+        let report = gather(loaded: loaded, host: host, environment: environment, home: home, client: client,
+                            executable: executable)
+        return Output(status: 0, stdout: json ? report.prettyPrinted() + "\n" : text(report))
+    }
+
+    // MARK: Gathering
+
+    static func gather(loaded: LoadedConfig, host: Host, environment: [String: String], home: String,
+                       client: SourceCommands.Client, executable: String) -> AnyJSON {
+        let linux = host.os == "linux"
+        let fetcher = LiveFetcher(platform: host.platform, allowCommands: false, allowNetwork: false, home: home)
+        func found(_ program: String) -> String? {
+            CommandRunner.resolveExecutable(program, environment: environment)
+        }
+        func fetchLocal(_ source: SourceConfig) -> AnyJSON? {
+            SourceCommands.blocking { () -> AnyJSON? in
+                guard let result = try? await fetcher.fetchResult(source) else { return nil }
+                guard case .success(let json) = AnyJSON.parse(result.data) else { return nil }
+                return json
+            }
+        }
+        func fetchFromInstance(_ name: String) -> AnyJSON? {
+            guard let response = try? client(IPCRequest(.fetch, source: name, timeout: 5), 8), response.ok else { return nil }
+            return response.data
+        }
+
+        var sources: [String: AnyJSON] = [:]
+
+        // system: which fields this machine can read.
+        let system = fetchLocal(SourceConfig(type: "system"))
+        var unreadable: [String] = []
+        if let top = system?.objectValue {
+            let checks: [(String, AnyJSON?)] = [
+                ("temperature.cpu", top["temperature"]?.objectValue?["cpu"]),
+                ("battery", top["battery"]),
+                ("memory.pressure", top["memory"]?.objectValue?["pressure"]),
+                ("audio.volume", top["audio"]?.objectValue?["volume"]),
+                ("gpu", top["gpu"]),
+            ]
+            unreadable = checks.filter { $0.1 == nil || $0.1 == .null }.map(\.0)
+        }
+        sources["system"] = entry(
+            backend: linux ? "/proc and /sys" : "Mach, IOKit and SMC",
+            Check(system != nil, system == nil ? "the system source can't be read here"
+                  : unreadable.isEmpty ? "every field is readable" : "null here: " + unreadable.joined(separator: ", ")),
+            extra: ["null": .array(unreadable.map(AnyJSON.string))])
+
+        // media: players seen.
+        var mediaData = fetchFromInstance("media")
+        var mediaCheck: Check
+        if linux {
+            let playerctl = found("playerctl")
+            if mediaData == nil, playerctl != nil { mediaData = fetchLocal(SourceConfig(type: "media", player: ["auto"])) }
+            let players = mediaData?.objectValue?["players"]?.arrayValue?.compactMap(\.stringValue) ?? []
+            mediaCheck = playerctl == nil
+                ? Check(false, "playerctl not found on PATH: media shows \"off\"")
+                : Check(true, players.isEmpty ? "no MPRIS player running" : "players: " + players.joined(separator: ", "))
+        } else {
+            let players = mediaData?.objectValue?["players"]?.arrayValue?.compactMap(\.stringValue) ?? []
+            mediaCheck = mediaData == nil
+                ? Check(true, "not checked: asked through the running app (Apple Events permission); start vestal to list players")
+                : Check(true, players.isEmpty ? "no player running (Spotify, Music)" : "players: " + players.joined(separator: ", "))
+        }
+        sources["media"] = entry(backend: linux ? "MPRIS through playerctl" : "AppleScript (Spotify, Music)", mediaCheck,
+                                 extra: ["players": mediaData?.objectValue?["players"] ?? .array([])])
+
+        // calendar: EventKit, or ics.
+        let calendars = loaded.config.sources.filter { SourceConfig.canonicalType($0.value.type) == "calendar" }
+        let withICS = calendars.filter { !($0.value.ics ?? []).isEmpty }.keys.sorted()
+        let calendarCheck: Check
+        if !withICS.isEmpty {
+            calendarCheck = Check(true, "ics files or URLs on: " + withICS.joined(separator: ", "))
+        } else if linux {
+            calendarCheck = Check(false, "no calendar backend: set `ics` (files, a vdirsyncer directory or URLs) on the calendar source")
+        } else {
+            calendarCheck = Check(true, "EventKit: the app asks for calendar access on first use; `ics` works too")
+        }
+        sources["calendar"] = entry(backend: !withICS.isEmpty ? "ics" : linux ? "none" : "EventKit", calendarCheck)
+
+        // audio: the default output.
+        let audioCheck: Check
+        if linux {
+            audioCheck = found("wpctl") == nil
+                ? Check(false, "wpctl not found on PATH: system.audio is null and audio actions do nothing")
+                : unreadable.contains("audio.volume") ? Check(false, "wpctl found, but no default output device")
+                : Check(true, "wpctl (PipeWire)")
+        } else {
+            audioCheck = unreadable.contains("audio.volume") ? Check(false, "no default output device") : Check(true, "CoreAudio")
+        }
+        sources["audio"] = entry(backend: linux ? "wpctl" : "CoreAudio", audioCheck)
+
+        // claude: the logs.
+        let claudeDirs = Set(loaded.config.sources.values
+            .filter { SourceConfig.canonicalType($0.type) == "claude" }
+            .map { $0.path ?? "~/.claude/projects" })
+        let claudeDir = CommandRunner.expandTilde(claudeDirs.sorted().first ?? "~/.claude/projects", home: home)
+        var isDirectory: ObjCBool = false
+        let hasLogs = FileManager.default.fileExists(atPath: claudeDir, isDirectory: &isDirectory) && isDirectory.boolValue
+        sources["claude"] = entry(backend: "Claude Code logs", Check(hasLogs, hasLogs ? claudeDir : "no Claude Code logs at \(claudeDir)"))
+
+        // Icon fonts.
+        let fonts = iconFonts(environment: environment, executable: executable)
+        let iconsCheck = Check(fonts.count == 2, fonts.isEmpty
+            ? "Phosphor fonts not found (set VESTAL_FONT_DIRS); icons draw as nothing" + (linux ? "" : " unless an SF Symbol stands in")
+            : fonts.joined(separator: ", "))
+
+        // Programs the config runs.
+        let programs = programsRun(by: loaded)
+        var programList: [AnyJSON] = []
+        var missing: [String] = []
+        for (program, uses) in programs.sorted(by: { $0.key < $1.key }) {
+            let path = program.contains("{{") ? nil : found(CommandRunner.expandTilde(program, home: home))
+            if path == nil { missing.append(program) }
+            var object: [String: AnyJSON] = [
+                "program": .string(program), "found": .bool(path != nil),
+                "usedBy": .array(uses.sorted().map(AnyJSON.string)),
+            ]
+            if let path { object["path"] = .string(path) }
+            programList.append(.object(object))
+        }
+
+        var report: [String: AnyJSON] = [
+            "os": .string(host.os),
+            "ui": host.ui.map(AnyJSON.string) ?? .null,
+            "config": loaded.path.map(AnyJSON.string) ?? .null,
+            "sources": .object(sources),
+            "icons": .object(["ok": .bool(iconsCheck.ok), "detail": .string(iconsCheck.detail),
+                              "fonts": .array(fonts.map(AnyJSON.string))]),
+            "screenshot": .object(["supported": .bool(host.screenshot.ok), "detail": .string(host.screenshot.detail)]),
+            "hotkey": .object(["supported": .bool(host.hotkey.ok), "detail": .string(host.hotkey.detail)]),
+            "programs": .array(programList),
+            "missing": .array(missing.map(AnyJSON.string)),
+        ]
+        report["instance"] = .bool((try? client(IPCRequest(.status), 3))?.ok == true)
+        return .object(report)
+    }
+
+    static func entry(backend: String, _ check: Check, extra: [String: AnyJSON] = [:]) -> AnyJSON {
+        var object: [String: AnyJSON] = ["backend": .string(backend), "ok": .bool(check.ok), "detail": .string(check.detail)]
+        object.merge(extra) { a, _ in a }
+        return .object(object)
+    }
+
+    /// The Phosphor font files the UIs would load: `$VESTAL_FONT_DIRS`,
+    /// the app bundle's `Contents/Resources/Fonts`, and `share/vestal/icons`
+    /// next to the executable.
+    static func iconFonts(environment: [String: String], executable: String) -> [String] {
+        var dirs: [String] = []
+        if let env = environment["VESTAL_FONT_DIRS"] { dirs += env.split(separator: ":").map(String.init) }
+        let exe = URL(fileURLWithPath: executable).resolvingSymlinksInPath().deletingLastPathComponent()
+        dirs.append(exe.appendingPathComponent("../Resources/Fonts").standardized.path)
+        for up in ["..", "../.."] {
+            dirs.append(exe.appendingPathComponent(up).appendingPathComponent("share/vestal/icons").standardized.path)
+        }
+        var found: [String] = []
+        for name in ["Phosphor.ttf", "Phosphor-Fill.ttf"] {
+            if let dir = dirs.first(where: { FileManager.default.fileExists(atPath: $0 + "/" + name) }) {
+                found.append(dir + "/" + name)
+            }
+        }
+        return found
+    }
+
+    /// Program (argv[0] as written) → where the config runs it: command
+    /// sources (including template-made and adapter-made ones), `command`
+    /// secrets, and `run` actions anywhere in the expanded config.
+    static func programsRun(by loaded: LoadedConfig) -> [String: Set<String>] {
+        var programs: [String: Set<String>] = [:]
+        for (name, source) in loaded.expanded.sources where SourceConfig.canonicalType(source.type) == "command" {
+            if let program = source.argv?.first, !program.isEmpty { programs[program, default: []].insert("source \(name)") }
+        }
+        for (name, secret) in loaded.config.secrets {
+            if let program = secret.command?.first, !program.isEmpty { programs[program, default: []].insert("secret \(name)") }
+        }
+        func visit(_ value: AnyJSON, _ path: [String]) {
+            switch value {
+            case .object(let object):
+                if case .array(let argv)? = object["run"], let program = argv.first?.stringValue, !program.isEmpty {
+                    programs[program, default: []].insert("action at /" + path.joined(separator: "/"))
+                }
+                for (key, child) in object where !key.hasPrefix("$") { visit(child, path + [key]) }
+            case .array(let items):
+                for (i, child) in items.enumerated() { visit(child, path + [String(i)]) }
+            default:
+                break
+            }
+        }
+        let top = loaded.expanded.top
+        for key in ["widgets", "views", "keys", "templates"] {
+            if let value = top[key] { visit(value, [key]) }
+        }
+        return programs
+    }
+
+    // MARK: Text
+
+    static func text(_ report: AnyJSON) -> String {
+        let top = report.objectValue ?? [:]
+        func string(_ value: AnyJSON?) -> String { value?.stringValue ?? "" }
+        func mark(_ ok: Bool) -> String { ok ? "ok  " : "no  " }
+        var lines = ["os: \(string(top["os"]))" + (top["ui"]?.stringValue.map { ", UI: \($0)" } ?? ", no UI in this build")]
+        lines.append("config: \(top["config"]?.stringValue ?? "built-in defaults")")
+        lines.append("instance: " + (top["instance"] == .bool(true) ? "running" : "not running"))
+        lines.append("sources:")
+        let sources = top["sources"]?.objectValue ?? [:]
+        let width = sources.keys.map(\.count).max() ?? 0
+        for name in ["system", "media", "calendar", "audio", "claude"] {
+            guard let source = sources[name]?.objectValue else { continue }
+            let ok = source["ok"] == .bool(true)
+            lines.append("  " + name.padding(toLength: width, withPad: " ", startingAt: 0) + "  " + mark(ok)
+                         + string(source["backend"]) + ": " + string(source["detail"]))
+        }
+        for key in ["icons", "screenshot", "hotkey"] {
+            let object = top[key]?.objectValue ?? [:]
+            let ok = object["ok"] == .bool(true) || object["supported"] == .bool(true)
+            lines.append("\(key): " + mark(ok) + string(object["detail"]))
+        }
+        let programs = top["programs"]?.arrayValue ?? []
+        if programs.isEmpty {
+            lines.append("programs: the config runs none")
+        } else {
+            lines.append("programs:")
+            for program in programs {
+                let object = program.objectValue ?? [:]
+                let uses = object["usedBy"]?.arrayValue?.compactMap(\.stringValue).joined(separator: "; ") ?? ""
+                let place = object["path"]?.stringValue ?? "MISSING on PATH"
+                lines.append("  \(string(object["program"]))  \(place)  (\(uses))")
+            }
+        }
+        return lines.joined(separator: "\n") + "\n"
+    }
+}

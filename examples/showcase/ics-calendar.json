@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "secrets": {
+    "family": { "file": "~/.config/vestal/secrets/family-calendar-url" }
+  },
+  "platform": {
+    "linux": {
+      "sources": {
+        "calendar": {
+          "ics": ["~/.local/share/vdirsyncer/calendars/work", "{{ $secrets.family }}"],
+          "days": 2,
+          "refresh": "15m"
+        }
+      }
+    }
+  },
+  "widgets": {
+    "agenda": { "type": "agendaList", "source": "calendar", "title": "Today", "maxEvents": 6 }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "agenda", "weather"] } }
+}

@@ -130,6 +130,13 @@ private struct Walker {
         guard let text = string(value, "hotkey") else { return }
         do {
             _ = try HotkeySpec(parsing: text)
+            // §13.1 rule 8a: reported, not silently ignored.
+            if v04.platform == .linux {
+                warnings.append(ConfigWarning(
+                    kind: .invalidValue, path: "hotkey",
+                    message: "'\(text)' is not grabbed on Linux: bind `vestal toggle` in the compositor (Hyprland: programs.vestal.hyprland.enable)",
+                    code: "unsupported-platform", severity: .info, found: text))
+            }
         } catch let error as HotkeyParseError {
             add(.invalidValue, "hotkey", "'\(text)': \(error.detail); no hotkey is registered", code: "invalid-key", found: text)
         } catch {

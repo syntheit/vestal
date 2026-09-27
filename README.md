@@ -14,6 +14,46 @@ Nix flake with a Home Manager module. On Linux the Linux UI does not exist
 yet: `vestal daemon` runs headless (sources, the socket, config reload, system
 stats in `vestal status`), groundwork for a UI that comes later.
 
+## Configured by your agent
+
+There is no settings screen. vestal is configured by one JSON file (or the Nix
+attrset that writes it), and it is built to be edited by your own LLM agent:
+ask it for "my review queue, BTC with a 24h sparkline, and CPU in red when it's
+pegged" and it writes the config. v0.4 gives it everything it needs, in the
+binary:
+
+- **A config language, not a widget list:** 6 containers and 8 primitives
+  (`stack`, `row`, `grid`, `list`, `table`, `switch`, `text`, `icon`,
+  `progress`, `gauge`, `sparkline`, `keyValue`, …), jq expressions and
+  `{{ }}` text, parameterised templates, views switched by keys, and actions
+  (`run`, `open`, `copy`, `refresh`, `popup`, `media`, …). The v0.3 widgets
+  are presets written in it, and v0.3 configs load unchanged.
+- **Data from anywhere:** `http` (with secrets kept out of the config),
+  `command` (never a shell), `file`, RSS/Atom/JSON feeds, `.ics` calendars,
+  histories for sparklines, and the built-in `system`, `media`, `calendar` and
+  `claude` sources with the same shape on macOS and Linux.
+- **Tools for the agent:** `vestal docs` (every widget, source, function and
+  key, plus complete recipes), `vestal schema`, `vestal check-config --json`
+  (JSON pointers and did-you-mean), `vestal fetch --shape`, `vestal eval`,
+  `vestal render` (the screen as text or JSON), `vestal explain`,
+  `vestal screenshot`, `vestal capabilities`.
+- **A render model any UI can draw**, streamed over the socket
+  (`vestal subscribe`); the macOS and Linux UIs draw the same model.
+
+The agent's loop, in five lines:
+
+```sh
+vestal capabilities; vestal docs agents          # what works here, and how to write a config
+vestal fetch <source> --config draft.json --shape  # look at the data
+vestal check-config --json draft.json            # errors with pointers and suggestions
+vestal eval '<jq>' --source <source> --config draft.json; vestal render --config draft.json
+vestal screenshot /tmp/v.png --config draft.json # look at it, then deploy the draft
+```
+
+[AGENTS.md](./AGENTS.md) (also `vestal docs agents`) walks an agent through
+it, with eleven complete recipes; [examples/showcase/](./examples/showcase)
+has them as files.
+
 ## Install with Home Manager
 
 The flake exports `homeManagerModules.default`, which sets up `programs.vestal`:
@@ -42,6 +82,7 @@ inputs.vestal.url = "github:syntheit/vestal";
 | `enable` | `false` | Install `vestal` and set it up. |
 | `package` | this flake's package | The vestal package to use. To build it with your own nixpkgs (on NixOS this shares GTK and glibc with the system and its graphics drivers), apply `overlays.default` and use `pkgs.vestal`. |
 | `settings` | `{ }` | The config ([docs/CONFIG.md](./docs/CONFIG.md)), written to `$XDG_CONFIG_HOME/vestal/config.json` (usually `~/.config/vestal/config.json`) with `version = 1` added unless set. It is layered over the built-in defaults. The default `{ }` writes no file: vestal then runs on its built-in defaults, or on a file you manage yourself. |
+| `extraPackages` | `[ ]` | Packages whose programs the daemon runs: they come first on the PATH of the launch agent or the systemd service, where `command` sources, `run` actions and `command` secrets find them (for example `[ pkgs.gh ]`). On Linux, `playerctl` and `wireplumber` (`wpctl`) are always added, for the `media` source and the volume. |
 | `launchAtLogin` | `true` | macOS: a launchd agent starts `vestal daemon` (hidden) at login and restarts it if it crashes, but not after `vestal quit`. Its output goes to `~/Library/Logs/vestal.log`. Linux: a systemd user service runs `vestal daemon`, headless until the Linux UI exists; `vestal status` shows its sources and this machine's stats. It is part of `graphical-session.target` and restarts after a crash; it needs `WAYLAND_DISPLAY` (or `DISPLAY`) in the systemd user environment, which Home Manager's Hyprland module imports with `wayland.windowManager.hyprland.systemd.enable` (the default), as UWSM does. Its log: `journalctl --user -u vestal`. |
 | `signingIdentity` | `null` | macOS: a code signing identity from your keychain (`security find-identity -v -p codesigning`). See below. |
 | `hyprland.enable` | `false` | Linux: adds to `wayland.windowManager.hyprland.settings` a `bind` that runs `vestal toggle`, and `layerrule`s for the layer namespace `vestal`. Needs Hyprland 0.53 or later (`match:` rules) and `configType = "hyprlang"`. |
@@ -103,13 +144,24 @@ vestal status          # pid, build, config file, warnings, each source's age an
 vestal quit            # quit (also on SIGTERM); Escape and hide only hide it
 vestal version         # print the version and the commit it was built from
 vestal help            # print this usage
-vestal check-config [path]   # check a config file
+vestal check-config [path]   # check a config file (--json: pointers and suggestions)
 vestal print-config [path]   # the effective config, defaults merged in
+vestal docs [topic]          # the built-in documentation; start with `vestal docs agents`
+vestal schema                # the config's JSON Schema
+vestal sources               # every source, its state and who reads it
+vestal fetch <source>        # a source's data now (--shape: an outline of its paths)
+vestal eval '<jq>'           # evaluate an expression as a widget would
+vestal render                # the screen as an outline (--json: the render model)
+vestal explain <widget>      # why a widget shows what it shows, or nothing
+vestal screenshot <out.png>  # the screen as a PNG
+vestal capabilities          # what works on this machine
+vestal subscribe             # the live render-model stream, for UI authors
 ```
 
 vestal stays running while hidden and costs next to nothing then. `hide`,
 `reload`, `status` and `quit` never start it: they exit 1 when it is not
-running. Exit codes: 0 ok, 1 error or not running, 2 usage. `vestal daemon`
+running. Exit codes: 0 ok, 1 error or not running, 2 usage, 3 the config has
+errors, 4 not found, 5 not supported here (`vestal docs cli`). `vestal daemon`
 exits 0 when vestal already runs, or replaces a running instance of another
 build. The built-in hotkey (`hotkey` in the config) toggles too. On Linux
 there is no UI yet: vestal runs headless, and `show`, `hide` and `toggle` only
@@ -146,7 +198,10 @@ Linux run the tests through the flake instead:
 - v0.2: config schema, widgets from config, runtime scheduler and cache (done)
 - v0.3: resident process with CLI control (`vestal toggle/show/hide/reload`),
   built-in hotkey (done)
-- v0.4: Nix module and app bundle (done); notarized DMG and Homebrew cask (open)
+- v0.4: extensibility: the config language, sources, templates, the render
+  model and the agent kit (`vestal docs`, `schema`, `check-config --json`,
+  `fetch --shape`, `eval`, `render`, `screenshot`); the Linux UI; Nix module
+  and app bundle (done); notarized DMG and Homebrew cask (open)
 - v0.5: public launch
 
 ## License

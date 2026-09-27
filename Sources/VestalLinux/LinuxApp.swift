@@ -158,36 +158,59 @@ final class LinuxSurface: ResidentSurface {
     func apply(_ loaded: LoadedConfig) {}
     func quit() { onQuit() }
 
-    /// Shown: what is on screen (a named view must be the one shown).
-    /// Hidden: the view rendered now with the runtime's data, drawn in a
-    /// window nobody sees (`LinuxDashboard.capture`). Sources that are
-    /// fetched only while shown (host health) have their last data, if any.
+    /// `vestal screenshot` (ScreenshotCommand hands over the model it built,
+    /// as `vestal render` builds it). Shown: the model drawn in place and
+    /// captured, then the engine's own model again; without a model, what
+    /// is on screen (a named view must be the one shown). Hidden: the model
+    /// (or the view rendered now with the runtime's data) drawn in a window
+    /// nobody sees (`LinuxDashboard.capture`).
     func screenshot(_ request: IPCRequest, reply: @escaping IPCReply) {
+        var model: RenderSnapshot?
+        if let path = request.model {
+            do {
+                model = try RenderFileCommand.loadModel(path)
+            } catch {
+                return reply(.failure("could not read the render model \(path): \(error)"))
+            }
+        }
         if dashboard.isVisible {
             let current = engine?.view ?? ""
-            if let view = request.view, view != current {
+            if model == nil, let view = request.view, view != current {
                 return reply(.failure("the dashboard is showing \"\(current)\"; hide it to capture \"\(view)\", or show that view first"))
             }
-            return dashboard.capture(model: nil, png: request.path) { [weak self] result in
+            return dashboard.capture(model: model, png: request.path) { [weak self] result in
+                // Back to what the engine shows.
+                if model != nil { self?.engine?.handle(.snapshot) }
                 // Hidden while it waited for a fade: take it the hidden way.
                 if case .failure(let error) = result, error.hiddenMeanwhile {
-                    self?.captureHidden(request, reply: reply)
+                    self?.captureHidden(request, model: model, reply: reply)
                 } else {
                     self?.finish(result, request, reply)
                 }
             }
         }
-        captureHidden(request, reply: reply)
+        captureHidden(request, model: model, reply: reply)
     }
 
-    private func captureHidden(_ request: IPCRequest, reply: @escaping IPCReply) {
+    private func captureHidden(_ request: IPCRequest, model: RenderSnapshot?, reply: @escaping IPCReply) {
+        // Shown meanwhile, the capture drew over the engine's model:
+        // `.snapshot` puts it back (and does nothing while hidden).
+        if let model {
+            return dashboard.capture(model: model, png: request.path) { [weak self] in
+                self?.engine?.handle(.snapshot)
+                self?.finish($0, request, reply)
+            }
+        }
         let view = request.view ?? engine?.view
         Task { [weak self] in
             guard let snapshot = await self?.resident?.renderSnapshot(view: view) else {
                 return reply(.failure("vestal is quitting"))
             }
             guard let self else { return }
-            self.dashboard.capture(model: snapshot, png: request.path) { [weak self] in self?.finish($0, request, reply) }
+            self.dashboard.capture(model: snapshot, png: request.path) { [weak self] in
+                self?.engine?.handle(.snapshot)
+                self?.finish($0, request, reply)
+            }
         }
     }
 

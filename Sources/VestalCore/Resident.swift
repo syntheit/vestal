@@ -207,6 +207,10 @@ public final class Resident {
             evaluate(request, reply: reply)
         case .screenshot:
             screenshot(request, reply: reply)
+        case .subscribe:
+            // The server hands subscriptions to SubscriptionHub; this is a
+            // server without a subscription handler.
+            reply(.failure("subscribe needs a streaming connection"))
         }
     }
 
@@ -498,9 +502,11 @@ public final class ResidentInbox {
         }
     }
 
-    /// From now on commands go to `resident`, the waiting ones first.
+    /// From now on commands go to `resident`, the waiting ones first, and
+    /// `subscribe` streams its render engine (SubscriptionHub, §10.8).
     public func attach(_ resident: Resident) {
         self.resident = resident
+        if self === ResidentInbox.shared, let engine = resident.engine { SubscriptionHub.shared.attach(engine) }
         let queued = waiting
         waiting = []
         for item in queued { resident.handle(item.request, reply: item.reply) }

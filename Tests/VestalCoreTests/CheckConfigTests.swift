@@ -202,7 +202,7 @@ final class CheckConfigTests: XCTestCase {
         XCTAssertEqual(diagnostics.last?.objectValue?["expected"], .string("string"))
         XCTAssertEqual(diagnostics.last?.objectValue?["found"], .string("integer"))
 
-        let clean = try json(try check(["--json", "PATH"], #"{"hotkey": "f3"}"#).0.stdout)
+        let clean = try json(try check(["--json", "PATH"], #"{"version": 1}"#).0.stdout)
         XCTAssertEqual(clean["status"], .string("ok"))
         XCTAssertEqual(clean["diagnostics"], .array([]))
     }
@@ -210,7 +210,7 @@ final class CheckConfigTests: XCTestCase {
     func testExitCodes() throws {
         XCTAssertEqual(try check(["PATH"], #"{"extra": 1}"#).0.status, 0, "warnings exit 0, as in v0.3")
         XCTAssertEqual(try check(["--strict", "PATH"], #"{"extra": 1}"#).0.status, 3)
-        XCTAssertEqual(try check(["--strict", "PATH"], #"{"hotkey": "f3"}"#).0.status, 0)
+        XCTAssertEqual(try check(["--strict", "PATH"], #"{"version": 1}"#).0.status, 0)
 
         let syntax = try check(["PATH", "--json"], "{\n  \"a\": 1,\n}")
         XCTAssertEqual(syntax.0.status, 1)
@@ -242,7 +242,7 @@ final class CheckConfigTests: XCTestCase {
 
     /// `--` ends the options, so a path that looks like one still works.
     func testDoubleDashEndsTheOptions() throws {
-        let (output, path) = try check(["--json", "--", "PATH"], #"{"hotkey": "f3"}"#)
+        let (output, path) = try check(["--json", "--", "PATH"], #"{"version": 1}"#)
         XCTAssertEqual(output.status, 0)
         XCTAssertEqual(try json(output.stdout)["file"], .string(path))
         let missing = try check(["--", "--json"], nil).0
@@ -250,10 +250,21 @@ final class CheckConfigTests: XCTestCase {
         XCTAssertTrue(missing.stdout.hasPrefix("--json: "), missing.stdout)
     }
 
+    /// §13.1 rule 8a: a hotkey on Linux is reported (info), not ignored.
+    func testAHotkeyOnLinuxIsReportedAsInfo() throws {
+        let linux = try json(try check(["--json", "--platform", "linux", "PATH"], #"{"hotkey": "f3"}"#).0.stdout)
+        XCTAssertEqual(linux["counts"], .object(["error": .int(0), "warning": .int(0), "info": .int(1)]))
+        XCTAssertEqual(linux["diagnostics"]?.arrayValue?.first?.objectValue?["code"], .string("unsupported-platform"))
+        let macos = try json(try check(["--json", "--platform", "macos", "PATH"], #"{"hotkey": "f3"}"#).0.stdout)
+        XCTAssertEqual(macos["diagnostics"], .array([]))
+        XCTAssertEqual(ConfigLoader.load(data: Data(#"{"hotkey": "f3"}"#.utf8), platform: .linux).warnings, [],
+                       "a note, not a warning")
+    }
+
     func testStdinAndConfigOption() throws {
-        XCTAssertEqual(try check(["-"], nil, stdin: #"{"hotkey": "f3"}"#).0, ConfigCommands.Output(status: 0, stdout: "-: ok\n"))
+        XCTAssertEqual(try check(["-"], nil, stdin: #"{"version": 1}"#).0, ConfigCommands.Output(status: 0, stdout: "-: ok\n"))
         XCTAssertEqual(try check(["-"], nil, stdin: "{").0.status, 1)
-        let (viaOption, path) = try check(["--config", "PATH"], #"{"hotkey": "f3"}"#)
+        let (viaOption, path) = try check(["--config", "PATH"], #"{"version": 1}"#)
         XCTAssertEqual(viaOption, ConfigCommands.Output(status: 0, stdout: "\(path): ok\n"))
         XCTAssertEqual(try check(["--config", "PATH", "PATH"], "{}").0.status, 2)
     }
@@ -334,6 +345,36 @@ final class CheckConfigTests: XCTestCase {
 
             """), human)
         XCTAssertEqual(try check(["--commands", "PATH"], #"{"widgets": {"systems": null}}"#).0.stdout.hasSuffix(": runs no commands\n"), true)
+    }
+
+    func testCommandsListsV04SecretsActionsAndInlineSources() throws {
+        let text = """
+        {
+          "secrets": {"gh": {"command": ["gh", "auth", "token"]}, "f": {"file": "~/x"}},
+          "keys": {"r": {"run": ["make", "deploy"], "env": {"X": "1"}}},
+          "sources": {"nas": {"type": "foyer", "url": "https://nas.example"}},
+          "widgets": {
+            "systems": null,
+            "t": {"type": "text", "text": "x", "source": {"type": "command", "argv": ["date"], "refresh": "1m"},
+                  "action": [{"run": ["notify-send", "{{ . }}"]}, {"copy": "x"}]}
+          },
+          "templates": {"ping": {"source": {"type": "command", "argv": ["ping", "-c1", "{{ $host }}"]},
+                                 "params": {"host": {"type": "string"}}}}
+        }
+        """
+        let (output, _) = try check(["--commands", "--json", "--platform", "macos", "PATH"], text)
+        let commands = try XCTUnwrap(try json(output.stdout)["commands"]?.arrayValue).map { $0.objectValue ?? [:] }
+        XCTAssertEqual(commands.map { $0["pointer"] }, [
+            .string("/keys/r/run"), .string("/secrets/gh/command"), .string("/sources/nas/type"),
+            .string("/templates/ping/source/argv"),
+            .string("/widgets/t/action/0/run"), .string("/widgets/t/source/argv"),
+        ])
+        XCTAssertEqual(commands[0]["env"], .array([.string("X")]))
+        XCTAssertEqual(commands[0]["trigger"], .string("an action of key \"r\" (a click or its key)"))
+        XCTAssertEqual(commands[1]["trigger"], .string("secret \"gh\", once when the config loads"))
+        XCTAssertEqual(commands[2]["argv"], .array([.string("foyer-api"), .string("--host"), .string("https://nas.example"), .string("/api/health")]))
+        XCTAssertEqual(commands[2]["trigger"], .string("source \"nas\" (template \"foyer\"), every 5s, while the dashboard is shown"))
+        XCTAssertEqual(commands[5]["trigger"], .string("an inline source of widget \"t\", every 1m"))
     }
 
     // MARK: print-config --origins

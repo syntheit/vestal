@@ -49,6 +49,24 @@ public final class RenderEngine {
     /// The latest model sent (nil before the first show).
     public private(set) var snapshot: RenderSnapshot?
     public private(set) var isVisible = false
+
+    /// Keep evaluating while hidden (a `whileHidden` subscriber, §10.8, a
+    /// debugging aid): updates keep coming, with `visible: false`.
+    public var evaluatesWhileHidden = false {
+        didSet {
+            guard evaluatesWhileHidden != oldValue, !isVisible else { return }
+            if evaluatesWhileHidden {
+                fullPending = true
+                schedule()
+            } else {
+                tick?.cancel()
+                tick = nil
+            }
+        }
+    }
+
+    /// Whether the model is kept current.
+    private var isEvaluating: Bool { isVisible || evaluatesWhileHidden }
     public var view: String { currentView }
 
     /// Runs `run`, `open`, `refresh`, `media` and `audio` (nil: ignored).
@@ -133,8 +151,13 @@ public final class RenderEngine {
             announce = true
             schedule()
         } else {
-            tick?.cancel()
-            tick = nil
+            if evaluatesWhileHidden {
+                fullPending = true
+                schedule()
+            } else {
+                tick?.cancel()
+                tick = nil
+            }
             failures = []
             queue.async { [worker] in worker.session.closePopup() }
             send(.visibility(visible: false, view: currentView))
@@ -166,7 +189,7 @@ public final class RenderEngine {
         let model = self.model, view = currentView
         queue.async { [worker] in worker.reset(model: model, view: view) }
         fullPending = true
-        if isVisible { schedule() }
+        if isEvaluating { schedule() }
     }
 
     // MARK: Input
@@ -345,20 +368,20 @@ public final class RenderEngine {
             optimistic[name] = nil
         }
         changed.insert(name)
-        guard isVisible else { return }
+        guard isEvaluating else { return }
         schedule()
     }
 
     /// Coalesces changes into one evaluation on the next main-queue turn.
     private func schedule() {
-        guard isVisible, !scheduled else { return }
+        guard isEvaluating, !scheduled else { return }
         scheduled = true
         Task { @MainActor [weak self] in self?.evaluate(tick: false) }
     }
 
     private func evaluate(tick isTick: Bool) {
         scheduled = false
-        guard isVisible else { return }
+        guard isEvaluating else { return }
         let full = fullPending || snapshot == nil
         let changed = self.changed
         self.changed = []
@@ -375,11 +398,11 @@ public final class RenderEngine {
     }
 
     private func publish(_ fresh: RenderSnapshot, previous: RenderSnapshot?, full: Bool, usesNow: Bool) {
-        guard isVisible else { return }
+        guard isEvaluating else { return }
         seq += 1
         var next = fresh
         next.seq = seq
-        next.visible = true
+        next.visible = isVisible
         next.diagnostics += failures
         if full || previous == nil || snapshot != previous {
             // A show, a resync or a view change: the whole model.
@@ -416,7 +439,7 @@ public final class RenderEngine {
     /// The 1 s tick, aligned to the wall-clock second, while something
     /// calls `now`.
     private func scheduleTick(_ needed: Bool) {
-        guard needed, isVisible else {
+        guard needed, isEvaluating else {
             tick?.cancel()
             tick = nil
             return
@@ -434,7 +457,7 @@ public final class RenderEngine {
     }
 
     private func tickNow() {
-        guard isVisible, !scheduled else { return }
+        guard isEvaluating, !scheduled else { return }
         scheduled = true
         evaluate(tick: true)
     }

@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "sources": {
+    "containers": {
+      "type": "command",
+      "argv": ["docker", "ps", "--all", "--format", "json"],
+      "parse": "lines",
+      "transform": "map(fromjson)",
+      "refresh": "1m",
+      "when": "visible"
+    }
+  },
+  "widgets": {
+    "docker": {
+      "type": "section",
+      "title": "Containers ({{ map(select(.State == \"running\")) | length }} running)",
+      "source": "containers",
+      "children": [
+        {
+          "type": "list",
+          "items": ".",
+          "sortBy": ".Names",
+          "limit": 8,
+          "rowId": ".ID",
+          "gap": 6,
+          "empty": "No containers",
+          "row": {
+            "type": "row",
+            "gap": 10,
+            "width": "fill",
+            "action": {
+              "run": ["docker", "restart", "{{ .Names }}"],
+              "timeout": "60s",
+              "optimistic": "$data | map(if .ID == $item.ID then . + {State: \"restarting\", Status: \"Restarting\"} else . end)"
+            },
+            "children": [
+              { "type": "icon", "name": "circle", "weight": "fill", "size": 7, "color": { "expr": "{running: \"good\", restarting: \"warn\"}[.State] // \"bad\"" } },
+              { "type": "text", "text": "{{ .Names }}", "width": 160, "lines": 1, "style": { "font": "mono", "size": 12 } },
+              { "type": "text", "text": "{{ .Image }}", "width": "fill", "lines": 1, "style": { "size": 12, "color": "subtle" } },
+              { "type": "text", "text": "{{ .Status }}", "style": { "size": 11, "color": "dim" } }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "docker", "agenda"] } }
+}

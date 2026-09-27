@@ -4,66 +4,327 @@
 /// The prose topics of `vestal docs`, by name, as written in the Markdown.
 public enum EmbeddedDocs {
     public static let topics: [String: String] = [
+        "actions": #"""
+# Actions
+
+A widget's `action` runs when it is clicked, and when its `key` is pressed. Key bindings (`keys`) and table rows (`rowAction`) take actions too. An action is an object with exactly one action key, or a list of them, run in order. Text fields are evaluated when the action runs, in the widget's scope, so in a list row `.` is the row's item.
+
+| Action | Fields | What happens | Hides the dashboard |
+|---|---|---|---|
+| `run` | The value **is** the argv, a list of text: `{"run": ["gh", "pr", "view", "--web", "{{ .url }}"]}`. Siblings: `timeout` (`"30s"`), `env` (object of text), `optimistic` (expr), `refreshAfter` | Runs the program without a shell, in the background. A leading `~/` expands. When it exits, the widget's source is fetched again (`refreshAfter`: `false`, a name, or a list of names instead). `optimistic` computes data that replaces the source's at once, until its next fetch: `. + {exists: (.exists \| not)}`. A failure is logged. | no |
+| `open` | text: a URL or a path | `open` on macOS, `xdg-open` on Linux. | yes |
+| `copy` | text | Puts the text on the clipboard (the UI does it). | no |
+| `refresh` | a source name, a list of names, `"*"` (all), or `true` (the widget's source) | Fetches now. | no |
+| `view` | a view name | Switches to that view. | no |
+| `popup` | a widget, plus `width` (default 520) | Opens a popup with that widget. `{"expr": …}` values in its fields are evaluated now, in the clicked widget's scope; its own expressions stay live. | no |
+| `close` | `true` | Closes the popup. | no |
+| `media` | `playPause`, `next` or `previous`; `source` (default: the widget's source) | Controls the player of a `media` source: AppleScript on macOS, `playerctl` on Linux. | no |
+| `audio` | `toggleMute`, `volumeUp` or `volumeDown` | The default output, in steps of 5: CoreAudio on macOS, `wpctl` on Linux. | no |
+| `hide` | `true` | Hides the dashboard. | |
+
+Every action also takes `hide` (a boolean) to override that default: `{"open": "…", "hide": false}`. Use a list for several effects:
+
+```json
+{
+  "type": "text",
+  "text": "{{ .title }}",
+  "action": [ { "copy": "{{ .url }}" }, { "open": "{{ .url }}", "hide": false } ]
+}
+```
+
+A `run` that toggles something and shows it at once (the privacy toggle of the `systemBar` preset works this way):
+
+```json
+{
+  "version": 1,
+  "widgets": {
+    "dnd": {
+      "type": "text",
+      "source": { "type": "file", "path": "~/.cache/dnd-on", "parse": "exists", "refresh": "5s" },
+      "icon": { "expr": "if .exists then \"bell-slash\" else \"bell\" end" },
+      "text": "{{ if .exists then \"Do not disturb\" else \"Notifications on\" end }}",
+      "key": "d",
+      "action": { "run": ["~/bin/toggle-dnd"], "optimistic": ". + {exists: (.exists | not)}" }
+    }
+  },
+  "views": { "main": { "children": ["clock", "dnd"] } }
+}
+```
+
+Nothing runs from `vestal render`, `vestal eval` or `vestal check-config`: `vestal render --press <key>` only opens popups and switches views. `vestal check-config --commands` lists every program a config can run, `run` actions included, with what triggers each one.
+
+"""#,
         "agents": #"""
 # Configuring vestal: a guide for agents
 
-> **DRAFT for v0.4.** Every command and key here is specified in `docs/EXTENSIBILITY.md`. So far `vestal docs`, `vestal schema`, `vestal check-config` (with `--json`, `--commands`, `--platform`) and `vestal print-config --origins` exist; the rest is not implemented yet. TASKS-v0.4 phase 9 verifies each command against the real binary and removes this banner. The same text ships in the binary as `vestal docs agents`.
-
-Vestal is a full-screen dashboard toggled by a key, on macOS and Linux, driven by **one JSON config**. You (an LLM agent) build dashboards for your user by editing that JSON, or the Nix attrset that produces it. You never write Swift. Every tool you need is in the `vestal` binary and runs headlessly.
+Vestal is a full-screen dashboard toggled by a key, on macOS and Linux, driven by **one JSON config**. There is no settings screen: you, the user's LLM agent, build their dashboard by editing that JSON, or the Nix attrset that produces it. You never write Swift. Every tool you need is in the `vestal` binary, runs without a screen, and prints JSON on request. The same text ships in the binary as `vestal docs agents`, and every other topic is one `vestal docs <topic>` away.
 
 ## 1. Ground rules
 
-1. **Find the real config first.** Run `vestal status` and look at the `config:` line.
-   - If `~/.config/vestal/config.json` is a symlink into `/nix/store`, it is written by Home Manager (`programs.vestal.settings`). Edit the Nix source, not that file. Best: a JSON file in the Nix repo, loaded with `builtins.fromJSON (builtins.readFile ./vestal.json)`.
-   - Otherwise edit the file directly. Vestal reloads it by itself.
-2. **Never put secrets in the config.** Tokens go in a file (or env var, or a command such as `gh auth token`), referenced through `secrets` and `{{ $secrets.name }}` in source headers or URLs. The Nix store is world-readable.
-3. **One config serves macOS and Linux.** Use the built-in sources (`system`, `media`, `calendar`, `claude`) instead of OS commands. Put anything truly OS-specific (font families, a command that only exists on one OS) in `platform.macos` or `platform.linux`. Check both: `vestal check-config --platform all`.
-4. **Validate before you claim success:** `vestal check-config --json` must report `"counts": {"error": 0, ...}` (exit status 0, not 3). Then look at the result (`vestal render`, or `vestal screenshot` on macOS).
-5. **Prefer what exists:** presets (`vestal docs presets`), semantic colours (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens. Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
-6. **Tell the user what runs.** `vestal check-config --commands` lists every program the config executes. Mention new ones.
+1. **Find the real config first.** `vestal status` prints the file the running instance loaded (`config:`).
+   - If `~/.config/vestal/config.json` is a symlink into `/nix/store`, Home Manager writes it from `programs.vestal.settings`. Edit the Nix source, never that file (section 3).
+   - Otherwise edit the file itself: vestal reloads it on its own.
+2. **Work on a draft.** Copy the config to `/tmp/vestal-draft.json`, change that, and pass it to every command with `--config`. Only replace the real file once `check-config` is clean and the render looks right.
+3. **Never put secrets in the config.** Tokens live in a file (or an environment variable, or a command such as `gh auth token`), declared under `secrets` and used as `{{ $secrets.name }}` in a source's URL, headers or argv. Under Nix the config is in the world-readable store.
+4. **One config serves macOS and Linux.** Use the built-in sources (`system`, `media`, `calendar`, `claude`) rather than OS commands. Put what is truly OS-specific (fonts, a command that exists on one OS, a player name) in `platform.macos` or `platform.linux`, and check both OSes: `vestal check-config --platform linux`.
+5. **Validate before you claim success:** `vestal check-config --json` must say `"error": 0` (exit 0, not 3), and `vestal render` must end with `diagnostics: 0`. Then look at it (`vestal screenshot`).
+6. **Prefer what exists:** presets (`vestal docs presets`), semantic colours (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
+7. **Tell the user what runs.** `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists every program the config can run (command sources, inline or from a template too; `command` secrets; `run` actions in widgets, views, keys and templates; the v0.3 privacy toggle and foyer hosts), with what triggers it and whether it is on `PATH`. Mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
+8. **Lists replace, objects merge.** Your file is merged over the built-in defaults: objects merge key by key, but a list (such as `views.main.children`) replaces the default list whole, and `null` deletes a default. When you add a widget to a view, write the view's full list.
 
 ## 2. The loop
 
 ```text
-understand ─▶ inspect data ─▶ test expressions ─▶ write config ─▶ check ─▶ look ─▶ deploy
-               sources/fetch     eval               JSON/Nix        check-config  render/screenshot  reload / switch
+discover ─▶ inspect data ─▶ write config ─▶ check ─▶ test expressions ─▶ render ─▶ look ─▶ iterate ─▶ deploy
+capabilities  fetch --shape   JSON or Nix     check-config  eval            render   screenshot          reload/switch
 ```
 
-| Step | Command | What you get |
-|---|---|---|
-| What exists | `vestal sources`, `vestal print-config` | Sources and their state; the effective config with defaults. |
-| Data shape | `vestal fetch <source> --shape` | Every path, its type and a sample value. Write your paths against this. |
-| Raw data | `vestal fetch <source>` (`--raw` for before `transform`) | The JSON widgets see. |
-| Try an expression | `vestal eval '<jq>' --source <name>`, `vestal eval --template 'CPU {{ .cpu.percent }}%' --source system` | The exact value a widget would show. |
-| Validate | `vestal check-config --json [path]` | Errors with JSON pointers and did-you-mean suggestions. |
-| See it | `vestal render --format tree [--config draft.json]` | The resolved screen as an outline: every text and colour. |
-| See it (image) | `vestal screenshot /tmp/v.png [--config draft.json] [--frames /tmp/f.json]` (macOS) | A PNG you can look at, and optionally every node's frame, with clipped and truncated nodes flagged. |
-| Why is it wrong or missing? | `vestal explain <widget key or node id>` | Source state, the `when` result, every field as written and resolved, diagnostics. |
-| What works on this machine | `vestal capabilities` | Backends (media, calendar, audio), missing programs, screenshot support. |
-| Reference | `vestal docs <topic>` | `expressions`, `functions`, `widgets`, `widget/<type>`, `sources`, `styling`, `icons`, `keys`, `actions`, `presets`, `recipes`. |
+### Step 1: discover
 
-Work on a draft (`/tmp/vestal-draft.json`, a copy of the live file) and pass it with `--config`. Commands reuse the running instance's data where they can, and fetch the rest. A draft never runs `command` sources on its own: add `--allow-commands` once you have checked the argv is what the user wants.
+```text
+$ vestal capabilities            # this machine: which built-in sources work, missing programs, screenshot support
+$ vestal status                  # the running instance: its config file, warnings, sources
+$ vestal sources                 # every source: type, refresh, when, age, status, the widgets that read it
+$ vestal docs                    # the topics; `vestal docs widget/list`, `vestal docs source/system`, `vestal docs preset/stat`
+$ vestal print-config            # the effective config, defaults included (what your file merges over)
+```
+
+On a Linux server without a display, for example:
+
+```text
+$ vestal capabilities --config /tmp/vestal-draft.json
+os: linux, UI: GTK 4 (layer shell)
+config: /tmp/vestal-draft.json
+instance: not running
+sources:
+  system    ok  /proc and /sys: null here: battery, audio.volume, gpu
+  media     ok  MPRIS through playerctl: no MPRIS player running
+  calendar  no  none: no calendar backend: set `ics` (files, a vdirsyncer directory or URLs) on the calendar source
+  audio     no  wpctl: wpctl found, but no default output device
+  claude    ok  Claude Code logs: /home/me/.claude/projects
+icons: ok  …/share/vestal/icons/Phosphor.ttf, …/share/vestal/icons/Phosphor-Fill.ttf
+screenshot: no  needs a Wayland session (WAYLAND_DISPLAY is not set); `vestal render` works anywhere
+hotkey: no  not grabbed on Wayland: bind `vestal toggle` in the compositor (Hyprland: bind = , Home, exec, vestal toggle)
+programs:
+  gh  /etc/profiles/per-user/me/bin/gh  (source prs)
+```
+
+`--json` gives the same as data: `sources.<type>.{backend, ok, detail}` (plus `players` for media and `null`, the `system` fields this machine can't read), `icons`, `screenshot.supported`, `hotkey.supported`, `programs[].{program, found, path, usedBy}` and `missing`. `vestal capabilities` tells you, before you write anything, whether `media` has a player (and which names work), whether the calendar has a backend, whether `wpctl` or `playerctl` is missing, and whether `vestal screenshot` can draw here. Read it first: a widget over a source that can't work here only wastes the user's screen.
+
+Without any config, the dashboard shows the defaults: `clock`, `systemBar`, `media`, `agenda`, `systems`, `weather` in view `main`, from the sources `system`, `media`, `claude`, `calendar` and `weather`.
+
+### Step 2: inspect the data
+
+Add the source to your draft, then look at its data before writing any path:
+
+```text
+$ vestal fetch prs --config /tmp/vestal-draft.json --allow-commands --shape
+. array[4]
+.[] object
+.[].author object
+.[].author.login string  "mona"
+.[].isDraft boolean  false
+.[].number number  4128
+.[].repository object
+.[].repository.nameWithOwner string  "acme/app"
+.[].title string  "Fix tray icon on HiDPI"
+.[].updatedAt string  "2026-09-27T15:02:11Z"   (ISO 8601: use to_epoch)
+.[].url string  "https://github.com/acme/app/pull/4128"
+```
+
+- `--shape` lists every path with its type and a sample; arrays are merged over all their elements. `--shape --json` gives the same as data (`path`, `types`, `nullable`, `count`, `sample`).
+- Without `--shape`: the data itself, as widgets see it (after `transform`). `--raw`: before `transform`.
+- A draft never runs `command` sources (or `command` secrets) by itself: pass `--allow-commands` once you have checked the argv is what the user wants.
+- The built-ins: `vestal fetch system --local --shape` (the same shape on macOS and Linux), `vestal fetch media --local` (its `players` field lists the player names that work here).
+
+### Step 3: write the config
+
+A complete config is a JSON object with `"version": 1`, merged over the defaults. The parts: `sources` (data), `widgets` (named widgets), `views` (which widgets show, in order), plus `templates`, `functions`, `secrets`, `keys`, `theme`, `platform` when needed. Every recipe in section 5 is a complete file you can start from.
+
+The three kinds of field (`vestal docs expressions`):
+
+- **expr** fields are jq: `"value": ".cpu.percent"`, `"items": ".items"`, `"when": ".battery != null"`.
+- **text** fields are text with `{{ jq }}` holes: `"text": "{{ .title }} ({{ .count }})"`. `null` inserts nothing.
+- Any other scalar field can be computed with `{"expr": "…"}`: `"color": {"expr": "if .ok then \"good\" else \"bad\" end"}`.
+
+**Under Nix (Home Manager).** `programs.vestal.settings` takes the same JSON as an attrset. The best pattern keeps a JSON file in the user's Nix repo, which you edit and check like any config:
+
+```nix
+programs.vestal = {
+  enable = true;
+  settings = builtins.fromJSON (builtins.readFile ./vestal.json);
+  extraPackages = [ pkgs.gh ];   # programs that command sources and run actions call
+};
+```
+
+Then `vestal check-config ./vestal.json` and `vestal render --config ./vestal.json` work on it directly, and `home-manager switch` (or the system rebuild) deploys it. If the user writes the attrset inline instead:
+
+- `{{ }}` and jq's `$var` need no escaping in Nix strings: Nix only interpolates `${`.
+- jq's `"\(…)"` needs `\\(` in a `"…"` Nix string (as in JSON), and nothing in a `''…''` string. Prefer `{{ }}` and avoid the question.
+- In a `''…''` string, a literal `${` must be written `''${`.
+- `null` deletes a default: `widgets.media = null;`.
+
+```nix
+programs.vestal.settings = {
+  sources.prs = {
+    type = "command";
+    argv = [ "gh" "search" "prs" "--review-requested=@me" "--state=open" "--json" "number,title,url,updatedAt" ];
+    refresh = "5m";
+  };
+  widgets.reviews = {
+    type = "list";
+    source = "prs";
+    items = ".";
+    limit = 5;
+    row = { type = "text"; text = "{{ .title }}"; lines = 1; action.open = "{{ .url }}"; };
+  };
+  views.main.children = [ "clock" "systemBar" "reviews" "agenda" ];
+};
+```
+
+Never write a secret into `settings`; point `secrets` at a file managed by sops-nix or agenix.
+
+### Step 4: check
+
+```text
+$ vestal check-config --json /tmp/vestal-draft.json
+{
+  "counts": {
+    "error": 2,
+    "info": 0,
+    "warning": 0
+  },
+  "diagnostics": [
+    {
+      "code": "expr-unknown-function",
+      "column": 67,
+      "exprOffset": 15,
+      "layer": "user",
+      "line": 4,
+      "message": "unknown function 'rond' in expression at 15",
+      "pointer": "/widgets/cpu/value",
+      "severity": "error",
+      "suggestion": "round",
+      "suggestions": [
+        "round"
+      ]
+    },
+    {
+      "code": "unknown-source",
+      "column": 30,
+      "layer": "user",
+      "line": 5,
+      "message": "no source named \"pr\"",
+      "pointer": "/widgets/prs/source",
+      "severity": "error"
+    }
+  ],
+  "file": "/tmp/vestal-draft.json",
+  "status": "errors"
+}
+```
+
+Each finding has a JSON `pointer` into the file, its `line` and `column`, and a did-you-mean when there is one. Exit 3 means errors; fix them all. Warnings mean something is ignored or defaulted: fix those too (`--strict` makes them exit 3). `info` findings are advice (`legacy` notes about v0.3 widgets are normal). `--platform linux` (or `macos`) checks the file as that OS loads it.
+
+### Step 5: test expressions
+
+`vestal eval` evaluates exactly as a widget would, with the vestal functions and the config's `functions`:
+
+```text
+$ vestal eval '.cpu.percent | step([[0,"good"],[70,"warn"],[90,"bad"]])' --source system --config /tmp/vestal-draft.json
+"good"
+$ vestal eval --template '{{ .host }}: CPU {{ .cpu.percent | round }}%, RAM {{ .memory.percent | round }}%' --source system --config /tmp/vestal-draft.json
+swift: CPU 7%, RAM 40%
+$ vestal eval 'map(select(.isDraft | not)) | sort_by(.updatedAt | to_epoch) | reverse | .[0].title' --source prs --config /tmp/vestal-draft.json --allow-commands
+"Fix tray icon on HiDPI"
+$ vestal eval '.cpu.percent | rond' --source system --config /tmp/vestal-draft.json
+vestal: expression error at 1:16: unknown function 'rond'; did you mean 'round'?
+  .cpu.percent | rond
+                 ^
+```
+
+`--input <file>` evaluates against a saved file, `--null-input` against nothing, `--var name=<json>` binds `$name`, `--at <time>` freezes `now`, `--json` gives `{"ok", "outputs"}` or `{"ok": false, "error": {…}}`. `vestal docs functions` lists every function.
+
+### Step 6: render
+
+`vestal render` builds the screen once and prints it as an outline: every node's id, text and style. It is the cheapest way to see what the user will see.
+
+```text
+$ vestal render --config /tmp/vestal-draft.json --allow-commands
+stack v gap=24 align=center w=fill maxWidth=680 [main]
+  …
+  stack v gap=8 w=fill [main/reviews]
+    stack h gap=8 align=center w=fill [main/reviews/0]
+      text "REVIEW REQUESTS (3)" size=11 weight=700 color=dim tracking=1.5 [main/reviews/0/0]
+      divider h w=fill [main/reviews/0/1]
+    stack v gap=8 w=fill [main/reviews/1]
+      stack h gap=10 align=center w=fill action [main/reviews/1/@https:%2F%2Fgithub.com%2Facme%2Fapp%2Fpull%2F4128]
+        text "acme/app#4128" size=12 font=mono color=subtle lines=1 w=170 [main/reviews/1/@https:%2F%2Fgithub.com%2Facme%2Fapp%2Fpull%2F4128/0]
+        text "Fix tray icon on HiDPI" weight=500 lines=1 w=fill [main/reviews/1/@https:%2F%2Fgithub.com%2Facme%2Fapp%2Fpull%2F4128/1]
+  …
+diagnostics: 0
+```
+
+- `--format json` (or `--json`) prints the full render model (`vestal docs render-model`): every colour, size and flag, for checking details.
+- `--view <name>` renders another view; `--press <key>` presses keys first (switch views, open popups; nothing is run).
+- `--data <dir>` renders from fixture files (`<dir>/<source>.json`) instead of live data, to test states you can't produce: a CPU at 95%, an empty list, a failed source (`<dir>/<source>.error`). `--at <time>` freezes the clock.
+- Anything but `diagnostics: 0` is a problem: an expression that failed at runtime, an unknown icon or colour. `--strict` exits 3 on any.
+
+To see what a key does, without running anything: `vestal press <key> --dry-run --config /tmp/vestal-draft.json` prints its binding (widget, view or global) and each effect (`run [argv]`, `open <url>`, `show view …`). `vestal press <key>` sends it to the running dashboard for real.
+
+When a widget is missing or wrong, ask why:
+
+```text
+$ vestal explain reviews --config /tmp/vestal-draft.json --allow-commands
+id            main/reviews
+widget        reviews
+shown         true
+templates     ["section"]
+source        prs
+meta          {"age":0,"error":null,"fetchedAt":1790528602,"loaded":true,"name":"prs","ok":true,"stale":false}
+depends on    {"now":true,"sources":["prs"]}
+diagnostics   0
+resolved
+…
+```
+
+It shows the template chain, the source and its `$meta` (did the fetch work?), each `vars` value, the `when` result, and the fields as written and as resolved. A widget whose source never loaded is hidden, not an error.
+
+### Step 7: look at it
+
+```text
+$ vestal screenshot /tmp/vestal.png --config /tmp/vestal-draft.json --frames /tmp/vestal-frames.json
+/tmp/vestal.png
+$ vestal screenshot /tmp/vestal.png --config /tmp/vestal-draft.json --json
+{"clipped":0,"diagnostics":0,"frames":null,"height":982,"path":"/tmp/vestal.png","scale":2,"truncated":0,"width":1512}
+```
+
+Then open `/tmp/vestal.png` with your image-viewing tool and look: alignment, crowding, colours, anything cut off. `--frames` writes every node's frame, with `clipped: true` on nodes cut off at the bottom of the screen (vestal never scrolls) and `truncated: true` on texts cut by `lines`: check those without reading pixels. It takes the same `--view`, `--press`, `--data` and `--at` as `render`, plus `--size <w>x<h>`, `--scale` and `--background` on macOS (on Linux the PNG is the screen as the GTK UI draws it, in pixels). The desktop blur is never captured; on macOS the aurora isn't either (the background is the palette's `bg`), while the GTK UI draws its aurora into the PNG. It draws with the real UI code: SwiftUI on macOS, GTK on Linux (which needs a Wayland session; exit 5 without one: rely on `render` then).
+
+### Step 8: iterate and deploy
+
+Repeat steps 3 to 7 until check-config is clean, the render shows what the user asked for, and the screenshot looks right. Then:
+
+- **Plain file:** copy the draft over the real config. The running instance reloads by itself (`vestal reload` forces it).
+- **Nix:** write the JSON file (or the attrset) in the user's Nix repo and tell them to switch (`home-manager switch`, `darwin-rebuild switch`, `nixos-rebuild switch`). Don't switch for them unless asked.
+- **Tell the user** what changed, what runs (new programs, how often), which keys do what, and anything that fills in later (a sparkline needs two fetches).
 
 ## 3. Cheat sheet
 
-**Three kinds of field** (`vestal docs expressions`):
-- *expr* fields are jq: `"value": ".cpu.percent"`.
-- *text* fields are text with `{{ jq }}` holes: `"text": "{{ .title }} ({{ .count }})"`.
-- Any other field can be computed with `{"expr": "…"}`.
-
-**Inside an expression:**
+**Inside an expression** (`vestal docs expressions`):
 
 | Name | Meaning |
 |---|---|
-| `.` | The widget's source data (or the row, inside a list). |
-| `$data` | The source's data even inside a list. |
-| `$index`, `$item` | The current row and its position. |
+| `.` | The widget's source data, after `input`; inside a list row, the row's item. |
+| `$data` | The source's data, even inside a row. |
+| `$item`, `$index`, `$parent` | The current row, its position, the outer row. |
 | `$sources.<name>` | Any source's data. |
-| `$history.<source>.<name>` | Sampled values, oldest first. |
-| `$value` | The node's value, in colour fields. |
-| `now` | Current time in epoch seconds. |
+| `$history.<source>.<name>` | Sampled numbers, oldest first. |
+| `$value` | The widget's own value, in colour and style fields. |
+| `$meta` | `{fetchedAt, age, ok, error, stale, loaded}` of the source. |
+| `now` | The current time, epoch seconds. |
 
-**Widgets:**
+**Widgets** (`vestal docs widgets`, `vestal docs widget/<type>`):
 
 | Group | Types |
 |---|---|
@@ -71,361 +332,608 @@ Work on a draft (`/tmp/vestal-draft.json`, a copy of the live file) and pass it 
 | Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer` |
 | Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage` |
 
-Every widget takes `source`, `when`, `style`, `width`/`height` (`"fill"`), `action`, `key`.
+Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` (`"fill"`), `spaceBefore`, `action`, `key`.
 
-**Formatting:**
-- Functions: `fmt_fixed(1)`, `fmt_int`, `fmt_percent`, `fmt_bytes`, `fmt_rate`, `fmt_duration`, `fmt_relative`, `fmt_time("HH:mm")`, `fmt_compact`, `fmt_thousands`.
-- Shorthand on `text`/`stat`: `"format": "fixed:1"`.
+**Formatting:** `fmt_fixed(1)`, `fmt_int`, `fmt_percent`, `fmt_bytes`, `fmt_rate`, `fmt_duration`, `fmt_relative`, `fmt_time("HH:mm")`, `fmt_compact`, `fmt_thousands`, `to_epoch`; on `text`, `stat` and table columns, `"format": "fixed:1"`, `"bytes"`, `"percent"`, `"relative"`, ….
 
-**Colour by threshold:** `"color": {"steps": [[0, "good"], [70, "warn"], [90, "bad"]]}`.
+**Colour by threshold:** `"color": {"steps": [[0, "good"], [70, "warn"], [90, "bad"]]}` (of the widget's value; `"of": ".x"` for another).
 
 **Icons:** Phosphor names (`vestal icons battery`), `"weight": "fill"` for solid.
+
+**Actions** (`vestal docs actions`): `{"open": "{{ .url }}"}`, `{"run": ["cmd", "arg"]}`, `{"copy": "…"}`, `{"refresh": "prs"}`, `{"view": "focus"}`, `{"popup": {…}}`, `{"media": "playPause"}`, `{"audio": "toggleMute"}`.
 
 **Common mistakes:**
 
 | Symptom | Fix |
 |---|---|
-| `unknown function 'rates'` | A path needs a leading dot in new fields: `.rates.BRL`. |
-| Text shows `\(` or a JSON parse error | Use `{{ }}`, not jq's `"\(...)"`, inside text fields. |
-| `fmt_time(...; .tz)` is wrong or errors | Arguments see the piped input; use `$item.tz` or bind with `as $x`. |
-| The widget never appears | Run `vestal explain <key>`: usually its source has no data yet (or is a draft `command` source: add `--allow-commands`), or `when` is false. |
-| Rows cut off at the bottom | vestal doesn't scroll. Lower `limit`, or check `screenshot --frames` for `clipped`. |
-| `optimistic` uses `\|=` | Not in the subset. Return the new data instead: `. + {exists: (.exists \| not)}`. |
-| The whole list re-renders every refresh | Set `rowId` to a real id (`.id`, `.url`). |
-| Value is `false` but `//` picks the fallback | jq's `//` treats `false` like `null`; use `if . == null then … end`. |
+| `unknown function 'rates'` | A path in a new field needs a leading dot: `.rates.BRL`. |
+| Text shows `\(` or a JSON parse error | Use `{{ }}` in text fields, not jq's `"\(…)"`. |
+| `fmt_time(…; .tz)` is wrong or fails | Arguments see the piped input; use `$item.tz`, or `.tz as $z \| now \| fmt_time("HH:mm"; $z)`. |
+| The widget never appears | `vestal explain <key>`: usually its source has no data (a draft `command` source needs `--allow-commands`), or `when` is false, or its key isn't in the view's `children`. |
+| Every default widget vanished | You wrote `views.main.children` without them: lists replace. |
+| Rows cut off at the bottom | vestal doesn't scroll. Lower `limit`; `screenshot --frames` shows `clipped`. |
+| `optimistic` uses `\|=` | Not in the subset: return new data, `. + {exists: (.exists \| not)}`. |
+| The whole list redraws every refresh | Give `rowId` a real id (`.id`, `.url`). |
+| A value is `false` but `//` picks the fallback | jq's `//` treats `false` like `null`: `if . == null then … else . end`. |
 | A number shows as `12.345678` | Add `format` or `fmt_fixed(n)`. |
+| `command` source "not found" once deployed | The daemon's PATH lacks the program: `programs.vestal.extraPackages`, or an absolute path in `argv[0]`. |
 
-## 4. Recipes
+## 4. Test data
 
-Each recipe shows the commands you run and the config you end with. The config fragments merge over the user's file. Add the widget's key to a view's `children`, or it won't show.
+Write fixtures to test looks and edge cases without waiting for live data: a directory with `<source name>.json` (the data before `transform`; for `parse: "lines"` a JSON list of strings; a `.txt` for `parse: "raw"`), `<source>.error` holding an error message for a failed source, and the built-ins as `system.json`, `media.json`, `calendar.json`, `claude.json`. An inline source reads the file named after its type (`file.json`).
 
-### Recipe 1: A price from a JSON API, with a delta and a sparkline
+```text
+$ mkdir /tmp/fx && vestal fetch system --local > /tmp/fx/system.json
+$ (edit /tmp/fx/system.json: "cpu": {"percent": 95, …})
+$ vestal render --config /tmp/vestal-draft.json --data /tmp/fx --at 2026-09-27T17:03:22Z
+```
 
-User: *"Show the Bitcoin price, the 24h change, and a small chart."*
+## 5. Recipes
 
-1. Add the source and look at the data:
+Each recipe is a complete config file: it merges over the defaults, validates with `vestal check-config` (no errors, no warnings) and renders with `diagnostics: 0`, which vestal's own tests check for every recipe here. `vestal docs recipe/<name>` prints one. To use one, merge the parts you need into the user's config: keep their other widgets in `views.main.children`.
 
-   ```json
-   {
-     "sources": {
-       "prices": {
-         "type": "http",
-         "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true",
-         "refresh": "5m"
-       }
-     }
-   }
-   ```
-
-   ```text
-   $ vestal fetch prices --config /tmp/vestal-draft.json --shape
-   . object
-   .bitcoin object
-   .bitcoin.usd number  64012.5
-   .bitcoin.usd_24h_change number  -1.2345
-   ```
-
-2. Test the value and the delta:
-
-   ```text
-   $ vestal eval '.bitcoin.usd | fmt_thousands' --source prices --config /tmp/vestal-draft.json
-   "64,013"
-   ```
-
-3. Add the widgets. A `stat` for the value, and a `sparkline` with `history`, so vestal samples the price at every fetch and keeps the samples across restarts:
-
-   ```json
-   {
-     "widgets": {
-       "btc": {
-         "type": "section",
-         "title": "Bitcoin",
-         "source": "prices",
-         "children": [
-           {
-             "type": "row",
-             "gap": 20,
-             "width": "fill",
-             "children": [
-               { "type": "stat", "label": "BTC/USD", "value": ".bitcoin.usd", "format": "thousands", "prefix": "$", "delta": ".bitcoin.usd_24h_change" },
-               { "type": "sparkline", "value": ".bitcoin.usd", "history": { "size": 288 }, "height": 36, "fill": "accent@0.15", "dot": true }
-             ]
-           }
-         ]
-       }
-     }
-   }
-   ```
-
-4. Check and look:
-
-   ```text
-   $ vestal check-config --json /tmp/vestal-draft.json   → "counts": {"error": 0, ...}
-   $ vestal render --format tree --config /tmp/vestal-draft.json --view main | grep -A6 btc
-   ```
-
-   The sparkline stays empty until two fetches have happened (10 minutes here). Say so to the user. If the API has a price-history endpoint, use `"values"` on that source instead, and the chart is full at once.
-
-### Recipe 2: A clickable list from a command (GitHub PRs awaiting review)
+### Recipe `github-reviews`: GitHub pull requests awaiting review
 
 User: *"Put my review queue on the dashboard; clicking opens the PR."*
 
-1. The data comes from `gh`, which must be installed and logged in, and on the daemon's PATH. Under Nix, add it to `programs.vestal.extraPackages`.
+```json
+{
+  "version": 1,
+  "sources": {
+    "prs": {
+      "type": "command",
+      "argv": ["gh", "search", "prs", "--review-requested=@me", "--state=open", "--json", "number,title,repository,url,updatedAt,isDraft,author", "--limit", "30"],
+      "refresh": "5m",
+      "timeout": "20s"
+    }
+  },
+  "widgets": {
+    "reviews": {
+      "type": "section",
+      "title": "Review requests ({{ map(select(.isDraft | not)) | length }})",
+      "source": "prs",
+      "children": [
+        {
+          "type": "list",
+          "items": ".",
+          "filter": ".isDraft | not",
+          "sortBy": ".updatedAt | to_epoch",
+          "reverse": true,
+          "limit": 5,
+          "rowId": ".url",
+          "empty": { "type": "text", "text": "Nothing to review", "style": { "color": "dim" } },
+          "row": {
+            "type": "row",
+            "gap": 10,
+            "width": "fill",
+            "action": { "open": "{{ .url }}" },
+            "children": [
+              { "type": "text", "text": "{{ .repository.nameWithOwner }}#{{ .number }}", "width": 170, "lines": 1, "style": { "size": 12, "font": "mono", "color": "subtle" } },
+              { "type": "text", "text": "{{ .title }}", "width": "fill", "lines": 1, "style": { "weight": "medium" } },
+              { "type": "text", "text": "{{ .author.login }}", "style": { "size": 12, "color": "dim" } },
+              { "type": "text", "text": "{{ .updatedAt | fmt_relative }}", "width": 56, "align": "end", "style": { "size": 12, "color": "dim" } }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "keys": { "g": { "open": "https://github.com/pulls/review-requested" } },
+  "views": { "main": { "children": ["clock", "systemBar", "reviews", "agenda", "weather"] } }
+}
+```
 
-   ```json
-   {
-     "sources": {
-       "prs": {
-         "type": "command",
-         "argv": ["gh", "search", "prs", "--review-requested=@me", "--state=open", "--json", "number,title,repository,url,updatedAt,isDraft", "--limit", "30"],
-         "refresh": "5m",
-         "timeout": "20s"
-       }
-     }
-   }
-   ```
+- The data comes from `gh`, which must be installed, logged in (`gh auth status`), and on the daemon's PATH (Nix: `programs.vestal.extraPackages = [ pkgs.gh ];`). `argv` never goes through a shell.
+- Check: `vestal fetch prs --config /tmp/vestal-draft.json --allow-commands --shape` (step 2 shows its output), then `vestal render --config /tmp/vestal-draft.json --allow-commands`: one `action` row per PR, ids `main/reviews/1/@<url>`.
+- `rowId: ".url"` keeps rows stable, so a refresh redraws only changed rows. `sortBy` with `to_epoch` sorts ISO dates.
+- Other PR lists change only the `gh` arguments (ask the user which one they mean): their own open PRs `--author=@me`, assigned ones `--assignee=@me`, one repository `--repo owner/name`. The fields and the widget stay the same.
+- The `children` list above is an example: keep the user's existing `main` children (read them with `vestal print-config`) and insert `reviews` where they want it.
+- Tell the user: `gh` runs every 5 minutes; a click opens the PR in the browser and hides the dashboard; `g` opens the review page.
 
-   ```text
-   $ vestal fetch prs --shape --config /tmp/vestal-draft.json --allow-commands
-   . array[7]
-   .[].number number  4128
-   .[].title string  "Fix tray icon on HiDPI"
-   .[].repository.nameWithOwner string  "acme/app"
-   .[].updatedAt string  "2026-09-26T18:02:11Z"   (ISO 8601: use to_epoch)
-   .[].isDraft boolean  false
-   .[].url string  "https://github.com/acme/app/pull/4128"
-   ```
+### Recipe `crypto`: a price with its 24 h change and sparklines
 
-2. The list: skip drafts, newest first, five rows. Use the URL as `rowId` so a refresh only redraws changed rows.
+User: *"Show BTC and ETH with the 24h change and a small chart."*
 
-   ```json
-   {
-     "widgets": {
-       "reviews": {
-         "type": "section",
-         "title": "Review requests",
-         "source": "prs",
-         "children": [
-           {
-             "type": "list",
-             "items": ".",
-             "filter": ".isDraft | not",
-             "sortBy": ".updatedAt | to_epoch",
-             "reverse": true,
-             "limit": 5,
-             "rowId": ".url",
-             "empty": "Nothing to review",
-             "row": {
-               "type": "row",
-               "gap": 10,
-               "width": "fill",
-               "action": { "open": "{{ .url }}" },
-               "children": [
-                 { "type": "text", "text": "{{ .repository.nameWithOwner }}#{{ .number }}", "width": 170, "lines": 1, "style": { "size": "md", "font": "mono", "color": "subtle" } },
-                 { "type": "text", "text": "{{ .title }}", "width": "fill", "lines": 1 },
-                 { "type": "text", "text": "{{ .updatedAt | fmt_relative }}", "style": { "size": "md", "color": "dim" } }
-               ]
-             }
-           }
-         ]
-       }
-     }
-   }
-   ```
+```json
+{
+  "version": 1,
+  "sources": {
+    "prices": {
+      "type": "http",
+      "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true",
+      "refresh": "5m"
+    },
+    "btcDay": {
+      "type": "http",
+      "url": "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1",
+      "refresh": "30m",
+      "transform": ".prices | map(.[1])"
+    }
+  },
+  "widgets": {
+    "crypto": {
+      "type": "section",
+      "title": "Crypto",
+      "children": [
+        {
+          "type": "grid",
+          "columns": [ { "width": 170 }, { "width": "fill" } ],
+          "gap": 16,
+          "rowGap": 12,
+          "children": [
+            { "type": "stat", "source": "prices", "label": "BTC", "value": ".bitcoin.usd", "format": "thousands", "prefix": "$", "delta": ".bitcoin.usd_24h_change" },
+            { "type": "sparkline", "source": "btcDay", "values": ".", "height": 36, "fill": "accent@0.15", "dot": true, "color": { "expr": "if ($data | last) >= ($data | first) then \"good\" else \"bad\" end" } },
+            { "type": "stat", "source": "prices", "label": "ETH", "value": ".ethereum.usd", "format": "thousands", "prefix": "$", "delta": ".ethereum.usd_24h_change" },
+            { "type": "sparkline", "source": "prices", "value": ".ethereum.usd", "history": { "size": 288 }, "height": 36, "color": "purple" }
+          ]
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "crypto", "agenda"] } }
+}
+```
 
-3. `vestal check-config --json`, then `vestal render --format tree --allow-commands`. Rows appear as `stack h … [main/reviews/…/@https:%2F%2Fgithub.com…]` with `action=true`. Tell the user: `gh` runs every 5 minutes, and clicking a row opens the browser and hides the dashboard.
+- `stat` shows the value and a coloured `▲`/`▼` delta. The BTC chart comes from the API's own series (`btcDay`, reshaped by `transform`), so it is full at once; the ETH chart is recorded by vestal (`value` + `history`) and fills in over the next fetches, kept across restarts.
+- Check: `vestal fetch prices --config /tmp/vestal-draft.json --shape` shows `.bitcoin.usd number  84726` and `.bitcoin.usd_24h_change number  0.576…`. The render has `text "$84,726" size=24` and `text "▲0.58%" size=11 color=good`.
+- Tell the user the ETH sparkline needs a few fetches (5 minutes apart) before it draws.
 
-### Recipe 3: CPU, memory and disk gauges that turn red
-
-User: *"I want CPU/RAM/disk rings that go yellow then red."*
-
-1. The built-in `system` source has the same shape on macOS and Linux. No source to add:
-
-   ```text
-   $ vestal fetch system --shape
-   .cpu.percent number  12.5
-   .memory.percent number  61
-   .disks[].mount string  "/"
-   .disks[].percent number  73.6
-   .temperature.cpu number  54      (null where the machine has no sensor)
-   ```
-
-2. A threshold colour is `steps` on the value. Check it:
-
-   ```text
-   $ vestal eval '.cpu.percent | step([[0,"good"],[70,"warn"],[90,"bad"]])' --source system
-   "good"
-   ```
-
-3. The widget:
-
-   ```json
-   {
-     "widgets": {
-       "gauges": {
-         "type": "section",
-         "title": "{{ .host }}",
-         "source": "system",
-         "children": [
-           {
-             "type": "row",
-             "gap": 28,
-             "children": [
-               { "type": "gauge", "label": "CPU", "value": ".cpu.percent", "text": "{{ .cpu.percent | round }}%", "color": { "steps": [[0, "good"], [70, "warn"], [90, "bad"]] } },
-               { "type": "gauge", "label": "RAM", "value": ".memory.percent", "text": "{{ .memory.percent | round }}%", "color": { "steps": [[0, "good"], [80, "warn"], [95, "bad"]] } },
-               { "type": "gauge", "label": "Disk", "value": ".disks[0].percent", "text": "{{ .disks[0].percent | round }}%", "color": { "steps": [[0, "good"], [85, "warn"], [95, "bad"]] } },
-               { "type": "gauge", "label": "Temp", "when": ".temperature.cpu != null", "value": ".temperature.cpu", "text": "{{ .temperature.cpu }}°", "color": { "steps": [[0, "cyan"], [70, "warn"], [85, "bad"]] } }
-             ]
-           }
-         ]
-       }
-     }
-   }
-   ```
-
-4. `vestal render --format tree` shows each `ring` with its colour name. `vestal screenshot /tmp/g.png` on macOS lets you check the look. To test the red state without loading the machine, use fixture data: write a `system.json` with `"cpu": {"percent": 95}` into a directory and pass `--data <dir>`.
-
-### Recipe 4: Home Assistant sensors, with a token kept out of the config
+### Recipe `home-assistant`: Home Assistant sensors, with the token kept out of the config
 
 User: *"Show living-room temperature, the front door, and all humidity sensors from Home Assistant."*
 
-1. Ask the user to create a long-lived token in Home Assistant and save it to a file you name, for example `~/.config/vestal/secrets/ha.token` (mode 600). Never paste it into the config.
-2. Source, with a `transform` that turns HA's array into a map keyed by entity id, so widgets can say `.["sensor.x"]`:
+```json
+{
+  "version": 1,
+  "secrets": { "ha": { "file": "~/.config/vestal/secrets/home-assistant.token" } },
+  "functions": { "num": ".state | tonumber? // null" },
+  "sources": {
+    "ha": {
+      "type": "http",
+      "url": "http://homeassistant.local:8123/api/states",
+      "headers": { "Authorization": "Bearer {{ $secrets.ha }}" },
+      "refresh": "1m",
+      "transform": "map({ key: .entity_id, value: { state: .state, name: .attributes.friendly_name, unit: (.attributes.unit_of_measurement // \"\") } }) | from_entries"
+    }
+  },
+  "widgets": {
+    "home": {
+      "type": "section",
+      "title": "Home",
+      "source": "ha",
+      "children": [
+        {
+          "type": "grid",
+          "columns": 3,
+          "gap": 16,
+          "rowGap": 14,
+          "children": [
+            { "type": "stat", "size": "sm", "label": "Living room", "input": ".[\"sensor.living_room_temperature\"]", "value": "num", "format": "fixed:1", "suffix": "°C", "color": { "steps": [[0, "cyan"], [18, "text"], [26, "warn"]] } },
+            { "type": "stat", "size": "sm", "label": "Bedroom", "input": ".[\"sensor.bedroom_temperature\"]", "value": "num", "format": "fixed:1", "suffix": "°C", "color": { "steps": [[0, "cyan"], [18, "text"], [26, "warn"]] } },
+            { "type": "stat", "size": "sm", "label": "Front door", "input": ".[\"binary_sensor.front_door\"]", "value": "if .state == \"on\" then \"Open\" else \"Closed\" end", "color": { "expr": "if .state == \"on\" then \"warn\" else \"good\" end" } },
+            { "type": "stat", "size": "sm", "label": "Solar", "input": ".[\"sensor.solar_power\"]", "value": "num", "format": "compact", "suffix": " W" },
+            { "type": "stat", "size": "sm", "label": "Grid", "input": ".[\"sensor.grid_power\"]", "value": "num", "format": "compact", "suffix": " W", "color": { "steps": [[-100000, "good"], [0, "text"], [3000, "bad"]] } },
+            { "type": "stat", "size": "sm", "label": "Washer", "input": ".[\"sensor.washer_status\"]", "value": ".state", "when": ".state != \"off\"" }
+          ]
+        },
+        {
+          "type": "list",
+          "direction": "grid",
+          "columns": 3,
+          "gap": 12,
+          "spaceBefore": 14,
+          "items": "to_entries | map(select(.key | startswith(\"sensor.\") and endswith(\"_humidity\"))) | map(.value)",
+          "sortBy": ".name",
+          "row": { "type": "stat", "size": "sm", "label": "{{ .name }}", "value": "num", "format": "percent" }
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "home", "agenda", "weather"] } }
+}
+```
 
-   ```json
-   {
-     "secrets": { "ha": { "file": "~/.config/vestal/secrets/ha.token" } },
-     "functions": { "num": ".state | tonumber? // null" },
-     "sources": {
-       "ha": {
-         "type": "http",
-         "url": "http://homeassistant.local:8123/api/states",
-         "headers": { "Authorization": "Bearer {{ $secrets.ha }}" },
-         "refresh": "1m",
-         "transform": "map({ key: .entity_id, value: { state: .state, name: .attributes.friendly_name, unit: (.attributes.unit_of_measurement // \"\") } }) | from_entries"
-       }
-     }
-   }
-   ```
+- First ask the user to create a long-lived token in Home Assistant (Profile → Security) and save it to `~/.config/vestal/secrets/home-assistant.token` (mode 600). Never paste it into the config.
+- The `transform` turns Home Assistant's array into a map by entity id, so widgets say `.["sensor.x"]`. Find the ids with `vestal eval 'keys | map(select(test("temperature|door|humidity")))' --source ha --config /tmp/vestal-draft.json`.
+- `functions.num` is a helper every widget can call. The second grid is data-driven: every `*_humidity` sensor, sorted by name.
+- `vestal fetch ha` fails with an HTTP error if the token is wrong; the error never contains the token.
 
-3. Find the entity ids:
+### Recipe `cpu-gauges`: CPU, memory and disk rings that turn yellow, then red
 
-   ```text
-   $ vestal eval 'keys | map(select(test("temperature|door|humidity")))' --source ha
-   ["binary_sensor.front_door","sensor.bathroom_humidity","sensor.bedroom_humidity","sensor.living_room_temperature"]
-   ```
+User: *"I want CPU/RAM/disk rings that go yellow then red, and a CPU chart."*
 
-4. Fixed tiles for named entities, and a data-driven grid for "all humidity sensors":
+```json
+{
+  "version": 1,
+  "sources": {
+    "stats": { "type": "system", "when": "always", "refresh": "30s", "history": { "cpu": { "value": ".cpu.percent", "size": 120 } } }
+  },
+  "widgets": {
+    "machine": {
+      "type": "section",
+      "title": "{{ .host }}",
+      "source": "system",
+      "children": [
+        {
+          "type": "row",
+          "gap": 28,
+          "width": "fill",
+          "children": [
+            { "type": "gauge", "label": "CPU", "value": ".cpu.percent", "text": "{{ .cpu.percent | round }}%", "color": { "steps": [[0, "good"], [70, "warn"], [90, "bad"]] } },
+            { "type": "gauge", "label": "RAM", "value": ".memory.percent", "text": "{{ .memory.percent | round }}%", "color": { "steps": [[0, "good"], [80, "warn"], [95, "bad"]] } },
+            { "type": "gauge", "label": "Disk", "value": ".disks[0].percent", "text": "{{ .disks[0].percent | round }}%", "color": { "steps": [[0, "good"], [85, "warn"], [95, "bad"]] } },
+            { "type": "gauge", "label": "Temp", "when": ".temperature.cpu != null", "value": ".temperature.cpu", "text": "{{ .temperature.cpu }}°", "color": { "steps": [[0, "cyan"], [70, "warn"], [85, "bad"]] } },
+            {
+              "type": "stack",
+              "gap": 4,
+              "width": "fill",
+              "children": [
+                { "type": "text", "text": "CPU, last hour", "style": { "size": 10, "weight": "semibold", "color": "subtle" } },
+                { "type": "sparkline", "values": "$history.stats.cpu", "min": 0, "max": 100, "height": 40, "fill": "accent@0.12" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "machine", "media", "agenda"] } }
+}
+```
 
-   ```json
-   {
-     "widgets": {
-       "home": {
-         "type": "section",
-         "title": "Home",
-         "source": "ha",
-         "children": [
-           {
-             "type": "grid",
-             "columns": 3,
-             "gap": 16,
-             "children": [
-               { "type": "stat", "size": "sm", "label": "Living room", "input": ".[\"sensor.living_room_temperature\"]", "value": "num", "format": "fixed:1", "suffix": "°C", "color": { "steps": [[0, "cyan"], [18, "text"], [26, "warn"]] } },
-               { "type": "stat", "size": "sm", "label": "Front door", "input": ".[\"binary_sensor.front_door\"]", "value": "if .state == \"on\" then \"Open\" else \"Closed\" end", "color": { "expr": "if .state == \"on\" then \"warn\" else \"good\" end" } }
-             ]
-           },
-           {
-             "type": "list",
-             "direction": "grid",
-             "columns": 3,
-             "spaceBefore": 14,
-             "items": "to_entries | map(select(.key | endswith(\"_humidity\"))) | map(.value)",
-             "sortBy": ".name",
-             "row": { "type": "stat", "size": "sm", "label": "{{ .name }}", "value": "num", "format": "percent" }
-           }
-         ]
-       }
-     }
-   }
-   ```
+- The built-in `system` source has the same shape on macOS and Linux (`vestal docs source/system`). The temperature ring hides where the machine has no sensor (`when`).
+- `stats` is a second, named `system` source with `when: "always"`, so its CPU history keeps sampling while the dashboard is hidden (the built-in one samples only while shown).
+- Check the red state without loading the machine: fixture data with `"cpu": {"percent": 95}` (section 4); the ring then has `color=bad`.
 
-5. `vestal check-config --json` warns if a header holds a literal-looking token. `vestal fetch ha` fails with HTTP 401 if the token file is wrong, and the error never contains the token.
+### Recipe `headlines`: headlines from RSS and a JSON API
 
-### Recipe 5: A second view on a key, with RSS headlines
+User: *"Top Hacker News and Lobsters stories, click to open."*
 
-User: *"Give me a 'reading' screen on key 2 with Hacker News headlines; keep the normal one on 1."*
+```json
+{
+  "version": 1,
+  "sources": {
+    "hn": { "type": "http", "url": "https://hnrss.org/frontpage?points=100", "parse": "feed", "refresh": "15m" },
+    "lobsters": {
+      "type": "http",
+      "url": "https://lobste.rs/hottest.json",
+      "refresh": "15m",
+      "transform": "map({ id: .short_id, title, url: (if .url == \"\" then .comments_url else .url end), date: (.created_at | to_epoch), tags })"
+    }
+  },
+  "widgets": {
+    "news": {
+      "type": "section",
+      "title": "Headlines",
+      "children": [
+        {
+          "type": "list",
+          "source": "hn",
+          "items": ".items",
+          "limit": 6,
+          "rowId": ".id",
+          "gap": 6,
+          "row": {
+            "type": "row",
+            "gap": 10,
+            "width": "fill",
+            "action": { "open": "{{ .url }}" },
+            "children": [
+              { "type": "badge", "text": "HN", "color": "orange" },
+              { "type": "text", "text": "{{ .title }}", "width": "fill", "lines": 1 },
+              { "type": "text", "text": "{{ .date | fmt_relative }}", "style": { "size": 11, "color": "dim" } }
+            ]
+          }
+        },
+        {
+          "type": "list",
+          "source": "lobsters",
+          "items": ".",
+          "filter": ".tags | any(. == \"meta\") | not",
+          "limit": 4,
+          "rowId": ".id",
+          "gap": 6,
+          "spaceBefore": 10,
+          "row": {
+            "type": "row",
+            "gap": 10,
+            "width": "fill",
+            "action": [ { "open": "{{ .url }}" } ],
+            "children": [
+              { "type": "badge", "text": "L", "color": "red" },
+              { "type": "text", "text": "{{ .title }}", "width": "fill", "lines": 1 },
+              { "type": "text", "text": "{{ .tags | join(\", \") }}", "lines": 1, "style": { "size": 11, "color": "dim" } }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "news", "agenda", "weather"] } }
+}
+```
 
-1. RSS, Atom and JSON Feed all become one shape with `parse: "feed"`:
+- `parse: "feed"` reads RSS, Atom or JSON Feed as one shape (`.items[]` with `title`, `url`, `date`, `id`). The Lobsters JSON API is reshaped into the same fields by `transform`.
+- Check: `vestal fetch hn --config /tmp/vestal-draft.json --shape` shows `.items[].title string` and `.items[].date number`.
 
-   ```json
-   {
-     "sources": {
-       "hn": { "type": "http", "url": "https://hnrss.org/frontpage?points=100", "parse": "feed", "refresh": "15m" }
-     }
-   }
-   ```
+### Recipe `focus-view`: a second view on a key, with a to-do file
 
-   ```text
-   $ vestal fetch hn --shape
-   .title string  "Hacker News: Front Page"
-   .items array[20]
-   .items[].title string  "Show HN: …"
-   .items[].url string  "https://…"
-   .items[].date number  1790000000
-   ```
+User: *"Give me a 'focus' screen on key 2 with a big clock, my agenda and my to-do list; keep the normal one on 1."*
 
-2. The widget and the views. The user's existing `main` children stay as they were: read them with `vestal print-config` and copy them, because `children` is a list and lists replace, not merge.
+```json
+{
+  "version": 1,
+  "defaultView": "main",
+  "widgets": {
+    "bigClock": { "type": "text", "text": "{{ now | fmt_time(\"HH:mm\") }}", "alignSelf": "center", "style": { "size": 120, "weight": "thin", "font": "mono" } },
+    "todo": {
+      "type": "section",
+      "title": "Today's list",
+      "source": { "type": "file", "path": "~/notes/today.md", "parse": "lines", "refresh": "30s" },
+      "children": [
+        {
+          "type": "list",
+          "items": "map(select(startswith(\"- [ ] \"))) | map(.[6:])",
+          "limit": 8,
+          "row": { "type": "text", "icon": "circle", "iconSize": 7, "iconColor": "accent", "gap": 8, "text": "{{ . }}" },
+          "empty": "All done."
+        }
+      ]
+    }
+  },
+  "views": {
+    "main": { "key": "1", "children": ["clock", "systemBar", "media", "agenda", "systems", "weather"] },
+    "focus": { "key": "2", "title": "Focus", "gap": 32, "children": ["bigClock", "agenda", "todo"] }
+  }
+}
+```
 
-   ```json
-   {
-     "widgets": {
-       "headlines": {
-         "type": "section",
-         "title": "Hacker News",
-         "source": "hn",
-         "children": [
-           {
-             "type": "list",
-             "items": ".items",
-             "limit": 12,
-             "rowId": ".url",
-             "gap": 6,
-             "row": {
-               "type": "row",
-               "gap": 10,
-               "width": "fill",
-               "action": { "open": "{{ .url }}" },
-               "children": [
-                 { "type": "text", "text": "{{ .title }}", "width": "fill", "lines": 1 },
-                 { "type": "text", "text": "{{ .date | fmt_relative }}", "style": { "size": "sm", "color": "dim" } }
-               ]
-             }
-           }
-         ]
-       }
-     },
-     "views": {
-       "main": { "key": "1", "children": ["clock", "systemBar", "media", "agenda", "systems", "weather"] },
-       "reading": { "key": "2", "title": "Reading", "maxWidth": 820, "children": ["clock", "headlines"] }
-     }
-   }
-   ```
+- `1` and `2` switch views while the dashboard is open, and so does `tab`. From a shell or the compositor: `vestal show focus`, or `vestal toggle focus` (Hyprland: `bind = SHIFT, Home, exec, vestal toggle focus`).
+- The to-do source is inline (`parse: "lines"`, one string per line); the list keeps the unchecked `- [ ]` items.
+- Check the second view: `vestal render --config /tmp/vestal-draft.json --view focus`, or `--press 2`.
 
-3. Check the new view: `vestal render --format tree --view reading`, or `vestal render --press 2` to go through the key. Tell the user: `1`/`2` (or `tab`) switch views while the dashboard is open, and `vestal show reading` opens it directly. On Hyprland they can bind it: `bind = SHIFT, Home, exec, vestal toggle reading`.
+### Recipe `ics-calendar`: calendars from .ics files and URLs on Linux
 
-## 5. Going further
+User (on Linux): *"Show my work calendar (synced by vdirsyncer) and the family calendar I have as an iCal link."*
 
-- **Your own reusable widget:** `templates` (`vestal docs templates`), for example a `metric` template with `label` and `value` parameters, used as `{"type": "metric", ...}`.
-- **Another health agent** (Glances, netdata, a script over SSH): a source template that maps its JSON to the `system` shape (`vestal docs source/system`), then `systemHealth` with `"provider": "<your template>"`.
-- **Actions:** `run` (a command, never through a shell), `open`, `copy`, `refresh`, `view`, `popup`, `media`, `audio` (`vestal docs actions`). Every widget can take a `key`.
-- **Look:** `theme.palettes`, `theme.colors`, `theme.fonts`, `theme.scale` (`vestal docs styling`).
-- **Linux UI authors:** `vestal docs render-model` and `vestal docs protocol`; `vestal subscribe` shows the live stream.
+```json
+{
+  "version": 1,
+  "secrets": {
+    "family": { "file": "~/.config/vestal/secrets/family-calendar-url" }
+  },
+  "platform": {
+    "linux": {
+      "sources": {
+        "calendar": {
+          "ics": ["~/.local/share/vdirsyncer/calendars/work", "{{ $secrets.family }}"],
+          "days": 2,
+          "refresh": "15m"
+        }
+      }
+    }
+  },
+  "widgets": {
+    "agenda": { "type": "agendaList", "source": "calendar", "title": "Today", "maxEvents": 6 }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "agenda", "weather"] } }
+}
+```
+
+- On macOS the `calendar` source reads EventKit; on Linux it needs `ics`: files, directories of `.ics` files (vdirsyncer's), or `http(s)` URLs. Putting `ics` in `platform.linux` keeps EventKit on the Mac with the same file. Move it to the top level to use the same `.ics` on both.
+- A private calendar URL is a secret: the user saves it to the file named in `secrets` (mode 600).
+- Check: `vestal check-config --platform linux /tmp/vestal-draft.json`, then on Linux `vestal fetch calendar`. Recurring events with rules vestal doesn't support are left out, with a note in `vestal sources --json` (`info`).
+
+### Recipe `per-os`: one config for macOS and Linux
+
+User: *"Add a lock-screen shortcut, use Inter on Linux, and pick the right music player on each machine."*
+
+```json
+{
+  "version": 1,
+  "sources": {
+    "media": { "type": "media", "player": ["Spotify", "Music"] }
+  },
+  "widgets": {
+    "media": { "type": "media", "player": "Spotify" },
+    "lock": {
+      "type": "row",
+      "gap": 6,
+      "key": "l",
+      "children": [
+        { "type": "icon", "name": "lock-simple", "size": 12, "color": "subtle" },
+        { "type": "text", "text": "Lock the screen", "style": { "size": 12, "color": "subtle" } },
+        { "type": "text", "text": "L", "padding": [1, 5, 1, 5], "radius": 4, "background": "track", "style": { "size": 10, "font": "mono", "color": "dim" } }
+      ]
+    }
+  },
+  "platform": {
+    "macos": {
+      "widgets": {
+        "lock": { "action": { "run": ["pmset", "displaysleepnow"], "hide": true } }
+      }
+    },
+    "linux": {
+      "theme": { "fonts": { "sans": "Inter", "mono": "JetBrains Mono" } },
+      "sources": { "media": { "player": ["spotify", "mpv"] } },
+      "widgets": {
+        "media": { "player": "spotify" },
+        "lock": { "action": { "run": ["loginctl", "lock-session"], "hide": true } }
+      }
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "media", "agenda", "lock"] } }
+}
+```
+
+- `platform.macos` and `platform.linux` are merged over the rest on that OS only: here the `lock` widget gets a different `run` action per OS, Linux gets its fonts, and the player names differ (macOS application names; Linux MPRIS names, which `vestal fetch media --local` lists under `players`).
+- The widget's `key` (`l`) runs its action while the dashboard is open. `hide: true` hides the dashboard first.
+- Check both: `vestal check-config --platform macos` and `--platform linux`. Tell the user which command runs on which OS.
+
+### Recipe `metric-template`: a reusable widget with parameters
+
+User: *"Make CPU, RAM and disk bars with their own warning levels and a note under each."*
+
+```json
+{
+  "version": 1,
+  "templates": {
+    "metric": {
+      "description": "A labelled percentage bar that turns yellow, then red",
+      "params": {
+        "label": { "type": "text", "required": true },
+        "value": { "type": "expr", "required": true, "description": "A 0-100 number" },
+        "warn": { "type": "number", "default": 70 },
+        "bad": { "type": "number", "default": 90 },
+        "note": { "type": "text", "default": "" }
+      },
+      "widget": {
+        "type": "row",
+        "gap": 10,
+        "width": "fill",
+        "children": [
+          {
+            "type": "progress",
+            "label": { "param": "label" },
+            "labelWidth": 44,
+            "value": { "param": "value" },
+            "textWidth": 36,
+            "color": { "expr": "$value | step([[0, \"good\"], [$warn, \"warn\"], [$bad, \"bad\"]])" }
+          },
+          { "type": "text", "text": { "param": "note" }, "width": 110, "lines": 1, "style": { "size": 11, "color": "dim" } }
+        ]
+      }
+    }
+  },
+  "widgets": {
+    "machine": {
+      "type": "section",
+      "title": "This machine",
+      "source": "system",
+      "children": [
+        { "type": "metric", "label": "CPU", "value": ".cpu.percent", "note": "load {{ .cpu.load[0] | fmt_fixed(2) }}" },
+        { "type": "metric", "label": "RAM", "value": ".memory.percent", "warn": 80, "bad": 95, "note": "{{ .memory.used | fmt_bytes }} used" },
+        { "type": "metric", "label": "Disk", "value": ".disks[0].percent", "warn": 85, "bad": 95, "note": "{{ .disks[0].free | fmt_bytes }} free" }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "machine", "agenda"] } }
+}
+```
+
+- A template is used like a type: `{"type": "metric", …}`. Data parameters (`warn`, `bad`) are also variables (`$warn`); code parameters (`value` of type `expr`, `label` and `note` of type `text`) are substituted where `{"param": …}` stands (`vestal docs templates`).
+- `vestal print-config --expanded --config /tmp/vestal-draft.json` shows what each instance becomes; `vestal schema --config /tmp/vestal-draft.json` adds `metric` to the schema.
+
+### Recipe `docker`: containers from a command, restarted by a click
+
+User: *"List my Docker containers; clicking one restarts it."*
+
+```json
+{
+  "version": 1,
+  "sources": {
+    "containers": {
+      "type": "command",
+      "argv": ["docker", "ps", "--all", "--format", "json"],
+      "parse": "lines",
+      "transform": "map(fromjson)",
+      "refresh": "1m",
+      "when": "visible"
+    }
+  },
+  "widgets": {
+    "docker": {
+      "type": "section",
+      "title": "Containers ({{ map(select(.State == \"running\")) | length }} running)",
+      "source": "containers",
+      "children": [
+        {
+          "type": "list",
+          "items": ".",
+          "sortBy": ".Names",
+          "limit": 8,
+          "rowId": ".ID",
+          "gap": 6,
+          "empty": "No containers",
+          "row": {
+            "type": "row",
+            "gap": 10,
+            "width": "fill",
+            "action": {
+              "run": ["docker", "restart", "{{ .Names }}"],
+              "timeout": "60s",
+              "optimistic": "$data | map(if .ID == $item.ID then . + {State: \"restarting\", Status: \"Restarting\"} else . end)"
+            },
+            "children": [
+              { "type": "icon", "name": "circle", "weight": "fill", "size": 7, "color": { "expr": "{running: \"good\", restarting: \"warn\"}[.State] // \"bad\"" } },
+              { "type": "text", "text": "{{ .Names }}", "width": 160, "lines": 1, "style": { "font": "mono", "size": 12 } },
+              { "type": "text", "text": "{{ .Image }}", "width": "fill", "lines": 1, "style": { "size": 12, "color": "subtle" } },
+              { "type": "text", "text": "{{ .Status }}", "style": { "size": 11, "color": "dim" } }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "docker", "agenda"] } }
+}
+```
+
+- `docker ps --format json` prints one JSON object per line: `parse: "lines"` then `transform: "map(fromjson)"`. The source is `visible`: docker is only asked while the dashboard is shown.
+- The row's `run` action restarts the container without a shell. `optimistic` shows it as restarting at once (it replaces the source's data until the next fetch), and the source is fetched again when `docker restart` exits.
+- Tell the user: a click restarts a container (there is no confirmation); `docker` must be on the daemon's PATH.
+
+### Recipe `disk-table`: disks as a table
+
+User: *"A table of my disks: used, free and size, red when nearly full."*
+
+```json
+{
+  "version": 1,
+  "sources": {
+    "storage": { "type": "system", "disks": ["/", "/home", "/mnt/backup"], "refresh": "1m" }
+  },
+  "widgets": {
+    "disks": {
+      "type": "section",
+      "title": "Disks",
+      "source": "storage",
+      "children": [
+        {
+          "type": "table",
+          "items": ".disks",
+          "rowId": ".mount",
+          "columns": [
+            { "header": "Mount", "text": "{{ .mount }}", "width": "fill", "style": { "font": "mono" } },
+            { "header": "Used", "value": ".percent", "format": "percent", "align": "end", "color": { "steps": [[0, "text"], [80, "warn"], [95, "bad"]] } },
+            { "header": "Free", "value": ".free", "format": "bytes", "align": "end", "style": { "color": "subtle" } },
+            { "header": "Size", "value": ".total", "format": "bytes", "align": "end", "style": { "color": "dim" } }
+          ]
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "disks", "agenda"] } }
+}
+```
+
+- A `table` lines its columns up across rows. `storage` is a named `system` source with more `disks` than the default `["/"]`: list the user's real mount points (`df -h`).
+- Column colours use the cell's value (`steps` of `$value`).
+
+## 6. Going further
+
+- **More widgets and fields:** `vestal docs widgets`, then `vestal docs widget/<type>` for each field's kind and default.
+- **Your own reusable widget or health agent:** `vestal docs templates` (a source template that maps Glances or netdata to the `system` shape works in `systemHealth`).
+- **Look:** `vestal docs styling` (palettes, fonts, `theme.scale`), `vestal docs icons`.
+- **Keys, views and popups:** `vestal docs keys`, `vestal docs views`, `vestal docs actions`.
+- **UI authors:** `vestal docs render-model` and `vestal docs protocol`; `vestal subscribe` prints the live stream.
+- **Everything else:** `vestal docs cli`, `vestal docs --search <text>`, and `vestal schema` for the JSON Schema of the whole config.
 
 """#,
         "cli": #"""
 # The vestal command
 
-Every command below runs headlessly; on Linux, `vestal screenshot` asks the running dashboard to draw. The dashboard is SwiftUI on macOS and GTK 4 on Linux (a layer-shell surface on Wayland); `--headless` runs the daemon without one.
+Every command below runs headlessly, on macOS and Linux, unless noted. Those that produce data take `--json`.
 
 ## Exit codes
 
@@ -434,13 +942,30 @@ The same for every command:
 | Code | Meaning |
 |---|---|
 | 0 | Success. Warnings may have been printed. |
-| 1 | Runtime failure: the config is unreadable or not JSON, or no instance runs where one is required. |
+| 1 | Runtime failure: the config is unreadable or not JSON, a fetch failed, or no instance runs where one is required. |
 | 2 | Usage error. |
-| 3 | The config has errors (`check-config`; with `--strict`, warnings too). |
-| 4 | Not found: an unknown docs topic, view or icon. A did-you-mean goes to stderr. |
-| 5 | Not supported here: `vestal screenshot` with no running dashboard to draw it. |
+| 3 | The config or expression has errors (`check-config`, `eval`, `render --strict`; with `check-config --strict`, warnings too). |
+| 4 | Not found: an unknown source, view, docs topic or icon. A did-you-mean goes to stderr. |
+| 5 | Not supported here, such as `screenshot` with no way to draw. |
 
 With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "...", "message": "...", "suggestion": "..."}}`. `--` ends the options: `vestal check-config -- --odd-name.json` reads that file.
+
+## Common options
+
+- `--config <path>` reads another config than the one vestal loads (`-` reads stdin, where supported). A config other than the running instance's is a **draft**.
+- `--at <time>` freezes `now`: epoch seconds or ISO 8601 (`2026-09-27T14:03:00Z`).
+- `TZ` and `VESTAL_LOCALE` (such as `en_US`) fix the time zone and locale, for reproducible output.
+
+**Where data comes from** (`render`, `eval`, `explain`, `screenshot`):
+
+| Mode | Option | |
+|---|---|---|
+| auto | (default) | The running instance's data when the config is its own; else the disk cache when the source's definition matches; else fetched now. |
+| cached | `--cached` | The disk cache only; missing sources are not loaded. |
+| fetch | `--fetch` | Fetch every source needed, now, in this process. |
+| fixtures | `--data <dir>` | `<dir>/<source>.json` (`.txt` for `parse: "raw"`, the type's name for inline sources, `<source>.error` for a failed fetch). Nothing is fetched. |
+
+**Drafts don't run commands by themselves.** A draft still makes HTTP requests and reads files, but its `command` sources and `command` secrets stay "not loaded" unless you pass `--allow-commands`. `--no-network` skips HTTP too. Actions never run from `render`, `eval` or `check-config`.
 
 ## The running instance
 
@@ -453,26 +978,55 @@ With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "..
 | `vestal press <key>` | Send a key to the running dashboard, as if typed on it (`h`, `2`, `tab`, `shift+tab`, `alt+i`, `escape`). Exit 1 when none runs or it is hidden. |
 | `vestal hide`, `vestal reload`, `vestal quit` | Tell the running instance. Exit 1 when none runs; they never start one. |
 | `vestal status [--json]` | The running instance: pid, build, config file, warnings, each source's age and last error, and this machine's stats. |
+| `vestal subscribe [--view <name>] [--while-hidden] [--role ui\|observer\|control] [--control] [--minor <n>] [--input]` | Print the live render-model stream (`vestal docs protocol`) until the instance hangs up or Ctrl-C; `--input` forwards JSON commands typed on stdin. Exit 1 when none runs. |
 
-## Config
+## Looking at the machine and the data
+
+`vestal capabilities [--json] [--config <path>]`
+
+What this machine supports: the OS; for each built-in source type (`system`, `media`, `calendar`, `claude`, and `audio`) its backend, whether it works here, and why not (for example `playerctl` missing, the players it sees, EventKit access, `ics` configured); the icon fonts found; screenshot support; whether a global hotkey works (macOS) or must be bound in the compositor (Linux); and every program the config's `command` sources, secrets and actions need, found or missing on `PATH`. Exit 0.
+
+`vestal sources [--json] [--config <path>]`
+
+Every source (named, built-in, inline and adapter-made) with its type, refresh, `when`, age, status and the widgets that read it. It asks the running instance, else reads the disk cache (status `cache`).
+
+`vestal fetch <name> [--config <path>] [--raw] [--shape] [--json] [--cached] [--local] [--timeout <duration>] [--allow-commands] [--no-network]`
+
+Fetches a source now and prints its data, after `transform`, as pretty JSON with sorted keys. It asks the running instance when there is one; `--local` fetches in this process (a draft always does). `--raw`: the data before `transform`. `--cached`: the last data, without fetching. `--shape`: an outline of every path with its type and a sample value (`--shape --json`: `[{"path", "types", "nullable", "count", "sample"}]`). Exit 1 when the fetch fails (the error, with secrets scrubbed, on stderr), 4 for an unknown source.
+
+## Writing a config
 
 `vestal check-config [path|-] [--json] [--strict] [--platform macos|linux|all] [--commands]`
 
-Checks a config file (default: the one vestal loads; `-` reads stdin). It prints `<file>: ok`, or one line per finding with its JSON path, and under it a line with the RFC 6901 pointer into your file, the line and column, and a did-you-mean. Exit 0 when the file is used (warnings included), 1 when it can't be read or parsed, 2 for bad usage, 3 with error findings or, with `--strict`, any warning.
+Checks a config file (default: the one vestal loads; `-` reads stdin) after merging, template expansion and the v0.3 adapter: unknown keys, types, sources, templates, views, widgets, colours and icons (each with a did-you-mean), type mismatches, bad durations and keys, key conflicts, template parameters, expressions that don't compile (with the position), unknown functions and variables, `sf:` icons outside `platform.macos`, literal-looking tokens. It prints `<file>: ok`, or one line per finding with its JSON path, and under it a line with the RFC 6901 pointer into your file, the line and column, and a did-you-mean. Exit 0 when the file is usable (warnings included), 1 when it can't be read or parsed, 2 for bad usage, 3 with error findings or, with `--strict`, any warning.
 
-- `--json`: `{"file", "status", "counts": {"error", "warning", "info"}, "diagnostics": [...]}`. Each diagnostic has `severity`, `code`, `pointer`, `layer` (`user`, `platform.macos`, `platform.linux` or `defaults`), `message`, and where they apply `suggestion` (the best) and `suggestions` (up to 3), `expected` and `found`, `line` and `column`, and `platform` (for a finding only the other OS's block causes).
+- `--json`: `{"file", "status", "counts": {"error", "warning", "info"}, "diagnostics": [...]}`. Each diagnostic has `severity`, `code`, `pointer`, `layer` (`user`, `platform.macos`, `platform.linux` or `defaults`), `message`, and where they apply `suggestion` (the best) and `suggestions` (up to 3), `expected` and `found`, `line` and `column`, `exprOffset`, and `platform` (for a finding only the other OS's block causes).
 - `--platform macos|linux`: check as that OS loads the file. The default, `all`, checks this OS and also the other OS's block.
-- `--commands`: list every program the config can run (command sources, the privacy toggle, foyer health polls): where it is defined, what runs it, the environment keys it adds, whether the program is on this machine's PATH, and the argv as written. Exit 0.
+- `--commands`: list every program the config can run: `command` sources (named, inline, or from a source template), `command` secrets, `run` actions in widgets, views, global keys and templates, the `systemBar` privacy toggle and `systemHealth` foyer hosts. For each: where it is defined (pointer), what triggers it, the environment keys it adds, whether the program is on this machine's `PATH`, and the argv as written (text holes are never evaluated). Exit 0.
 
-Codes: `json-syntax`, `unreadable`, `unknown-key`, `unknown-type`, `unknown-source`, `unknown-widget`, `type-mismatch`, `missing-required`, `invalid-duration`, `invalid-key`, `key-conflict`, `invalid-value`.
+Severities: **error** (that part won't work; the rest still runs), **warning** (ignored or defaulted), **info** (advice, such as `legacy` notes about v0.3 widgets).
 
-`vestal print-config [path|-] [--origins]`
+`vestal print-config [path|-] [--origins | --expanded | --templates]`
 
-The effective config: all layers merged, as pretty JSON with sorted keys, before decoding. Warnings go to stderr. `--origins` prints each value as `pointer  value  layer` instead, showing which layer won.
+The effective config: all layers merged, as pretty JSON with sorted keys. `--origins` prints each value as `pointer  value  layer`, showing which layer won. `--expanded` shows the config after template expansion and the v0.3 adapter, which is how you learn what a preset becomes. `--templates` prints every template, built-ins included.
 
-`vestal schema [--out <file>] [--config <path>]`
+`vestal schema [--config <path>] [--out <file>]`
 
-The JSON Schema (draft 2020-12, `$id` `urn:vestal:config:1`) of the config file. Every key has a description, its default, examples, `x-vestal-kind` (`expr`, `text` or `literal`) and `x-vestal-since`. Widgets and sources are a `oneOf` on `type`. `--out` writes it to a file. `--config` will add a config's own templates once templates exist.
+The JSON Schema (draft 2020-12, `$id` `urn:vestal:config:1`) of the config. Every key has a description, its default, examples, `x-vestal-kind` (`expr`, `text` or `literal`) and `x-vestal-since`. Widgets and sources are a `oneOf` on `type`. `--config` adds that config's own templates as types. `--out` writes it to a file.
+
+`vestal eval <expr> [--source <name> | --input <file|-> | --null-input] [--template] [--config <path>] [--var <name>=<json>]... [--at <time>] [--cached|--fetch|--data <dir>] [--allow-commands] [--no-network] [--json]`
+
+Evaluates a jq expression exactly as a widget would: the vestal functions, the config's `functions`, `$sources`, `$history`, `$meta`, `$tz`, `now`. `.` is the source's data (`--source`), a file (`--input`), or `null` (`--null-input`, `-n`). Prints each output as compact JSON on its own line. `--template` reads the argument as a text field with `{{ }}` holes and prints the string. `--var` binds `$name`. `--json`: `{"ok": true, "outputs": [...]}` or `{"ok": false, "error": {"kind", "offset", "message", "suggestion"}}`. Exit 3 for a compile or runtime error (with a caret under the position), 4 for an unknown source.
+
+## Seeing the result
+
+`vestal render [--format tree|json|text] [--json] [--view <name>] [--config <path>|-] [--cached|--fetch|--data <dir>] [--at <time>] [--press <key>]... [--strict] [--allow-commands] [--no-network] [--timeout <duration>]`
+
+Builds the render model once and prints it. `tree` (the default): an indented outline with node ids, the texts as shown and the style fields; the cheapest way to see what is on screen. `json` (or `--json`): the snapshot message (`vestal docs render-model`). `text`: a rough picture. `--press` presses keys first, in order: opening popups and switching views, never running commands. It ends with `diagnostics: N`. `--strict` exits 3 when there are diagnostics or config errors; an unknown view exits 4.
+
+`vestal explain <node id or widget key> [--view <name>] [--json] [--config <path>] [--cached|--fetch|--data <dir>] [--at <time>]`
+
+Everything about one widget, for "why is it missing or wrong": its template chain, source (name and `$meta`), `input`, each `vars` value, the `when` result, the widget as written (expanded) and as rendered, what it depends on (sources, `now`), its key and action, and its diagnostics. A node id inside a widget (a list row) adds that node and its scope.
 
 ## Seeing the result
 
@@ -482,17 +1036,17 @@ Says what a key is bound to and what it would do, without running anything and w
 
 `vestal screenshot <out.png|-> [--view <name>] [--press <key>]... [--config <path>|-] [--cached|--fetch|--data <dir>] [--at <time>] [--size <w>x<h>] [--scale <n>] [--background solid|transparent] [--frames <file.json>] [--json] [--strict]`
 
-macOS: draws the view offscreen with the dashboard's own renderer, into a PNG. It needs no window, no running instance and no screen-recording permission, and shows nothing. The data is `vestal render`'s. The blur and the aurora can't be captured: the background is the palette's `bg`, or transparent. `--size` defaults to the main screen in points, `--scale` to 2. `--frames` also writes every node's frame with `clipped` and `truncated` flags (`-` as the PNG path writes only the frames). It prints the path, or with `--json` `{"path", "width", "height", "scale", "clipped", "truncated"}`. Linux: `vestal screenshot <out.png|-> [--view <name>] [--frames <file.json>] [--json]` (the other options are macOS-only) asks the running dashboard, which draws the same way with its live data: what is on screen when it is shown, else the view rendered now in a window the compositor maps invisibly (nothing appears, clicks go through). A `--view` other than the one shown is an error while shown. Exit 5 when no dashboard runs, or it is `--headless`.
+The same render as `vestal render`, drawn by the dashboard's own renderer. macOS: offscreen with the SwiftUI renderer, into a PNG. It needs no window, no running instance and no screen-recording permission, and shows nothing. The data is `vestal render`'s. The blur and the aurora can't be captured: the background is the palette's `bg`, or transparent. `--size` defaults to the main screen in points, `--scale` to 2. `--frames` also writes every node's frame with `clipped` and `truncated` flags (`-` as the PNG path writes only the frames). It prints the path, or with `--json` `{"path", "width", "height", "scale", "clipped", "truncated"}`. Linux: the same, drawn offscreen by the GTK UI: by the running dashboard when one answers (from any shell, SSH included; while it is hidden nothing appears on screen, and while it is shown the model is drawn in place for a moment, normally the same picture), else by this process, which needs a Wayland session (exit 5 without one) and maps its own window for about a second. Either way it draws the screen as it is, so `--size`, `--scale` and `--background` are macOS-only (exit 2) and the reported size is the PNG's in pixels (scale 1). The GTK UI draws its aurora into the PNG; the compositor's blur is never captured.
 
 ## Documentation
 
-`vestal docs [topic] [--list] [--json] [--search <text>]`
+`vestal docs [topic] [--list] [--json] [--search <text>] [--legacy]`
 
-The documentation built into the binary. With no topic, a short index. `--list` lists the topics, `--search` finds lines in all of them, `--json` gives either as data. An unknown topic exits 4 with a suggestion.
+The documentation built into the binary. With no topic, a short index; start with `vestal docs agents`. `--list` lists the topics and topic families (`widget/<type>`, `source/<type>`, `preset/<name>`, `recipe/<name>`), `--search` finds lines in all topics, `--json` gives any of these as data. `--legacy` adds the legacy helpers to `functions`. An unknown topic exits 4 with a suggestion.
 
 `vestal icons [query] [--limit <n>] [--json]`
 
-Searches the bundled icon set (Phosphor, `regular` and `fill` weights), whose names go in `icon` fields. Each line is `name  weights  code point`. With a query, the icons whose name contains every word of it (split on spaces and hyphens), names that start with it first, at most 50 unless `--limit` says otherwise (`--limit 0`: all); with none, every icon. `--json` gives `[{"name", "weights", "codePoints": {"regular", "fill"}}]`. When no name contains the query it exits 4 with a did-you-mean.
+Searches the bundled icon set (Phosphor, `regular` and `fill`): `name  weights  code point`. See `vestal docs icons`.
 
 ## Other
 
@@ -506,6 +1060,8 @@ Searches the bundled icon set (Phosphor, `regular` and `fill` weights), whose na
 # The config file
 
 One JSON file drives vestal on macOS and Linux. `vestal schema` prints its JSON Schema; `vestal check-config` checks a file against it and against the rules below. The key tables after this text are generated from the same registry.
+
+The other topics go deeper: `sources`, `widgets`, `expressions`, `functions`, `templates`, `presets`, `styling`, `icons`, `views`, `keys`, `actions`. Under Home Manager, the same JSON is `programs.vestal.settings` (`vestal docs agents` shows the patterns).
 
 ## Where vestal looks
 
@@ -526,7 +1082,7 @@ The effective config is three layers, each merged over the one before:
 Merging works on the JSON:
 
 - Objects merge key by key, recursively. `{"theme": {"background": "blur"}}` keeps the default palette.
-- Lists and plain values replace the lower layer's. Lists are never concatenated: to add a widget to `views.main.order`, write the whole list.
+- Lists and plain values replace the lower layer's. Lists are never concatenated: to add a widget to `views.main.children`, write the whole list (`vestal print-config` shows the current one).
 - An explicit `null` deletes the key: `{"widgets": {"media": null}}` removes the default media widget.
 - A source or widget named like a default one merges into it, even with another `type`. Use a new name to start clean.
 
@@ -558,6 +1114,1320 @@ A whole number above zero and `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4h"`, `"1
 ```
 
 `platform` holds a `macos` and a `linux` object. Each takes any top-level key and is merged over the rest of the file on that OS only. Blocks don't nest. `check-config` checks the other OS's block too and tags those findings (`[linux] ...`); `--platform linux` checks as Linux would load the file.
+
+"""#,
+        "expressions": #"""
+# Expressions
+
+Expressions are a subset of jq. Every field of the config is one of three kinds, and the kind decides how its string is read. `vestal schema` tags each field with `x-vestal-kind`, and `vestal docs widget/<type>` shows it in the Kind column.
+
+## The three kinds of field
+
+| Kind | Syntax | Example | Evaluated |
+|---|---|---|---|
+| **expr** | a jq expression, as a string | `"value": ".cpu.percent"` | every render that needs it |
+| **text** | literal text with `{{ expr }}` holes | `"text": "CPU {{ .cpu.percent \| round }}%"` | every render that needs it |
+| **literal** | a JSON value, or `{"expr": "<jq>"}` to compute it | `"size": 14`, `"color": {"expr": "if .ok then \"good\" else \"bad\" end"}` | once, or every render with `expr` |
+
+Three rules cover the language:
+
+- **R1.** A field of kind *expr* is always jq.
+- **R2.** A field of kind *text* is literal, and each `{{ … }}` inside it is a jq expression whose first output is inserted. Strings go in as they are, numbers as jq's `tostring` writes them, `null` as nothing, and arrays and objects as compact JSON. `{{{{` writes a literal `{{`.
+- **R3.** Any other scalar field (a number, a boolean, a colour, an icon name, a width) may be written `{"expr": "<jq>"}` to compute it. Structural keys cannot: `type`, `id`, `children`, `row`, `cases`, a `source` given as a name, template names, and the keys of a source definition.
+
+`{{ }}` needs no escaping in JSON or in Nix (Nix only interpolates `${`). jq's own `"\(…)"` still works inside an expression, but in a JSON string it must be written `\\(`.
+
+Where each kind appears:
+
+| Field | Kind | On |
+|---|---|---|
+| `value`, `values`, `overlay`, `max`, `min` | expr | text, progress, gauge, sparkline |
+| `items`, `filter`, `sortBy`, `rowId` | expr | list, table (`items` may also be a JSON array: static data) |
+| `when`, `input`, `vars.<name>` | expr | every widget |
+| `on` | expr | switch |
+| `transform`, `history.<name>.value` | expr | sources |
+| `functions.<name>` | expr | top level |
+| `text`, `label`, `title`, `prefix`, `suffix`, `placeholder`, `keyHint`, `alt`, `empty` (a string) | text | widgets |
+| action `open`, `copy`, `run[]`, `view` | text | actions |
+| source `url`, `argv[]`, `env.*`, `headers.*`, `path`, `ics` | text | sources, evaluated once when the config loads |
+| `color`, `background`, `icon`, `name`, `size`, `weight`, `width`, `limit`, … | literal | widgets |
+
+## What an expression sees
+
+| Name | What it is |
+|---|---|
+| `.` | The data of the nearest `source` above this widget, after `input`. Inside a `list` or `table` row, the row's item. |
+| `$data` | The nearest source's data, unaffected by rows or `input`. |
+| `$item`, `$index` | The current row and its position from 0. Only inside a row. |
+| `$parent` | The enclosing row's item, in a nested list. |
+| `$value` | The node's own resolved `value`, in its colour and style fields and in `text` or `suffix` next to a `value`. |
+| `$sources` | Every named source's data: `$sources.system.cpu.percent`, `$sources["host:harbor"]`. |
+| `$meta` | The nearest source's metadata: `{name, fetchedAt, age, ok, error, stale, loaded}`. `meta("name")` gives another source's. |
+| `$history` | `$history.<source>.<name>`: an array of numbers, oldest first. |
+| `$params`, `$<param>` | Template parameters that hold data (`vestal docs templates`). |
+| `$widget` | The key of the enclosing entry in `widgets`, or `""` for an inline widget. |
+| `$view` | The current view's name. |
+| `$tz` | The local IANA time zone, such as `"Europe/Lisbon"`. |
+| `$os` | `"macos"` or `"linux"`. Prefer a `platform` block. |
+| `now` | The current time in epoch seconds. A node that calls it is re-evaluated every second while shown. |
+
+`$secrets` and `$env` exist only in the text fields of source definitions, so a secret can never reach the screen or `vestal render` output.
+
+These names are reserved: a template parameter or a `vars` entry may not use `value`, `data`, `item`, `index`, `parent`, `sources`, `meta`, `history`, `params`, `widget`, `view`, `tz`, `os`, `env` or `secrets` (check-config error).
+
+`vars` binds names for a subtree. Each entry is an expression, and an entry may use the others it names:
+
+```json
+{
+  "type": "text",
+  "source": "system",
+  "vars": { "used": ".memory.used / 1073741824", "total": ".memory.total / 1073741824" },
+  "text": "{{ $used | fmt_fixed(1) }} of {{ $total | round }} GiB"
+}
+```
+
+## Streams, nulls and errors
+
+- jq expressions produce streams. A scalar field takes the **first** output. `items` collects **all** outputs into an array, and when the only output is an array it uses that array, so `".items"` and `".items[]"` both work.
+- `null` is quiet. A `{{ }}` hole that is `null` inserts nothing. A `value` that is `null` shows the widget's `placeholder` (default `–`) and draws empty bars, rings and sparklines. `when` hides the widget on `null` and `false`.
+- A runtime error (for example `tonumber` on `"n/a"`) never stops rendering: that field behaves as `null`, and the error goes to the render model's `diagnostics`, which `vestal render` prints.
+- A compile error is found when the config loads: that widget is hidden, and `vestal check-config` reports the error with its position.
+- **Limits:** one evaluation may take at most 100,000 steps and 50 ms, and produce at most 4 MiB. Past a limit it fails like any runtime error (`expr-limit`), so `range(1e9)` can't freeze the dashboard.
+- jq's `//` treats `false` like `null`: `.enabled // true` is `true` when `.enabled` is `false`. Use `if .enabled == null then true else .enabled end`.
+
+## Legacy paths
+
+The v0.3 path fields `pick`, `picks.*` and `weatherCard`'s `fields.*` keep their v0.3 meaning: dot-separated field names (a leading dot optional) and `[N]` indexes, never jq. So there `rates.BRL` means the field `BRL` of `rates`. Every new expr field is strict jq: write `.rates.BRL`. When a new field looks like a legacy path, check-config suggests the jq form.
+
+## When things are evaluated
+
+For every widget, vestal records the sources it reads (its `source`, `$sources.<name>`, `meta("<name>")`, `$history.<name>`; a computed key such as `$sources[$x]` counts as every source) and whether it calls `now`. A widget is evaluated again when one of those sources gets new data, when the dashboard is shown, and every second while shown if it calls `now`. Nothing in the widget tree is evaluated while the dashboard is hidden. Source `transform`s and `history` values run whenever their source fetches.
+
+## User functions
+
+`functions` defines jq functions without arguments, callable from every expression:
+
+```json
+{
+  "version": 1,
+  "functions": {
+    "gib": ". / 1073741824 | fmt_fixed(1) + \" GiB\"",
+    "ha_num": ".state | tonumber? // null"
+  },
+  "widgets": {
+    "memory": { "type": "text", "source": "system", "text": "RAM {{ .memory.used | gib }} of {{ .memory.total | gib }}" }
+  },
+  "views": { "main": { "children": ["clock", "memory"] } }
+}
+```
+
+Names match `^[a-z_][a-z0-9_]*$` and may not shadow a jq builtin or a vestal function. A function may call the others; a cycle is an error.
+
+## Trying an expression
+
+`vestal eval` evaluates exactly as a widget would, with the vestal functions and the config's `functions`:
+
+```text
+$ vestal eval '.cpu.percent | step([[0,"good"],[70,"warn"],[90,"bad"]])' --source system
+"good"
+$ vestal eval --template 'CPU {{ .cpu.percent | round }}%' --source system
+CPU 12%
+$ vestal eval '[1,2,3] | map(. * 2)' --null-input
+[2,4,6]
+```
+
+`--input <file>` evaluates against a file, `--var name=<json>` binds `$name`, `--at <time>` freezes `now`, and `--json` wraps the result as `{"ok": true, "outputs": [...]}`. A compile error prints the position with a caret and exits 3. `vestal docs functions` lists every function.
+
+"""#,
+        "functions": #"""
+# Functions
+
+Every expression can call the jq builtins of vestal's jq subset (listed at the end of this page), the vestal functions below, and the config's own `functions` (`vestal docs expressions`). Try any of them with `vestal eval '<expr>' --null-input`.
+
+Numbers may arrive as JSON numbers or as numeric strings: `"12.5"` works wherever a number is expected. Times may be epoch seconds or ISO 8601 strings. A formatter given `null` returns `null`, so a `{{ }}` hole over missing data stays empty; a value that isn't a number where one is needed is a runtime error.
+
+## Formatting
+
+| Function | Input → output | Example |
+|---|---|---|
+| `fmt_fixed(n)` | number → text with `n` decimals | `3.14159 \| fmt_fixed(2)` → `"3.14"` |
+| `fmt_int` | number → whole number, truncated | `1234.9 \| fmt_int` → `"1234"` |
+| `fmt_number` | whole numbers as they are, others with 2 decimals | `2.5` → `"2.50"`, `3` → `"3"` |
+| `fmt_thousands`, `fmt_thousands(n)` | grouped digits with `,`, `n` decimals (default 0) | `1234567` → `"1,234,567"`; `1234.5 \| fmt_thousands(1)` → `"1,234.5"` |
+| `fmt_compact` | short form | `1234` → `"1.2k"`, `3400000` → `"3.4M"`, `2.1e9` → `"2.1B"` |
+| `fmt_percent`, `fmt_percent(n)` | a 0–100 number → percent | `41.6` → `"42%"`; `41.66 \| fmt_percent(1)` → `"41.7%"` |
+| `fmt_bytes` | bytes → size | `80` → `"80B"`, `12288` → `"12K"`, `4194304` → `"4.0M"`, `1288490188` → `"1.2G"`, `12884901888` → `"12G"`, `1209462790553` → `"1.1T"` |
+| `fmt_rate` | bytes per second → rate (no `/s`) | `524288` → `"512K"`, `1258291` → `"1.2M"` |
+| `fmt_duration`, `fmt_duration(units)` | seconds → the two (or `units`) largest non-zero units | `273600` → `"3d 4h"`, `15120` → `"4h 12m"`, `2700` → `"45m"`; `273600 \| fmt_duration(1)` → `"3d"` |
+| `fmt_uptime` | seconds → days, or hours under a day | `273600` → `"3d"`, `15120` → `"4h"` |
+| `fmt_uptime_long` | seconds → days and hours, or hours and minutes | `273600` → `"3d 4h"`, `720` → `"0h 12m"` |
+| `fmt_relative` | time → distance from now | `"5m ago"`, `"3h ago"`, `"2d ago"`, `"in 25m"`, `"now"` |
+| `starts_in` | minutes → `"now"`, `"in 25m"`, `"in 2h 5m"` | `125 \| starts_in` → `"in 2h 5m"` |
+| `fmt_time(pattern)`, `fmt_time(pattern; tz)` | time → an ICU date pattern, in the local zone or `tz` | `now \| fmt_time("HH:mm"; "Asia/Tokyo")` |
+| `fmt_localized(skeleton)`, `fmt_localized(skeleton; tz)` | time → the locale's form of an ICU skeleton | `now \| fmt_localized("EEEEMMMMdy")` → `"Sunday, September 27, 2026"`; `"JJmm"`: hours and minutes in the locale's hour cycle |
+| `clock24` | 12-hour text → 24-hour | `"06:15 PM"` → `"18:15"`, `"06:15"` → `"6:15"` |
+| `capitalize` | first letter upper-cased | `"exchange"` → `"Exchange"` |
+| `titlecase` | every word capitalized | `"new york"` → `"New York"` |
+| `truncate(n)` | text cut to `n` characters, with `…` when cut | `"Windowlicker" \| truncate(6)` → `"Window…"` |
+
+The `format` field of `text`, table columns and `keyValue` items names these: `int`, `number`, `fixed:N`, `percent`, `percent:N`, `thousands`, `thousands:N`, `compact`, `bytes`, `rate`, `duration`, `duration:N`, `uptime`, `relative`, `startsIn`, `time:<pattern>`, `localized:<skeleton>`, and the v0.3 names `integer` and `decimal`.
+
+Arguments see the piped input, not the row: inside `now | fmt_time("HH:mm"; …)` the argument's `.` is `now`. Use `$item.tz`, or bind first: `.tz as $z | now | fmt_time("HH:mm"; $z)`.
+
+## Colours, icons and thresholds
+
+| Function | Meaning | Example |
+|---|---|---|
+| `step(stops)` | `stops` is `[[threshold, result], …]` in ascending order: the result of the last stop whose threshold ≤ the input, or the first stop's result below them all. Any result type: colours, icon names, text. | `95 \| step([[0,"good"],[70,"warn"],[90,"bad"]])` → `"bad"` |
+| `color_mix(a; b; t)` | blends two colours (palette names or hex) in sRGB, `t` from 0 to 1 → `"#rrggbbaa"` | `color_mix("good"; "bad"; .cpu.percent / 100)` |
+| `alpha(a)` | a colour with its alpha multiplied by `a` | `"accent" \| alpha(0.15)` → `"#7aa1f726"` |
+
+## Time and data
+
+| Function | Meaning | Example |
+|---|---|---|
+| `to_epoch` | ISO 8601 (with or without fractional seconds and offset) or epoch → epoch seconds | `"2026-09-26T18:02:11Z" \| to_epoch` → `1790445731` |
+| `tz_valid` | whether a text is a known IANA time zone | `"Europe/Lisbon" \| tz_valid` → `true` |
+| `sun_context(sunrise; sunset)` | `"H:mm"` times → `"sets in 5h 17m"` and the like, from now | `sun_context(.sunrise; .sunset)` |
+| `find(obj)` | array → the first element whose fields equal all of `obj`'s, else `null` | `find({casa: "blue"})` |
+| `where(obj)` | array → every such element | `where({state: "on"})` |
+| `uniq_by(f)` | like `unique_by`, but keeps the first of each and the order | `uniq_by(.label)` |
+| `pct(part; whole)` | `100 * part / whole`, `null` when `whole` is 0 | `pct(.used; .total)` |
+| `meta(name)` | a source's metadata, as `$meta`: `{name, fetchedAt, age, ok, error, stale, loaded}` | `meta("weather").age` |
+| `history(source; name)` | the same as `$history[source][name]` | `history("stats"; "cpu") \| last` |
+| `history_times(source; name)` | the epoch times of those samples | |
+| `path_get(path)` | resolves a v0.3 path (`rates.BRL`, `list[0].x`) against the input | `path_get("rates.BRL")` |
+
+`$meta`: `fetchedAt` is the last successful fetch (or `null`), `age` its age in seconds, `ok` whether the latest fetch succeeded, `error` its message, `stale` whether the age is over twice the source's `refresh`, `loaded` whether there is data.
+
+## Legacy helpers
+
+These reuse the v0.3 Swift code, so the built-in presets match v0.3 exactly. New configs don't need them.
+
+| Function | Meaning |
+|---|---|
+| `kv_legacy(item; defaultSource)` | a v0.3 `keyValueList` item (`label`, `source`, `match`, `pick`, `picks`, `format`) → `{label, text}`, or `null` when its data is missing |
+| `weather_legacy(fields; units)` | weather JSON and v0.3 `fields` paths → `{location, condition, temp, sunrise, sunset}` |
+| `foyer_health` | a foyer `/api/health` payload → the `system` data shape (`vestal docs source/system`); missing numbers are `0` |
+| `host_health(host; provider)` | a v0.3 `systemHealth` host → `{data, ok, seen}` |
+| `fmt_legacy(format)` | the v0.3 item formats: `"int"`, `"integer"`, `"decimal"`, `"%.2f"`, or `null` for as is |
+
+"""#,
+        "icons": #"""
+# Icons
+
+Icons are named from one open set, bundled with vestal on both OSes: **Phosphor Icons** (MIT, about 1,500 icons), in two weights, `regular` and `fill`. The same name draws the same icon on macOS and Linux.
+
+- **Names** are Phosphor's kebab-case names: `cpu`, `hard-drives`, `battery-high`, `github-logo`, `thermometer`, `calendar-blank`. Find them with `vestal icons <query>`:
+
+  ```text
+  $ vestal icons battery --limit 3
+  battery-charging           regular,fill  U+E0BA
+  battery-charging-vertical  regular,fill  U+E0BC
+  battery-empty              regular,fill  U+E0BE
+  vestal: 14 more; --limit 0 lists all
+  ```
+
+- **Where they go:** an `icon` widget's `name`, a `text`'s leading `icon`, a `badge`'s `icon`. Choose the weight with `weight` (or `iconWeight` on a text): `fill` for solid glyphs.
+- **Computed names:** `"name": {"expr": ".battery.percent | step([[0,\"battery-empty\"],[38,\"battery-medium\"],[88,\"battery-full\"]])"}`.
+- **Checking:** check-config reports an unknown name with a did-you-mean; `vestal render` lists an unknown computed one in its diagnostics (`unknown-icon`).
+
+`vestal icons [query] [--limit <n>] [--json]` matches names containing every word of the query (names starting with it first), at most 50 unless `--limit` says otherwise; `--json` gives `[{"name", "weights", "codePoints": {"regular", "fill"}}]`. With no match it exits 4 with a did-you-mean.
+
+## SF Symbols on macOS
+
+`sf:<symbol>` draws an SF Symbol, for example `"icon": "sf:hourglass"`. It is allowed only inside `platform.macos` (check-config error elsewhere), because Linux can't draw it: a Linux UI draws nothing for an `sf:` name. With `theme.icons: "native"` (the default on macOS) the macOS UI already draws the icons of the built-in presets as the SF Symbols v0.3 used; `"phosphor"` draws the Phosphor glyphs there too.
+
+## The font files
+
+The fonts are `Phosphor.ttf` (family `Phosphor`) and `Phosphor-Fill.ttf` (`Phosphor-Fill`), in the vestal repository under `Resources/icons/` with their licence.
+
+| | Installed at |
+|---|---|
+| macOS | `Vestal.app/Contents/Resources/Fonts/` |
+| Linux (Nix package) | `$out/share/vestal/icons/`, next to Inter and JetBrains Mono in `$out/share/vestal/fonts/` |
+| Development builds | the directories in `$VESTAL_FONT_DIRS` (colon-separated) |
+
+A UI draws an icon as one glyph in the icon font: the render model carries the name, the glyph (the code point) and the weight (`vestal docs render-model`).
+
+"""#,
+        "keys": #"""
+# Keys
+
+While the dashboard is open, keys run actions. (The key that opens it is `hotkey` on macOS; on Linux bind `vestal toggle` in the compositor, for example Hyprland's `bind = , Home, exec, vestal toggle`.)
+
+A key is written like the `hotkey`: `"h"`, `"2"`, `"tab"`, `"shift+tab"`, `"space"`, `"enter"`, `"left"`, `"right"`, `"up"`, `"down"`, `"f5"`, with the modifiers `cmd` (alias `super`), `ctrl`, `alt` and `shift` joined by `+`. Letters are case-insensitive.
+
+```json
+{
+  "version": 1,
+  "keys": {
+    "r": { "refresh": "*" },
+    "g": { "open": "https://github.com/pulls/review-requested" },
+    "m": { "media": "playPause", "source": "media" }
+  },
+  "widgets": {
+    "news": { "type": "text", "text": "Hacker News", "key": "n", "action": { "open": "https://news.ycombinator.com" } }
+  },
+  "views": { "main": { "children": ["clock", "news"] } }
+}
+```
+
+Where bindings come from, highest precedence first:
+
+1. widget `key`s inside the open popup;
+2. widget `key`s in the current view (the key runs that widget's `action`);
+3. the view's `keys`;
+4. the top-level `keys`, and the views' `key` shorthands;
+5. `tab` and `shift+tab`, which cycle views.
+
+`escape` (close the popup, else hide the dashboard) and `alt+i` (the info popup) are reserved: binding them is an error.
+
+**`"key": "auto"`** gives a widget the first letter of its `keyHint` (letters only, in order) that no other binding took. Explicit keys are assigned first, then `auto` ones in tree order. `auto` never assigns `i` or `p` (v0.3's info and privacy keys). The `systemHealth` preset gives each host `auto` with its name as the hint, so `h` opens `harbor`.
+
+check-config reports keys that aren't keys (`invalid-key`) and bindings of the reserved ones (`key-conflict`). When two widgets bind the same key explicitly, the first in tree order wins: check with `vestal render --press <key>`.
+
+Test a key without a screen: `vestal render --press h` renders the model after pressing `h` (it opens popups and switches views, but never runs a command).
+
+"""#,
+        "presets": #"""
+# Presets
+
+The presets are templates that ship with vestal, written in the same config language as yours (`vestal docs templates`). Use them like any widget type. `vestal docs preset/<name>` prints one's parameters and full JSON, which is also the best way to learn how to build something similar: copy it into your `templates` under a new name and change it.
+
+A preset can't be edited in place: a template of your own with a preset's name is an error unless it sets `"override": true`, which replaces the preset whole.
+
+## General-purpose
+
+### `section`
+
+A titled block: the title in upper case (size 11, bold, `dim`, tracking 1.5) followed by a thin rule, then `children`. It fills the width.
+
+```json
+{ "type": "section", "title": "Disks", "source": "system", "children": [
+  { "type": "list", "items": ".disks", "row": { "type": "text", "text": "{{ .mount }} {{ .percent | round }}%" } }
+] }
+```
+
+### `stat`
+
+A label, a big value, and an optional delta: `▲` or `▼` coloured by `trend` (`up-good`: up is `good`; `up-bad`: up is `bad`; `none`). `size` is `sm` (value 14), `md` (24) or `lg` (36). `value` and `delta` are expressions; `format`, `prefix` and `suffix` work as on `text`.
+
+```json
+{ "type": "stat", "source": "system", "label": "Memory", "value": ".memory.percent", "format": "percent", "size": "lg" }
+```
+
+### `badge`
+
+A small pill: `text` (size 10, semibold) in `color`, on `color` at 15%, with an optional `icon`.
+
+```json
+{ "type": "badge", "text": "HN", "color": "orange" }
+```
+
+## The v0.3 widgets
+
+These keep their v0.3 names, parameters and look, so v0.3 configs work unchanged.
+
+### `clock`
+
+The local time (size 56, ultralight, mono), the date, and `worldClocks` under them: `[{"label": "NYC", "tz": "America/New_York"}]`. A world clock in the local zone, or with an unknown zone, is skipped.
+
+### `systemBar`
+
+A row of this machine's stats from the `system` source. `show` lists the items left to right: `uptime`, `disk`, `battery`, `claudeUsage`, `network`, `privacy` (absent or empty: all but privacy). `privacy` is `{"command": [argv], "stateFile": "path"}`: a microphone and camera toggle drawn at the right end, green while the state file exists, which runs the command on click (and on `p`, in the default view). `claudeSource` names the source of the Claude usage item.
+
+### `media`
+
+What a music player is playing, with play/pause (click the icon) and the output volume (click to mute). `player` (default `Spotify`) and `hideWhenOff` (default `true`). Alias: `spotify`. For player names on Linux, see `vestal docs source/media`.
+
+### `agendaList`
+
+The next `maxEvents` (5) events of `source` (a `calendar` source, or any source with the same event list) under `title` (`Today`). The first timed event shows how soon it starts, in `warn` within 15 minutes. Hidden when there are no events left.
+
+### `systemHealth`
+
+Hosts under `title` (`Systems`), each a row with CPU and RAM bars, temperature and uptime. `hosts`: `{"name", "url"}` for a remote host polled through `provider` (default `foyer`), `{"source": "local"}` for this machine, or `{"name", "source": "<a source>"}` whose data is a foyer health payload. Each row gets a key (the first free letter of its name, or `key`) that opens the host's detail popup (`hostDetail`), as does a click. An offline host shows a red dot.
+
+### `keyValueList`
+
+Labelled values picked out of JSON sources with v0.3 paths: `items` of `{label, source, match, pick | picks, format}`. New configs: use `keyValue`, whose values are jq.
+
+### `weatherCard`
+
+Current weather from `source` with v0.3 paths in `fields` (`location`, `region`, `condition`, `temp`, `sunrise`, `sunset`); `units` (`metric` or `imperial`) picks the °C or °F suffix.
+
+### `claudeUsage`
+
+Claude Code usage as a status row: `5h% / week%` against `fiveHourLimit` and `weeklyLimit`, read from `path`.
+
+## Helpers
+
+### `claudeItem`
+
+The hourglass and `5h% / week%` of a `claude` source; the system bar and `claudeUsage` use it.
+
+### `hostDetail`
+
+The host popup of `systemHealth`: CPU, RAM, GPU, pools or mounts, network, docker and services. Parameters `host` (a host object with its health) and `provider`.
+
+## Sources
+
+### `foyer`
+
+A source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while shown, and maps the payload to the `system` shape.
+
+"""#,
+        "protocol": #"""
+# The subscribe protocol
+
+A UI in any language or toolkit can draw vestal: it connects to the running instance's socket, subscribes, and receives the render model (`vestal docs render-model`) as a stream of JSON lines. `vestal subscribe` is the reference client and a debugging tool:
+
+```text
+vestal subscribe [--view <name>] [--while-hidden] [--role ui|observer|control] [--control] [--minor <n>] [--input]
+```
+
+It prints every message the instance sends, one JSON object per line, until the instance hangs up or Ctrl-C. It subscribes as an `observer` unless `--role` says otherwise. `--input` sends the JSON lines you type on stdin (`{"cmd":"key","key":"2"}`) to the instance; they count only for the primary `ui` or with `--control`. `--view` asks for that view (it implies `--control`; the switch happens while the dashboard is shown). Exit 0 when the instance ends the stream, 1 when none runs or it sent an `error`, 4 for an unknown view.
+
+Any vestal instance serves subscribers, including a Linux `vestal daemon` with no display (headless): it still evaluates the dashboard while it is "shown" (`vestal show`), so a UI in another process can draw it.
+
+## The socket
+
+- The instance's unix socket: `$XDG_RUNTIME_DIR/vestal.sock` on Linux (else `/run/user/<uid>/vestal.sock`, else `vestal-<uid>.sock` in the temporary directory); `vestal-<uid>.sock` in the per-user temporary directory on macOS. The instance logs the path when it starts.
+- Only the owner's processes get in: the socket is `0600` and both ends check the peer's uid.
+- A request is one line. A line starting with `{` is JSON, `{"cmd": "<name>", …}`; bare words (`toggle`, `status`, …) still work. One-shot requests (`toggle`, `show`, `hide`, `reload`, `status`, `quit`, `sources`, `fetch`, `render`, `eval`) get one reply line and the connection closes.
+
+## Subscribing
+
+```jsonc
+{"cmd": "subscribe", "role": "ui", "protocol": [1], "minor": 0, "client": "my-ui/0.1", "capabilities": ["copy", "notify"], "whileHidden": false, "control": false, "view": null}
+```
+
+| Field | Default | |
+|---|---|---|
+| `role` | `observer` | `ui` draws the dashboard; `observer` watches (status bars, debuggers); `control` is an observer with `control: true`. |
+| `protocol` | `[1]` | The major versions the client speaks. Without `1`: an `error` message, and the connection closes. |
+| `minor` | `0` | The minor version the client understands; newer node types come as `text` with their `alt`. |
+| `client` | none | A name for logs. |
+| `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise vestal's own UI takes it (macOS), or the headless daemon runs `wl-copy`. (`screenshot` delegation is specified but not implemented yet.) |
+| `whileHidden` | `false` | Keep evaluating and sending patches while the dashboard is hidden (debugging). |
+| `control` | `false` | Let an observer's `invoke`, `key`, `hide` and `view` count. |
+| `view` | none | Switch to this view, as a `view` command right after subscribing (primary UI or control only, while shown). |
+
+The connection then stays open. The server writes one JSON message per line; the client writes commands, one per line.
+
+## Server messages
+
+| Message | |
+|---|---|
+| `{"type": "hello", "protocol": 1, "minor": 0, "server": "0.4.0 (abc1234)", "os": "linux", "role": "observer", "primary": false}` | First, after `subscribe`. `primary` says whether this subscriber is the primary UI. |
+| `snapshot` | The whole model (`vestal docs render-model`), with this connection's `seq` (1 for the first; every later snapshot or patch adds 1). `visible` in it is `false` for a `whileHidden` subscriber while the dashboard is hidden. |
+| `patch` | Changes since `base` (`vestal docs render-model`). At most one per 50 ms per subscriber; a patch bigger than half a snapshot is sent as a snapshot. |
+| `{"type": "visibility", "visible": true, "view": "main"}` | Show or hide the window. The core decides: `vestal toggle`, Escape and actions all go through it. |
+| `{"type": "effect", "effect": "copy", "text": "…"}` | Put the text on the clipboard. |
+| `{"type": "effect", "effect": "notify", "level": "error", "text": "…"}` | An optional transient message, such as a failed `run`. |
+| `{"type": "error", "code": "protocol", "message": "…", "supported": [1]}` | Then the connection closes. Other codes: `request` (a line that isn't a known command, or an unknown `role`), `unavailable` (this instance has no render engine). |
+
+While the dashboard is hidden nothing is evaluated and no patches are sent (unless a subscriber set `whileHidden`). On show, every subscriber gets a fresh snapshot, then `visibility`.
+
+## Client commands
+
+| Command | When |
+|---|---|
+| `{"cmd": "invoke", "id": "<node id>"}` | A click on a node with `action: true`. |
+| `{"cmd": "key", "key": "h"}` | Every key press the UI doesn't handle itself, in the key grammar (`"shift+tab"`, `"escape"`). The core decides what it means, Escape included. |
+| `{"cmd": "hide"}` | The window went away on its own. |
+| `{"cmd": "view", "name": "focus"}` | A switcher in the UI. |
+| `{"cmd": "snapshot"}` | Resync: a patch's `base` didn't match. |
+
+## Roles
+
+- The **primary UI** is the most recent `ui` subscriber still connected. When it disconnects, the previous `ui` subscriber becomes primary.
+- Only the primary UI receives effects, and only its `invoke`, `key`, `hide` and `view` count; another `ui`'s are ignored.
+- Observers get snapshots, patches and visibility; their commands are ignored unless they subscribed with `control: true`. `snapshot` always works.
+
+## Backpressure
+
+The server never waits for a client. Each connection has its own outbound queue; a client that falls more than 4 MiB behind is disconnected and should reconnect and subscribe again (it gets a fresh snapshot).
+
+## Writing a UI
+
+A conforming UI:
+
+1. subscribes with `role: "ui"` and applies `snapshot` and `patch` (asking for a `snapshot` when a `base` doesn't match);
+2. maps and unmaps its window on `visibility` (on Wayland: a layer-shell surface, namespace `vestal`, exclusive keyboard while shown);
+3. draws every node type and field of `vestal docs render-model`, with the icon fonts of `vestal docs icons`;
+4. sends `invoke` for clicks on `action` nodes and `key` for key presses, and carries out `copy` effects.
+
+vestal's own UIs draw the same model in-process, from the resident's `RenderEngine`, which is also the engine the socket serves: on macOS the SwiftUI dashboard and subscribers see the same model, keys and popups. A Linux `vestal daemon` without a display is headless and serves only subscribers.
+
+"""#,
+        "recipes": #"""
+# Recipes
+
+Complete configs for common requests, from section 5 of `vestal docs agents`. Each one merges over the built-in defaults, passes `vestal check-config` with no errors or warnings, and renders with `diagnostics: 0`: vestal's tests check every one against fixture data. The same files are in the vestal repository as `examples/showcase/<name>.json`.
+
+Print one with `vestal docs recipe/<name>`. To use it, merge the parts you need into the user's config and keep their other widgets in `views.main.children`.
+
+"""#,
+        "render-model": #"""
+# The render model
+
+vestal turns config and data into a resolved tree of nodes, and a UI only draws that tree. Every text is a string, every size a number, every icon a name plus its glyph, every colour a palette name or `#rrggbbaa`. A UI never evaluates an expression, reads a source or runs an action: it lays out and draws nodes, and reports clicks and keys (`vestal docs protocol`).
+
+`vestal render --format json` prints it; `--format tree` prints the same as an outline, the cheapest way for an agent to see what is on screen.
+
+## Versions
+
+- `protocol` is the major version, `1`. A breaking change bumps it.
+- `minor` counts additive changes (new optional fields, new node types); it is `0`.
+- Clients must ignore fields they don't know.
+- A subscriber that declares an older `minor` gets newer node types as `text` nodes carrying their `alt`.
+
+## Snapshot
+
+```jsonc
+{
+  "type": "snapshot",
+  "protocol": 1,
+  "minor": 0,
+  "seq": 1,
+  "view": "main",
+  "views": [ { "name": "main", "key": "1" }, { "name": "focus", "title": "Focus", "key": "2" } ],
+  "visible": true,
+  "theme": {
+    "background": "aurora",
+    "colors": { "text": "#ffffffff", "subtle": "#ffffff80", "dim": "#ffffff4d", "accent": "#7aa1f7ff", "…": "…" },
+    "fonts": { "sans": null, "mono": null, "rounded": null },
+    "icons": { "set": "phosphor", "fonts": { "regular": "Phosphor", "fill": "Phosphor-Fill" } }
+  },
+  "root": { "id": "main", "type": "stack", "axis": "v", "gap": 24, "align": "center", "maxWidth": 680, "padding": [48, 48, 48, 48], "width": "fill", "children": [ "…" ] },
+  "popup": null,
+  "diagnostics": []
+}
+```
+
+| Field | |
+|---|---|
+| `seq` | Increases by one with every message that changes the tree (per subscriber). |
+| `view`, `views` | The current view, and every view sorted by name (JSON objects keep no order), for UIs with a switcher. |
+| `visible` | Whether the dashboard should be on screen. |
+| `theme.colors` | Every palette name a node may use, resolved to `#rrggbbaa`. |
+| `theme.fonts` | A family per role; `null` is the platform default. |
+| `theme.icons` | The icon font family per weight; `mode` (`native` or `phosphor`) when the config sets `theme.icons`. |
+| `root` | The view's tree. |
+| `popup` | `null`, or `{"id": "popup", "width": 520, "node": <node>}`. |
+| `diagnostics` | Problems found while rendering (below). |
+
+## Nodes
+
+Keys are sorted and defaults are left out, so output is deterministic.
+
+**Common fields**
+
+| Field | Default | |
+|---|---|---|
+| `id` | required | Unique in the tree (below). |
+| `type` | required | One of the types below. |
+| `width`, `height` | fit | A number, or `"fill"`. |
+| `minWidth`, `maxWidth`, `minHeight`, `maxHeight` | none | |
+| `padding` | `[0, 0, 0, 0]` | `[top, right, bottom, left]`, inside the frame. |
+| `background` | none | A colour, painted on the padded frame. |
+| `radius` | `0` | |
+| `border` | none | `{ "color", "width" }` |
+| `opacity` | `1` | Multiplies the subtree. |
+| `clip` | `false` | |
+| `spaceBefore` | none | Replaces the parent stack's `gap` before this node. |
+| `alignSelf` | the parent's `align` | `start`, `center`, `end`, `stretch`. |
+| `span` | `1` | Grid columns. |
+| `action` | `false` | Clickable: the whole frame sends `invoke` with this id. |
+| `alt` | none | Plain-text rendition. |
+
+**Types**
+
+| Type | Fields (default) | Draws |
+|---|---|---|
+| `stack` | `axis` (`v` or `h`), `gap` (0), `align` (`start`; also `center`, `end`, `stretch`, and `baseline` for `h`), `justify` (`start`, `center`, `end`, `between`), `children` | Nothing itself; lays out its children. |
+| `grid` | `columns` (`[{ "width": number \| "fill" \| "fit", "align" }]`), `gap` (0), `rowGap` (0), `children` | Children row by row, honouring `span`; cells centred vertically. |
+| `text` | `text`, `size` (13), `weight` (400), `font` (`sans`), `color` (`text`), `tracking` (0), `lines` (unlimited), `textAlign` (`start`) | One run of text, case already applied; cut at the tail with `…` beyond `lines`. |
+| `icon` | `name`, `glyph` (one character; absent for `sf:` names), `weight` (`regular` or `fill`), `size` (13), `color` (`text`) | The glyph in the icon font, centred in a `size`×`size` box. |
+| `bar` | `value` (0…1), `overlay` (0…1), `overlayPosition` (`above`), `color`, `trackColor`, `overlayColor`, `radius` (2) | A rounded track, the fill from the leading edge, the overlay above or below it. |
+| `ring` | `value` (0…1), `sweep` (270), `thickness` (6), `color`, `trackColor`, `center` (a node) | An arc track with its gap at the bottom, the fill arc with round caps, and `center` inside. Its size is its `width`. |
+| `spark` | `values`, `min`, `max`, `color`, `fill`, `strokeWidth` (1.5), `dot` (false) | A polyline, x evenly spaced, y scaled to `min`…`max`; fewer than two values draw nothing. |
+| `divider` | `axis` (`h`), `thickness` (0.5), `color` (`dim`) | A rule filling the width (`h`) or the height (`v`). |
+| `spacer` | `min` (0) | Nothing. |
+
+Config types map onto these: `row` → `stack` h; `list` and `table` → `stack` or `grid`; `progress` → a `stack` h of `text`, `bar`, `text`; `gauge` → a `stack` v of `ring` and `text`; `sparkline` → `spark`; `switch` → the chosen case. Templates disappear.
+
+## Layout
+
+Units are logical points (macOS points, Wayland logical pixels).
+
+1. A number is exact; `fill` takes what the parent offers on that axis; absent means fit (the content's size, capped by the offer). A container with a `fill` child on an axis is itself `fill` there, unless it has a fixed size.
+2. **Stacks** place children in order with each child's `spaceBefore`, else the `gap`, before every child but the first. Fixed and fit children are measured first; the rest is shared equally by the `fill` children (never below 0). `alignSelf` or `align` places each child across; `stretch` makes it as wide as the stack. `justify` spreads leftover space when no child fills.
+3. **Grids**: fixed columns take their width, `fit` columns their widest cell, `fill` columns share the rest. A row is as tall as its tallest cell.
+4. `padding` is inside the frame; `background`, `border` and `radius` paint the padded frame; `min…`/`max…` clamp after sizing (`maxWidth` includes padding).
+5. The root is centred on the screen both ways, `min(maxWidth, window width)` wide.
+6. A fit text is as wide as its line, capped by the offer; it wraps unless `lines` is 1. `baseline` lines up the first baselines of text children.
+7. Hidden widgets have no node.
+8. Nothing scrolls: content taller than the window is clipped at the bottom.
+
+Fonts differ between OSes, so layouts match in structure, not to the pixel. The core can't measure text, so overflow is found by the renderer: `vestal screenshot --frames` writes every node's frame with `clipped` and `truncated` flags.
+
+## Node ids
+
+Ids are stable across updates, which keeps patches small.
+
+| Node | Id |
+|---|---|
+| a view's root | `<view>` |
+| a root child from `widgets` | `<view>/<widget key>` |
+| any other child | `<parent id>/<its id field, or its index in the config's children>` (the index in the config, so hiding a sibling doesn't renumber) |
+| a list or table row | `<list id>/@<rowId>`, with `/`, `@` and `%` percent-encoded; a duplicate gets `~2`, `~3` |
+| a switch's case | `<switch id>/=<case>`, the default `=*` |
+| a template instance | the instance's id; the body's nodes use their index paths |
+| the popup | `popup/…` |
+
+`vestal explain <id or widget key>` tells everything about one node: its template chain, source, `vars`, `when`, and fields as written and resolved.
+
+## Patches
+
+After a snapshot, changes come as patches:
+
+```jsonc
+{ "type": "patch", "protocol": 1, "seq": 2, "base": 1, "ops": [
+  { "op": "replace", "id": "main/claude/0/1", "node": { "id": "main/claude/0/1", "type": "text", "text": "19% / 21%", "size": 12, "font": "mono", "color": "subtle" } }
+] }
+```
+
+| Op | Fields | |
+|---|---|---|
+| `replace` | `id`, `node` | Swap that subtree. |
+| `root` | `node`, `view` | A new root (a view switch or a reload). |
+| `popup` | `popup` (object or `null`) | |
+| `theme` | `theme` | After a reload that changed it. |
+| `views` | `views` | |
+| `diagnostics` | `diagnostics` | The full list. |
+
+The diff runs top-down: a node whose own fields or ordered child ids changed is replaced whole; otherwise its children are compared. Apply ops in order. When `base` isn't the last `seq` you applied, ask for a fresh snapshot.
+
+## Diagnostics
+
+```jsonc
+{ "id": "main/exchange/1/@BRL/1", "field": "text", "severity": "error", "code": "expr-runtime", "message": "tonumber: cannot parse \"n/a\" as a number" }
+```
+
+Expression runtime errors, unknown icons and colours used at render time, duplicate row ids, failed sources. UIs needn't show them; `vestal render` prints them, and `vestal render --strict` exits 3 when there are any.
+
+"""#,
+        "sources": #"""
+# Sources
+
+A source fetches data on a schedule and keeps the last good result. Widgets read it by name (`"source": "prs"`), and every widget reading one source shares its fetches. `vestal docs source/<type>` gives each type's keys and data shape.
+
+```json
+{
+  "version": 1,
+  "sources": {
+    "rates": { "type": "http", "url": "https://api.frankfurter.app/latest?from=USD", "refresh": "4h" }
+  },
+  "widgets": {
+    "eur": { "type": "text", "source": "rates", "text": "1 USD = {{ .rates.EUR | fmt_fixed(3) }} EUR" }
+  },
+  "views": { "main": { "children": ["clock", "eur"] } }
+}
+```
+
+## Looking at the data
+
+| Command | What you get |
+|---|---|
+| `vestal sources` | Every source: type, refresh, `when`, age, status and the widgets that read it. |
+| `vestal fetch <name> --shape` | Every path in the data with its type and a sample value: write your paths against this. |
+| `vestal fetch <name>` | The data as widgets see it (after `transform`), as pretty JSON. |
+| `vestal fetch <name> --raw` | The data before `transform`. |
+| `vestal fetch <name> --config draft.json` | A source of a draft config, fetched in this process. `command` sources need `--allow-commands`. |
+
+`vestal fetch` asks the running instance when there is one (so macOS permissions belong to the app), `--local` fetches in this process, and `--cached` prints the last data without fetching.
+
+## Keys every source takes
+
+| Key | Default | Meaning |
+|---|---|---|
+| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, or a source template such as `foyer`. |
+| `refresh` | per type | How often to fetch: `"30s"`, `"5m"`, `"4h"`, `"1d"`. |
+| `when` | per type | `always`: fetched whether or not the dashboard is shown. `visible`: only while it is shown and a widget of the view reads it, with an immediate fetch on show when stale. |
+| `transform` | none | A jq expression applied to the data before widgets see it. The cache keeps the untransformed data, so editing a transform needs no refetch. |
+| `history` | none | Named number histories for sparklines (below). |
+| `maxAge` | none | Cached data older than this is not shown at startup. |
+| `cache` | `true` | `false`: the data is never written to disk (for sensitive responses); widgets start empty after a restart. |
+
+| Type | `refresh` | `when` | Reads |
+|---|---|---|---|
+| `http` | `30m` | `always` | the network |
+| `command` | `30m` | `always` | a program's output |
+| `file` | `30s` | `always` | a file |
+| `calendar` | `30m` | `always` | EventKit (macOS) or `.ics` (both) |
+| `system` | `3s` | `visible` | this machine |
+| `media` | `3s` | `visible` | a music player |
+| `claude` | `30s` | `visible` | Claude Code's logs |
+
+**Built-in sources.** The defaults define `system`, `media` (`player: "auto"`), `claude`, `calendar` and `weather` (wttr.in). A `visible` source that nothing on screen reads is never fetched, so unused ones cost nothing.
+
+**Inline sources.** Wherever a widget takes `source`, it may give a definition instead of a name: `"source": {"type": "file", "path": "~/notes/today.md", "parse": "lines"}`. Identical definitions share one fetch. Its name in `vestal sources` and the cache is `inline:<8 hex digits>`.
+
+**Load-time text.** `url`, `argv`, `env`, `headers`, `path` and `ics` are text fields evaluated once when the config loads, with only `$env` (the environment), `$secrets` and template parameters in scope: `"url": "https://api.example.com/v1?key={{ $secrets.apiKey }}"`. There is no data and no `now` there, so one source can't depend on another's data: to chain fetches, write a `command` source. In `argv` and `path`, a leading `~/` expands to the home directory.
+
+**Failures.** A failed fetch keeps the last good data on screen and retries after `refresh` or 60 seconds, whichever is shorter. `$meta` (`vestal docs expressions`) tells a widget whether its data is current: `{{ if $meta.stale then "(old)" else "" end }}`.
+
+**Limits.** An HTTP body or command output over 10 MiB fails the fetch. A feed keeps its first 500 items. Transformed data over 4 MiB fails. The cache directory is trimmed to 256 MiB, oldest first, and is private (`0700`, files `0600`).
+
+## Secrets
+
+```json
+{
+  "version": 1,
+  "secrets": {
+    "ha": { "file": "~/.config/vestal/secrets/home-assistant.token" },
+    "gh": { "command": ["gh", "auth", "token"] },
+    "owm": { "env": "OPENWEATHER_KEY" }
+  },
+  "sources": {
+    "owm": { "type": "http", "url": "https://api.openweathermap.org/data/2.5/weather?q=Lisbon&units=metric&appid={{ $secrets.owm }}", "refresh": "30m" }
+  }
+}
+```
+
+A secret is read once when the config loads (a `command` secret has 10 seconds), trimmed, and usable only in source-definition text as `{{ $secrets.<name> }}`. Never write a secret's value into the config: under Nix the config is in the world-readable store. `print-config`, `render`, `status` and the logs never show secret values, and fetch errors are scrubbed of them. check-config warns about a literal-looking token in a URL or header.
+
+## History
+
+Sparklines need past values. A source keeps named ring buffers, and they survive restarts:
+
+```json
+{
+  "version": 1,
+  "sources": {
+    "btc": {
+      "type": "http",
+      "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+      "refresh": "5m",
+      "history": { "price": { "value": ".bitcoin.usd", "size": 288, "every": "5m" } }
+    }
+  },
+  "widgets": {
+    "btcChart": { "type": "sparkline", "values": "$history.btc.price", "height": 32 }
+  },
+  "views": { "main": { "children": ["clock", "btcChart"] } }
+}
+```
+
+- Each successful fetch evaluates `value` against the transformed data and records the number; anything else is skipped. `every` (default: the source's `refresh`) is the least time between samples; `size` (default 120, at most 10000) caps the buffer.
+- Read it as `$history.<source>.<name>` (numbers, oldest first) or `history_times("<source>"; "<name>")` (their times).
+- A history whose `value` changes starts over.
+- `visible` sources (`system` included) sample only while the dashboard is shown. To keep a CPU history while hidden, define a named copy: `{"type": "system", "when": "always", "refresh": "30s", "history": {...}}`.
+- Shortcut: a `sparkline` with `value` and `history` records its own history on its source, with no source edit.
+
+## Types
+
+### `http`
+
+Fetches a URL; the answer must have a 2xx status.
+
+| Key | Default | |
+|---|---|---|
+| `url` | required | `http://` or `https://`. Text: may use `{{ $secrets.x }}` and `{{ $env.X }}`. |
+| `method` | `GET` | `GET` or `POST`. |
+| `headers` | none | Object of text: `{"Authorization": "Bearer {{ $secrets.token }}"}`. |
+| `body` | none | The POST body: text, or a JSON value sent as `application/json`. |
+| `timeout` | `10s` | |
+| `parse` | `json` | `json`, `raw` (the body as a string), `lines` (a list of lines, the final newline dropped), `feed` (below). |
+
+A `parse: "feed"` source (on `http`, `command` or `file`) reads RSS 2.0, Atom 1.0 or JSON Feed 1.1, all as one shape. Items keep the feed's order; `date` is epoch seconds or `null`; `summary` is plain text, at most 500 characters:
+
+```jsonc
+{
+  "title": "Hacker News: Front Page",
+  "url": "https://news.ycombinator.com/",
+  "items": [
+    { "id": "https://news.ycombinator.com/item?id=1", "title": "Show HN: …", "url": "https://example.com/", "date": 1790000000, "author": "pg", "summary": "…" }
+  ]
+}
+```
+
+### `command`
+
+Runs a program **without a shell** and reads its standard output. `argv[0]` is looked up on `PATH` and the usual Nix and Homebrew directories; under Home Manager, add the program to `programs.vestal.extraPackages`. Pipes, globs and `$VARS` don't work; to use a shell, say so: `["sh", "-c", "…"]`.
+
+| Key | Default | |
+|---|---|---|
+| `argv` | required | The program and its arguments (text). |
+| `env` | none | Added to the environment (text values). |
+| `timeout` | `10s` | The command is killed after this long. |
+| `parse` | `json` | As for `http`. |
+
+A draft config (`--config` naming another file than the running instance's) never runs `command` sources by itself: `vestal fetch`, `render` and `eval` need `--allow-commands`. `vestal check-config --commands` lists every command source of a config, with where it is defined and whether its program is on `PATH`.
+
+### `file`
+
+| Key | Default | |
+|---|---|---|
+| `path` | required | A leading `~/` expands. |
+| `parse` | `json` | `json`, `raw`, `lines`, `feed`, or `exists`: `{"exists": true, "modified": 1790000000}`, which never fails. The others fail while the file is missing. |
+
+### `calendar`
+
+Events of the next `days` days, today being the first:
+
+```jsonc
+[ { "title": "Standup", "start": 1790000000, "end": 1790001800, "allDay": false, "calendar": "Work", "location": null } ]
+```
+
+| Key | Default | |
+|---|---|---|
+| `days` | `1` | Days to read, today being the first. |
+| `calendars` | all | Only calendars with these names. |
+| `ics` | none | A list (or one) of `.ics` files, directories of them (such as vdirsyncer's), or `http(s)` URLs. When set, it is used on both OSes. |
+| `timeout` | `10s` | For `ics` URLs. |
+
+Without `ics`, macOS reads EventKit (the app asks for calendar access), and Linux yields `[]` with an info note: the default agenda then stays hidden. Recurring events are expanded for `FREQ` `DAILY`, `WEEKLY`, `MONTHLY` and `YEARLY` with `COUNT`, `UNTIL`, `INTERVAL`, `BYDAY`, `EXDATE`, `RDATE`, overridden instances and `VTIMEZONE`/`TZID` zones. An event using another rule (`BYSETPOS`, `BYWEEKNO`, …) is left out rather than guessed, and counted in the source's note. The calendar name comes from `X-WR-CALNAME` or the file name.
+
+### `system`
+
+This machine, with the same shape on macOS and Linux. Units: bytes, bytes per second, seconds, epoch seconds, °C, percent 0–100. A field the machine can't read is `null`, never `0`.
+
+| Key | Default | |
+|---|---|---|
+| `disks` | `["/"]` | Mount points to report. |
+| `interfaces` | all but loopback | Network interfaces to sum. |
+
+```jsonc
+{
+  "host": "swift",
+  "os": "macos",
+  "uptime": 273600,
+  "cpu": { "percent": 12.5, "cores": 10, "load": [1.21, 1.43, 1.52] },
+  "memory": { "percent": 61, "pressure": 12, "compressed": 12, "psi": null, "used": 20957347840, "total": 34359738368 },
+  "temperature": { "cpu": 54 },
+  "battery": { "percent": 81, "charging": false, "ac": false, "remaining": 14700 },
+  "disks": [ { "mount": "/", "total": 994662584320, "free": 263066746880, "used": 731595837440, "percent": 73.6 } ],
+  "network": { "rx": 12345, "tx": 678, "interfaces": [ { "name": "en0", "rx": 12345, "tx": 678 } ] },
+  "audio": { "volume": 42, "muted": false },
+  "gpu": null,
+  "services": {}
+}
+```
+
+- `cpu.percent` and the network rates are measured between two reads; the first read after vestal starts uses the average since boot and rates of 0. `vestal fetch system --local` takes two reads half a second apart.
+- `memory.pressure` is "how hard memory is squeezed": compressed memory on macOS, `/proc/pressure/memory` on Linux. It is not comparable across OSes; the OS-specific fields are `memory.compressed` (macOS) and `memory.psi` (Linux), `null` on the other.
+- `temperature.cpu`: the SMC on macOS; `coretemp`, `k10temp` or `zenpower`, else the first thermal zone, on Linux. `null` when unknown.
+- `battery` is `null` without a battery; `remaining` (seconds) is `null` while charging.
+- `audio` is always an object; its fields are `null` with no output device (Linux reads `wpctl`).
+- A remote host's health, mapped to this shape (`foyer`, below), fills `services` and `gpu`.
+
+### `media`
+
+One music player.
+
+| Key | Default | |
+|---|---|---|
+| `player` | `auto` | A name, a list of names (the first running one wins), or `auto`. macOS: an application over AppleScript (`auto`: Spotify, then Music). Linux: an MPRIS player through `playerctl`, matched case-insensitively on its bus name or identity (`auto`: the first playing one, else the first found). |
+
+```jsonc
+{ "player": "Spotify", "state": "playing", "title": "Windowlicker", "artist": "Aphex Twin", "album": "Windowlicker", "position": 83.2, "duration": 367.0, "players": ["Spotify", "Music"] }
+```
+
+`state` is `playing`, `paused`, `stopped` or `off` (not running, or nothing loaded; the other fields are then empty or `null`). `players` lists the names this machine can see right now, which is how you find working `player` values: `vestal fetch media`. A name that exists on one OS only belongs in a `platform` block. The volume is in `system`'s `audio`.
+
+### `claude`
+
+Claude Code token usage from its logs.
+
+| Key | Default | |
+|---|---|---|
+| `path` | `~/.claude/projects` | Claude Code's projects directory. |
+| `fiveHourLimit` | `8000000` | Tokens that count as 100% over 5 hours. |
+| `weeklyLimit` | `95000000` | Tokens that count as 100% over 7 days. |
+
+```jsonc
+{ "fiveHour": { "tokens": 1500000, "limit": 8000000, "percent": 18 }, "week": { "tokens": 20000000, "limit": 95000000, "percent": 21 } }
+```
+
+`percent` is `tokens × 100 / limit`, truncated, at most 999.
+
+### `foyer`
+
+A built-in source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while shown, and maps the payload to the `system` shape with `foyer_health`. Any source whose `transform` produces the `system` shape works the same way: write a source template for another health agent (`vestal docs templates`) and name it in `systemHealth`'s `provider`.
+
+"""#,
+        "styling": #"""
+# Styling
+
+## `theme`
+
+| Key | Default | |
+|---|---|---|
+| `palette` | `tokyo-night` | A built-in palette or a key of `palettes`. |
+| `background` | `aurora` | `aurora` (animated, over the blurred desktop), `blur` (the blurred desktop) or `none` (the palette's `bg`). A UI that can't draw the aurora draws `blur`. |
+| `palettes` | none | Name → `{ "extends": "<palette>", "colors": { name: colour } }`. |
+| `colors` | none | Colours added to, or replacing, the chosen palette's. |
+| `fonts` | platform | `{ "sans": family, "mono": family, "rounded": family }`; `null` means the platform default. |
+| `font` | none | Shorthand for `fonts.sans`. |
+| `scale` | `1` | Multiplies every text, icon and fixed size (not gaps): for large screens or reading from afar. |
+| `icons` | platform | `native`: the macOS UI draws the presets' icons as SF Symbols (the default on macOS). `phosphor`: the bundled Phosphor font everywhere (`vestal docs icons`). |
+
+Fonts are the usual reason for a `platform` block:
+
+```json
+{
+  "version": 1,
+  "theme": { "background": "blur", "scale": 1.1 },
+  "platform": { "linux": { "theme": { "fonts": { "sans": "Inter", "mono": "JetBrains Mono" } } } }
+}
+```
+
+| Role | macOS default | Linux default |
+|---|---|---|
+| `sans` | the system font (SF Pro) | fontconfig `sans-serif` (Inter with the Nix package) |
+| `mono` | the system monospaced font (SF Mono) | fontconfig `monospace` |
+| `rounded` | SF Pro Rounded | same as `sans` |
+
+A missing family falls back to the default.
+
+## Colours
+
+Prefer the **semantic** names; they follow the palette. `tokyo-night`, the only built-in palette:
+
+| Name | Kind | Value |
+|---|---|---|
+| `text` | semantic | `#ffffff` |
+| `subtle` | semantic | `#ffffff80` (white 50%) |
+| `dim` | semantic | `#ffffff4d` (white 30%) |
+| `accent` | semantic | `#7aa1f7` |
+| `good` | semantic | `#73cf8f` (as `green`) |
+| `warn` | semantic | `#e3c975` (as `yellow`) |
+| `bad` | semantic | `#f06b6b` (as `red`) |
+| `bg` | semantic | `#1a1c26` |
+| `track` | semantic | `#ffffff0f` (white 6%, bar tracks) |
+| `scrim` | semantic | `#000000a6` (black 65%, behind popups) |
+| `blue`, `green`, `yellow`, `red` | hue | `#7aa1f7`, `#73cf8f`, `#e3c975`, `#f06b6b` |
+| `cyan`, `purple`, `teal`, `orange` | hue | `#7dcfff`, `#ba99f7`, `#73d6c2`, `#ff9e64` |
+
+Wherever a colour goes (`color`, `background`, `trackColor`, `iconColor`, `fill`, style `color`, palette entries):
+
+| Form | Example | |
+|---|---|---|
+| name | `"good"`, `"brand"` | A palette name. An unknown one is a check-config error and draws as `text`. |
+| hex | `"#7aa1f7"`, `"#7aa1f780"`, `"#fff"` | sRGB, optional alpha. |
+| with alpha | `"accent@0.15"`, `"#ffffff@0.2"` | Multiplies the alpha. |
+| steps | `{ "steps": [[0, "good"], [70, "warn"], [90, "bad"]], "of": ".cpu.percent" }` | The last stop whose threshold ≤ the number. `of` defaults to `$value`, the widget's own value. |
+| expr | `{ "expr": "if .ok then \"good\" else \"bad\" end" }` | Must give one of the forms above. |
+
+A palette entry may name another entry. A palette of your own:
+
+```json
+{
+  "version": 1,
+  "theme": {
+    "palette": "ember",
+    "palettes": {
+      "ember": { "extends": "tokyo-night", "colors": { "accent": "#ff9e64", "good": "teal", "brand": "#e01e5a" } }
+    }
+  },
+  "widgets": {
+    "hello": { "type": "text", "text": "Hello", "style": { "color": "brand", "size": "xl" } }
+  },
+  "views": { "main": { "children": ["clock", "hello"] } }
+}
+```
+
+`color_mix(a; b; t)` and `alpha(a)` compute colours in expressions (`vestal docs functions`).
+
+## Text style
+
+`style` is set on any widget and inherited by everything under it; a field set closer wins. `size`, `weight` and `color` may also be written directly on `text`, `icon` and templates.
+
+| Field | Values | Default |
+|---|---|---|
+| `size` | points, or `xs` 10, `sm` 11, `md` 12, `base` 13, `lg` 14, `xl` 18, `2xl` 24, `3xl` 36, `display` 56 | `base` (13) |
+| `weight` | `ultralight` 100, `thin` 200, `light` 300, `regular` 400, `medium` 500, `semibold` 600, `bold` 700, `heavy` 800, `black` 900, or the number | `regular` |
+| `font` | `sans`, `mono`, `rounded` | `sans` |
+| `color` | a colour | `text` |
+| `tracking` | points of letter spacing | `0` |
+| `case` | `upper`, `lower`, `none` | `none` |
+| `emphasis` | `strong` (weight +200, colour `text`), `muted` (colour `subtle`), `faint` (colour `dim`) | none |
+| `scale` | multiplies sizes in this subtree | `1` |
+
+Every style field may be `{"expr": …}`:
+
+```json
+{ "type": "text", "source": "system", "text": "{{ .cpu.percent | round }}%", "style": { "font": "mono", "weight": { "expr": "if .cpu.percent > 90 then \"bold\" else \"regular\" end" }, "color": { "steps": [[0, "subtle"], [90, "bad"]], "of": ".cpu.percent" } } }
+```
+
+Keep changing values (rates, times) at the end of a row, so the stable items don't shift.
+
+"""#,
+        "templates": #"""
+# Templates
+
+A template is a named, parameterised widget (or source) written in the config. Using one looks like using any widget type: `{"type": "<template>", "<param>": value, …}`. The built-in presets are templates too (`vestal docs presets`); `vestal print-config --templates` prints every template, built-ins included, and `vestal print-config --expanded` shows what each widget becomes.
+
+## Defining one
+
+```json
+{
+  "version": 1,
+  "templates": {
+    "metric": {
+      "description": "A labelled percentage bar with a threshold colour",
+      "params": {
+        "label": { "type": "text", "required": true },
+        "value": { "type": "expr", "required": true, "description": "0-100" },
+        "warn": { "type": "number", "default": 70 },
+        "bad": { "type": "number", "default": 90 }
+      },
+      "widget": {
+        "type": "progress",
+        "label": { "param": "label" },
+        "labelWidth": 40,
+        "value": { "param": "value" },
+        "color": { "expr": "$value | step([[0, \"good\"], [$warn, \"warn\"], [$bad, \"bad\"]])" }
+      }
+    }
+  },
+  "widgets": {
+    "cpu": { "type": "metric", "source": "system", "label": "CPU", "value": ".cpu.percent" },
+    "disk": { "type": "metric", "source": "system", "label": "Disk", "value": ".disks[0].percent", "warn": 80, "bad": 95 }
+  },
+  "views": { "main": { "children": ["clock", "cpu", "disk"] } }
+}
+```
+
+A template has:
+
+| Key | |
+|---|---|
+| `description` | Shown by `vestal docs` and in `vestal schema --config`. |
+| `params` | Name → `{ "type", "default", "required", "description", "enum" }`. |
+| `widget` or `source` | The body: exactly one of the two. |
+| `override` | `true` to replace the built-in template of the same name (below). |
+
+Parameter types: data types `string`, `number`, `integer`, `boolean`, `array`, `object`, `any`, `duration`, `color`, `icon`, `source`, and code types `expr`, `text`, `widget`, `widgets`.
+
+## How a template expands
+
+Templates are expanded once, when the config loads, before anything is checked or drawn.
+
+1. **Substitution.** An object that is exactly `{"param": "<name>"}` is replaced, anywhere in the body, by the parameter's value (or its `default`). `{"param": "privacy.command"}` reaches into an object parameter.
+2. **Absence.** When that value is `null` or absent, the enclosing key (or array element) is removed, as if never written.
+3. **Splicing.** A `{"param": …}` array element whose value is an array is spliced in place: `"children": [header, {"param": "children"}]`.
+4. **Variables.** Data parameters are also bound as `$<name>` (and all together as `$params`) in every expression and text field of the body, and in its source-definition text. Code parameters (`expr`, `text`, `widget`, `widgets`) are only substituted, never bound, so an `expr` parameter named `value` doesn't hide the node's `$value`.
+5. **Common fields.** Common widget fields on the instance (`source`, `when`, `width`, `spaceBefore`, `action`, …; `vestal docs widgets`) apply to the expanded root and win over the body's, except that `vars` merge, and a parameter named like a common field takes it instead.
+6. **Checks.** An instance key that is neither a parameter nor a common field is a warning with a did-you-mean. A missing `required` parameter or a value of the wrong type is an error, and that widget isn't shown.
+7. **Nesting.** Templates may use templates, 16 deep at most. A cycle is an error.
+8. **Names.** A template may not take a primitive's name (`text`, `list`, …). A template named like a built-in is an error unless it sets `"override": true`, which replaces the built-in whole. To build on a preset, give yours a new name and use the preset inside it.
+
+Reserved variable names (`value`, `data`, `item`, …; `vestal docs expressions`) can't be data parameter names.
+
+## Source templates
+
+A template with a `source` body goes where a source goes: under `sources`, or inline. The instance's keys are the parameters plus the common source keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`), which win over the body's. The built-in `foyer` is one:
+
+```json
+{
+  "version": 1,
+  "templates": {
+    "glances": {
+      "description": "Host health from a Glances REST API (v4), in the system shape",
+      "params": { "url": { "type": "string", "required": true } },
+      "source": {
+        "type": "http",
+        "url": "{{ $url }}/api/4/all",
+        "refresh": "5s",
+        "when": "visible",
+        "transform": "{ host: .system.hostname, cpu: { percent: .cpu.total }, memory: { percent: .mem.percent }, uptime: null }"
+      }
+    }
+  },
+  "sources": {
+    "nas": { "type": "glances", "url": "http://nas.local:61208" }
+  },
+  "widgets": {
+    "nasCpu": { "type": "text", "source": "nas", "text": "NAS CPU {{ .cpu.percent | round }}%" }
+  },
+  "views": { "main": { "children": ["clock", "nasCpu"] } }
+}
+```
+
+A source template that takes a `url` can also be `systemHealth`'s `provider`.
+
+## The v0.3 adapter
+
+Three v0.3 behaviours link separate widgets, so a small adapter applies them before expansion, each reported by check-config as an info note with code `legacy`:
+
+1. A `systemBar` without its own `claudeSource` takes its Claude options from the first `claudeUsage` widget (by key).
+2. The first `systemBar` of the default view whose privacy item shows gets the key `p`.
+3. Each `systemHealth` host with a `url` becomes the source `host:<name>` (`{"type": <provider>, "url": …, "refresh": <interval or 5s>}`).
+
+"""#,
+        "views": #"""
+# Views
+
+A view is one screen of widgets. The dashboard opens `defaultView` (default `main`) unless a view is named.
+
+```json
+{
+  "version": 1,
+  "defaultView": "main",
+  "widgets": {
+    "bigClock": { "type": "text", "text": "{{ now | fmt_time(\"HH:mm\") }}", "alignSelf": "center", "style": { "size": 120, "weight": "thin", "font": "mono" } }
+  },
+  "views": {
+    "main": { "key": "1", "children": ["clock", "systemBar", "media", "agenda", "systems", "weather"] },
+    "focus": { "key": "2", "title": "Focus", "gap": 32, "children": ["bigClock", "agenda"] }
+  }
+}
+```
+
+| Key | Default | |
+|---|---|---|
+| `children` | `[]` | Widget keys or inline widgets, top to bottom. |
+| `order` | `[]` | v0.3's name for `children` (keys only). When both are set, `children` wins and check-config warns. |
+| `title` | the name, capitalized | Shown by UIs that list views. |
+| `key` | none | A key that switches to this view while the dashboard is open. |
+| `layout` | `stack` | The root container: `stack` (top to bottom), `row` or `grid`. |
+| `columns` | `2` | For `layout: "grid"`. |
+| `gap` | `24` | Between root children (the presets set their own `spaceBefore`). |
+| `align` | `center` | Cross-axis alignment of the root children. |
+| `padding` | `48` | Inside `maxWidth`: a number or `[top, right, bottom, left]`. |
+| `maxWidth` | `680` | The root is at most this wide, centred on the screen both ways. |
+| `keys` | `{}` | Key bindings of this view only (`vestal docs keys`). |
+
+- **Lists replace.** `views.main.children` in your file replaces the default list whole. To add a widget to the default dashboard, write the full list: `vestal print-config` shows the current one.
+- **Spacing.** In a view written with `children`, the first *visible* child gets no space before it. A view written with v0.3's `order` keeps v0.3's rule: only the first *listed* entry gets none.
+- **Switching.** `tab` and `shift+tab` cycle through the views (in key order) when there is more than one and those keys are unbound; a view's `key` jumps to it. From a shell or a compositor: `vestal show <view>` opens the dashboard on that view, and `vestal toggle <view>` hides it when it shows that view and shows that view otherwise. An unknown view exits 4.
+- **Cost.** A view that isn't shown costs nothing: its `visible` sources aren't fetched and nothing in it is evaluated.
+
+Check one without opening it: `vestal render --view focus`, or `vestal render --press 2` to go through its key.
+
+## Popups
+
+One popup at a time, opened by a `popup` action (`vestal docs actions`). The UI draws it centred over a `scrim` backdrop, in a card (`bg`, radius 14, a thin white border). Escape or a click on the backdrop closes it. Its content is an ordinary widget tree and updates live; its node ids start with `popup/`.
+
+"""#,
+        "widgets": #"""
+# Widgets
+
+A widget is a JSON object with a `type`. Define it under `widgets.<key>` and list the key in a view's `children`, or write it inline wherever a widget goes (`children`, `row`, `cases`, `default`, `empty`, `loading`, popups). A string where a widget goes is a reference to `widgets.<string>`.
+
+`vestal docs widget/<type>` lists each type's fields with their kind (`vestal docs expressions`), default and an example. The types:
+
+| Group | Types |
+|---|---|
+| Containers | `stack` (top to bottom), `row` (left to right), `grid` (aligned columns), `list` (an array as rows), `table` (a list with aligned columns), `switch` (one child picked by a value) |
+| Primitives | `text`, `icon`, `progress` (bar), `gauge` (ring), `sparkline`, `keyValue`, `divider`, `spacer` |
+| Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage` (`vestal docs presets`) |
+| Your templates | any name under `templates` (`vestal docs templates`) |
+
+## Fields every widget takes
+
+| Field | Kind | Default | |
+|---|---|---|---|
+| `id` | structural | derived | A stable id segment for the node (`vestal docs render-model`). |
+| `source` | name or definition | inherited | Sets `.` and `$data` for this subtree. An object is an inline source. |
+| `input` | expr | none | Re-roots `.` for this subtree: `".current_condition[0]"`. |
+| `vars` | object of expr | none | Binds `$name` for this subtree. |
+| `when` | expr | shown | Hidden when it yields `false` or `null`. A hidden widget takes no space. |
+| `loading` | `hide`, `show` or a widget | `hide` | While this widget's own `source` has never produced data. `show` renders with `.` = `null`. |
+| `style` | object | inherited | Text style, inherited by everything under it (`vestal docs styling`). |
+| `width`, `height` | number, `"fill"`, `"fit"` | `"fit"` | Points; `fill` takes the space the parent offers. |
+| `minWidth`, `maxWidth` | number | none | |
+| `padding` | number or `[top, right, bottom, left]` | `0` | |
+| `background` | colour | none | Painted behind the padded frame. |
+| `radius` | number | `0` | Corner radius of the background. |
+| `opacity` | 0 to 1 | `1` | |
+| `clip` | boolean | `false` | Clip the children to the frame. |
+| `spaceBefore` | number | the parent's gap | Space before this child in a stack or row. Ignored on the first visible child. |
+| `alignSelf` | `start`, `center`, `end`, `stretch` | the parent's `align` | |
+| `span` | integer | `1` | Grid columns this child takes. |
+| `action` | action or list | none | Run on click and on `key` (`vestal docs actions`). |
+| `key` | key or `"auto"` | none | A key that runs `action` (`vestal docs keys`). |
+| `keyHint` | text | the first text | Letters `"auto"` tries, in order. |
+| `alt` | text | derived | Plain text for `vestal render --format tree` and text-only UIs. |
+
+`size`, `weight` and `color` are also accepted directly on `text`, `icon` and templates, as shorthands for `style.<field>`.
+
+## Layout in brief
+
+- A stack or row places its visible children in order with `gap` between them (a child's `spaceBefore` replaces the gap before it).
+- `fill` takes the space left over on that axis, shared equally among `fill` siblings. A container with a `fill` child is itself `fill` on that axis. Without a size a widget fits its content.
+- Text wraps unless `lines` limits it; then it is cut with `…`. Nothing scrolls: content taller than the screen is cut off at the bottom, so keep lists short with `limit`.
+- A view's root is at most `maxWidth` (680) wide, centred on the screen both ways (`vestal docs views`).
+
+## Containers
+
+### `stack`
+
+Children top to bottom. `align` places them across (`start`, `center`, `end`, `stretch`); `justify` distributes leftover height (`start`, `center`, `end`, `between`).
+
+```json
+{ "type": "stack", "gap": 4, "align": "center", "children": [
+  { "type": "text", "text": "{{ now | fmt_time(\"HH:mm\") }}", "style": { "size": "display", "weight": "thin", "font": "mono" } },
+  { "type": "text", "text": "{{ now | fmt_localized(\"EEEEMMMMd\") }}", "style": { "color": "subtle" } }
+] }
+```
+
+### `row`
+
+Children left to right. Same fields as `stack`; `align` defaults to `center` and also takes `baseline` (first text baselines line up). A `spacer` pushes what follows to the end.
+
+```json
+{ "type": "row", "gap": 10, "width": "fill", "source": "system", "children": [
+  { "type": "icon", "name": "cpu", "size": 12, "color": "subtle" },
+  { "type": "text", "text": "{{ .cpu.percent | round }}%", "style": { "font": "mono" } },
+  { "type": "spacer" },
+  { "type": "text", "text": "up {{ .uptime | fmt_uptime_long }}", "style": { "color": "dim" } }
+] }
+```
+
+### `grid`
+
+Children row by row in aligned columns. `columns` is a count of equal `fill` columns, or a list of `{"width": number | "fill" | "fit", "align": "start" | "center" | "end"}`. A child may set `span`. `gap` is between columns, `rowGap` between rows.
+
+```json
+{ "type": "grid", "columns": [ { "width": 80 }, { "width": "fill" } ], "gap": 12, "rowGap": 6, "source": "system", "children": [
+  { "type": "text", "text": "CPU", "style": { "color": "subtle" } },
+  { "type": "progress", "value": ".cpu.percent", "text": "" },
+  { "type": "text", "text": "Memory", "style": { "color": "subtle" } },
+  { "type": "progress", "value": ".memory.percent", "text": "" }
+] }
+```
+
+### `list`
+
+An array as rows: the only way to iterate. `items` is an expression (all its outputs, or its single array) or a JSON array of static data. Then, in order: `filter` (keep an item when true), `sortBy` (ascending, stable), `reverse`, `limit`. In `row`, `.` is the item, and `$item`, `$index` and `$parent` (the outer row's item) are bound. `rowId` gives each row a stable identity (use a real id such as `.url`, so a refresh redraws only the rows that changed). `direction` is `column`, `row` or `grid` (with `columns`). `empty` is text or a widget shown with no rows; without it an empty list is hidden.
+
+```json
+{
+  "type": "list",
+  "source": "system",
+  "items": ".disks",
+  "sortBy": ".percent",
+  "reverse": true,
+  "limit": 3,
+  "rowId": ".mount",
+  "empty": "No disks",
+  "row": { "type": "text", "text": "{{ .mount }}: {{ .free | fmt_bytes }} free", "lines": 1 }
+}
+```
+
+### `table`
+
+A list whose columns line up across rows. `items`, `filter`, `sortBy`, `reverse`, `limit`, `rowId` and `empty` work as for `list`. Each column is `{"header", "text"}` or `{"header", "value", "format"}`, with `width` (points, `fill` or `fit`), `align`, `style` and `color` (which may use `$value`). `header: false` hides the header row (size 10, semibold, `dim`, upper case). `rowAction` is an action per row.
+
+```json
+{
+  "type": "table",
+  "source": "system",
+  "items": ".disks",
+  "columns": [
+    { "header": "Mount", "text": "{{ .mount }}", "style": { "font": "mono" } },
+    { "header": "Used", "value": ".percent", "format": "percent", "align": "end", "color": { "steps": [[0, "text"], [80, "warn"], [95, "bad"]] } },
+    { "header": "Free", "value": ".free", "format": "bytes", "align": "end", "style": { "color": "subtle" } }
+  ]
+}
+```
+
+### `switch`
+
+One child picked by a value: `on` is evaluated and turned into text, `cases` maps values to widgets, and `default` is used when none matches (without it, nothing is drawn).
+
+```json
+{
+  "type": "switch",
+  "source": "media",
+  "on": ".state",
+  "cases": {
+    "playing": { "type": "icon", "name": "play", "weight": "fill", "color": "good" },
+    "paused": { "type": "icon", "name": "pause", "weight": "fill", "color": "subtle" }
+  },
+  "default": { "type": "text", "text": "off", "style": { "color": "dim" } }
+}
+```
+
+## Primitives
+
+### `text`
+
+Text, from `text` (with `{{ }}` holes), or from `value` run through `format` between `prefix` and `suffix` (`placeholder` when the value is `null`). An optional leading `icon` is drawn in the text's colour at 0.8 times its size. `lines` limits the lines (cut with `…`); `align` places the text in its frame.
+
+```json
+{ "type": "text", "source": "system", "icon": "hard-drives", "value": ".disks[0].free", "format": "bytes", "suffix": " free", "style": { "size": 12, "color": "subtle" } }
+```
+
+### `icon`
+
+A glyph from the bundled Phosphor set (`vestal icons <query>`), `regular` or `fill`. `name` may be computed:
+
+```json
+{ "type": "icon", "source": "system", "name": { "expr": ".battery.percent // 0 | step([[0,\"battery-empty\"],[13,\"battery-low\"],[38,\"battery-medium\"],[63,\"battery-high\"],[88,\"battery-full\"]])" }, "size": 12, "color": "good" }
+```
+
+### `progress`
+
+A horizontal bar: `(value − min) / (max − min)`, clamped. Optional `label` before it, `text` after it (default `"{{ $value | round }}%"`; `""` for none), and an `overlay`, a second value on the same scale drawn `above` or `below` the fill. `width` is the bar's own width (default `fill`).
+
+```json
+{ "type": "progress", "source": "system", "label": "RAM", "labelWidth": 30, "value": ".memory.percent", "overlay": ".memory.pressure", "width": 120, "textWidth": 34, "color": "purple" }
+```
+
+### `gauge`
+
+A ring with centre `text` (default `"{{ $value | round }}"`) and an optional `label` under it. `sweep` is the arc in degrees, with the gap at the bottom.
+
+```json
+{ "type": "gauge", "source": "system", "label": "CPU", "value": ".cpu.percent", "text": "{{ $value | round }}%", "color": { "steps": [[0, "good"], [70, "warn"], [90, "bad"]] } }
+```
+
+### `sparkline`
+
+A line from `values` (an array of numbers), or from `value` plus `history`, which records the value on the widget's source at every fetch (`vestal docs sources`). `min` and `max` fix the scale; `fill` colours the area under the line; `dot` marks the last point. Fewer than two points draw nothing, keeping the size.
+
+```json
+{ "type": "sparkline", "source": "system", "value": ".cpu.percent", "history": { "size": 120 }, "min": 0, "max": 100, "height": 32, "fill": "accent@0.15", "dot": true }
+```
+
+### `keyValue`
+
+Labelled values side by side. Each item has a `label` and a `value` (with `format`) or a `text`, and may have its own `source`, `vars`, `when`, `color`, `action` and `key`. An item whose source has no data, whose `when` is false or whose value is `null` is skipped; the widget is hidden when every item is.
+
+```json
+{
+  "type": "keyValue",
+  "source": "system",
+  "items": [
+    { "label": "CPU", "value": ".cpu.percent", "format": "percent" },
+    { "label": "Load", "text": "{{ .cpu.load[0] | fmt_fixed(2) }}" },
+    { "label": "Battery", "when": ".battery != null", "value": ".battery.percent", "format": "percent" }
+  ]
+}
+```
+
+### `divider`
+
+A rule: `axis: "h"` (default) fills the width, `v` the height.
+
+```json
+{ "type": "divider", "thickness": 1, "color": "track" }
+```
+
+### `spacer`
+
+Flexible space along the parent's axis: in a row it pushes the rest to the end. With a fixed `width` or `height` it is a fixed gap.
+
+```json
+{ "type": "spacer", "height": 12 }
+```
 
 """#,
     ]

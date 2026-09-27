@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "templates": {
+    "metric": {
+      "description": "A labelled percentage bar that turns yellow, then red",
+      "params": {
+        "label": { "type": "text", "required": true },
+        "value": { "type": "expr", "required": true, "description": "A 0-100 number" },
+        "warn": { "type": "number", "default": 70 },
+        "bad": { "type": "number", "default": 90 },
+        "note": { "type": "text", "default": "" }
+      },
+      "widget": {
+        "type": "row",
+        "gap": 10,
+        "width": "fill",
+        "children": [
+          {
+            "type": "progress",
+            "label": { "param": "label" },
+            "labelWidth": 44,
+            "value": { "param": "value" },
+            "textWidth": 36,
+            "color": { "expr": "$value | step([[0, \"good\"], [$warn, \"warn\"], [$bad, \"bad\"]])" }
+          },
+          { "type": "text", "text": { "param": "note" }, "width": 110, "lines": 1, "style": { "size": 11, "color": "dim" } }
+        ]
+      }
+    }
+  },
+  "widgets": {
+    "machine": {
+      "type": "section",
+      "title": "This machine",
+      "source": "system",
+      "children": [
+        { "type": "metric", "label": "CPU", "value": ".cpu.percent", "note": "load {{ .cpu.load[0] | fmt_fixed(2) }}" },
+        { "type": "metric", "label": "RAM", "value": ".memory.percent", "warn": 80, "bad": 95, "note": "{{ .memory.used | fmt_bytes }} used" },
+        { "type": "metric", "label": "Disk", "value": ".disks[0].percent", "warn": 85, "bad": 95, "note": "{{ .disks[0].free | fmt_bytes }} free" }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["clock", "systemBar", "machine", "agenda"] } }
+}
