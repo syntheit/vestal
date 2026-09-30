@@ -95,6 +95,60 @@ final class ResidentTests: XCTestCase {
         XCTAssertEqual(replies.all.first?.status?.configPath, "/c.json")
     }
 
+    // MARK: Pinch
+
+    @MainActor
+    func testPinchTogetherOpensAndApartCloses() {
+        let gestures = FakeGestures()
+        let surface = FakeSurface()
+        let loaded = loaded()
+        let runtime = AppRuntime(config: loaded.config, fetcher: FakeFetcher(), cache: nil)
+        let resident = Resident(loaded: loaded, runtime: runtime, surface: surface, gestures: gestures,
+                                load: { loaded }, watchedPath: { "/c.json" })
+        surface.keep(resident)
+        guard let handler = gestures.handler else { return XCTFail("no handler") }
+
+        // Apart while hidden: nothing.
+        handler.gestureBegan(.apart)
+        handler.gestureChanged(progress: 1)
+        handler.gestureEnded(commit: true)
+        XCTAssertFalse(resident.isVisible)
+        XCTAssertEqual(surface.calls, [])
+
+        // Together, lifted before halfway: shown for the gesture, then hidden.
+        handler.gestureBegan(.together)
+        XCTAssertTrue(resident.isVisible)
+        handler.gestureChanged(progress: 0.3)
+        handler.gestureEnded(commit: false)
+        XCTAssertFalse(resident.isVisible)
+        XCTAssertEqual(surface.calls, ["beginInteractiveShow", "alpha 0.3", "hide"])
+
+        // Together, committed.
+        surface.clear()
+        handler.gestureBegan(.together)
+        handler.gestureChanged(progress: 0.9)
+        handler.gestureEnded(commit: true)
+        XCTAssertTrue(resident.isVisible)
+        XCTAssertEqual(surface.calls, ["beginInteractiveShow", "alpha 0.9", "show"])
+
+        // Together while shown: nothing. Apart: alpha falls, commit hides.
+        surface.clear()
+        handler.gestureBegan(.together)
+        handler.gestureChanged(progress: 1)
+        handler.gestureEnded(commit: true)
+        XCTAssertEqual(surface.calls, [])
+        handler.gestureBegan(.apart)
+        handler.gestureChanged(progress: 0.25)
+        handler.gestureEnded(commit: false)
+        XCTAssertTrue(resident.isVisible)
+        XCTAssertEqual(surface.calls, ["alpha 0.75", "show"])
+        surface.clear()
+        handler.gestureBegan(.apart)
+        handler.gestureEnded(commit: true)
+        XCTAssertFalse(resident.isVisible)
+        XCTAssertEqual(surface.calls, ["hide"])
+    }
+
     // MARK: Hotkey
 
     @MainActor
@@ -391,10 +445,22 @@ private final class FakeSurface: ResidentSurface {
     private var resident: Resident?
 
     func keep(_ resident: Resident) { self.resident = resident }
+    func clear() { calls = [] }
+    func beginInteractiveShow() { calls.append("beginInteractiveShow") }
+    func setInteractiveAlpha(_ alpha: Double) { calls.append("alpha \(alpha)") }
     func show() { calls.append("show") }
     func hide() { calls.append("hide") }
     func apply(_ loaded: LoadedConfig) { applied.append(loaded) }
     func quit() { calls.append("quit") }
+}
+
+@MainActor
+private final class FakeGestures: GestureRegistrar {
+    private(set) var handler: GestureHandler?
+    func register(_ name: String?, handler: GestureHandler?) -> String? {
+        self.handler = name == nil ? nil : handler
+        return nil
+    }
 }
 
 @MainActor

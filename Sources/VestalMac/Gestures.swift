@@ -8,29 +8,44 @@ import VestalCore
 // The private MultitouchSupport framework hands every touch frame to a C
 // callback, without any permission (no Accessibility, no event tap). The
 // pinch is the old Launchpad gesture: a thumb and three fingers, four
-// contacts, that come together. It fires once per touch, when the mean
-// distance of the contacts from their centroid falls under `pinchRatio` of
-// what it was when the fourth finger landed, and again only after a lift.
+// contacts, that come together (open) or spread apart (close). The mean
+// distance of the contacts from their centroid, over what it was when the
+// fourth finger landed, is the ratio; once it has moved 4% either way the
+// direction is clear and the gesture begins, its progress follows the ratio
+// (`PinchMath`), and lifting (or any change in the contact count) ends it.
 // The frame layout (stride, state and normalised position offsets) is what
 // the framework's `MTTouch` has had since macOS 10.x. The frame callback
-// runs on the framework's own thread, so it allocates nothing and hops to
-// the main thread only to fire.
+// runs on the framework's own thread, so it allocates nothing: it posts to a
+// lock-protected mailbox that hops to the main thread at most once until the
+// main thread has drained it, however fast the frames come.
 
 @MainActor
 final class MultitouchGestures: GestureRegistrar {
-    private let detector = PinchDetector()
+    private let mailbox = GestureMailbox()
+    private let detector: PinchDetector
+    private var handler: GestureHandler?
+    init() {
+        detector = PinchDetector(mailbox: mailbox)
+        mailbox.deliver = { [weak self] began, progress, ended in
+            guard let handler = self?.handler else { return }
+            if let began { handler.gestureBegan(began) }
+            if let progress { handler.gestureChanged(progress: Double(progress)) }
+            if let ended { handler.gestureEnded(commit: ended) }
+        }
+    }
+
     /// The trackpads, kept while the gesture is watched.
     private var devices: [UnsafeMutableRawPointer] = []
     private var handle: UnsafeMutableRawPointer?
     private var stop: (@convention(c) (UnsafeMutableRawPointer) -> Void)?
 
-    func register(_ name: String?, action: @escaping @MainActor () -> Void) -> String? {
+    func register(_ name: String?, handler: GestureHandler?) -> String? {
         detector.enabled = false
+        self.handler = handler
         stopDevices()
-        guard name != nil else { return nil }
+        guard name != nil, handler != nil else { return nil }
         guard let started = startDevices() else { return "MultitouchSupport is not available" }
         guard started > 0 else { return "no trackpad found" }
-        detector.fire = { DispatchQueue.main.async { MainActor.assumeIsolated(action) } }
         detector.enabled = true
         return nil
     }
@@ -67,25 +82,64 @@ final class MultitouchGestures: GestureRegistrar {
     }
 }
 
+/// Hands the callback thread's events to the main thread, coalesced: the
+/// latest progress wins, and one hop is scheduled while none is pending.
+/// Delivered in order: began, the latest progress, ended.
+private final class GestureMailbox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var began: PinchDirection?
+    private var progress: Float?
+    private var ended: Bool?
+    private var scheduled = false
+    /// Set on the main thread before the detector is enabled; runs there.
+    nonisolated(unsafe) var deliver: @MainActor (PinchDirection?, Float?, Bool?) -> Void = { _, _, _ in }
+
+    func post(began: PinchDirection? = nil, progress: Float? = nil, ended: Bool? = nil) {
+        lock.lock()
+        if let began { self.began = began; self.progress = nil; self.ended = nil }
+        if let progress { self.progress = progress }
+        if let ended { self.ended = ended }
+        let schedule = !scheduled
+        scheduled = true
+        lock.unlock()
+        if schedule { DispatchQueue.main.async { [self] in drain() } }
+    }
+
+    private func drain() {
+        lock.lock()
+        let (b, p, e) = (began, progress, ended)
+        began = nil; progress = nil; ended = nil
+        scheduled = false
+        lock.unlock()
+        MainActor.assumeIsolated { deliver(b, p, e) }
+    }
+}
+
 /// The detector state, touched only by the framework's callback thread
-/// (`enabled` and `fire` are set before it can run and not while it does,
-/// up to a benign race on one Bool).
+/// (`enabled` is set before it can run and not while it does, up to a benign
+/// race on one Bool).
 private final class PinchDetector: @unchecked Sendable {
     static let stride = 96, stateOffset = 20, xOffset = 32, yOffset = 36
     /// Four contacts, all touching (state 4).
     static let contacts = 4, touching: Int32 = 4
-    /// Fires when the spread is under this fraction of the starting one.
-    static let pinchRatio: Float = 0.72
     /// Contacts bunched closer than this at the start aren't a pinch.
     static let minStartSpread: Float = 0.02
+    /// How much of each new velocity sample the smoothed one takes.
+    static let velocitySmoothing: Float = 0.4
 
     var enabled = false
-    var fire: () -> Void = {}
+    private let mailbox: GestureMailbox
     private var startSpread: Float = 0
     private var tracking = false
-    private var fired = false
+    /// The direction once clear; nil until then.
+    private var direction: PinchDirection?
+    private var lastProgress: Float = 0
+    private var lastTime: Double = 0
+    private var velocity: Float = 0
 
-    func process(_ data: UnsafeMutableRawPointer, count: Int32) {
+    init(mailbox: GestureMailbox) { self.mailbox = mailbox }
+
+    func process(_ data: UnsafeMutableRawPointer, count: Int32, timestamp: Double) {
         guard enabled else { return }
         guard Int(count) == Self.contacts else { return reset() }
         var x: (Float, Float, Float, Float) = (0, 0, 0, 0)
@@ -114,16 +168,36 @@ private final class PinchDetector: @unchecked Sendable {
             startSpread = spread
             return
         }
-        if !fired, startSpread > Self.minStartSpread, spread < startSpread * Self.pinchRatio {
-            fired = true
-            fire()
+        guard startSpread > Self.minStartSpread else { return }
+        let ratio = spread / startSpread
+        if direction == nil {
+            guard let clear = PinchMath.direction(ratio: ratio) else { return }
+            direction = clear
+            lastProgress = 0
+            lastTime = timestamp
+            velocity = 0
+            mailbox.post(began: clear)
         }
+        guard let direction else { return }
+        let progress = PinchMath.progress(direction, ratio: ratio)
+        let dt = Float(timestamp - lastTime)
+        if dt > 0 {
+            let sample = (progress - lastProgress) / dt
+            velocity += (sample - velocity) * Self.velocitySmoothing
+            lastTime = timestamp
+        }
+        lastProgress = progress
+        mailbox.post(progress: progress)
     }
 
-    /// Fewer or more fingers, or one lifting: the next four start over.
+    /// Fewer or more fingers, or one lifting: an open gesture ends, and the
+    /// next four start over.
     private func reset() {
+        if direction != nil {
+            mailbox.post(ended: PinchMath.shouldCommit(progress: lastProgress, velocity: velocity))
+        }
         tracking = false
-        fired = false
+        direction = nil
     }
 
     private func distance(_ dx: Float, _ dy: Float) -> Float { (dx * dx + dy * dy).squareRoot() }
@@ -135,7 +209,7 @@ nonisolated(unsafe) private var pinchDetector: PinchDetector?
 /// through a global.
 private func pinchFrame(_ device: Int32, _ data: UnsafeMutableRawPointer, _ count: Int32,
                         _ timestamp: Double, _ frame: Int32) -> Int32 {
-    pinchDetector?.process(data, count: count)
+    pinchDetector?.process(data, count: count, timestamp: timestamp)
     return 0
 }
 #endif

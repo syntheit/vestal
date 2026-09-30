@@ -150,8 +150,9 @@ public enum SchemaRegistry {
                       + "alt (opt) and shift, joined with +. Letters, digits, space and escape need cmd, ctrl or alt. null "
                       + "registers nothing; bind `vestal toggle` in the window manager instead."),
             SchemaKey("gesture", .oneOf(["pinch"]), default: .null, nullable: true, since: "0.4", examples: [.string("pinch"), .null],
-                      "Trackpad gesture that toggles the dashboard like the hotkey: pinch (thumb and three fingers "
-                      + "together, the old Launchpad gesture). macOS only; ignored on Linux. null registers nothing."),
+                      "Trackpad gesture for the dashboard: pinch (thumb and three fingers, the old Launchpad gesture). "
+                      + "Pinching in opens it, spreading closes it, and the fade follows the fingers. macOS only; "
+                      + "ignored on Linux. null registers nothing."),
             SchemaKey("theme", .shape("theme"), default: defaults("theme"), examples: [.object(["background": .string("blur")])],
                       "Palette and background."),
             SchemaKey("sources", .map(.source), default: defaults("sources"),

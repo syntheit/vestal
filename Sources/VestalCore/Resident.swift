@@ -35,6 +35,14 @@ public protocol ResidentSurface: AnyObject {
     func show()
     /// Take it off screen, popups included, and give the focus back.
     func hide()
+    /// A pinch that opens the dashboard has begun: order the window in, in
+    /// front with the focus, but transparent; `setInteractiveAlpha` then
+    /// follows the fingers. `show` (or `hide`) finishes it from the current
+    /// opacity. No-op by default.
+    func beginInteractiveShow()
+    /// The dashboard's opacity while a pinch is in progress (0...1). Its
+    /// window stays ordered in. No-op by default.
+    func setInteractiveAlpha(_ alpha: Double)
     /// Draw the dashboard from a new config.
     func apply(_ loaded: LoadedConfig)
     /// End the app. The reply to `quit` has been sent.
@@ -49,6 +57,8 @@ public protocol ResidentSurface: AnyObject {
 }
 
 extension ResidentSurface {
+    public func beginInteractiveShow() {}
+    public func setInteractiveAlpha(_ alpha: Double) {}
     public var notice: String? { nil }
     public func screenshot(_ request: IPCRequest, reply: @escaping IPCReply) {
         reply(IPCResponse(ok: false, error: "this instance has no renderer for screenshots", code: IPCResponse.unsupported))
@@ -67,8 +77,9 @@ public protocol HotkeyRegistrar: AnyObject {
 @MainActor
 public protocol GestureRegistrar: AnyObject {
     /// Replaces the watched gesture ("pinch") with `name`; nil stops
-    /// watching. Returns why it can't be watched, or nil.
-    func register(_ name: String?, action: @escaping @MainActor () -> Void) -> String?
+    /// watching. `handler` hears its progress. Returns why it can't be
+    /// watched, or nil.
+    func register(_ name: String?, handler: GestureHandler?) -> String?
 }
 
 /// Says when the config file may have changed (DispatchSource on macOS;
@@ -178,7 +189,7 @@ public final class Resident {
         pendingReload = nil
         watcher?.stop()
         if hotkey != nil, hotkeyProblem == nil { _ = hotkeys?.register(nil, action: {}) }
-        _ = gestures?.register(nil, action: {})
+        _ = gestures?.register(nil, handler: nil)
         runtime.shutdown()
     }
 
@@ -326,7 +337,13 @@ public final class Resident {
     /// Shows the dashboard on `view`, or on `defaultView` (§9.1, §16 Q4):
     /// also when it is already shown on another view.
     public func show(view: String? = nil) {
-        guard !stopped else { return }
+        guard beginShowing(view: view) else { return }
+        surface?.show()
+    }
+
+    /// `show` without the surface: the state and the engine.
+    private func beginShowing(view: String?) -> Bool {
+        guard !stopped else { return false }
         isVisible = true
         // Whatever went stale while hidden refreshes at once; `system` and
         // `file` sources are read now, so the first frame is complete (§15).
@@ -335,7 +352,7 @@ public final class Resident {
             runtime.readNow()
             engine.show(view: view)
         }
-        surface?.show()
+        return true
     }
 
     /// Also for Escape: the app stays, hidden.
@@ -346,6 +363,46 @@ public final class Resident {
         // Nothing polls during the fade-out.
         runtime.setVisible(false)
         surface?.hide()
+    }
+
+    // MARK: Pinch
+
+    /// A pinch in progress that this resident accepted: together opens a
+    /// hidden dashboard, apart closes a shown one; anything else is ignored.
+    private var pinch: PinchDirection?
+    private lazy var gestureHandler = PinchSession(self)
+
+    fileprivate func pinchBegan(_ direction: PinchDirection) {
+        pinch = nil
+        switch direction {
+        case .together:
+            guard !isVisible, beginShowing(view: nil) else { return }
+            surface?.beginInteractiveShow()
+        case .apart:
+            guard isVisible, !stopped else { return }
+        }
+        pinch = direction
+    }
+
+    fileprivate func pinchChanged(_ progress: Double) {
+        guard let pinch else { return }
+        surface?.setInteractiveAlpha(pinch == .together ? progress : 1 - progress)
+    }
+
+    /// Completes or goes back from the current opacity, through the same
+    /// `show` and `hide` the hotkey uses.
+    fileprivate func pinchEnded(commit: Bool) {
+        guard let direction = pinch else { return }
+        pinch = nil
+        guard !stopped else { return }
+        switch (direction, commit) {
+        case (.together, true), (.apart, false):
+            // The window is on screen already: the surface fades up from
+            // where it is. The state is untouched.
+            if isVisible { surface?.show() }
+        case (.together, false), (.apart, true):
+            if isVisible { hide() }
+        }
     }
 
     /// The hotkey and `vestal toggle`. With a view: hides the dashboard
@@ -467,7 +524,7 @@ public final class Resident {
     private func registerGesture() {
         guard let gestures else { return }
         let name = loaded.config.gesture == "pinch" ? "pinch" : nil
-        gestureProblem = gestures.register(name) { [weak self] in self?.toggle() }
+        gestureProblem = gestures.register(name, handler: name == nil ? nil : gestureHandler)
             .map { "gesture \(name ?? ""): \($0)" }
         if let gestureProblem { vestalLog(gestureProblem) }
     }
@@ -540,4 +597,15 @@ public final class ResidentInbox {
         waiting = []
         for item in queued { resident.handle(item.request, reply: item.reply) }
     }
+}
+
+/// The gesture handler the resident gives the platform: it holds the
+/// resident weakly, as the registrar outlives a reload.
+@MainActor
+private final class PinchSession: GestureHandler {
+    private weak var resident: Resident?
+    init(_ resident: Resident) { self.resident = resident }
+    func gestureBegan(_ direction: PinchDirection) { resident?.pinchBegan(direction) }
+    func gestureChanged(progress: Double) { resident?.pinchChanged(progress) }
+    func gestureEnded(commit: Bool) { resident?.pinchEnded(commit: commit) }
 }

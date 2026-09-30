@@ -238,6 +238,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
         }
     }
 
+    /// A pinch that opens has begun: the window goes in front with the focus
+    /// like `show`, but transparent, and the fingers set the opacity. `show`
+    /// then fades up from there; `hide` fades down and orders out.
+    func beginInteractiveShow() {
+        guard let window, let hosting else { return }
+        fade += 1
+        isHiding = false
+        fadeInPending = false
+        if let screen = Self.screenWithMouse(), window.frame != screen.frame {
+            window.setFrame(screen.frame, display: false)
+        }
+        NSApp.unhide(nil)
+        window.alphaValue = 1
+        hosting.layer?.removeAllAnimations()
+        hosting.alphaValue = 0
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        setAuroraPaused(false)
+    }
+
+    func setInteractiveAlpha(_ alpha: Double) {
+        guard let hosting, window?.isVisible == true, !isHiding else { return }
+        hosting.alphaValue = CGFloat(min(max(alpha, 0), 1))
+    }
+
     private func fadeIn(_ hosting: NSView) {
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.2

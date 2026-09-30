@@ -21,7 +21,7 @@ import Glibc
 public struct Config: Equatable, Sendable {
     public var version: Int = 1
     public var hotkey: String?
-    /// A trackpad gesture that toggles the dashboard ("pinch"), macOS only.
+    /// A trackpad gesture ("pinch": in opens, out closes), macOS only.
     public var gesture: String?
     public var theme: ThemeConfig = ThemeConfig()
     public var sources: [String: SourceConfig] = [:]
