@@ -9,3 +9,10 @@ DerivedData/
 *.resolved
 .claude/
 result
+
+# Local notes and planning, not part of the repo
+CLAUDE.md
+docs/EXTENSIBILITY.md
+docs/HANDOFF.md
+docs/PLAN.md
+docs/screenshots/
