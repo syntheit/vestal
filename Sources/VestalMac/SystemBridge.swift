@@ -298,7 +298,7 @@ enum SystemBridge {
             _ = AudioObjectGetPropertyData(device, &muteAddress, 0, nil, &size, &muted)
         }
 
-        return VolumeInfo(level: Int(volume * 100), muted: muted != 0)
+        return VolumeInfo(level: Int((volume * 100).rounded()), muted: muted != 0)
     }
 
     /// Moves the default output's volume by `delta` (0-1 scale), clamped;
