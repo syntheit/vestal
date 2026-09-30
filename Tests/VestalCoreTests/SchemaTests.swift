@@ -32,7 +32,7 @@ final class SchemaTests: XCTestCase {
             "claudeUsage": ["path", "fiveHourLimit", "weeklyLimit"],
         ])
         XCTAssertEqual(WidgetConfig.aliases, ["spotify": "media"])
-        XCTAssertEqual(SchemaRegistry.topLevel.keyNames, ["version", "hotkey", "theme", "sources", "widgets", "views", "secrets",
+        XCTAssertEqual(SchemaRegistry.topLevel.keyNames, ["version", "hotkey", "gesture", "theme", "sources", "widgets", "views", "secrets",
                                                          "defaultView", "keys", "templates", "functions", "platform"])
         XCTAssertEqual(SchemaRegistry.shape("history").keyNames, ["value", "size", "every"])
         XCTAssertEqual(SchemaRegistry.shape("secret").keyNames, ["file", "env", "command"])

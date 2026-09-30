@@ -101,11 +101,13 @@ final class ResidentTests: XCTestCase {
     func testPinchTogetherOpensAndApartCloses() async {
         let gestures = FakeGestures()
         let surface = FakeSurface()
-        let loaded = loaded()
+        let loaded = loaded(gesture: "pinch")
         let runtime = AppRuntime(config: loaded.config, fetcher: FakeFetcher(), cache: nil)
         let resident = Resident(loaded: loaded, runtime: runtime, surface: surface, gestures: gestures,
                                 load: { loaded }, watchedPath: { "/c.json" })
         surface.keep(resident)
+        resident.start(hidden: true)
+        surface.clear()
         guard let handler = gestures.handler else { return XCTFail("no handler") }
 
         // Apart while hidden: nothing.
@@ -412,8 +414,8 @@ final class ResidentTests: XCTestCase {
         return (resident, surface, runtime)
     }
 
-    private func loaded(hotkey: String? = nil, extraSource: Bool = false) -> LoadedConfig {
-        var config = Config(hotkey: hotkey, views: ["main": ViewConfig(order: [])])
+    private func loaded(hotkey: String? = nil, gesture: String? = nil, extraSource: Bool = false) -> LoadedConfig {
+        var config = Config(hotkey: hotkey, gesture: gesture, views: ["main": ViewConfig(order: [])])
         if extraSource { config.sources["extra"] = http("https://extra.example") }
         return LoadedConfig(path: "/c.json", config: config, merged: .object([:]), warnings: [])
     }

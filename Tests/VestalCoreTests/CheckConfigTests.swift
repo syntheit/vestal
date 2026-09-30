@@ -179,7 +179,7 @@ final class CheckConfigTests: XCTestCase {
         let (output, path) = try check(["PATH"], "{\n  \"hotkeys\": \"f3\"\n}")
         XCTAssertEqual(output, ConfigCommands.Output(status: 0, stdout: """
             \(path): 1 warning
-              hotkeys: unknown key (known: version, hotkey, theme, sources, widgets, views, secrets, defaultView, keys, templates, functions, platform)
+              hotkeys: unknown key (known: version, hotkey, gesture, theme, sources, widgets, views, secrets, defaultView, keys, templates, functions, platform)
                 at /hotkeys, line 2, column 3; did you mean "hotkey"?
 
             """))
@@ -196,7 +196,7 @@ final class CheckConfigTests: XCTestCase {
         let diagnostics = try XCTUnwrap(report["diagnostics"]?.arrayValue)
         XCTAssertEqual(diagnostics.first, .object([
             "severity": .string("warning"), "code": .string("unknown-key"), "pointer": .string("/hotkeys"),
-            "layer": .string("user"), "message": .string("unknown key (known: version, hotkey, theme, sources, widgets, views, secrets, defaultView, keys, templates, functions, platform)"),
+            "layer": .string("user"), "message": .string("unknown key (known: version, hotkey, gesture, theme, sources, widgets, views, secrets, defaultView, keys, templates, functions, platform)"),
             "suggestion": .string("hotkey"), "suggestions": .array([.string("hotkey")]), "line": .int(1), "column": .int(2),
         ]))
         XCTAssertEqual(diagnostics.last?.objectValue?["expected"], .string("string"))
