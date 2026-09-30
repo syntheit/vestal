@@ -1,5 +1,5 @@
 import XCTest
-@testable import VestalCore
+import VestalCore
 
 final class PinchGestureTests: XCTestCase {
     func testDirectionWaitsForTheDeadZone() {

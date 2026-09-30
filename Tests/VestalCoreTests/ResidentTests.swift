@@ -3,7 +3,7 @@ import Foundation
 import VestalCore
 import XCTest
 
-/// Phase 6: the resident app's decisions (VestalCore's `Resident`) with a fake
+/// The resident app's decisions (VestalCore's `Resident`) with a fake
 /// window, hotkey registrar and file watcher, and once end to end over a real
 /// socket.
 final class ResidentTests: XCTestCase {
@@ -98,7 +98,7 @@ final class ResidentTests: XCTestCase {
     // MARK: Pinch
 
     @MainActor
-    func testPinchTogetherOpensAndApartCloses() {
+    func testPinchTogetherOpensAndApartCloses() async {
         let gestures = FakeGestures()
         let surface = FakeSurface()
         let loaded = loaded()
