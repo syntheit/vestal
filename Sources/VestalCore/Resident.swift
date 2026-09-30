@@ -63,6 +63,14 @@ public protocol HotkeyRegistrar: AnyObject {
     func register(_ spec: HotkeySpec?, action: @escaping @MainActor () -> Void) -> String?
 }
 
+/// Registers the built-in trackpad gesture (MultitouchSupport on macOS).
+@MainActor
+public protocol GestureRegistrar: AnyObject {
+    /// Replaces the watched gesture ("pinch") with `name`; nil stops
+    /// watching. Returns why it can't be watched, or nil.
+    func register(_ name: String?, action: @escaping @MainActor () -> Void) -> String?
+}
+
 /// Says when the config file may have changed (DispatchSource on macOS;
 /// nothing on Linux yet, where SIGHUP and `vestal reload` still work).
 @MainActor
@@ -89,6 +97,7 @@ public final class Resident {
 
     private weak var surface: ResidentSurface?
     private let hotkeys: HotkeyRegistrar?
+    private let gestures: GestureRegistrar?
     private let watcher: ConfigWatcher?
     private let load: () -> LoadedConfig
     private let watchedPath: () -> String
@@ -101,6 +110,7 @@ public final class Resident {
     /// The config's hotkey, registered unless `hotkeyProblem` says why not.
     private var hotkey: HotkeySpec?
     private var hotkeyProblem: String?
+    private var gestureProblem: String?
     private var started = false
     private var stopped = false
 
@@ -108,6 +118,7 @@ public final class Resident {
     ///   - loaded: the config the runtime was built from.
     ///   - surface: kept weakly; it usually owns the resident.
     ///   - hotkeys: nil registers no hotkey.
+    ///   - gestures: nil watches no gesture.
     ///   - watcher: nil watches nothing.
     ///   - load: reads the config again, for a reload.
     ///   - watchedPath: the config file to watch.
@@ -120,6 +131,7 @@ public final class Resident {
         runtime: AppRuntime,
         surface: ResidentSurface,
         hotkeys: HotkeyRegistrar? = nil,
+        gestures: GestureRegistrar? = nil,
         watcher: ConfigWatcher? = nil,
         reloadDelay: TimeInterval = Resident.reloadDelay,
         load: @escaping () -> LoadedConfig = { ConfigLoader.load() },
@@ -132,6 +144,7 @@ public final class Resident {
         self.runtime = runtime
         self.surface = surface
         self.hotkeys = hotkeys
+        self.gestures = gestures
         self.watcher = watcher
         self.reloadDelay = reloadDelay
         self.load = load
@@ -150,6 +163,7 @@ public final class Resident {
         guard !started, !stopped else { return }
         started = true
         registerHotkey()
+        registerGesture()
         watch()
         runtime.start()
         if !hidden { show() }
@@ -164,6 +178,7 @@ public final class Resident {
         pendingReload = nil
         watcher?.stop()
         if hotkey != nil, hotkeyProblem == nil { _ = hotkeys?.register(nil, action: {}) }
+        _ = gestures?.register(nil, action: {})
         runtime.shutdown()
     }
 
@@ -396,15 +411,18 @@ public final class Resident {
             // Nothing changed, but a previously refused hotkey still
             // deserves another try (the other app may have let go).
             if hotkeyProblem != nil { registerHotkey() }
+            if gestureProblem != nil { registerGesture() }
             return .ok
         }
         let hotkeyChanged = fresh.config.hotkey != loaded.config.hotkey
+        let gestureChanged = fresh.config.gesture != loaded.config.gesture
         loaded = fresh
         vestalLog("config reloaded from \(fresh.path ?? "the built-in defaults"): \(fresh.warnings.count) warnings")
         for warning in fresh.warnings { vestalLog("config warning: \(warning)") }
         runtime.apply(fresh.config)
         engine?.apply(fresh)
         if hotkeyChanged || hotkeyProblem != nil { registerHotkey() }
+        if gestureChanged || gestureProblem != nil { registerGesture() }
         surface?.apply(fresh)
         return .ok
     }
@@ -444,6 +462,16 @@ public final class Resident {
         if let hotkeyProblem { vestalLog(hotkeyProblem) }
     }
 
+    /// Watches the config's gesture, or none. An unknown name is a config
+    /// warning already, so it just watches nothing.
+    private func registerGesture() {
+        guard let gestures else { return }
+        let name = loaded.config.gesture == "pinch" ? "pinch" : nil
+        gestureProblem = gestures.register(name) { [weak self] in self?.toggle() }
+            .map { "gesture \(name ?? ""): \($0)" }
+        if let gestureProblem { vestalLog(gestureProblem) }
+    }
+
     // MARK: Status
 
     /// What `vestal status` prints.
@@ -463,6 +491,7 @@ public final class Resident {
         var warnings = loaded.warnings.map(\.description)
         if let reloadProblem { warnings.append(reloadProblem) }
         if let hotkeyProblem { warnings.append(hotkeyProblem) }
+        if let gestureProblem { warnings.append(gestureProblem) }
         return IPCStatus(
             pid: ProcessInfo.processInfo.processIdentifier,
             version: BuildInfo.build,

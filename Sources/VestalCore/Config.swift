@@ -21,6 +21,8 @@ import Glibc
 public struct Config: Equatable, Sendable {
     public var version: Int = 1
     public var hotkey: String?
+    /// A trackpad gesture that toggles the dashboard ("pinch"), macOS only.
+    public var gesture: String?
     public var theme: ThemeConfig = ThemeConfig()
     public var sources: [String: SourceConfig] = [:]
     public var widgets: [String: WidgetConfig] = [:]
@@ -35,6 +37,7 @@ public struct Config: Equatable, Sendable {
     public init(
         version: Int = 1,
         hotkey: String? = nil,
+        gesture: String? = nil,
         theme: ThemeConfig = ThemeConfig(),
         sources: [String: SourceConfig] = [:],
         widgets: [String: WidgetConfig] = [:],
@@ -43,6 +46,7 @@ public struct Config: Equatable, Sendable {
     ) {
         self.version = version
         self.hotkey = hotkey
+        self.gesture = gesture
         self.theme = theme
         self.sources = sources
         self.widgets = widgets
@@ -63,12 +67,13 @@ extension Config {
 
 extension Config: Codable {
     enum CodingKeys: String, CodingKey {
-        case version, hotkey, theme, sources, widgets, views, secrets
+        case version, hotkey, gesture, theme, sources, widgets, views, secrets
     }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         version = c.lenient(Int.self, .version) ?? 1
         hotkey  = c.lenient(String.self, .hotkey)
+        gesture = c.lenient(String.self, .gesture)
         theme   = c.lenient(ThemeConfig.self, .theme) ?? ThemeConfig()
         sources = c.lenientEntries(SourceConfig.self, .sources)
         widgets = c.lenientEntries(WidgetConfig.self, .widgets)

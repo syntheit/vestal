@@ -149,6 +149,9 @@ public enum SchemaRegistry {
                       "Built-in toggle hotkey: f1-f20, letters, digits, space, escape, home or end, with cmd (super), ctrl, "
                       + "alt (opt) and shift, joined with +. Letters, digits, space and escape need cmd, ctrl or alt. null "
                       + "registers nothing; bind `vestal toggle` in the window manager instead."),
+            SchemaKey("gesture", .oneOf(["pinch"]), default: .null, nullable: true, since: "0.4", examples: [.string("pinch"), .null],
+                      "Trackpad gesture that toggles the dashboard like the hotkey: pinch (thumb and three fingers "
+                      + "together, the old Launchpad gesture). macOS only; ignored on Linux. null registers nothing."),
             SchemaKey("theme", .shape("theme"), default: defaults("theme"), examples: [.object(["background": .string("blur")])],
                       "Palette and background."),
             SchemaKey("sources", .map(.source), default: defaults("sources"),

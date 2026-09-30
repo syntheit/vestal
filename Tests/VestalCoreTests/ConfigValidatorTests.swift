@@ -15,6 +15,13 @@ final class ConfigValidatorTests: XCTestCase {
         return result
     }
 
+    func testGesture() {
+        XCTAssertEqual(warnings(#"{"gesture": "pinch"}"#), [])
+        XCTAssertEqual(warnings(#"{"gesture": null}"#), [])
+        XCTAssertEqual(warnings(#"{"gesture": "swipe"}"#).first?.kind, .invalidValue)
+        XCTAssertEqual(warnings(#"{"gesture": 3}"#).first?.kind, .wrongType)
+    }
+
     // MARK: Hotkey
 
     func testHotkeys() {

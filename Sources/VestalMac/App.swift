@@ -121,6 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
     private var resident: Resident?
     private let cache = SnapshotCache()
     private let hotkeys = CarbonHotkeys()
+    private let gestures = MultitouchGestures()
     private let watcher = DispatchConfigWatcher()
     /// SIGTERM and SIGHUP, alive for the life of the app.
     private var signals: [SignalWatch] = []
@@ -183,7 +184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
         _ = statusStats.cpuPercent()
         _ = statusStats.networkRate()
         let resident = Resident(loaded: loaded, runtime: runtime, surface: self,
-                                hotkeys: hotkeys, watcher: watcher,
+                                hotkeys: hotkeys, gestures: gestures, watcher: watcher,
                                 stats: { SystemStatsSample.read(statusStats, volume: MacPlatform.audio.volume()) },
                                 render: !legacy,
                                 actions: RenderActionRunner(media: MacPlatform.sources.media, audio: MacPlatform.audio))

@@ -102,6 +102,7 @@ private struct Walker {
                     add(.invalidValue, key, "unsupported version \(version) (this vestal reads version 1)")
                 }
             case "hotkey": hotkey(value)
+            case "gesture": gesture(value)
             case "theme": theme(value)
             case "sources": sources(value)
             case "widgets": widgets(value)
@@ -141,6 +142,17 @@ private struct Walker {
             add(.invalidValue, "hotkey", "'\(text)': \(error.detail); no hotkey is registered", code: "invalid-key", found: text)
         } catch {
             add(.invalidValue, "hotkey", "'\(text)': \(error); no hotkey is registered", code: "invalid-key", found: text)
+        }
+    }
+
+    /// A gesture only macOS reads; Linux accepts it and does nothing.
+    private mutating func gesture(_ value: AnyJSON) {
+        oneOf(value, "gesture", ["pinch"])
+        if v04.platform == .linux, let text = string(value, "gesture") {
+            warnings.append(ConfigWarning(
+                kind: .invalidValue, path: "gesture",
+                message: "'\(text)' is macOS only: bind `vestal toggle` in the compositor",
+                code: "unsupported-platform", severity: .info, found: text))
         }
     }
 
