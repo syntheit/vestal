@@ -5,16 +5,15 @@ on:
   pull_request:
 
 jobs:
+  # The Linux build needs GTK 4 and Wayland, which the flake provides; its
+  # checks build vestal, run the tests and smoke-test the CLI.
   linux:
     runs-on: ubuntu-latest
-    container: swift:5.10
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
-      - run: swift --version
-      - run: swift build
-      - if: hashFiles('Tests/**/*.swift') != ''
-        run: swift test
+      - uses: DeterminateSystems/nix-installer-action@main
+      - run: nix flake check -L
 
   macos:
     runs-on: macos-14

@@ -496,7 +496,8 @@ final class RenderEngineTests: XCTestCase {
                 "leaf": { "type": "text", "text": "{{ $widget }}" } },
               "views": { "main": { "children": ["a/b", { "type": "text", "text": "inline {{ $widget }}." }] } } }
             """)
-        XCTAssertEqual(text(node(s, "main/a%2Fb/named"))?.text, "a/b main linux UTC")
+        // Darwin's Foundation names UTC "GMT".
+        XCTAssertEqual(text(node(s, "main/a%2Fb/named"))?.text, "a/b main linux \(TimeZone(identifier: "UTC")!.identifier)")
         XCTAssertEqual(text(node(s, "main/a%2Fb/1"))?.text, "leaf")
         XCTAssertEqual(text(node(s, "main/1"))?.text, "inline .")
     }
