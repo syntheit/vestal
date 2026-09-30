@@ -24,7 +24,7 @@ enum MacPlatform {
     /// source's own stats provider (its rates are per instance, apart from
     /// the dashboard's network ticker) and AppleScript players. One per
     /// process: the provider keeps its previous sample for the process's
-    /// lifetime (EXTENSIBILITY.md 5.4).
+    /// lifetime.
     static let sources = SourcePlatform(
         calendar: calendar,
         system: SystemSampler(stats: MacSystemStats(), audio: CoreAudioOutput()),

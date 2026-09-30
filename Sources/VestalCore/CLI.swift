@@ -31,7 +31,7 @@ import Foundation
 //   vestal capabilities     what this machine supports (CapabilitiesCommand)
 //   vestal screenshot       render a view to a PNG (ScreenshotCommand)
 //
-// Exit codes (docs/EXTENSIBILITY.md §11.1): 0 ok, 1 error or not running,
+// Exit codes: 0 ok, 1 error or not running,
 // 2 usage, 3 the config has errors, 4 not found (a view, a docs topic, a
 // source).
 

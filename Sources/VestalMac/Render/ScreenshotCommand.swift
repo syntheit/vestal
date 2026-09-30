@@ -4,7 +4,7 @@ import Foundation
 import SwiftUI
 import VestalCore
 
-// MARK: - vestal screenshot (EXTENSIBILITY.md §11.6)
+// MARK: - vestal screenshot
 //
 //   vestal screenshot <out.png> [--view <name>] [--config <path>|-] [--cached|--fetch|--data <dir>]
 //                     [--at <time>] [--press <key>]... [--size <w>x<h>] [--scale <n>]
@@ -12,7 +12,7 @@ import VestalCore
 //                     [--allow-commands] [--no-network] [--timeout <duration>]
 //
 // Renders the view the way `vestal render --format json` does (the running
-// instance's data for its own config, else the data modes of §11.1), then
+// instance's data for its own config, else the data modes), then
 // draws that snapshot offscreen with the app's SwiftUI renderer
 // (ImageRenderer, as `vestal render-file`). No window, no NSApplication and
 // no screen-recording permission; the desktop blur and the aurora can't be

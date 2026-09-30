@@ -8,7 +8,7 @@ import Darwin
 import Glibc
 #endif
 
-/// Phase 6: the unix socket between the CLI and the resident app. Every test
+/// The unix socket between the CLI and the resident app. Every test
 /// gets its own socket in a fresh short directory, and handlers run on a
 /// private queue, so nothing depends on the main run loop (except the one
 /// test that checks the `.main` default).

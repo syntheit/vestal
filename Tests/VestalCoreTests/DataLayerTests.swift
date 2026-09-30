@@ -2,7 +2,7 @@ import Foundation
 import VestalCore
 import XCTest
 
-// Phase 2 (data layer), the pure parts: hashing and canonical JSON, source
+// The data layer, the pure parts: hashing and canonical JSON, source
 // definitions, inline and adapter-made sources, secrets, path expressions,
 // histories, the cache's privacy rules and the built-in shapes.
 

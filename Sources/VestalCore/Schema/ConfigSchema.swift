@@ -3,8 +3,7 @@ import Foundation
 // MARK: - JSON Schema
 //
 // `vestal schema`: a JSON Schema (draft 2020-12) of the config file, built
-// from SchemaRegistry (docs/EXTENSIBILITY.md §11.3). docs/vestal.schema.json
-// is this document, checked by a golden test.
+// from SchemaRegistry. docs/vestal.schema.json is this document, checked by a golden test.
 //
 // It describes one file, not the merged config, so:
 // - every object member may be `null`, which deletes the key from a lower
@@ -19,7 +18,7 @@ import Foundation
 //   with free-form keys. check-config reports one that isn't defined.
 //
 // Every key has a description, its default where it has one, examples,
-// `x-vestal-kind` (§4.1) and `x-vestal-since`.
+// `x-vestal-kind` and `x-vestal-since`.
 
 public enum ConfigSchema {
     public static let id = "urn:vestal:config:1"
@@ -72,7 +71,7 @@ public enum ConfigSchema {
             ]),
             "computed": .object([
                 "type": .string("object"),
-                "description": .string("A value computed at render by a jq expression (§4.1 R3)."),
+                "description": .string("A value computed at render by a jq expression."),
                 "properties": .object(["expr": .object([
                     "type": .string("string"),
                     "description": .string("The jq expression."),

@@ -12,7 +12,7 @@ import Foundation
 // Visibility drives the runtime: host health, stats and media polling run
 // only while the dashboard is shown (`AppRuntime.setVisible`), and the
 // render engine (`engine`), which evaluates only while shown. The resident
-// owns the engine: `show`/`toggle` with a view switch it (§9.1), `press`
+// owns the engine: `show`/`toggle` with a view switch it, `press`
 // sends it a key, a reload hands it the new config, and its `hide` actions
 // and Escape come back here. A UI observes `engine` and sends it clicks and
 // keys; its actions run through `actions` (RenderActionRunner by default).
@@ -268,7 +268,7 @@ public final class Resident {
 
     /// `vestal render` against this instance: the view rendered with the
     /// runtime's current data, off the main actor. The reply's `data` is the
-    /// snapshot (§10.2).
+    /// snapshot.
     private func render(_ request: IPCRequest, reply: @escaping IPCReply) {
         let now = request.at.map { Date(timeIntervalSince1970: $0) } ?? Date()
         let view = request.view
@@ -334,7 +334,7 @@ public final class Resident {
         }
     }
 
-    /// Shows the dashboard on `view`, or on `defaultView` (§9.1, §16 Q4):
+    /// Shows the dashboard on `view`, or on `defaultView`:
     /// also when it is already shown on another view.
     public func show(view: String? = nil) {
         guard beginShowing(view: view) else { return }
@@ -346,7 +346,7 @@ public final class Resident {
         guard !stopped else { return false }
         isVisible = true
         // Whatever went stale while hidden refreshes at once; `system` and
-        // `file` sources are read now, so the first frame is complete (§15).
+        // `file` sources are read now, so the first frame is complete.
         runtime.setVisible(true)
         if let engine {
             runtime.readNow()
@@ -406,7 +406,7 @@ public final class Resident {
     }
 
     /// The hotkey and `vestal toggle`. With a view: hides the dashboard
-    /// when it is shown on that view, else shows that view (§9.1).
+    /// when it is shown on that view, else shows that view.
     public func toggle(view: String? = nil) {
         if let view, let engine, isVisible, engine.view != view {
             show(view: view)
@@ -589,7 +589,7 @@ public final class ResidentInbox {
     }
 
     /// From now on commands go to `resident`, the waiting ones first, and
-    /// `subscribe` streams its render engine (SubscriptionHub, §10.8).
+    /// `subscribe` streams its render engine (SubscriptionHub).
     public func attach(_ resident: Resident) {
         self.resident = resident
         if self === ResidentInbox.shared, let engine = resident.engine { SubscriptionHub.shared.attach(engine) }

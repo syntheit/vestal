@@ -1,20 +1,20 @@
 import Foundation
 
-// MARK: - One render pass (EXTENSIBILITY.md §6, §8, §10)
+// MARK: - One render pass
 //
 // Evaluates the expanded widget tree against one data snapshot and builds
 // the render model's nodes. Per widget, in order: `source` (sets `.`,
 // `$data`, `$meta`; the loading rule), `input`, `vars` (in dependency order),
 // `when`; then the type's own fields. A runtime error makes its field null
-// and is reported once in `diagnostics`; a compile error hides the widget
-// (§4.4). Hidden widgets don't exist in the model.
+// and is reported once in `diagnostics`; a compile error hides the widget.
+// Hidden widgets don't exist in the model.
 //
 // A pass renders each root child of the view separately and records what it
 // read (sources, `now`), so the engine re-evaluates only the root children
-// whose inputs changed (§4.7). Not thread-safe: one pass, one thread.
+// whose inputs changed. Not thread-safe: one pass, one thread.
 
 /// An action as written and the scope it was written in, for `invoke` and
-/// keys (§9.3).
+/// keys.
 public struct RenderActionBinding {
     public var action: AnyJSON
     public var dot: JQValue
@@ -23,7 +23,7 @@ public struct RenderActionBinding {
     public var source: String?
 }
 
-/// A widget key before assignment (§9.2).
+/// A widget key before assignment.
 struct KeyCandidate: Equatable {
     /// An explicit key, normalised; nil for `auto`.
     var key: String?
@@ -132,12 +132,12 @@ final class RenderPass {
         return finish(node)
     }
 
-    /// The view's root node around its rendered children (§9.1, §10.4).
+    /// The view's root node around its rendered children.
     func root(_ spec: ViewSpec, children: [RenderedChild]) -> RenderNode {
         var nodes = children.compactMap(\.node)
         // v0.3 views (`order`): only the first *listed* entry gets no space
-        // before it; when it is hidden, the next one keeps its space
-        // (§13.1 rule 8b). A zero-size first node holds that place.
+        // before it; when it is hidden, the next one keeps its space.
+        // A zero-size first node holds that place.
         if spec.usesOrder, let first = children.first, first.node == nil, !nodes.isEmpty {
             var holder = RenderNode(id: "\(view)/^", .spacer(.init()))
             holder.height = .points(0)
@@ -155,14 +155,14 @@ final class RenderPass {
                 axis: spec.layout == "row" ? .h : .v, gap: spec.gap,
                 align: RenderAlign(rawValue: spec.align) ?? .center, children: nodes)))
         }
-        // A fixed size: `theme.scale` multiplies it (§8.1).
+        // A fixed size: `theme.scale` multiplies it.
         node.maxWidth = spec.maxWidth * model.scale
         node.padding = RenderInsets(top: spec.padding[0], right: spec.padding[1], bottom: spec.padding[2], left: spec.padding[3])
         node.width = .fill
         return node
     }
 
-    /// A popup (§9.4): its widget is already expanded and its `{"expr"}`
+    /// A popup: its widget is already expanded and its `{"expr"}`
     /// values filled in.
     func renderPopup(_ widget: [String: AnyJSON]) -> RenderedChild {
         begin()
@@ -349,7 +349,7 @@ final class RenderPass {
         return Array(repeating: RenderNode.Grid.Column(width: .fill), count: count)
     }
 
-    /// `items` (§4.4): every output collected; a single array output is used
+    /// `items`: every output collected; a single array output is used
     /// as it is. A literal array is static data.
     private func items(_ w: [String: AnyJSON], id: String, scope: Scope) -> [JQValue] {
         var items: [JQValue]
@@ -387,7 +387,7 @@ final class RenderPass {
         return items
     }
 
-    /// Each row's id segment (§10.5): `@<rowId>`, percent-encoded, with
+    /// Each row's id segment: `@<rowId>`, percent-encoded, with
     /// `~2`, `~3` for duplicates.
     private func rowIds(_ items: [JQValue], w: [String: AnyJSON], id: String, scope: Scope) -> [String] {
         var seen: [String: Int] = [:]
@@ -528,7 +528,7 @@ final class RenderPass {
     }
 
     /// The chosen case, with the switch's own box fields where the case
-    /// doesn't set them (§10.3: a switch is its chosen case).
+    /// doesn't set them (a switch is its chosen case).
     private func switchCase(_ w: [String: AnyJSON], id: String, scope: Scope, axis: RenderAxis) -> RenderNode? {
         let on = w["on"]?.stringValue.flatMap { eval($0, id: id, field: "on", scope: scope) } ?? .null
         let key: String
@@ -818,7 +818,7 @@ final class RenderPass {
 
     // MARK: Common fields
 
-    /// Box fields (§6.1, §10.3). A progress widget's `width` and `height`
+    /// Box fields. A progress widget's `width` and `height`
     /// size its bar instead.
     private func box(_ w: [String: AnyJSON], into node: inout RenderNode, scope: Scope, sizesBar: Bool) {
         let id = node.id
@@ -854,7 +854,7 @@ final class RenderPass {
         if case .string(let alt)? = w["alt"] { node.alt = renderText(alt, id: id, field: "alt", scope: scope) }
     }
 
-    /// Records the widget's action and key (§9.2, §9.3).
+    /// Records the widget's action and key.
     private func bind(_ w: [String: AnyJSON], node: inout RenderNode, scope: Scope) {
         guard let action = w["action"], action != .null else { return }
         node.action = true
@@ -877,7 +877,7 @@ final class RenderPass {
         return nil
     }
 
-    /// Rule 1 of §10.4: a container with a `fill` child on an axis fills on
+    /// Layout rule 1: a container with a `fill` child on an axis fills on
     /// that axis too, unless its size there is fixed.
     private func propagateFill(_ node: inout RenderNode) {
         switch node.content {
@@ -892,7 +892,7 @@ final class RenderPass {
 
     // MARK: Styles
 
-    /// `style` (§8.4) over the inherited one. Fields may be `{"expr"}`.
+    /// `style` over the inherited one. Fields may be `{"expr"}`.
     private func style(_ value: AnyJSON?, over base: TextStyle, id: String, scope: Scope, value current: JQValue?) -> TextStyle {
         guard case .object(let fields)? = value else { return base }
         var style = base
@@ -924,7 +924,7 @@ final class RenderPass {
         return style
     }
 
-    /// `size`, `weight` and `color` given on a text directly (§8.4).
+    /// `size`, `weight` and `color` given on a text directly.
     private func shorthands(_ w: [String: AnyJSON], over base: TextStyle, id: String, scope: Scope, value: JQValue?) -> TextStyle {
         var fields: [String: AnyJSON] = [:]
         for key in WidgetTypes.styleShorthands { if let v = w[key] { fields[key] = v } }
@@ -932,7 +932,7 @@ final class RenderPass {
         return style(.object(fields), over: base, id: id, scope: scope, value: value)
     }
 
-    /// A colour field (§8.3): a name, hex, `name@alpha`, `{"steps", "of"}`
+    /// A colour field: a name, hex, `name@alpha`, `{"steps", "of"}`
     /// or `{"expr"}`. Unknown names are reported and draw as `text`.
     func color(_ value: AnyJSON, id: String, field: String, scope: Scope, value current: JQValue?) -> String? {
         switch value {
@@ -970,7 +970,7 @@ final class RenderPass {
 
     // MARK: Values
 
-    /// `{"expr"}` evaluated; anything else as written (§4.1 R3).
+    /// `{"expr"}` evaluated; anything else as written.
     func literal(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> AnyJSON? {
         guard let value else { return nil }
         if case .object(let members) = value, members.count == 1, case .string(let expression)? = members["expr"] {
@@ -1005,7 +1005,7 @@ final class RenderPass {
     }
 
     /// A `width` or `height`: `fill`, fit (nil), or a fixed size, which
-    /// `theme.scale` and `style.scale` multiply like text and icons (§8.1).
+    /// `theme.scale` and `style.scale` multiply like text and icons.
     private func length(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> RenderLength? {
         switch literal(value, id: id, field: field, scope: scope) {
         case .string("fill")?: return .fill
@@ -1034,7 +1034,7 @@ final class RenderPass {
         }
     }
 
-    /// `format` (§6.3): a name for one of the vestal functions.
+    /// `format`: a name for one of the vestal functions.
     func formatted(_ value: JQValue, _ format: AnyJSON?, id: String, scope: Scope) -> String {
         guard let name = literal(format, id: id, field: "format", scope: scope)?.stringValue, !name.isEmpty else {
             return TextTemplate.stringify(value)
@@ -1098,7 +1098,7 @@ final class RenderPass {
         }
     }
 
-    /// A text field: literal runs and `{{ }}` holes (§4.1 R2).
+    /// A text field: literal runs and `{{ }}` holes.
     func renderText(_ text: String, id: String, field: String, scope: Scope) -> String {
         guard TextTemplate.hasHoles(text) else { return text }
         switch model.template(text) {
@@ -1169,7 +1169,7 @@ final class RenderPass {
         diagnostics.append(RenderDiagnostic(id: id, field: field, severity: severity, code: code, message: message))
     }
 
-    /// An id segment: `/`, `@`, `%`, `=` and `~` percent-encoded (§10.5).
+    /// An id segment: `/`, `@`, `%`, `=` and `~` percent-encoded.
     static func encode(_ segment: String) -> String {
         var out = ""
         for scalar in segment.unicodeScalars {

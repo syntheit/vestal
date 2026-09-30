@@ -5,23 +5,21 @@ import VestalCore
 
 // MARK: - vestal render-file
 //
-// The GTK UI's development entry point, until the render engine (phase 4)
-// drives it: draws a render-model file on screen.
+// The GTK UI's development entry point: draws a render-model file on screen.
 //
 //   vestal render-file <model.json> [--patch <patch.json>]... [--interval <s>]
 //                      [--screenshot <out.png>] [--frames <out.json>]
 //                      [--exit-after <s>] [--hidden]
 //
-// The model is a snapshot message (§10.2) or a bare node (drawn with the
-// default theme). Each `--patch` (§10.6) is applied `--interval` seconds
-// (default 1) after the previous step. `--screenshot` renders the window
-// offscreen to a PNG and `--frames` writes every node's frame (§11.6), once
-// the patches are in and the fade is done; then it exits unless
-// `--exit-after` says when.
+// The model is a snapshot message or a bare node (drawn with the default
+// theme). Each `--patch` is applied `--interval` seconds (default 1) after
+// the previous step. `--screenshot` renders the window offscreen to a PNG and
+// `--frames` writes every node's frame, once the patches are in and the fade
+// is done; then it exits unless `--exit-after` says when.
 //
-// Clicks and keys print as the `{"cmd": …}` lines a core would receive
-// (§10.7). Standing in for the core, it hides on `escape`; other input has
-// no effect without a core. SIGUSR1 toggles the dashboard, so hidden-state
+// Clicks and keys print as the `{"cmd": …}` lines a core would receive.
+// Standing in for the core, it hides on `escape`; other input has no effect
+// without a core. SIGUSR1 toggles the dashboard, so hidden-state
 // CPU can be measured; SIGINT and SIGTERM quit.
 
 public enum RenderFileCommand {

@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Config expansion (EXTENSIBILITY.md §7.2, §7.4, §7.5)
+// MARK: - Config expansion
 //
 // After the layers are merged, and before the render engine reads the
 // config: the legacy adapter applies the two v0.3 couplings, templates
@@ -39,7 +39,7 @@ public struct ExpandedConfig: Equatable, Sendable {
 }
 
 public enum ConfigExpansion {
-    /// Templates may use templates up to this depth (§7.2 rule 7).
+    /// Templates may use templates up to this depth.
     public static let maxDepth = 16
 
     public static func expand(_ merged: AnyJSON) -> ExpandedConfig {
@@ -108,7 +108,7 @@ public enum ConfigExpansion {
 
     /// Every usable inline source object under `widgets`, `views` and
     /// `keys` replaced by its `inline:<sha8>` name, the definitions added to
-    /// `sources` (EXTENSIBILITY.md §5.1). Popups stay as written: they are
+    /// `sources`. Popups stay as written: they are
     /// expanded when opened.
     static func extractInlineSources(_ tree: AnyJSON) -> AnyJSON {
         guard case .object(var top) = tree else { return tree }
@@ -149,9 +149,9 @@ public enum ConfigExpansion {
         "w:" + SHA256.hex(value).prefix(8)
     }
 
-    /// A sparkline with `value` and `history` (§6.3) registers that history
+    /// A sparkline with `value` and `history` registers that history
     /// on its source (the nearest `source` name above it), so the runtime
-    /// samples it (§5.6).
+    /// samples it.
     static func registerSparklineHistories(_ tree: AnyJSON) -> AnyJSON {
         guard case .object(var top) = tree, case .object(var sources)? = top["sources"] else { return tree }
         var added = false
@@ -192,7 +192,7 @@ public enum ConfigExpansion {
     /// reload: a budget far under a frame.
     static let parameterEnvironment = ExprEnvironment(limits: JQLimits(maxSteps: 10_000, maxDuration: 0.005))
 
-    /// Source-definition text fields (EXTENSIBILITY.md §5.1).
+    /// Source-definition text fields.
     static let loadTimeFields = ["url", "path", "body"]
     static let loadTimeLists = ["argv", "ics"]
     static let loadTimeMaps = ["env", "headers"]
@@ -229,7 +229,7 @@ public enum ConfigExpansion {
                         changed = true
                     } else if !used.isDisjoint(with: names) {
                         // Mixed with $secrets/$env: the parameters are bound
-                        // inside the hole, for load time (§5.1).
+                        // inside the hole, for load time.
                         var prefix = ""
                         for name in used.intersection(names).sorted() {
                             let value = name == "params" ? AnyJSON.object(params) : (params[name] ?? .null)
@@ -362,7 +362,7 @@ struct Expander {
     }
 
     /// A template instance: parameters substituted into the body, common
-    /// fields applied to its root (§7.2 rules 1–6).
+    /// fields applied to its root.
     private mutating func instance(_ members: [String: AnyJSON], _ template: TemplateDefinition, path: String) -> AnyJSON {
         guard let body = template.widget else { return errorNode("template \"\(template.name)\" has no widget") }
         // A v0.3 widget type keeps v0.3's rules: the validator reports its
@@ -440,7 +440,7 @@ struct Expander {
 
     // MARK: Sources
 
-    /// A source definition with source templates expanded (§7.4).
+    /// A source definition with source templates expanded.
     mutating func source(_ value: AnyJSON, path: String, depth: Int) -> AnyJSON {
         guard case .object(let members) = value, let type = members["type"]?.stringValue,
               SourceConfig.keysByType[SourceConfig.canonicalType(type)] == nil,
@@ -595,7 +595,7 @@ struct Expander {
     }
 }
 
-// MARK: - The legacy adapter (§7.5)
+// MARK: - The legacy adapter
 
 public enum LegacyAdapter {
     /// Applies the two v0.3 couplings to the merged config and returns a

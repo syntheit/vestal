@@ -2,8 +2,8 @@ import Foundation
 import VestalCore
 import XCTest
 
-/// check-config v2 (docs/EXTENSIBILITY.md §11.2): pointers into the user's
-/// file, layers, codes, suggestions, `--json`, `--strict`, `--platform`,
+/// check-config v2: pointers into the user's file, layers, codes,
+/// suggestions, `--json`, `--strict`, `--platform`,
 /// stdin and `--commands`, and `print-config --origins`.
 final class CheckConfigTests: XCTestCase {
     private func diagnose(_ text: String, platform: ConfigPlatform, otherPlatforms: Bool = true) -> [ConfigDiagnostic] {
@@ -161,7 +161,7 @@ final class CheckConfigTests: XCTestCase {
         XCTAssertEqual(find("/widgets/systems/hosts/1/key")?.code, "key-conflict")
         XCTAssertEqual(find("/views/main/order/1")?.code, "unknown-widget")
         XCTAssertEqual(find("/views/main/order/1")?.suggestions, ["agenda"])
-        // The legacy adapter adds info notes (§7.5); nothing is an error.
+        // The legacy adapter adds info notes; nothing is an error.
         XCTAssertTrue(found.filter { $0.severity != .info }.allSatisfy { $0.severity == .warning }, "a v0.3 config has no errors")
         XCTAssertEqual(found.filter { $0.severity == .info }.map(\.code), ["legacy"])
 
@@ -250,7 +250,7 @@ final class CheckConfigTests: XCTestCase {
         XCTAssertTrue(missing.stdout.hasPrefix("--json: "), missing.stdout)
     }
 
-    /// §13.1 rule 8a: a hotkey on Linux is reported (info), not ignored.
+    /// A hotkey on Linux is reported (info), not ignored.
     func testAHotkeyOnLinuxIsReportedAsInfo() throws {
         let linux = try json(try check(["--json", "--platform", "linux", "PATH"], #"{"hotkey": "f3"}"#).0.stdout)
         XCTAssertEqual(linux["counts"], .object(["error": .int(0), "warning": .int(0), "info": .int(1)]))
@@ -281,8 +281,7 @@ final class CheckConfigTests: XCTestCase {
         XCTAssertTrue(all.contains(": 2 warnings\n"), all)
     }
 
-    /// The done-when of phase 1: the owner's config, and the documented
-    /// example, check clean on both OSes.
+    /// The example configs check clean on both OSes.
     func testExamplesHaveNoDiagnostics() throws {
         for platform in ConfigPlatform.allCases {
             let full = ConfigCommands.checkConfig([Fixture.example("full.json").path, "--json", "--strict", "--platform", platform.rawValue])

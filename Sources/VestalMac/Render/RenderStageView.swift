@@ -6,10 +6,10 @@ import VestalCore
 //
 // The render model's window content, over whatever background the host
 // draws (the aurora and blur in the app, the palette's `bg` offscreen): the
-// view's root node (§10.4 rule 5), and while a popup is open the scrim and
-// the popup's card (§9.4). The card is v0.3's: black under an ultra-thick
-// dark material, radius 14, a white 10% stroke and a shadow. A click on the
-// scrim is Esc, which the core turns into closing the popup.
+// view's root node, and while a popup is open the scrim and the popup's card.
+// The card is v0.3's: black under an ultra-thick dark material, radius 14, a
+// white 10% stroke and a shadow. A click on the scrim is Esc, which the core
+// turns into closing the popup.
 
 public struct RenderStageView: View {
     @ObservedObject var store: RenderStore
@@ -43,7 +43,7 @@ public struct RenderStageView: View {
             }
         }
         .coordinateSpace(name: FrameCollector.space)
-        // v0.3's popup animation (§10.4 "Animations").
+        // v0.3's popup animation.
         .animation(.easeInOut(duration: 0.18), value: store.popup?.handle.id)
         .environment(\.renderStyle, store.style)
         .environment(\.renderSend, store.send)

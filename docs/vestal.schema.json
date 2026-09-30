@@ -2,7 +2,7 @@
   "$defs": {
     "computed": {
       "additionalProperties": false,
-      "description": "A value computed at render by a jq expression (§4.1 R3).",
+      "description": "A value computed at render by a jq expression.",
       "properties": {
         "expr": {
           "description": "The jq expression.",
@@ -404,6 +404,24 @@
             "null"
           ],
           "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "gesture": {
+          "default": null,
+          "description": "Trackpad gesture for the dashboard: pinch (thumb and three fingers, the old Launchpad gesture). Pinching in opens it, spreading closes it, and the fade follows the fingers. macOS only; ignored on Linux. null registers nothing.",
+          "enum": [
+            "pinch",
+            null
+          ],
+          "examples": [
+            "pinch",
+            null
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
         "hotkey": {
@@ -2921,7 +2939,7 @@
     },
     "style": {
       "additionalProperties": false,
-      "description": "Text style, inherited by everything under the widget (§8.4). Fields may be {\"expr\": ...}.",
+      "description": "Text style, inherited by everything under the widget. Fields may be {\"expr\": ...}.",
       "properties": {
         "case": {
           "anyOf": [
@@ -3442,7 +3460,7 @@
           "x-vestal-since": "0.4"
         },
         "font": {
-          "description": "Shorthand for fonts.sans (§16.1).",
+          "description": "Shorthand for fonts.sans.",
           "examples": [
             "Inter"
           ],
@@ -4028,7 +4046,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -4482,7 +4500,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -4921,7 +4939,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -5376,7 +5394,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -5812,7 +5830,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -6235,7 +6253,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -6683,7 +6701,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -7155,7 +7173,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -7603,7 +7621,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -8235,7 +8253,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -8673,7 +8691,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -9113,7 +9131,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -9631,7 +9649,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -10100,7 +10118,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -10654,7 +10672,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -10886,7 +10904,7 @@
           "x-vestal-since": "0.4"
         },
         "rowId": {
-          "description": "A stable identity per row (§10.5). Default: the index.",
+          "description": "A stable identity per row. Default: the index.",
           "examples": [
             ".url"
           ],
@@ -11168,7 +11186,7 @@
           "x-vestal-since": "0.3"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -12087,7 +12105,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -12652,7 +12670,7 @@
           "x-vestal-since": "0.4"
         },
         "rowId": {
-          "description": "A stable identity per row (§10.5). Default: the index.",
+          "description": "A stable identity per row. Default: the index.",
           "examples": [
             ".url"
           ],
@@ -13275,7 +13293,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -13944,7 +13962,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -14409,7 +14427,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -14832,7 +14850,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -15335,7 +15353,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -15869,7 +15887,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -16365,7 +16383,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -16898,7 +16916,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -17338,7 +17356,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -17856,7 +17874,7 @@
           "x-vestal-since": "0.3"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -18372,7 +18390,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -18615,7 +18633,7 @@
           "x-vestal-since": "0.4"
         },
         "rowId": {
-          "description": "A stable identity per row (§10.5). Default: the index.",
+          "description": "A stable identity per row. Default: the index.",
           "examples": [
             ".url"
           ],
@@ -19096,7 +19114,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -19642,7 +19660,7 @@
           "x-vestal-since": "0.4"
         },
         "id": {
-          "description": "A stable id segment for the node (§10.5). Default: the widget key or its index.",
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
           "examples": [
             "cpu"
           ],
@@ -20040,6 +20058,24 @@
         "null"
       ],
       "x-vestal-kind": "expr",
+      "x-vestal-since": "0.4"
+    },
+    "gesture": {
+      "default": null,
+      "description": "Trackpad gesture for the dashboard: pinch (thumb and three fingers, the old Launchpad gesture). Pinching in opens it, spreading closes it, and the fade follows the fingers. macOS only; ignored on Linux. null registers nothing.",
+      "enum": [
+        "pinch",
+        null
+      ],
+      "examples": [
+        "pinch",
+        null
+      ],
+      "type": [
+        "string",
+        "null"
+      ],
+      "x-vestal-kind": "literal",
       "x-vestal-since": "0.4"
     },
     "hotkey": {

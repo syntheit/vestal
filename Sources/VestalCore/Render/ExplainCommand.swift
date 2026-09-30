@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - vestal explain (EXTENSIBILITY.md §11.8)
+// MARK: - vestal explain
 //
 //   vestal explain <node id or widget key> [--view <name>] [--json] [--config <path>]
 //                  [--cached|--fetch|--data <dir>] [--at <time>]

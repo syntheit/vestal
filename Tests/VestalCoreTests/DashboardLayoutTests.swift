@@ -2,7 +2,7 @@ import Foundation
 import VestalCore
 import XCTest
 
-/// Phase 5: what the dashboard renders, worked out from the config.
+/// What the dashboard renders, worked out from the config.
 final class DashboardLayoutTests: XCTestCase {
     private func fullConfig() -> Config {
         let loaded = ConfigLoader.load(path: Fixture.example("full.json").path, platform: .macos)

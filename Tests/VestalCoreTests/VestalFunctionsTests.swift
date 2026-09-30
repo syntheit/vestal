@@ -2,7 +2,7 @@ import Foundation
 import VestalCore
 import XCTest
 
-/// The vestal function library (EXTENSIBILITY.md §4.6): the examples of the
+/// The vestal function library: the examples of the
 /// spec, and the legacy and Format-based functions against the v0.3 Swift
 /// code over the same inputs.
 final class VestalFunctionsTests: XCTestCase {
@@ -98,7 +98,7 @@ final class VestalFunctionsTests: XCTestCase {
             XCTAssertEqual(try string("\(secs) | fmt_uptime"), Format.uptime(secs))
             XCTAssertEqual(try string("\(secs) | fmt_uptime_long"), Format.uptimeLong(secs))
         }
-        XCTAssertEqual(try string("720.9 | fmt_uptime_long"), "0h 12m", "exact v0.3 rule (§13.1 8c)")
+        XCTAssertEqual(try string("720.9 | fmt_uptime_long"), "0h 12m", "exact v0.3 rule")
         for mins in [-3, 0, 1, 25, 59, 60, 120, 125] {
             XCTAssertEqual(try string("\(mins) | starts_in"), Format.startsIn(minutes: mins))
         }

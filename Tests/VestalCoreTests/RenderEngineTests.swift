@@ -2,7 +2,7 @@ import Foundation
 import VestalCore
 import XCTest
 
-// The render pass through RenderSession (EXTENSIBILITY.md §6, §8, §9, §10):
+// The render pass through RenderSession:
 // small configs, fixed data, time, zone and locale.
 
 final class RenderEngineTests: XCTestCase {
@@ -272,7 +272,7 @@ final class RenderEngineTests: XCTestCase {
     }
 
     func testThemeScaleMultipliesFixedSizes() {
-        // §8.1: text, icons and fixed sizes, not gaps or padding.
+        // Text, icons and fixed sizes, not gaps or padding.
         let s = render("""
             { "theme": { "scale": 1.5 },
               "sources": { "s": { "type": "file", "path": "/s" } },

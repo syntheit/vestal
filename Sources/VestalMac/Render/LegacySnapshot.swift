@@ -5,8 +5,8 @@ import VestalCore
 
 // MARK: - v0.3 dashboard with fixed data
 //
-// The parity check of §13.4 compares the render-model renderer with the
-// v0.3 widget views for the same data. This draws the v0.3 DashboardView
+// The parity check compares the render-model renderer with the v0.3 widget
+// views for the same data. This draws the v0.3 DashboardView
 // (and optionally a host popup, as it draws one) from a JSON file of fixed
 // values instead of live stats and sources, for `vestal render-file
 // --legacy`. The data file mirrors the render fixture it is compared with
@@ -193,7 +193,7 @@ extension LegacyDashboardData {
 enum LegacySnapshot {
     /// The v0.3 dashboard for `config`, showing `data`, without its aurora
     /// (a Metal view can't be drawn offscreen): what a v0.3 `screencapture`
-    /// with `theme.background: "none"` shows (§13.4), minus the window.
+    /// with `theme.background: "none"` shows, minus the window.
     @MainActor
     static func view(config: Config, data: LegacyDashboardData) -> AnyView {
         var config = config

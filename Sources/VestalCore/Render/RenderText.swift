@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Render model as text (EXTENSIBILITY.md §11.6)
+// MARK: - Render model as text
 //
 // `--format tree`: an indented outline with ids, the texts as shown and the
 // key style fields; the cheapest way for a text-only agent to see what is on

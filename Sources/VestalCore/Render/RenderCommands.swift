@@ -1,13 +1,13 @@
 import Dispatch
 import Foundation
 
-// MARK: - vestal render / vestal explain (EXTENSIBILITY.md §11.6, §11.8)
+// MARK: - vestal render / vestal explain
 //
 //   vestal render [--format tree|json|text] [--view <name>] [--config <path>|-]
 //                 [--cached|--fetch|--data <dir>] [--at <time>] [--press <key>]...
 //                 [--strict] [--allow-commands] [--no-network] [--timeout <duration>]
 //
-// Builds the render model once and prints it. Data (§11.1): `--data <dir>`
+// Builds the render model once and prints it. Data: `--data <dir>`
 // reads `<dir>/<source>.json` (or `.txt` for `raw` sources); `--cached`
 // reads the disk cache only; `--fetch` fetches every source the view reads
 // now; the default serves the disk cache when its definition matches and
@@ -151,7 +151,7 @@ public enum RenderCommands {
         public var output: Output
     }
 
-    /// Loads the config and its data (§11.1) and renders `options.view`,
+    /// Loads the config and its data and renders `options.view`,
     /// pressing `options.press` first. With `local`, never asks the
     /// running instance (a session is needed afterwards). With
     /// `runsNothing`, no `command` source runs whatever the config
@@ -188,7 +188,7 @@ public enum RenderCommands {
         if case .fixtures = options.mode { fixtures = true }
         let draft = fixtures || options.configPath != nil
             && !SourceCommands.isRunningConfig(options.configPath, environment: environment, home: home, client: client)
-        // The running instance's live data, when this is its config (§11.1).
+        // The running instance's live data, when this is its config.
         if !local, !draft, options.mode == .auto {
             var request = IPCRequest(.render, view: options.view)
             request.press = options.press.isEmpty ? nil : options.press
@@ -233,8 +233,8 @@ public enum RenderCommands {
 // MARK: - Data for a render outside the running instance
 
 public enum RenderSources {
-    /// The sources `view` reads, from fixtures, the cache or fetched now
-    /// (§11.1), as `RenderData`.
+    /// The sources `view` reads, from fixtures, the cache or fetched now,
+    /// as `RenderData`.
     public static func load(model: RenderConfigModel, view: String, mode: RenderCommands.DataMode,
                             platform: SourcePlatform, cache: SnapshotCache, allowCommands: Bool, allowNetwork: Bool,
                             timeout: TimeInterval, now: Date, secrets: [String: SecretConfig] = [:],

@@ -131,7 +131,7 @@ private struct Walker {
         guard let text = string(value, "hotkey") else { return }
         do {
             _ = try HotkeySpec(parsing: text)
-            // §13.1 rule 8a: reported, not silently ignored.
+            // Reported, not silently ignored.
             if v04.platform == .linux {
                 warnings.append(ConfigWarning(
                     kind: .invalidValue, path: "hotkey",
@@ -229,7 +229,7 @@ private struct Walker {
         }
     }
 
-    /// One source definition, named or inline (EXTENSIBILITY.md 5). Returns
+    /// One source definition, named or inline. Returns
     /// its canonical type when it has a known one.
     private mutating func source(_ entry: AnyJSON, _ path: String) -> String? {
         guard let source = object(entry, path, "source ignored"),
@@ -237,7 +237,7 @@ private struct Walker {
         else { return nil }
         let canonical = SourceConfig.canonicalType(type)
         if SourceConfig.keysByType[canonical] == nil, let template = v04.registry.lookup(type), template.isSource {
-            // A source template (§7.4): the expansion checks its parameters.
+            // A source template: the expansion checks its parameters.
             v04.sourceFields(source, path: path, params: [])
             let body = template.source?.objectValue ?? [:]
             let concrete = body["type"]?.stringValue.map(SourceConfig.canonicalType)
@@ -325,7 +325,7 @@ private struct Walker {
         return canonical
     }
 
-    /// `history`: name → `{value, size, every}` (EXTENSIBILITY.md 5.6).
+    /// `history`: name → `{value, size, every}`.
     private mutating func history(_ value: AnyJSON?, _ path: String) {
         guard let entries = object(value, path) else { return }
         for (name, entry) in entries.sorted(by: { $0.key < $1.key }) {
@@ -340,7 +340,7 @@ private struct Walker {
         }
     }
 
-    /// A literal-looking token in a URL or header (EXTENSIBILITY.md 5.3): a
+    /// A literal-looking token in a URL or header: a
     /// run of 20 or more of `[A-Za-z0-9_-]` after `Bearer `, `token=` or
     /// `key=`. Secrets belong in `secrets`, not in the config (the Nix store
     /// is world-readable).
@@ -396,7 +396,7 @@ private struct Walker {
                 continue
             }
             // A v0.3 type: its keys, the preset's extra parameters and the
-            // common fields (§6.1), which the v0.4 checks look at.
+            // common fields, which the v0.4 checks look at.
             let keys = Set(SchemaRegistry.widgetKeys(preset).map(\.name))
             checkKeys(widget, keys, path, for: "\(canonical) widgets")
             v04.common(widget.filter { WidgetTypes.commonFields.contains($0.key) && $0.key != "source" },
@@ -454,7 +454,7 @@ private struct Walker {
     /// JSON (on Linux, which has no calendar backend yet); the others read
     /// JSON, never a calendar source.
     private mutating func widgetSource(_ widget: [String: AnyJSON], _ path: String, required: Bool, calendar: Bool) {
-        // An inline source (EXTENSIBILITY.md 5.1): checked like a named one.
+        // An inline source: checked like a named one.
         if case .object? = widget["source"] {
             guard let type = source(widget["source"]!, "\(path).source") else { return }
             checkReads(type, "\(path).source", calendar: calendar, what: "the inline source")

@@ -2,10 +2,9 @@ import Foundation
 
 // MARK: - Expression environment
 //
-// Everything one loaded config needs to evaluate expressions
-// (EXTENSIBILITY.md §4): the vestal functions (§4.6), the user's `functions`
-// (§4.8), the limits of §4.4 and a cache of compiled expressions, keyed by
-// their text. One environment per config load; it is safe to use from any
+// Everything one loaded config needs to evaluate expressions: the vestal
+// functions, the user's `functions`, the expression limits and a cache of
+// compiled expressions, keyed by their text. One environment per config load; it is safe to use from any
 // thread (the render engine evaluates off the main actor).
 
 /// An expression problem, as check-config, `vestal eval` and the render
@@ -16,12 +15,12 @@ public struct ExprError: Error, Equatable, Sendable, CustomStringConvertible {
         case compile
         /// Failed while evaluating (`tonumber` on "n/a", a missing variable).
         case runtime
-        /// Went past a limit of §4.4.
+        /// Went past an expression limit.
         case limit
     }
 
     public var kind: Kind
-    /// The diagnostic code (§11.2): `expr-syntax`, `expr-unknown-function`,
+    /// The diagnostic code: `expr-syntax`, `expr-unknown-function`,
     /// `expr-unknown-variable`, `expr-runtime` or `expr-limit`.
     public var code: String
     public var message: String
@@ -89,12 +88,12 @@ public struct ExprError: Error, Equatable, Sendable, CustomStringConvertible {
 }
 
 public final class ExprEnvironment: @unchecked Sendable {
-    /// §4.4: at most 100,000 steps and 50 ms per evaluation.
+    /// At most 100,000 steps and 50 ms per evaluation.
     public static let limits = JQLimits(maxSteps: 100_000, maxDuration: 0.05)
-    /// §4.4: a result above 4 MiB is an error.
+    /// A result above 4 MiB is an error.
     public static let maxResultBytes = 4 * 1024 * 1024
 
-    /// The variables every expression may use (§4.2), without the `$`.
+    /// The variables every expression may use, without the `$`.
     public static let reservedVariables: Set<String> = [
         "value", "data", "item", "index", "parent", "sources", "meta", "history", "params",
         "widget", "view", "tz", "os", "env", "secrets",
@@ -107,7 +106,7 @@ public final class ExprEnvironment: @unchecked Sendable {
     public let limits: JQLimits
     /// The user functions that compiled, in definition order.
     public private(set) var userFunctionNames: [String] = []
-    /// Problems with `functions` (§4.8), by function name.
+    /// Problems with `functions`, by function name.
     public private(set) var functionErrors: [String: ExprError] = [:]
 
     private let lock = NSLock()
@@ -173,7 +172,7 @@ public final class ExprEnvironment: @unchecked Sendable {
 
     // MARK: Evaluating
 
-    /// Every output of `expression` (a stream, §4.4), or the error.
+    /// Every output of `expression` (a stream), or the error.
     public func run(_ expression: JQExpression, input: JQValue, variables: [String: JQValue],
                     context: JQEvalContext) -> Result<[JQValue], ExprError> {
         do {
@@ -189,7 +188,7 @@ public final class ExprEnvironment: @unchecked Sendable {
         }
     }
 
-    /// The first output (a scalar field, §4.4), nil when there is none.
+    /// The first output (a scalar field), nil when there is none.
     public func first(_ expression: JQExpression, input: JQValue, variables: [String: JQValue],
                       context: JQEvalContext) -> Result<JQValue?, ExprError> {
         do {
@@ -230,7 +229,7 @@ public final class ExprEnvironment: @unchecked Sendable {
         return walk(value)
     }
 
-    // MARK: User functions (§4.8)
+    // MARK: User functions
 
     static let userFunctionName = try! NSRegularExpression(pattern: "^[a-z_][a-z0-9_]*$")
 
@@ -317,7 +316,7 @@ public final class ExprEnvironment: @unchecked Sendable {
     }
 }
 
-// MARK: - Text templates (§4.1 R2)
+// MARK: - Text templates
 
 /// A text field parsed once: literal runs and `{{ expr }}` holes. `{{{{`
 /// writes a literal `{{`. A hole ends at the first `}}` outside a jq

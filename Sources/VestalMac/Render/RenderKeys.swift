@@ -4,11 +4,11 @@ import VestalCore
 
 // MARK: - Key names
 //
-// Key presses in the hotkey grammar of §9.2, for `RenderInput.key`: `h`,
+// Key presses in the hotkey grammar, for `RenderInput.key`: `h`,
 // `2`, `tab`, `shift+tab`, `space`, `enter`, `left`, `escape`, `f5`, with
 // modifiers `cmd`, `ctrl`, `alt` and `shift` in that order. The same names
 // the GTK UI sends (VestalLinux KeyNames), so the core decides the same way
-// on both. The key monitor in App.swift sends them (phase 6b).
+// on both. The key monitor in App.swift sends them.
 
 public enum RenderKeys {
     /// Named keys by virtual key code (Carbon's kVK_* values).

@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - History store
 //
-// Named ring buffers of numbers per source (EXTENSIBILITY.md 5.6): each
+// Named ring buffers of numbers per source: each
 // successful fetch may append one sample per history, no closer than `every`
 // to the previous one, keeping the last `size`. They persist in
 // `<cache dir>/history/<source>.json` (0600, like the snapshot cache), so a

@@ -76,7 +76,7 @@ public protocol SystemStatsProvider {
     /// the root volume alone (as on macOS).
     func mounts() -> [MountUsage]
 
-    // v0.4: what the `system` source adds (EXTENSIBILITY.md 5.4). Each has
+    // v0.4: what the `system` source adds. Each has
     // a default, so a provider that can't read a value reports it unknown.
 
     /// The 1, 5 and 15 minute load averages; nil if unknown.
@@ -233,7 +233,7 @@ extension MediaProvider {
 }
 
 /// What the `media` source read: the player it chose, its state, and every
-/// player this OS can see (EXTENSIBILITY.md 5.2, 5.4).
+/// player this OS can see.
 public struct MediaReading: Equatable, Sendable {
     /// The player that matched `player`; nil when none did (then `playing`
     /// is `.off`).
@@ -285,7 +285,7 @@ public struct CalendarEntry: Codable, Equatable, Sendable {
     enum CodingKeys: String, CodingKey { case title, start, end, allDay, calendar, location }
 
     /// `location` is written as null when absent, so every entry has the
-    /// same keys (EXTENSIBILITY.md 5.4).
+    /// same keys.
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(title, forKey: .title)

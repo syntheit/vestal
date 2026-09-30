@@ -2,7 +2,7 @@ import Foundation
 import VestalCore
 import XCTest
 
-/// `theme.dim` (§8.1): read from the config and clamped, carried in the
+/// `theme.dim`: read from the config and clamped, carried in the
 /// snapshot's theme, the GTK window's CSS, and check-config's warnings.
 final class ThemeDimTests: XCTestCase {
     private func theme(_ text: String) -> RenderTheme {

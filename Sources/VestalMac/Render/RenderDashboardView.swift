@@ -38,7 +38,7 @@ struct RenderDashboardView: View {
 
 extension RenderStore {
     /// Whether `patch` adds or removes rows: a root child (a section that
-    /// appears), or a list row (ids ending in an `@` component, §10.5).
+    /// appears), or a list row (ids ending in an `@` component).
     /// v0.3 eased those in over 0.3 s after the first frame (hosts, list
     /// entries, the weather section); the app animates such patches.
     func changesRows(_ patch: RenderPatch) -> Bool {

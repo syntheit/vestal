@@ -5,7 +5,7 @@ import VestalCore
 
 // MARK: - Frames
 //
-// Every node's final frame, for `--frames` (§10.4, §11.6): collected while
+// Every node's final frame, for `--frames`: collected while
 // the stage renders, from a GeometryReader behind each node, in the stage's
 // coordinates. `clipped` marks nodes cut off by the window or a `clip`
 // ancestor, `truncated` texts cut by `lines`. Only offscreen renders ask for

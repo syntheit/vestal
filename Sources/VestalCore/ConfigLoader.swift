@@ -49,8 +49,8 @@ public struct ConfigWarning: Equatable, Sendable, CustomStringConvertible {
     public var column: Int?
     /// Set when only the other platform's block triggers this warning.
     public var platform: ConfigPlatform?
-    /// The diagnostic code `check-config --json` reports (docs/EXTENSIBILITY.md
-    /// §11.2); nil means the kind's usual one (`code`).
+    /// The diagnostic code `check-config --json` reports;
+    /// nil means the kind's usual one (`code`).
     public var specificCode: String?
     /// Did-you-mean candidates, best first (at most 3).
     public var suggestions: [String]
@@ -74,7 +74,7 @@ public struct ConfigWarning: Equatable, Sendable, CustomStringConvertible {
         self.expected = expected; self.found = found
     }
 
-    /// The diagnostic code (§11.2).
+    /// The diagnostic code.
     public var code: String {
         if let specificCode { return specificCode }
         switch kind {

@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Compact presets (theme.density "compact", EXTENSIBILITY.md §7.3, §8.1)
+// MARK: - Compact presets (theme.density "compact")
 //
 // The widget bodies of the built-in templates when `theme.density` is
 // `compact`, by template name. The templates keep their descriptions and

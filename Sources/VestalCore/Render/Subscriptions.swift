@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Subscribers of the render model (EXTENSIBILITY.md §10.7, §10.8)
+// MARK: - Subscribers of the render model
 //
 // `{"cmd": "subscribe", …}` on the socket turns a connection into a stream
 // (IPCServer, IPCSubscription). The hub follows the one `RenderEngine` of
@@ -33,7 +33,7 @@ import Foundation
 // A client that asks for another protocol gets `{"type":"error","code":
 // "protocol",…,"supported":[1]}` and is closed. A client whose `minor` is
 // below the server's gets node types newer than its minor as `text` nodes
-// with their `alt` (§10.1); minor 0 has none yet.
+// with their `alt`; minor 0 has none yet.
 //
 // Everything runs on the main actor, like the engine. Writing never blocks:
 // IPCServer queues each connection's output and drops a client more than
@@ -52,7 +52,7 @@ public final class SubscriptionHub {
     /// Reported in `hello`.
     public var serverName = BuildInfo.build
     public var os = RenderPass.currentOS
-    /// At most one patch per client per this many seconds (§10.6).
+    /// At most one patch per client per this many seconds.
     public var coalesceInterval: TimeInterval = 0.05
 
     private var observation: RenderObservation?
@@ -372,7 +372,7 @@ public final class SubscriptionHub {
     }
 }
 
-// MARK: - Coalescing (§10.6)
+// MARK: - Coalescing
 
 public enum RenderCoalescing {
     /// Appends `op` to `ops`, dropping what it supersedes: a `replace` drops
@@ -416,7 +416,7 @@ public enum RenderCoalescing {
     }
 }
 
-// MARK: - Minor downgrade (§10.1)
+// MARK: - Minor downgrade
 
 public enum RenderDowngrade {
     /// The `minor` that introduced each node type. A client below it gets

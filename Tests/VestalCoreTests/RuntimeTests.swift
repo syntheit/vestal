@@ -406,7 +406,7 @@ final class RuntimeTests: XCTestCase {
     func testALegacyCacheFileStillServes() async throws {
         let directory = try makeTemporaryDirectory()
         let clock = FakeClock()
-        // What the runtime wrote before phase 4: `lastFetch`, JSONEncoder's
+        // What the runtime wrote before sources: `lastFetch`, JSONEncoder's
         // default dates (seconds since 2001), base64 data, no source.
         let legacy = #"{"data": "WzNd", "lastFetch": \#(clock.now.timeIntervalSinceReferenceDate - 60)}"#
         try Data(legacy.utf8).write(to: directory.appendingPathComponent("a.json"))

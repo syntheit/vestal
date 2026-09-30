@@ -5,10 +5,10 @@ import VestalCore
 
 // MARK: - Render style
 //
-// Colours and fonts for the render model's nodes (EXTENSIBILITY.md §8.2,
-// §8.3, §8.5): palette names resolved through the snapshot's `theme.colors`,
-// font roles mapped to the system font's designs (or `theme.fonts`), and the
-// icon mode of §16.1. The GTK UI's ThemeState does the same for Pango.
+// Colours and fonts for the render model's nodes: palette
+// names resolved through the snapshot's `theme.colors`, font roles mapped to
+// the system font's designs (or `theme.fonts`), and the icon mode. The GTK
+// UI's ThemeState does the same for Pango.
 
 /// An sRGB colour with alpha, parsed from the model's `#rrggbbaa`.
 struct RenderRGBA: Equatable {
@@ -42,7 +42,7 @@ struct RenderRGBA: Equatable {
     var color: Color { Color(.sRGB, red: r, green: g, blue: b, opacity: a) }
 }
 
-/// How icons are drawn on macOS (§16.1 `theme.icons`): `native` draws the
+/// How icons are drawn on macOS (`theme.icons`): `native` draws the
 /// names the table knows as the SF Symbols v0.3 used, and everything else
 /// in the bundled Phosphor font; `phosphor` always uses the font.
 enum RenderIconMode: String {
@@ -72,7 +72,7 @@ struct RenderStyle {
     // MARK: Colours
 
     /// A node colour: a palette name, `#hex`, or either with `@alpha`. An
-    /// unknown name draws as `text`, as check-config promises (§8.3).
+    /// unknown name draws as `text`, as check-config promises.
     func rgba(_ spec: String?, default fallback: String = "text") -> RenderRGBA {
         let spec = spec ?? fallback
         if let hit = palette[spec] { return hit }
@@ -96,7 +96,7 @@ struct RenderStyle {
 
     // MARK: Fonts
 
-    /// The font for a text node: its role's family (§8.5), absolute size and
+    /// The font for a text node: its role's family, absolute size and
     /// numeric weight. The system font by default, as v0.3 draws: SF Pro,
     /// SF Mono for `mono`, SF Pro Rounded for `rounded`.
     func font(role: String, size: Double, weight: Int) -> Font {
@@ -114,7 +114,7 @@ struct RenderStyle {
         return .system(size: CGFloat(size), weight: w, design: design)
     }
 
-    /// §8.4's names: 100 ultralight … 900 black; other numbers round to the
+    /// The weight names: 100 ultralight … 900 black; other numbers round to the
     /// nearest hundred.
     static func fontWeight(_ weight: Int) -> Font.Weight {
         switch (min(900, max(100, weight)) + 50) / 100 {
@@ -131,7 +131,7 @@ struct RenderStyle {
     }
 
     /// Families checked once each; a missing one falls back to the role's
-    /// default and is logged once (§8.5).
+    /// default and is logged once.
     @MainActor private static var families: [String: Bool] = [:]
 
     private static func hasFamily(_ family: String) -> Bool {

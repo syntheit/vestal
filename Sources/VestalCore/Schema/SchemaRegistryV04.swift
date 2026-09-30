@@ -2,19 +2,19 @@ import Foundation
 
 // MARK: - Schema registry: the v0.4 widget model
 //
-// The engine's own widget types (6 containers, 8 primitives, §6.2–6.3),
-// the fields every widget takes (§6.1), the shapes they use, and the
+// The engine's own widget types (6 containers, 8 primitives),
+// the fields every widget takes, the shapes they use, and the
 // built-in templates as types (their parameters, from TemplateRegistry). The
 // v0.3 widget types in `widgetTypes` stay as they are (Config decodes them);
 // `allWidgetTypes` is every type a config may name.
 
 extension SchemaRegistry {
-    // MARK: Common fields (§6.1)
+    // MARK: Common fields
 
     /// Fields every widget takes besides `type`, template instances included.
     public static let commonWidgetKeys: [SchemaKey] = [
         SchemaKey("id", .string, since: "0.4", examples: [.string("cpu")],
-                  "A stable id segment for the node (§10.5). Default: the widget key or its index."),
+                  "A stable id segment for the node. Default: the widget key or its index."),
         SchemaKey("source", .any, since: "0.4", examples: [.string("system"), .object(["type": .string("file"), "path": .string("~/notes.md"), "parse": .string("lines")])],
                   "The data for this subtree: a source name, or a source definition (an inline source). Sets . and $data."),
         SchemaKey("input", .string, kind: .expr, since: "0.4", examples: [.string(".current_condition[0]")],
@@ -88,7 +88,7 @@ extension SchemaRegistry {
         key("sortBy", .string, kind: .expr, .string(".updatedAt | to_epoch"), "Per item; sorts ascending, stably."),
         key("reverse", .boolean, default: .bool(false), .bool(true), computed: true, "After sorting."),
         key("limit", .integer(minimum: 0), .int(5), computed: true, "At most this many rows."),
-        key("rowId", .string, kind: .expr, .string(".url"), "A stable identity per row (§10.5). Default: the index."),
+        key("rowId", .string, kind: .expr, .string(".url"), "A stable identity per row. Default: the index."),
         key("empty", .any, kind: .text, .string("Nothing to review"), "Text or a widget shown when there are no rows. Default: hide."),
     ]
 
@@ -318,7 +318,7 @@ extension SchemaRegistry {
     // MARK: Shapes
 
     static let v04Shapes: [SchemaShape] = [
-        SchemaShape("style", "Text style, inherited by everything under the widget (§8.4). Fields may be {\"expr\": ...}.", keys: [
+        SchemaShape("style", "Text style, inherited by everything under the widget. Fields may be {\"expr\": ...}.", keys: [
             key("size", .any, default: .string("base"), .int(12), computed: true,
                 "Points, or xs 10, sm 11, md 12, base 13, lg 14, xl 18, 2xl 24, 3xl 36, display 56."),
             key("weight", .any, default: .string("regular"), .string("semibold"), computed: true,

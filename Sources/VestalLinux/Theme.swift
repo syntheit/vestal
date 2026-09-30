@@ -6,7 +6,7 @@ import VestalCore
 // MARK: - Theme
 //
 // Colours and fonts for the nodes: palette names resolved through the
-// snapshot's `theme.colors` (§10.2), font roles mapped to families (§8.5),
+// snapshot's `theme.colors`, font roles mapped to families,
 // and the bundled fonts registered with fontconfig.
 
 struct RGBA: Equatable {
@@ -51,7 +51,7 @@ final class ThemeState {
     }
 
     /// A node colour: a palette name, `#hex`, or either with `@alpha`. An
-    /// unknown name draws as `text`, as check-config promises (§8.3).
+    /// unknown name draws as `text`, as check-config promises.
     func color(_ spec: String?, default fallback: String = "text") -> RGBA {
         let spec = spec ?? fallback
         if let hit = cache[spec] { return hit }
@@ -80,7 +80,7 @@ final class ThemeState {
         switch role {
         case "mono": return (theme.fonts.mono.map { "\($0)," } ?? "") + "Geist Mono,monospace"
         case "rounded":
-            // No rounded Geist; the rounded role falls back to sans (§8.5).
+            // No rounded Geist; the rounded role falls back to sans.
             let family = theme.fonts.rounded ?? theme.fonts.sans
             return (family.map { "\($0)," } ?? "") + "Geist,sans-serif"
         default: return (theme.fonts.sans.map { "\($0)," } ?? "") + "Geist,sans-serif"

@@ -22,7 +22,7 @@ import Glibc
 //
 // The resident's render engine follows that visibility, so UIs in other
 // processes can draw the dashboard over the socket (`vestal subscribe`,
-// SubscriptionHub, EXTENSIBILITY.md §10.7); `ResidentInbox.attach` hands
+// SubscriptionHub); `ResidentInbox.attach` hands
 // the engine to the hub. Nothing is evaluated while hidden.
 
 /// A `ResidentSurface` that draws nothing.

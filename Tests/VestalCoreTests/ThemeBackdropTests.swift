@@ -2,7 +2,7 @@ import Foundation
 import VestalCore
 import XCTest
 
-/// `theme.backdrop` and `theme.blur` (§8.1, the GTK UI's self-blurred
+/// `theme.backdrop` and `theme.blur` (the GTK UI's self-blurred
 /// backdrop): read from the config, carried in the snapshot's theme, the
 /// GTK window's CSS, and check-config's warnings.
 final class ThemeBackdropTests: XCTestCase {

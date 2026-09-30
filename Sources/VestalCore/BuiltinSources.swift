@@ -3,8 +3,7 @@ import Foundation
 // MARK: - Built-in source types
 //
 // The data of the `system` and `media` source types (`claude` and `codex`:
-// AIUsage.swift), in the shapes
-// of EXTENSIBILITY.md 5.4, identical on macOS and Linux: the same keys in
+// AIUsage.swift), in shapes identical on macOS and Linux: the same keys in
 // every case, a value the platform can't read is null (never 0), units are
 // bytes, bytes per second, seconds, epoch seconds, °C and percent 0-100.
 // The platform supplies the readings (SystemStatsProvider, AudioProvider,
@@ -46,7 +45,7 @@ public final class SystemSampler: @unchecked Sendable {
     }
 
     /// The same, synchronously, with the audio provider's synchronous
-    /// reading: for the dashboard's first frame (EXTENSIBILITY.md 15).
+    /// reading: for the dashboard's first frame.
     public func readNow(_ source: SourceConfig) -> AnyJSON {
         withLock { build(source, volume: audio?.volume()) }
     }

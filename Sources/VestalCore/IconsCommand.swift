@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - vestal icons
 //
-// Searches the bundled icon set (docs/EXTENSIBILITY.md §8.6, §11.7), so an
+// Searches the bundled icon set, so an
 // agent can find the name for an `icon` field.
 //
 //   vestal icons                every icon

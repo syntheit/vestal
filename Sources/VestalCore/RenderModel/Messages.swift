@@ -2,11 +2,11 @@ import Foundation
 
 // MARK: - Render model: messages
 //
-// The snapshot, patch and interaction messages of EXTENSIBILITY.md §10.2,
-// §10.6 and §10.7, as Swift values. The in-process API (§10.8) passes these
-// directly; the socket protocol (phase 8) serialises exactly these.
+// The snapshot, patch and interaction messages, as Swift values. The
+// in-process API passes these directly; the socket protocol serialises
+// exactly these.
 
-/// The render model's protocol version (§10.1).
+/// The render model's protocol version.
 public enum RenderProtocol {
     public static let version = 1
     public static let minor = 0
@@ -38,25 +38,25 @@ public struct RenderViewInfo: Equatable, Sendable, Codable {
 
 /// `theme` in a snapshot: the resolved palette, font families and icon fonts.
 public struct RenderTheme: Equatable, Sendable, Codable {
-    /// `aurora`, `blur` or `none` (§8.1).
+    /// `aurora`, `blur` or `none`.
     public var background: String
     /// Every colour name a node may use, as `#rrggbbaa`.
     public var colors: [String: String]
-    /// Family per role; nil means the platform default (§8.5).
+    /// Family per role; nil means the platform default.
     public var fonts: Fonts
     public var icons: Icons
-    /// `theme.dim` (§8.1), 0 to 1: how much of the palette's `bg` lies over
+    /// `theme.dim`, 0 to 1: how much of the palette's `bg` lies over
     /// the blurred desktop for `aurora` and `blur`. Nil (omitted): the UI's
     /// default (`linuxDim` on Linux; none on macOS, where the material
     /// tints). See `windowAlpha`.
     public var dim: Double?
-    /// `theme.backdrop` (§8.1), the GTK UI's: `self` (vestal captures the
+    /// `theme.backdrop`, the GTK UI's: `self` (vestal captures the
     /// output and blurs it), `compositor` (a translucent window over the
     /// compositor's blur) or `none` (translucent, no blur asked for). Nil
     /// (omitted): `self` where the compositor can capture, else
     /// `compositor`. The macOS UI ignores it.
     public var backdrop: String?
-    /// `theme.blur` (§8.1): the radius, in points, of `self`'s blur. Nil
+    /// `theme.blur`: the radius, in points, of `self`'s blur. Nil
     /// (omitted): `linuxBlur`.
     public var blur: Double?
 
@@ -71,7 +71,7 @@ public struct RenderTheme: Equatable, Sendable, Codable {
             self.rounded = rounded
         }
 
-        // Nulls are written out: `{"sans": null, …}` as in §10.2.
+        // Nulls are written out: `{"sans": null, …}` as in the protocol.
         public func encode(to encoder: Encoder) throws {
             var c = encoder.container(keyedBy: CodingKeys.self)
             try c.encode(sans, forKey: .sans)
@@ -84,7 +84,7 @@ public struct RenderTheme: Equatable, Sendable, Codable {
         public var set: String
         /// Font family per weight: `regular`, `fill`.
         public var fonts: [String: String]
-        /// `theme.icons` (§16.1): `"native"` lets the macOS UI draw the
+        /// `theme.icons`: `"native"` lets the macOS UI draw the
         /// names it knows as SF Symbols, `"phosphor"` always uses the icon
         /// font. Nil (omitted): the platform's default, native on macOS.
         /// Other UIs always draw the font.
@@ -123,7 +123,7 @@ public struct RenderTheme: Equatable, Sendable, Codable {
         blur = try c.decodeIfPresent(Double.self, forKey: .blur).map(Self.clampBlur)
     }
 
-    /// The `tokyo-night` palette of §8.2, resolved to `#rrggbbaa`.
+    /// The `tokyo-night` palette, resolved to `#rrggbbaa`.
     public static let tokyoNight: [String: String] = [
         "text": "#ffffffff",
         "subtle": "#ffffff80",
@@ -232,7 +232,7 @@ extension RenderTheme {
     }
 }
 
-/// `popup` in a snapshot: one popup at a time (§9.4).
+/// `popup` in a snapshot: one popup at a time.
 public struct RenderPopup: Equatable, Sendable, Codable {
     public var id: String
     public var width: Double
@@ -245,7 +245,7 @@ public struct RenderPopup: Equatable, Sendable, Codable {
     }
 }
 
-/// One entry of `diagnostics` (§10.9).
+/// One entry of `diagnostics`.
 public struct RenderDiagnostic: Equatable, Sendable, Codable {
     public var id: String?
     public var field: String?
@@ -262,7 +262,7 @@ public struct RenderDiagnostic: Equatable, Sendable, Codable {
     }
 }
 
-/// The whole model at one moment (§10.2).
+/// The whole model at one moment.
 public struct RenderSnapshot: Equatable, Sendable, Codable {
     public var type: String = "snapshot"
     public var `protocol`: Int
@@ -310,7 +310,7 @@ public struct RenderSnapshot: Equatable, Sendable, Codable {
         diagnostics = try c.decodeIfPresent([RenderDiagnostic].self, forKey: .diagnostics) ?? []
     }
 
-    // `popup: null` is written out, as in §10.2.
+    // `popup: null` is written out, as in the protocol.
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(type, forKey: .type)
@@ -327,7 +327,7 @@ public struct RenderSnapshot: Equatable, Sendable, Codable {
     }
 }
 
-// MARK: - Patches (§10.6)
+// MARK: - Patches
 
 public enum RenderPatchOp: Equatable, Sendable, Codable {
     /// Swap the subtree whose root has `id`.
@@ -436,7 +436,7 @@ public enum RenderPatchError: Error, Equatable, CustomStringConvertible {
 }
 
 extension RenderSnapshot {
-    /// This snapshot with `patch` applied, ops in order (§10.6). Throws when
+    /// This snapshot with `patch` applied, ops in order. Throws when
     /// the patch doesn't follow this snapshot or names a missing node; the
     /// client then asks for a fresh snapshot.
     public func applying(_ patch: RenderPatch) throws -> RenderSnapshot {
@@ -474,14 +474,14 @@ extension RenderSnapshot {
     }
 }
 
-// MARK: - Interaction (§10.7)
+// MARK: - Interaction
 
 /// UI → core. The in-process UI hands these to the core; over the socket
 /// they are `{"cmd": …}` lines.
 public enum RenderInput: Equatable, Sendable, Codable {
     /// A click on a node with `action: true`.
     case invoke(id: String)
-    /// A key press the UI didn't consume, in the hotkey grammar (§9.2).
+    /// A key press the UI didn't consume, in the hotkey grammar.
     case key(String)
     /// The window went away on its own.
     case hide

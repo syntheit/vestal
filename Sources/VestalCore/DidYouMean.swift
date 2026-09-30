@@ -6,7 +6,7 @@ import Foundation
 // topic): the candidates within a Damerau-Levenshtein distance of 2 (optimal
 // string alignment: insertions, deletions, substitutions and swaps of two
 // neighbours), or sharing a prefix of at least 3 characters, best 3 first.
-// Case is ignored when comparing. docs/EXTENSIBILITY.md §11.2.
+// Case is ignored when comparing.
 
 public enum DidYouMean {
     /// At most `limit` candidates close to `input`, best first: by distance,

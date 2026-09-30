@@ -63,7 +63,7 @@ public enum MediaScript {
     public static let separator: Character = "\u{1F}"
 
     /// Like `nowPlaying`, plus the album, the position and the duration, for
-    /// the `media` source (EXTENSIBILITY.md 5.4). It returns
+    /// the `media` source. It returns
     /// "state␟title␟artist␟album␟position␟duration" (␟ = `separator`), or
     /// "off". The album, position and duration are each read in their own
     /// `try`, so a stream without them still reports its title.
@@ -115,7 +115,7 @@ public enum MediaScript {
                           position: number(parts[4]), duration: duration)
     }
 
-    /// The players `auto` tries on macOS, in order (EXTENSIBILITY.md 5.2).
+    /// The players `auto` tries on macOS, in order.
     public static let autoPlayers = ["Spotify", "Music"]
 
     /// The players to try for `wanted`, in order: `auto` stands for

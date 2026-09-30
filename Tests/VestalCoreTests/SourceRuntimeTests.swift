@@ -2,7 +2,7 @@ import Foundation
 import VestalCore
 import XCTest
 
-// Phase 2 (data layer) in the runtime: visible-only scheduling, cancellation
+// The data layer in the runtime: visible-only scheduling, cancellation
 // on hide and reload, jitter, synchronous first reads, fetching on demand,
 // secrets, histories, maxAge and `cache: false`; and the live fetcher's new
 // types and parse modes.

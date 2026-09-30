@@ -19,7 +19,7 @@ final class DocsTests: XCTestCase {
         XCTAssertTrue(Set(expected.keys).isSuperset(of: ["agents", "config", "cli"]))
     }
 
-    /// Every topic of EXTENSIBILITY.md §11.7 exists.
+    /// Every documented topic exists.
     func testEveryTopicOfTheSpecExists() {
         for topic in ["agents", "config", "expressions", "functions", "sources", "widgets", "templates", "presets",
                       "styling", "icons", "views", "keys", "actions", "render-model", "protocol", "cli", "recipes"] {

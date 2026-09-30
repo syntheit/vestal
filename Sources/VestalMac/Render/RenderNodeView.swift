@@ -4,7 +4,7 @@ import VestalCore
 
 // MARK: - Node views
 //
-// One SwiftUI view per render-model node (§10.3): the box (`NodeBoxLayout`
+// One SwiftUI view per render-model node: the box (`NodeBoxLayout`
 // with background, border, radius, clip, opacity and the click target)
 // around the type's content. Containers lay out their children with the
 // layouts in RenderLayout.swift; texts, icons, bars, rings, sparklines and
@@ -49,7 +49,7 @@ struct RenderNodeView: View {
         case .text(let t):
             RenderText(text: t, style: style)
         case .unknown:
-            // A newer node type: its plain-text rendition (§10.1).
+            // A newer node type: its plain-text rendition.
             RenderText(text: RenderNode.Text(text: node.alt ?? "", color: "subtle"), style: style)
         case .icon(let icon):
             RenderIcon(icon: icon, style: style)
@@ -191,7 +191,7 @@ struct RenderText: View {
 
 // MARK: - Icon
 
-/// An icon: an SF Symbol where §16.1's mapping (or an `sf:` name) gives
+/// An icon: an SF Symbol where the native mapping (or an `sf:` name) gives
 /// one, else the glyph in the Phosphor font, centred in a size×size box.
 /// `circle` filled is v0.3's offline dot, a circle of the icon's size.
 struct RenderIcon: View {

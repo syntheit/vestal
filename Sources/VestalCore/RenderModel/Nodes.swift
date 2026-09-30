@@ -2,19 +2,17 @@ import Foundation
 
 // MARK: - Render model: nodes
 //
-// The resolved tree a UI draws (EXTENSIBILITY.md §10.3). Every text is a
+// The resolved tree a UI draws. Every text is a
 // string, every size a number, every icon a name plus a glyph; colours are
 // `#rrggbbaa` or a key of the snapshot's `theme.colors`.
 //
-// Decoding is lenient: unknown fields are ignored (§10.1) and an unknown node
+// Decoding is lenient: unknown fields are ignored and an unknown node
 // type decodes as `.unknown`, which a UI draws as its `alt` text. Encoding is
 // deterministic: defaults are omitted and the encoder is expected to sort
 // keys (`RenderJSON.encoder`), so output is golden-testable.
 //
-// These types were written from the spec for the Linux UI (phase L1) before
-// the render engine (phase 4c) existed; the engine produces them.
 
-/// A size on one axis: an exact number of points, or `fill` (§10.4 rule 1).
+/// A size on one axis: an exact number of points, or `fill`.
 /// Absent (nil where it's used) means fit.
 public enum RenderLength: Equatable, Sendable, Codable {
     case points(Double)
@@ -102,7 +100,7 @@ public enum RenderTextAlign: String, Equatable, Sendable, Codable {
     case start, center, end
 }
 
-/// One node of the tree: the common fields (§10.3 "Common fields") and the
+/// One node of the tree: the common fields and the
 /// type's own fields in `content`.
 public struct RenderNode: Equatable, Sendable, Codable {
     public var id: String
@@ -285,7 +283,7 @@ public struct RenderNode: Equatable, Sendable, Codable {
         public var text: String = ""
         public var size: Double = 13
         public var weight: Int = 400
-        /// `sans`, `mono` or `rounded` (§8.5).
+        /// `sans`, `mono` or `rounded`.
         public var font: String = "sans"
         public var color: String = "text"
         public var tracking: Double = 0
@@ -446,7 +444,7 @@ public struct RenderNode: Equatable, Sendable, Codable {
         clip = try opt("clip") ?? false
         spaceBefore = try opt("spaceBefore")
         // `alignSelf` takes start, center, end or stretch; `baseline` is only
-        // a stack's `align` (§10.3).
+        // a stack's `align`.
         alignSelf = lenient("alignSelf", RenderAlign?.none).flatMap { $0 == .baseline ? nil : $0 }
         span = try opt("span") ?? 1
         action = try opt("action") ?? false
@@ -653,7 +651,7 @@ extension RenderNode {
         return false
     }
 
-    /// Ids that occur more than once in this subtree (§10.5 requires none).
+    /// Ids that occur more than once in this subtree (ids must be unique).
     public var duplicateIds: [String] {
         var seen = Set<String>(), dupes: [String] = []
         walk { if !seen.insert($0.id).inserted { dupes.append($0.id) } }

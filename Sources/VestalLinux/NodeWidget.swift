@@ -7,8 +7,8 @@ import VestalCore
 //
 // Every render-model node is one `VestalNode`, a minimal GtkWidget subclass
 // registered here. Its measure, size_allocate and snapshot vfuncs call the
-// Swift `NodeView` attached to it, which implements the layout rules of §10.4
-// and draws backgrounds, borders, bars, rings, sparklines, dividers and icon
+// Swift `NodeView` attached to it, which implements the layout rules and
+// draws backgrounds, borders, bars, rings, sparklines, dividers and icon
 // glyphs. Text is a GtkLabel child of its node.
 //
 // Ownership: the widget holds a strong reference to its NodeView (object
@@ -114,7 +114,7 @@ struct Rect {
 /// Allocates `child` at `frame` in its parent's coordinates. Edges are
 /// rounded independently so rounding never accumulates along a stack; the
 /// size is at least the child's minimum, so GTK never sees it underallocated
-/// (content that doesn't fit overflows, as §10.4 rule 2 says).
+/// (content that doesn't fit overflows).
 func place(_ child: WidgetPtr, _ frame: Rect, baseline: Int32 = -1) {
     var minW: Int32 = 0, minH: Int32 = 0
     gtk_widget_measure(child, GTK_ORIENTATION_HORIZONTAL, -1, &minW, nil, nil, nil)

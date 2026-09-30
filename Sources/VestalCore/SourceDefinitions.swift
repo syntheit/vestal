@@ -7,12 +7,11 @@ import Foundation
 //   - inline sources: a widget's `source` given as an object instead of a
 //     name. Each becomes a source named `inline:<sha8>` after its canonical
 //     JSON (SourceConfig.inlineName), so identical definitions share one
-//     fetch (EXTENSIBILITY.md 5.1).
+//     fetch.
 //   - the v0.3 widgets' own data, now served by the `media` and `claude`
 //     source types: a media widget's player and a claudeUsage widget's
 //     options become inline sources too. This is the part of the legacy
-//     adapter (EXTENSIBILITY.md 7.5) the data layer needs; phase 5 adds the
-//     rest.
+//     adapter the data layer needs.
 //
 // Inline sources are added to `Config.sources` when the config is decoded
 // (ConfigLoader.decode); `Config.runtimeSources` adds the adapter-made ones.
@@ -24,8 +23,7 @@ public enum InlineSources {
     /// replaced by its generated name, and the definitions added to
     /// `sources`. An object that doesn't decode as a source (no `type`) is
     /// left alone; check-config reports it. Template bodies are not
-    /// searched: their inline sources exist once the templates are expanded
-    /// (phase 4).
+    /// searched: their inline sources exist once the templates are expanded.
     public static func extract(_ merged: AnyJSON) -> AnyJSON {
         guard case .object(var top) = merged else { return merged }
         var found: [String: AnyJSON] = [:]
@@ -146,12 +144,11 @@ public enum SourceReaders {
     public static let system = "system"
 
     /// Source name → the widgets of `view` that read it, as `view/widget`,
-    /// in view order. A visible-only source nobody reads is not fetched
-    /// (EXTENSIBILITY.md 5.1). For the v0.3 widgets: system bars, local
+    /// in view order. A visible-only source nobody reads is not fetched.
+    /// For the v0.3 widgets: system bars, local
     /// hosts and media rows (the volume) read `system`; media and Claude
     /// usage read their adapter-made sources; the rest read their `source`,
-    /// their items' and their hosts'. The v0.4 widget tree (phase 4) will add
-    /// its own readers.
+    /// their items' and their hosts'.
     public static func readers(of config: Config, view: String = "main") -> [String: [String]] {
         var readers: [String: [String]] = [:]
         func add(_ source: String, _ key: String) {

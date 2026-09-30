@@ -4,7 +4,7 @@ import Foundation
 //
 // The config subcommands of the `vestal` executable, as functions of their
 // arguments and environment so they are tested directly. main.swift writes
-// `stdout` and `stderr` and exits with `status` (docs/EXTENSIBILITY.md §11.1):
+// `stdout` and `stderr` and exits with `status`:
 // 0 ok (warnings included), 1 when the file can't be read or parsed (vestal
 // would run on the built-in defaults), 2 for bad usage, 3 when the config has
 // errors (or, with --strict, warnings). v0.3 findings are all warnings, so a
@@ -27,7 +27,7 @@ public enum ConfigCommands {
         "usage: vestal check-config [path|-] [--json] [--strict] [--platform macos|linux|all] [--commands]"
 
     /// `vestal check-config [path|-] [--json] [--strict] [--platform macos|linux|all] [--commands]`
-    /// (§11.2): where the config comes from, and every finding, with its
+    /// where the config comes from, and every finding, with its
     /// pointer and a did-you-mean. Without a path, checks the file vestal
     /// would load; `-` reads stdin.
     public static func checkConfig(
@@ -328,7 +328,7 @@ public enum ConfigCommands {
                           stderr: warnings)
         }
         if options.flags.contains("templates") {
-            // Built-ins and the user's, each marked (EXTENSIBILITY.md 7.2 rule 8).
+            // Built-ins and the user's, each marked.
             let registry = loaded.expanded.registry
             var out: [String: AnyJSON] = [:]
             for name in registry.names {
@@ -373,7 +373,7 @@ public enum ConfigCommands {
 
     static let schemaUsage = "usage: vestal schema [--config <path>] [--out <file>]"
 
-    /// `vestal schema [--config <path>] [--out <file>]` (§11.3): the JSON
+    /// `vestal schema [--config <path>] [--out <file>]`: the JSON
     /// Schema of the config file. `--config` adds that config's own
     /// templates as types; a config without templates gets the same schema.
     public static func schema(_ arguments: [String], home: String = NSHomeDirectory()) -> Output {
@@ -396,7 +396,7 @@ public enum ConfigCommands {
             if loaded.hasErrors {
                 return Output(status: 1, stderr: loaded.warnings.filter(\.isError).map { "vestal: \($0)\n" }.joined())
             }
-            // The config's own templates become types (§11.3).
+            // The config's own templates become types.
             if !loaded.expanded.registry.user.isEmpty { templates = loaded.expanded.registry }
         }
         let text = ConfigSchema.text(templates: templates)
@@ -511,7 +511,7 @@ public enum ConfigCommands {
     }
 
     /// Exit 2 with the message and usage on stderr, or with `--json`, the
-    /// error object of §11.1.
+    /// JSON error object.
     static func usageError(_ message: String, usage: String, json: Bool) -> Output {
         if json { return Output(status: 2, stderr: errorJSON("usage", message)) }
         return Output(status: 2, stderr: "vestal: \(message)\n\(usage)\n")

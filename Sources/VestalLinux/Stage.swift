@@ -6,9 +6,9 @@ import VestalCore
 // MARK: - Stage
 //
 // The window's content, bottom to top: the aurora, the view's root node
-// (§10.4 rule 5: `min(maxWidth, window width)` wide, centred both ways, and
-// clipped at the bottom when taller than the window), and while a popup is
-// open, the scrim and the popup's card (§9.4).
+// (`min(maxWidth, window width)` wide, centred both ways, and clipped at the
+// bottom when taller than the window), and while a popup is open, the scrim
+// and the popup's card.
 
 final class StageView: NodeView {
     let aurora: AuroraArea
@@ -97,7 +97,7 @@ final class StageView: NodeView {
     }
 }
 
-/// The dimmed backdrop behind a popup. A click on it is Esc (§12).
+/// The dimmed backdrop behind a popup. A click on it is Esc.
 final class ScrimView: NodeView {
     init(context: RenderContext) {
         super.init(chrome: "scrim", context: context)
@@ -121,7 +121,7 @@ final class ScrimView: NodeView {
 }
 
 /// The popup's card: a solid `bg` card, radius 14, a 10% white stroke and a
-/// soft shadow (§9.4, v0.3's SystemDetailView chrome), holding the popup's
+/// soft shadow (v0.3's SystemDetailView chrome), holding the popup's
 /// node at the popup's width.
 final class CardView: NodeView {
     static let radius = 14.0

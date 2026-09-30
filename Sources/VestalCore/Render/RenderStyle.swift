@@ -1,9 +1,9 @@
 import Foundation
 
-// MARK: - Styling (EXTENSIBILITY.md §8)
+// MARK: - Styling
 //
-// The palette a config draws with (§8.2), the colour grammar (§8.3) and the
-// text style that widgets inherit (§8.4). Nodes carry a palette name when a
+// The palette a config draws with, the colour grammar and the
+// text style that widgets inherit. Nodes carry a palette name when a
 // colour is one, so a palette change is a single `theme` op; anything else
 // (hex, `name@alpha`) is sent resolved as `#rrggbbaa`.
 
@@ -15,7 +15,7 @@ public struct RenderPalette: Equatable, Sendable {
 
     public static let builtin = ["tokyo-night": RenderTheme.tokyoNight]
 
-    /// From the config's `theme` (§8.1): the chosen palette (built-in, or a
+    /// From the config's `theme`: the chosen palette (built-in, or a
     /// key of `palettes` extending another), then `colors` over it.
     public init(theme: AnyJSON?) {
         let theme = theme?.objectValue ?? [:]
@@ -63,7 +63,7 @@ public struct RenderPalette: Equatable, Sendable {
         self.problems = problems
     }
 
-    /// A colour value (§8.3) as a node carries it: a palette name as is,
+    /// A colour value as a node carries it: a palette name as is,
     /// anything else as `#rrggbbaa`. Nil when it isn't a colour.
     public func resolve(_ text: String) -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
@@ -116,7 +116,7 @@ public struct RenderPalette: Equatable, Sendable {
     }
 }
 
-/// The inherited text style (§8.4), resolved.
+/// The inherited text style, resolved.
 struct TextStyle: Equatable {
     var size: Double = 13
     var weight: Int = 400

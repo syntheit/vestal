@@ -56,7 +56,7 @@ import Glibc
 // runs on the caller's queue (default: main). The client is synchronous (the
 // CLI has nothing else to do) and bounded by a timeout.
 //
-// `subscribe` (v0.4, EXTENSIBILITY.md §10.8) is the one long-lived request:
+// `subscribe` (v0.4) is the one long-lived request:
 // the connection stays open, has no deadline, and becomes a two-way stream
 // of JSON lines handed to `subscriptionHandler` as an `IPCSubscription`.
 // Its output is queued per connection and written as the client reads; a
@@ -84,8 +84,8 @@ public enum IPCCommand: String, CaseIterable, Sendable {
     /// v0.4: an expression's outputs with the instance's data (`vestal
     /// eval`); needs `expr`, takes `source`, `template` and `at`.
     case eval
-    /// v0.4: a long-lived connection that streams the render model
-    /// (EXTENSIBILITY.md §10.7, §10.8); takes `role`, `protocol`, `minor`,
+    /// v0.4: a long-lived connection that streams the render model;
+    /// takes `role`, `protocol`, `minor`,
     /// `client`, `capabilities`, `whileHidden`, `control` and `view`. The
     /// server hands it to its `subscriptionHandler`, never to the request
     /// handler.
@@ -107,7 +107,7 @@ public enum IPCCommand: String, CaseIterable, Sendable {
 /// ignores JSON keys it doesn't know, so later arguments stay compatible.
 public struct IPCRequest: Equatable, Sendable {
     public var command: IPCCommand
-    /// The view `show` and `toggle` open (§9.1).
+    /// The view `show` and `toggle` open.
     public var view: String?
     /// `fetch`: the source's name.
     public var source: String?
@@ -140,9 +140,9 @@ public struct IPCRequest: Equatable, Sendable {
     /// `subscribe`: an observer whose `invoke`, `key`, `hide` and `view`
     /// count.
     public var control: Bool?
-    /// `press`: the key, in the hotkey grammar (§9.2).
+    /// `press`: the key, in the hotkey grammar.
     public var key: String?
-    /// `screenshot`: the render model to draw, a snapshot file (§10.2).
+    /// `screenshot`: the render model to draw, a snapshot file.
     public var model: String?
     /// `screenshot`: the PNG to write, an absolute path (nil: none).
     public var path: String?
@@ -283,7 +283,7 @@ public struct IPCRequest: Equatable, Sendable {
     }
 }
 
-/// One source as `vestal sources` lists it (EXTENSIBILITY.md 11.4).
+/// One source as `vestal sources` lists it.
 public struct IPCSourceInfo: Codable, Equatable, Sendable {
     public var name: String
     public var type: String
@@ -530,7 +530,7 @@ public enum IPC {
     public static let defaultFetchTimeout: TimeInterval = 30
     /// The most a `fetch` request may ask for.
     public static let maxFetchTimeout: TimeInterval = 300
-    /// How long the instance's UI gets to take a screenshot (§11.6: 10 s).
+    /// How long the instance's UI gets to take a screenshot.
     public static let screenshotTimeout: TimeInterval = 10
 
     /// Whether `$XDG_RUNTIME_DIR` is honoured: on Linux, not on macOS.
@@ -667,7 +667,7 @@ public final class IPCServer: @unchecked Sendable {
     private var lostOwnershipHandler: (() -> Void)?
     private var subscribeHandler: ((IPCRequest, IPCSubscription) -> Void)?
 
-    /// A subscriber this far behind (unsent bytes) is dropped (§10.8). Set
+    /// A subscriber this far behind (unsent bytes) is dropped. Set
     /// it before `start()`.
     public var streamBacklogLimit = 4 * 1024 * 1024
 
@@ -1497,7 +1497,7 @@ private final class IPCConnection: @unchecked Sendable {
     }
 }
 
-/// One `subscribe` connection, as the subscription handler sees it (§10.8).
+/// One `subscribe` connection, as the subscription handler sees it.
 /// `send` queues lines for the client and never blocks; `close` hangs up
 /// once they are written. `onMessage` gets each line the client sends and
 /// `onClosed` runs once when the connection ends (either side, or dropped

@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - vestal eval (EXTENSIBILITY.md §11.5)
+// MARK: - vestal eval
 //
 //   vestal eval <expr> [--source <name> | --input <file|-> | --null-input] [--template]
 //                      [--config <path>] [--var <name>=<json>]... [--at <time>]
@@ -163,7 +163,7 @@ public enum EvalCommand {
 
     /// The outputs as `{"ok": true, "outputs": [...]}`, or `{"ok": false,
     /// "error": {"kind", "code", "message", "offset", "suggestion"}}`
-    /// (§11.5). With `template`, the text's one output is the string.
+    /// With `template`, the text's one output is the string.
     public static func evaluate(_ expression: String, template: Bool, source: String?, model: RenderConfigModel,
                                 data: RenderData, now: Date) -> AnyJSON {
         evaluate(expression, template: template, input: source.flatMap { data.data($0) } ?? .null,

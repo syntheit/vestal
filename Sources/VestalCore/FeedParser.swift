@@ -6,7 +6,7 @@ import FoundationXML
 // MARK: - Feed parser
 //
 // `parse: "feed"`: RSS 2.0 (and RSS 1.0/RDF), Atom 1.0 and JSON Feed 1.x,
-// normalised to one shape (docs/EXTENSIBILITY.md 5.4):
+// normalised to one shape :
 //
 //     { "title": …, "url": …, "items": [ { "id", "title", "url", "date",
 //       "author", "summary" } ] }

@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - vestal press (EXTENSIBILITY.md §11.8, §9.2)
+// MARK: - vestal press
 //
 //   vestal press <key>                   the key goes to the running instance,
 //                                        as if typed on the dashboard
@@ -8,8 +8,8 @@ import Foundation
 //                [--config <path>|-] [--cached|--fetch|--data <dir>] [--at <time>]
 //
 // `--dry-run` works here, without an instance: it renders the view (the
-// data modes of §11.1), presses `--press` keys first, then says what the
-// key is bound to (§9.2 precedence) and what the action would do. Nothing
+// data modes), presses `--press` keys first, then says what the
+// key is bound to (popup keys first, then the view) and what the action would do. Nothing
 // runs: no `command` source (whatever the config), and no action.
 //
 // Exit: 0; 1 not running, hidden, or no binding (dry run); 2 usage; 4

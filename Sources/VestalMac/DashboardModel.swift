@@ -390,7 +390,7 @@ extension DashboardModel {
     /// Replaces what the dashboard shows with fixed values and stops
     /// following the runtime, so the v0.3 views can be drawn offscreen with
     /// the same data as a render-model fixture (`vestal render-file
-    /// --legacy`, the parity check of §13.4). The local host's row shows
+    /// --legacy`, the parity check). The local host's row shows
     /// the data's uptime when it has one, else this Mac's.
     func showFixedData(_ data: LegacyDashboardData) {
         detach()

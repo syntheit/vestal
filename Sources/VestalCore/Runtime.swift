@@ -5,7 +5,7 @@ import Foundation
 // Owns the data the dashboard shows, and one scheduler for all of it. Each
 // piece of work is a job:
 //
-//   - a source (EXTENSIBILITY.md 5): every source in the config, the inline
+//   - a source: every source in the config, the inline
 //     ones and those the v0.3 widgets read (`Config.runtimeSources`). An
 //     `always` source runs whether or not the dashboard is visible, every
 //     `refresh`, counted from the start of its last run so its cadence
@@ -20,8 +20,7 @@ import Foundation
 //   - a host's health (`host:<name>`), for each foyer host the main view
 //     shows: the command `foyer-api --host <url> /api/health`, every
 //     `interval`, visible-only as above, served from the cache on the next
-//     start if it is less than 30 minutes old. (Phase 5 turns these into
-//     `foyer` template sources.)
+//     start if it is less than 30 minutes old.
 //   - a ticker the platform layer registers (the clock): a callback on the
 //     main actor, usually visible-only.
 //
@@ -77,9 +76,8 @@ public struct SourceSnapshot: Equatable, Sendable {
     }
 }
 
-/// A source's metadata (EXTENSIBILITY.md 5.1), what `$meta` and
-/// `meta(name)` give an expression (phase 3) and `vestal sources --json`
-/// shows.
+/// A source's metadata: what `$meta` and `meta(name)` give an
+/// expression and `vestal sources --json` shows.
 public struct SourceMeta: Codable, Equatable, Sendable {
     public var name: String
     /// The last success, or nil.
@@ -141,12 +139,12 @@ public final class AppRuntime {
     /// When the dashboard was last shown (SourceConfig.showRefreshSeconds).
     private var shownAt: Date?
     /// The view whose widgets count as readers: visible-only sources are
-    /// fetched for this view only (§9.1: views not shown cost nothing). The
+    /// fetched for this view only (views not shown cost nothing). The
     /// render engine sets it when it switches views.
     public private(set) var view = "main"
     /// The config in effect, for replanning on a view switch.
     private var config: Config
-    /// The histories of every source (EXTENSIBILITY.md 5.6).
+    /// The histories of every source.
     public let histories: HistoryStore
 
     private let fetcher: SourceFetcher
@@ -250,14 +248,14 @@ public final class AppRuntime {
         job(key)?.plan?.readers ?? []
     }
 
-    /// `key`'s metadata now (EXTENSIBILITY.md 5.1).
+    /// `key`'s metadata now.
     public func meta(_ key: RuntimeKey) -> SourceMeta? {
         guard let job = job(key) else { return nil }
         return SourceMeta(name: key.description, snapshot: job.snapshot, refresh: job.interval, now: now())
     }
 
     /// The job for `key`. A host's health is the source `host:<name>` when
-    /// the legacy adapter made one (EXTENSIBILITY.md 7.5): its data is the
+    /// the legacy adapter made one: its data is the
     /// same foyer payload, untransformed.
     private func job(_ key: RuntimeKey) -> Job? {
         if let job = jobs[.snapshot(key)] { return job }
@@ -406,7 +404,7 @@ public final class AppRuntime {
 
     /// Reads the sources whose type allows it synchronously (`system`,
     /// `file`) and have no data younger than their interval, so the first
-    /// frame is complete (EXTENSIBILITY.md 15). `keys` nil means every such
+    /// frame is complete. `keys` nil means every such
     /// source. Their schedules count from now.
     public func readNow(_ keys: [RuntimeKey]? = nil) {
         let now = self.now()
@@ -681,7 +679,7 @@ public final class AppRuntime {
         jobs[id]?.generation = 0   // no run has 0
     }
 
-    /// Hide and reload (EXTENSIBILITY.md 5.1). The job keeps its last end,
+    /// Hide and reload. The job keeps its last end,
     /// so it is due again as soon as it may run.
     private func cancelVisibleOnlyFetches() {
         for (id, job) in jobs where job.visibleOnly && tasks[id] != nil {

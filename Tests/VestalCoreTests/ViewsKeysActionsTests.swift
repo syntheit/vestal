@@ -2,11 +2,11 @@ import Foundation
 import VestalCore
 import XCTest
 
-// Phase 7 (EXTENSIBILITY.md §9): views, keys and actions end to end, through
+// Views, keys and actions end to end, through
 // the resident and its live render engine, with a fake runtime fetcher, fake
 // media and audio providers and a fake command runner. The same core runs on
 // macOS (the app observes the engine) and Linux (the headless daemon, or the
-// GTK UI), so these tests are the "fake UI" of TASKS-v0.4 phase 7.
+// GTK UI), so these tests are the "fake UI".
 
 final class ViewsKeysActionsTests: XCTestCase {
     static let config = """
@@ -193,7 +193,7 @@ final class ViewsKeysActionsTests: XCTestCase {
         h.resident.handle(IPCRequest(.toggle, view: "main")) { replies.add($0) }
         XCTAssertTrue(h.resident.isVisible)
         await eventually("main") { h.engine.snapshot?.view == "main" }
-        // `show` alone opens defaultView (§16 Q4).
+        // `show` alone opens defaultView.
         h.engine.key("2")
         await eventually("focus by key") { h.engine.snapshot?.view == "focus" }
         h.resident.handle(IPCRequest(.show)) { replies.add($0) }
@@ -210,7 +210,7 @@ final class ViewsKeysActionsTests: XCTestCase {
     }
 
     /// A visible-only source read only by another view is fetched when that
-    /// view is shown, not before (§9.1: views not shown cost nothing).
+    /// view is shown, not before (views not shown cost nothing).
     @MainActor
     func testVisibleOnlySourcesFollowTheView() async {
         let h = Harness()

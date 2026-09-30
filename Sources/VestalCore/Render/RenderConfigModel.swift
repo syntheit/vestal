@@ -14,16 +14,16 @@ public final class RenderConfigModel: @unchecked Sendable {
     /// View names, sorted (the snapshot's `views` order).
     public let viewNames: [String]
     public let defaultView: String
-    /// Global key bindings (§9.2), key → action.
+    /// Global key bindings, key → action.
     public let keys: [String: AnyJSON]
     public let palette: RenderPalette
     public let theme: RenderTheme
     public let environment: ExprEnvironment
     public let sources: [String: SourceConfig]
     public let sourceNames: Set<String>
-    /// `theme.scale` (§8.1).
+    /// `theme.scale`.
     public let scale: Double
-    /// `theme.density` (§8.1): `comfortable` or `compact`.
+    /// `theme.density`: `comfortable` or `compact`.
     public let density: String
     /// The config file (nil: the built-in defaults) and its `version`, for
     /// the info popup.
@@ -79,7 +79,7 @@ public final class RenderConfigModel: @unchecked Sendable {
     }
 
     /// The order `tab` cycles through: views with a key by key, then the
-    /// rest by name (§9.1).
+    /// rest by name.
     public var cycleOrder: [String] {
         let keyed = viewNames.filter { views[$0]?.key != nil }.sorted { (views[$0]!.key!, $0) < (views[$1]!.key!, $1) }
         return keyed + viewNames.filter { views[$0]?.key == nil }
@@ -105,7 +105,7 @@ public final class RenderConfigModel: @unchecked Sendable {
     }
 }
 
-/// A view (§9.1).
+/// A view.
 public struct ViewSpec: Equatable, Sendable {
     public var name: String
     public var title: String
@@ -120,7 +120,7 @@ public struct ViewSpec: Equatable, Sendable {
     /// Widget keys (strings) or inline widgets, expanded.
     public var children: [AnyJSON]
     /// Written with v0.3's `order` (not `children`): only the first *listed*
-    /// entry gets no space before it (§13.1 rule 8b).
+    /// entry gets no space before it.
     public var usesOrder: Bool
     public var keys: [String: AnyJSON]
 
@@ -157,7 +157,7 @@ public struct ViewSpec: Equatable, Sendable {
 
 /// The sources' data, metadata and histories at one moment, as expressions
 /// see them (`ExprData`). Records which sources a pass read, for
-/// dependency tracking (§4.7).
+/// dependency tracking.
 public final class RenderData: ExprData {
     /// Transformed data of the sources that have some.
     public let sources: [String: JQValue]
@@ -285,7 +285,7 @@ public final class RenderTransformCache: @unchecked Sendable {
     }
 
     /// The data widgets see: parsed (`raw` sources as a string), then
-    /// `transform` (§5.1).
+    /// `transform`.
     static func transform(_ data: Data, _ definition: SourceConfig?, _ environment: ExprEnvironment) -> (JQValue?, String?) {
         let parsed: JQValue
         if definition?.parse == "raw" {

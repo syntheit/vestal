@@ -95,8 +95,8 @@ private final class LaunchOutcome: @unchecked Sendable {
 /// they do (Escape, popups, host letters, `p`, views). The window, the blur,
 /// the aurora, the fades and the hotkey are as in v0.3. With
 /// `VESTAL_LEGACY_UI=1` the v0.3 widget views draw instead, from
-/// `DashboardModel`, with v0.3's key handling (EXTENSIBILITY.md §16.1 Q2;
-/// they go in 0.4.1).
+/// `DashboardModel`, with v0.3's key handling (they go
+/// in 0.4.1).
 final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
     private let loaded: LoadedConfig
     private let startHidden: Bool
@@ -405,7 +405,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
 
     // MARK: Keys
 
-    /// Every key press goes to the engine, in the §9.2 grammar; the core
+    /// Every key press goes to the engine, in the hotkey grammar; the core
     /// decides what it means (Escape, popups, host letters, views). Keys
     /// with Cmd are passed on as well, as v0.3 left them to the system.
     private func installKeyMonitor() {

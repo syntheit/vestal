@@ -2,7 +2,7 @@
 
 One JSON file drives vestal on macOS and Linux. This page is the contract for v0.4: every key the config language has, its type and its default. `vestal check-config` reports anything else.
 
-The same reference ships in the binary, so an agent with only `vestal` has it: `vestal docs` lists the topics, `vestal docs config` prints this page's rules followed by a table of every key generated from the schema registry, and `vestal schema` prints the JSON Schema. Where a table here would only repeat those, this page points to them. docs/EXTENSIBILITY.md is the full design.
+The same reference ships in the binary, so an agent with only `vestal` has it: `vestal docs` lists the topics, `vestal docs config` prints this page's rules followed by a table of every key generated from the schema registry, and `vestal schema` prints the JSON Schema. Where a table here would only repeat those, this page points to them.
 
 ## Where vestal looks
 

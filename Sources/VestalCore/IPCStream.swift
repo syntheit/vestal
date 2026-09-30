@@ -8,7 +8,7 @@ import Glibc
 
 // MARK: - Streaming client
 //
-// The client end of `subscribe` (EXTENSIBILITY.md §10.8): `vestal subscribe`
+// The client end of `subscribe`: `vestal subscribe`
 // and the tests' reference client. The request goes out like any other; the
 // connection then stays open, and both ends write JSON lines.
 

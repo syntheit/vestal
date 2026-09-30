@@ -2,10 +2,10 @@ import Foundation
 import XCTest
 import VestalCore
 
-/// The render-model value types (EXTENSIBILITY.md §10): decoding, the
+/// The render-model value types: decoding, the
 /// deterministic encoding (sorted keys, defaults omitted), patches and input
 /// messages. The fixtures in `Fixtures/render/` are hand-built for the Linux
-/// UI (phase L1).
+/// UI.
 final class RenderModelTests: XCTestCase {
     private func snapshot(_ name: String) throws -> RenderSnapshot {
         try RenderJSON.decoder.decode(RenderSnapshot.self, from: Fixture.data("render/\(name)"))

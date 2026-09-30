@@ -2,8 +2,8 @@ import Foundation
 import VestalCore
 import XCTest
 
-// EXTENSIBILITY.md §7.2 rule by rule, source templates (§7.4), inline
-// sources and the legacy adapter (§7.5).
+// Expansion rule by rule, source templates, inline sources and the legacy
+// adapter.
 
 final class TemplateExpansionTests: XCTestCase {
     private func tree(_ text: String) -> AnyJSON {
@@ -242,7 +242,7 @@ final class TemplateExpansionTests: XCTestCase {
         XCTAssertTrue(e.registry.problems.contains { $0.path == "templates.t.params.value" && $0.severity == .error })
     }
 
-    // MARK: Source templates (§7.4)
+    // MARK: Source templates
 
     func testFoyerSourceTemplate() {
         let e = expand("""

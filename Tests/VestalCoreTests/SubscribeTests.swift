@@ -3,7 +3,7 @@ import Foundation
 import VestalCore
 import XCTest
 
-/// Phase 8: the subscribe protocol (EXTENSIBILITY.md §10.7, §10.8). The
+/// The subscribe protocol. The
 /// stream layer over a real socket (slow readers, hang-ups, many
 /// subscribers), then a reference client against a live RenderEngine: hello,
 /// snapshot, patches for a changing source, `key` and `invoke` with their

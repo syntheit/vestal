@@ -2,8 +2,8 @@ import Foundation
 
 // MARK: - iCalendar (.ics) documents
 //
-// The portable reader behind the `calendar` source's `ics` key
-// (EXTENSIBILITY.md 5.2): the text of one .ics document in, the occurrences
+// The portable reader behind the `calendar` source's `ics` key:
+// the text of one .ics document in, the occurrences
 // of its events in a time range out. Reading files, directories and URLs is
 // the caller's job.
 //

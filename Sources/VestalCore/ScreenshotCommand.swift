@@ -3,7 +3,7 @@ import Foundation
 import Glibc
 #endif
 
-// MARK: - vestal screenshot (EXTENSIBILITY.md §11.6)
+// MARK: - vestal screenshot
 //
 //   vestal screenshot <out.png> [--view <name>] [--config <path>|-]
 //                     [--cached|--fetch|--data <dir>] [--at <time>] [--press <key>]...

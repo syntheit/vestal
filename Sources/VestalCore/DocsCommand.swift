@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - vestal docs
 //
-// The documentation built into the binary (docs/EXTENSIBILITY.md §11.7), so
+// The documentation built into the binary, so
 // an agent with only `vestal` has everything. Prose topics are the Markdown
 // in AGENTS.md and docs/reference/, compiled into EmbeddedDocs.swift by
 // nix/gen-docs.py. Reference parts are generated here at runtime, from the
@@ -383,7 +383,7 @@ public enum DocsCommand {
         var out = """
         ## Keys
 
-        Generated from the schema registry, like `vestal schema`. Kind (§4.1 of the spec): `literal` is a JSON value; \
+        Generated from the schema registry, like `vestal schema`. Kind: `literal` is a JSON value; \
         `text` is text that will take `{{ expr }}` holes; `expr` is a jq expression.
 
         """

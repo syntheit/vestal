@@ -64,7 +64,7 @@ struct CaptureFailure: Error, CustomStringConvertible {
 enum ScreenCapture {
     /// How long a capture may take, as a show waits for it: the whole
     /// round trip, output lookup included. One frame at 60 Hz plus the copy
-    /// is typical (see HANDOFF for measurements).
+    /// is typical.
     static let timeout = 80
 
     private static let queue = DispatchQueue(label: "vestal.screencapture", qos: .userInteractive)

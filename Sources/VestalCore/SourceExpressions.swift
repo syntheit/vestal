@@ -1,21 +1,18 @@
 import Foundation
 
-// MARK: - Source expressions (seam for phase 3)
+// MARK: - Source expressions
 //
-// A source's `transform` and its histories' `value` are jq expressions
-// (EXTENSIBILITY.md 4.1, 5.6), evaluated by the engine from branch
-// `expr-engine` once phase 3 wires it in. Until then `PathExpressions`
-// evaluates the plain paths that need no engine (`.`, `.a.b`, `.items[0]`,
-// `.["odd key"]`) and reports anything else as not supported yet, so
-// `vestal fetch` and simple histories (`.bitcoin.usd`) work today. Phase 3
-// supplies a `SourceExpressions` backed by the engine and passes it wherever
-// `PathExpressions()` is the default.
+// A source's `transform` and its histories' `value` are jq expressions,
+// evaluated by the expression engine (EngineSourceExpressions).
+// `PathExpressions` is the fallback: it evaluates the plain paths that need
+// no engine (`.`, `.a.b`, `.items[0]`, `.["odd key"]`) and reports anything
+// else as not supported.
 
 public protocol SourceExpressions: Sendable {
     /// A source's `transform` applied to its parsed data.
     func transform(_ expression: String, _ data: AnyJSON) throws -> AnyJSON
     /// A history's `value`: the number it gives for `data`, or nil (a
-    /// non-number is skipped, EXTENSIBILITY.md 5.6).
+    /// non-number is skipped).
     func number(_ expression: String, _ data: AnyJSON) -> Double?
 }
 
@@ -97,7 +94,7 @@ public struct PathExpressions: SourceExpressions {
 // MARK: - Reading a source's data
 
 public enum SourceData {
-    /// Transformed data above this fails (EXTENSIBILITY.md 5.1).
+    /// Transformed data above this fails.
     public static let maxTransformed = 4 * 1024 * 1024
 
     /// A snapshot's bytes as JSON: parsed for JSON-producing sources, a

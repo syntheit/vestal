@@ -2,7 +2,7 @@ import Foundation
 import VestalCore
 import XCTest
 
-// Phase 2 review findings, each pinned: hostile ICS input, impossible feed
+// Review findings, each pinned: hostile ICS input, impossible feed
 // dates, histories removed from the config or not to be persisted, secrets
 // scrubbed before first use, and the validator's new checks.
 

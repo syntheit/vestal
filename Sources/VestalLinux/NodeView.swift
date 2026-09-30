@@ -6,7 +6,7 @@ import VestalCore
 // MARK: - NodeView
 //
 // One render-model node on screen: its VestalNode widget, a GtkLabel for
-// text, and the child NodeViews. Layout follows EXTENSIBILITY.md §10.4:
+// text, and the child NodeViews. Layout follows these rules:
 //
 // - Sizes: a number is exact, `fill` takes the parent's offer, absent is fit
 //   (the natural size, capped by the offer). The core has already propagated
@@ -72,7 +72,7 @@ class NodeView {
     // MARK: Building
 
     private func build() {
-        // Ids are unique (§10.5). Should one repeat, the first keeps it, as
+        // Ids are unique. Should one repeat, the first keeps it, as
         // RenderSnapshot.apply finds the first match (root before popup).
         if context.nodes[node.id] != nil {
             uiLog("linux ui: duplicate node id \(node.id)")
@@ -213,7 +213,7 @@ class NodeView {
 
     /// GTK's measure. Overridden by the stage, scrim and card.
     func measure(horizontal: Bool, forSize: Double) -> Measure {
-        // A minimum of 0: numeric sizes are exact (§10.4 rule 1), and a
+        // A minimum of 0: numeric sizes are exact, and a
         // label that doesn't fit its node overflows it (`place` never gives
         // the label itself less than its minimum).
         if horizontal { return Measure(minimum: 0, natural: fitWidth()) }
@@ -513,7 +513,7 @@ class NodeView {
     }
 
     /// Width for an offer: a number is exact (and may overflow); fit is the
-    /// natural width capped by the offer (§10.4 rule 1).
+    /// natural width capped by the offer.
     func offeredWidth(_ offer: Double) -> Double {
         if case .points = node.width { return fitWidth() }
         return min(fitWidth(), offer)
@@ -680,7 +680,7 @@ class NodeView {
     // MARK: Icon
 
     private func drawIcon(_ snapshot: OpaquePointer, _ icon: RenderNode.Icon, _ box: Rect) {
-        // `sf:` names have no glyph and draw nothing off macOS (§8.6).
+        // `sf:` names have no glyph and draw nothing off macOS.
         guard let glyph = icon.glyph, !glyph.isEmpty else { return }
         if iconLayout == nil {
             let layout = gtk_widget_create_pango_layout(widget, glyph)

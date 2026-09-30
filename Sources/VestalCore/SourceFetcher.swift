@@ -18,7 +18,7 @@ import FoundationNetworking
 // the text for `raw`, and canonical JSON for `lines`, `feed`, `exists` and
 // the built-in types.
 //
-// Limits (EXTENSIBILITY.md 5.1): an HTTP body, a command's stdout or a file
+// Limits: an HTTP body, a command's stdout or a file
 // above 10 MiB fails the fetch; a command's stderr is kept to its first
 // 4 KiB, for the error message; a feed keeps its first 500 items.
 
@@ -101,7 +101,7 @@ public struct LiveFetcher: SourceFetcher {
     }
     /// Where a calendar source's range starts, and `claude`'s windows end.
     public var now: @Sendable () -> Date
-    /// False for a draft config (EXTENSIBILITY.md 11.1): `command` sources
+    /// False for a draft config: `command` sources
     /// fail with "not loaded (draft: pass --allow-commands)".
     public var allowCommands: Bool
     /// False skips HTTP (`--no-network`).
@@ -109,7 +109,7 @@ public struct LiveFetcher: SourceFetcher {
     public var home: String
 
     /// The info note of a calendar source without `ics` where there is no
-    /// calendar backend (Linux): it yields `[]` (EXTENSIBILITY.md 5.2).
+    /// calendar backend (Linux): it yields `[]`.
     public static let noCalendarBackend = "no calendar backend: set \"ics\" (.ics files, directories or URLs)"
 
     public init(calendar: CalendarProvider? = nil, now: @escaping @Sendable () -> Date = { Date() }) {

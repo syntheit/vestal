@@ -2,8 +2,8 @@ import Foundation
 import VestalCore
 import XCTest
 
-/// Phase 6: what `vestal` does with its arguments (VestalCore's `CLI`), with
-/// a scripted client in place of the socket.
+/// What `vestal` does with its arguments (VestalCore's `CLI`), with a
+/// scripted client in place of the socket.
 final class CLITests: XCTestCase {
     // MARK: Parsing
 

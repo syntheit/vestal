@@ -6,9 +6,9 @@ import VestalCore
 
 // MARK: - Icons
 //
-// Config names icons in the bundled Phosphor set on every OS (§8.6). With
-// `theme.icons: "native"` (the macOS default, §16.1) the names below draw as
-// the SF Symbols v0.3 drew, so the owner's dashboard keeps its look; every
+// Config names icons in the bundled Phosphor set on every OS. With
+// `theme.icons: "native"` (the macOS default) the names below draw as the SF
+// Symbols v0.3 drew, so the existing dashboard keeps its look; every
 // other name draws its glyph in the Phosphor font. `sf:<name>` icons (only
 // allowed under `platform.macos`) are SF Symbols in either mode.
 
@@ -26,7 +26,7 @@ enum NativeIcons {
     }
 
     /// Phosphor name → SF Symbol. First every icon the v0.3 dashboard shows
-    /// (§8.6's table, read backwards), then a set of common ones. A symbol
+    /// (the preset table, read backwards), then a set of common ones. A symbol
     /// this macOS doesn't have falls back to the Phosphor glyph.
     static let table: [String: Symbol] = [
         // v0.3's icons.
@@ -50,7 +50,7 @@ enum NativeIcons {
         "pause": Symbol("pause", "pause.fill"),
         "speaker-none": Symbol("speaker", "speaker.fill"),
         // v0.3 had three wave levels; the preset collapses 1–65 to
-        // speaker-low (§8.6), drawn as the middle one.
+        // speaker-low, drawn as the middle one.
         "speaker-low": Symbol("speaker.wave.2", "speaker.wave.2.fill"),
         "speaker-high": Symbol("speaker.wave.3", "speaker.wave.3.fill"),
         "speaker-x": Symbol("speaker.slash", "speaker.slash.fill"),

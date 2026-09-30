@@ -2,12 +2,11 @@ import Foundation
 
 // MARK: - Validation of the v0.4 model
 //
-// check-config's findings for what v0.4 adds (EXTENSIBILITY.md §4, §6–§9,
-// §11.2): the engine's widget types and their fields, template instances,
+// check-config's findings for what v0.4 adds: the engine's widget types and their fields, template instances,
 // views with `children`, `defaultView`, key bindings, user `functions` and
 // `templates`, colours and icons, and every expression: each expr field is
 // compiled, and each text field's `{{ }}` holes, with the variables in scope
-// at that place (§4.2: the reserved names, the enclosing `vars`, a
+// at that place (the reserved names, the enclosing `vars`, a
 // template's data parameters; `$item`, `$index`, `$parent` only in rows).
 // Template parameters and keys of template instances are checked by the
 // expansion (ConfigExpansion), not here.
@@ -29,7 +28,7 @@ struct V04Checker {
     let sourceNames: Set<String>
     let widgetNames: Set<String>
 
-    /// Variables every widget expression may use (§4.2).
+    /// Variables every widget expression may use.
     static let widgetVariables: Set<String> = ["value", "data", "sources", "meta", "history", "params", "widget",
                                                "view", "tz", "os"]
     static let rowVariables: Set<String> = ["item", "index", "parent"]
@@ -73,7 +72,7 @@ struct V04Checker {
         }
     }
 
-    /// Global `keys` (§9.2).
+    /// Global `keys`.
     mutating func keys(_ value: AnyJSON?, path: String, scope: Scope = V04Checker.baseScope) {
         guard let value, value != .null else { return }
         guard case .object(let bindings) = value else {
@@ -86,7 +85,7 @@ struct V04Checker {
         }
     }
 
-    /// User `functions` (§4.8).
+    /// User `functions`.
     mutating func functions(_ value: AnyJSON) {
         guard case .object(let entries) = value else {
             if value != .null { add(.wrongType, "functions", "expected an object of name → jq body", severity: .warning) }
@@ -188,7 +187,7 @@ struct V04Checker {
         }
     }
 
-    /// The common fields (§6.1): source, input, vars, when, loading, style,
+    /// The common fields: source, input, vars, when, loading, style,
     /// the box fields, action and key. Returns the scope inside the widget.
     @discardableResult
     mutating func common(_ w: [String: AnyJSON], path: String, scope outer: Scope, inTemplate: Bool) -> Scope {
@@ -212,7 +211,7 @@ struct V04Checker {
         expr(w["input"], path: "\(path).input", scope: scope, inTemplate: inTemplate)
         if case .object(let vars)? = w["vars"] {
             for name in vars.keys.sorted() where ExprEnvironment.reservedVariables.contains(name) {
-                add(.invalidValue, "\(path).vars.\(name)", "\"\(name)\" is a reserved variable name (§4.2); rename it",
+                add(.invalidValue, "\(path).vars.\(name)", "\"\(name)\" is a reserved variable name; rename it",
                     code: "invalid-value", severity: .error)
             }
             let withVars = scope.adding(vars.keys)
@@ -435,7 +434,7 @@ struct V04Checker {
         }
     }
 
-    // MARK: Actions (§9.3)
+    // MARK: Actions
 
     static let actionKeys = ["run", "open", "copy", "refresh", "view", "popup", "close", "media", "audio", "hide"]
     static let actionSiblings: Set<String> = ["timeout", "env", "optimistic", "refreshAfter", "width", "source", "hide"]
@@ -489,7 +488,7 @@ struct V04Checker {
         }
     }
 
-    // MARK: Keys (§9.2)
+    // MARK: Keys
 
     static let namedKeys: Set<String> = Set([
         "tab", "space", "enter", "return", "escape", "esc", "left", "right", "up", "down", "home", "end",
@@ -536,7 +535,7 @@ struct V04Checker {
         color(fields["color"], path: "\(path).color", scope: scope.adding(["value"]), inTemplate: inTemplate)
     }
 
-    /// A colour (§8.3): a palette name, hex, `name@alpha`, `{"steps", "of"}`
+    /// A colour: a palette name, hex, `name@alpha`, `{"steps", "of"}`
     /// or `{"expr"}`.
     mutating func color(_ value: AnyJSON?, path: String, scope: Scope, inTemplate: Bool = false) {
         switch value {
@@ -568,7 +567,7 @@ struct V04Checker {
         }
     }
 
-    /// An icon name (§8.6): in the bundled set, or `sf:` under `platform.macos`.
+    /// An icon name: in the bundled set, or `sf:` under `platform.macos`.
     mutating func icon(_ value: AnyJSON?, path: String, scope: Scope, inTemplate: Bool = false) {
         switch value {
         case .string(let name)?:
@@ -639,7 +638,7 @@ struct V04Checker {
         switch environment.compile(source) {
         case .failure(var error):
             error = error.shifted(by: offset)
-            // A v0.3 path in a jq field (§4.3): suggest the jq form.
+            // A v0.3 path in a jq field: suggest the jq form.
             let trimmed = source.trimmingCharacters(in: .whitespaces)
             if legacyHint, !trimmed.hasPrefix("."), JQExpression.isLegacyPath(trimmed),
                error.code == "expr-unknown-function" || error.code == "expr-syntax" {

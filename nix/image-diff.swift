@@ -1,5 +1,5 @@
 // Counts the pixels that differ between two PNGs of the same size, for the
-// macOS parity check (EXTENSIBILITY.md §13.4, TASKS-v0.4 6b).
+// macOS parity check.
 //
 //   swift nix/image-diff.swift a.png b.png [--fuzz <percent>] [--out diff.png]
 //

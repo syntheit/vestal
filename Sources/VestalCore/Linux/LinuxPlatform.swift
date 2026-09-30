@@ -26,7 +26,7 @@ public enum LinuxPlatform {
 
     /// What the runtime's built-in sources read: the `system` source's own
     /// stats provider (kept for the process's lifetime, so a read after a
-    /// long hide is still a delta, EXTENSIBILITY.md 5.4), wpctl, playerctl.
+    /// long hide is still a delta), wpctl, playerctl.
     public static let sources = SourcePlatform(
         calendar: calendar,
         system: SystemSampler(stats: LinuxSystemStats(), audio: WirePlumberAudio()),

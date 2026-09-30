@@ -2,9 +2,9 @@ import Foundation
 
 // MARK: - Source expressions on the engine
 //
-// A source's `transform` and its histories' `value` (EXTENSIBILITY.md §5.1,
-// §5.6), evaluated with the vestal functions and the config's own
-// `functions`, under the limits of §4.4.
+// A source's `transform` and its histories' `value`, evaluated with the
+// vestal functions and the config's own `functions`, under the expression
+// limits.
 
 public struct EngineSourceExpressions: SourceExpressions {
     public let environment: ExprEnvironment

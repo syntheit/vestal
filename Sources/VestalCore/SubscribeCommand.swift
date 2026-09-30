@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - vestal subscribe (EXTENSIBILITY.md §11.8, §10.7)
+// MARK: - vestal subscribe
 //
 //   vestal subscribe [--view <name>] [--while-hidden] [--role ui|observer|control]
 //                    [--control] [--minor <n>] [--input]

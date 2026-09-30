@@ -1,7 +1,7 @@
 import Dispatch
 import Foundation
 
-// MARK: - The live render engine (EXTENSIBILITY.md §10.8, §4.7, §15)
+// MARK: - The live render engine
 //
 // Follows the runtime and keeps the render model current for an in-process
 // UI (the macOS dashboard, the GTK UI) and, later, socket subscribers:
@@ -15,9 +15,9 @@ import Foundation
 // While hidden nothing is evaluated. On show the whole view is evaluated
 // and a snapshot is sent; after that a source change re-evaluates only the
 // root widgets that read it, and a 1 s tick aligned to the second those
-// that call `now`; the difference goes out as a patch (§10.6). Evaluation
+// that call `now`; the difference goes out as a patch. Evaluation
 // runs on a serial queue, never on the main actor, so a slow or failing
-// expression can't stall the UI (each one is limited to 50 ms, §4.4).
+// expression can't stall the UI (each one is limited to 50 ms).
 // Updates are delivered on the main actor.
 //
 // Actions: `popup`, `close` and `view` change the model. `hide` and Escape
@@ -26,7 +26,7 @@ import Foundation
 // handler's clipboard fallback). `run`, `open`, `refresh`, `media` and
 // `audio` go to the `actions` handler; `RenderActionRunner` is the default.
 //
-// Optimistic updates (§9.3): a `run` action's `optimistic` expression, a
+// Optimistic updates: a `run` action's `optimistic` expression, a
 // play/pause and a mute or volume step replace their source's data at once.
 // The replacement stays until a fetch that started after the action took
 // effect (v0.3's rule: a poll that began before the click can't undo it):
@@ -50,7 +50,7 @@ public final class RenderEngine {
     public private(set) var snapshot: RenderSnapshot?
     public private(set) var isVisible = false
 
-    /// Keep evaluating while hidden (a `whileHidden` subscriber, §10.8, a
+    /// Keep evaluating while hidden (a `whileHidden` subscriber, a
     /// debugging aid): updates keep coming, with `visible: false`.
     public var evaluatesWhileHidden = false {
         didSet {
@@ -95,7 +95,7 @@ public final class RenderEngine {
     private var seq = 0
     /// Send `visibility` after the next snapshot (a show).
     private var announce = false
-    /// Sources whose data an optimistic action replaced (§9.3): name →
+    /// Sources whose data an optimistic action replaced: name →
     /// (raw data, the earliest start of a fetch that replaces it).
     private var optimistic: [String: (data: Data, since: Date)] = [:]
     /// Actions that failed lately (`run`), shown in `diagnostics`.
@@ -142,7 +142,7 @@ public final class RenderEngine {
 
     /// Shown: evaluate everything and send a snapshot, then visibility.
     /// Hidden: stop evaluating (and the tick). Opens `defaultView` on show
-    /// unless `show(view:)` named one (§16 Q4).
+    /// unless `show(view:)` named one.
     public func setVisible(_ visible: Bool) {
         guard visible != isVisible else { return }
         isVisible = visible
@@ -194,7 +194,7 @@ public final class RenderEngine {
 
     // MARK: Input
 
-    /// A message from the UI (§10.7).
+    /// A message from the UI.
     public func handle(_ input: RenderInput) {
         switch input {
         case .invoke(let id): invoke(id: id)
@@ -517,7 +517,7 @@ extension RenderSources {
 
 // MARK: - Actions the host carries out
 
-/// Runs the actions that reach outside the model (§9.3).
+/// Runs the actions that reach outside the model.
 @MainActor
 public protocol RenderActionHandler: AnyObject {
     func perform(_ effect: RenderActionEffect, engine: RenderEngine)

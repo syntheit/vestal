@@ -5,14 +5,14 @@ import VestalCore
 
 // MARK: - LinuxDashboard
 //
-// The GTK 4 dashboard, driven by render-model values (EXTENSIBILITY.md §10)
-// in-process. The core (or `vestal render-file`) calls:
+// The GTK 4 dashboard, driven by render-model values in-process.
+// The core (or `vestal render-file`) calls:
 //
 //   LinuxDashboard.initialize()           once, on the main thread
 //   let ui = LinuxDashboard { input in … } clicks and keys come back here
 //   ui.apply(snapshot)                    a whole model
 //   ui.apply(patch)                       ops in order; false: send a snapshot
-//   ui.setVisible(true / false)           the core owns visibility (§10.7)
+//   ui.setVisible(true / false)           the core owns visibility
 //   ui.perform(.copy(text))               effects
 //   MainLoop.run()                        GLib's loop, with Dispatch's main queue
 //
@@ -646,7 +646,7 @@ public final class LinuxDashboard {
 
     /// Every node's final frame in window coordinates, in tree order, with
     /// `clipped` (cut by the window or a `clip` ancestor) and `truncated`
-    /// (a text cut by `lines`), for `--frames` (§10.4, §11.6).
+    /// (a text cut by `lines`), for `--frames`.
     public func frames() -> [NodeFrame] {
         var result: [NodeFrame] = []
         let windowBounds = Rect(x: 0, y: 0, width: Double(gtk_widget_get_width(window)), height: Double(gtk_widget_get_height(window)))
@@ -694,7 +694,7 @@ extension Rect {
 
 // MARK: - Key names
 
-/// GDK key events in the hotkey grammar of §9.2: `h`, `2`, `tab`,
+/// GDK key events in the hotkey grammar: `h`, `2`, `tab`,
 /// `shift+tab`, `space`, `enter`, `left`, `escape`, `f5`, with modifiers
 /// `cmd` (Super), `ctrl`, `alt` and `shift` in that order.
 enum KeyNames {

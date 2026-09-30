@@ -8,7 +8,7 @@ import Darwin
 import Glibc
 #endif
 
-/// Phase 6: SIGTERM and SIGHUP through `SignalWatch`: the source sees them,
+/// SIGTERM and SIGHUP through `SignalWatch`: the source sees them,
 /// the default action (terminate) never runs, and programs started with the
 /// watch in place don't inherit an ignored SIGTERM. One test, because on
 /// Linux only the first watch of a signal in a process works (see

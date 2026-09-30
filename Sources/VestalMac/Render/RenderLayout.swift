@@ -4,7 +4,7 @@ import VestalCore
 
 // MARK: - Render layout
 //
-// EXTENSIBILITY.md §10.4 as SwiftUI `Layout`s. The arithmetic is the GTK
+// The render model's layout rules as SwiftUI `Layout`s. The arithmetic is the GTK
 // UI's (VestalLinux/NodeView.swift), line for line where it can be, so both
 // platforms lay out the same model the same way:
 //
@@ -91,7 +91,7 @@ func finite(_ value: CGFloat?) -> Double? {
 
 // MARK: - Child measurement
 
-/// What a parent layout asks of a child node (§10.4 rule 8's two passes).
+/// What a parent layout asks of a child node (layout rule 8's two passes).
 extension LayoutSubview {
     var spec: NodeSpec { self[NodeSpecKey.self] }
 
@@ -102,7 +102,7 @@ extension LayoutSubview {
     }
 
     /// Width for an offer: a number is exact (and may overflow); fit is the
-    /// natural width capped by the offer (§10.4 rule 1).
+    /// natural width capped by the offer.
     func offeredWidth(_ offer: Double) -> Double {
         if case .points? = spec.width { return fitWidth }
         return min(fitWidth, offer)
@@ -592,7 +592,7 @@ struct StageRoleKey: LayoutValueKey {
     static let defaultValue = StageRole.root
 }
 
-/// The window's content (§10.4 rule 5, §9.4): the root node
+/// The window's content: the root node
 /// `min(maxWidth, window width)` wide, centred both ways, and top-aligned
 /// (cut at the bottom) when taller than the window; the scrim over the whole
 /// window; the popup's card at the popup's width, centred.

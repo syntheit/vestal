@@ -2,8 +2,8 @@ import Foundation
 import VestalCore
 import XCTest
 
-/// check-config on v0.4 configs (EXTENSIBILITY.md §4, §6–§9, §11.2):
-/// expressions, widget types, views, keys, functions, colours and icons.
+/// check-config on v0.4 configs: expressions, widget types, views, keys,
+/// functions, colours and icons.
 final class CheckConfigV04Tests: XCTestCase {
     private func diagnostics(_ text: String, platform: ConfigPlatform = .linux) -> [ConfigDiagnostic] {
         let loaded = ConfigLoader.load(data: Data(text.utf8), path: "test.json", platform: platform, otherPlatforms: false)
@@ -36,7 +36,7 @@ final class CheckConfigV04Tests: XCTestCase {
 
     // MARK: Expressions (3g)
 
-    /// The §11.2 example.
+    /// The documented example.
     func testUnknownFunctionWithSuggestionAndOffset() throws {
         let all = diagnostics(#"{"widgets": {"cpu": {"type": "text", "source": "system", "value": ".cpu.percent | rond"}}}"#)
         let d = try XCTUnwrap(find(all, "/widgets/cpu/value"))

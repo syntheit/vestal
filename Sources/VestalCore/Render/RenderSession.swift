@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Keys (EXTENSIBILITY.md §9.2)
+// MARK: - Keys
 
 public enum RenderKeyMap {
     /// Bound by the core; a config may not bind them.
@@ -46,7 +46,7 @@ public enum RenderKeyMap {
     }
 }
 
-// MARK: - Diff (EXTENSIBILITY.md §10.6)
+// MARK: - Diff
 
 public enum RenderDiff {
     /// `replace` ops that turn `old` into `new`: top-down, a node whose own
@@ -81,7 +81,7 @@ public enum RenderDiff {
 
 /// Renders one config's views, keeping each root child's result so a change
 /// re-evaluates only the root children that read it, and the `now` tick
-/// only those that call `now` (§4.7). The live engine and `vestal render`
+/// only those that call `now`. The live engine and `vestal render`
 /// both use it. Not thread-safe.
 public final class RenderSession {
     public let model: RenderConfigModel
@@ -114,7 +114,7 @@ public final class RenderSession {
     public internal(set) var infoOpen = false
 
     /// Opens `widget` as the popup, `width` points wide before `theme.scale`
-    /// (a fixed size, §8.1).
+    /// (a fixed size).
     public func openPopup(_ widget: [String: AnyJSON], width: Double) {
         popup = (widget, width * model.scale)
         popupChild = nil
@@ -151,7 +151,7 @@ public final class RenderSession {
         }
         let root = pass.root(spec, children: children)
 
-        // Keys and actions: popup first (§9.2 precedence), then the view.
+        // Keys and actions: popup first (popup keys first), then the view.
         var candidates: [KeyCandidate] = []
         var bindings: [String: RenderActionBinding] = [:]
         if let popupChild {

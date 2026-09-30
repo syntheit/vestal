@@ -1,27 +1,27 @@
 import Foundation
 
-// MARK: - Templates (EXTENSIBILITY.md §7)
+// MARK: - Templates
 //
 // A template is a named, parameterised widget or source, used like a type:
 // `{"type": "<template>", "<param>": value, ...}`. The built-in ones
 // (DefaultPresets) sit in their own registry; the user's `templates` are
 // looked up first only when they don't clash with a built-in, or set
-// `"override": true` to replace it whole (§7.2 rule 8).
+// `"override": true` to replace it whole.
 
-/// The widget types the render engine draws itself (§6).
+/// The widget types the render engine draws itself.
 public enum WidgetTypes {
     public static let containers: [String] = ["stack", "row", "grid", "list", "table", "switch"]
     public static let primitives: [String] = ["text", "icon", "progress", "gauge", "sparkline", "keyValue", "divider", "spacer"]
     public static let all: Set<String> = Set(containers + primitives)
 
-    /// Fields every widget takes (§6.1). `span` places a grid child.
+    /// Fields every widget takes. `span` places a grid child.
     public static let commonFields: Set<String> = [
         "type", "id", "source", "input", "vars", "when", "loading", "style", "width", "height", "minWidth",
         "maxWidth", "padding", "background", "radius", "opacity", "clip", "spaceBefore", "alignSelf",
         "action", "key", "keyHint", "alt", "span",
     ]
 
-    /// Style shorthands accepted on `text`, `icon` and template instances (§8.4).
+    /// Style shorthands accepted on `text`, `icon` and template instances.
     public static let styleShorthands: Set<String> = ["size", "weight", "color"]
 
     /// Keys the expansion adds to a widget: the data parameters in scope
@@ -34,14 +34,14 @@ public enum WidgetTypes {
     static let widgetKeys = ["row", "default"]
 }
 
-/// One parameter of a template (§7.1).
+/// One parameter of a template.
 public struct TemplateParam: Equatable, Sendable {
     public static let types: Set<String> = [
         "string", "number", "integer", "boolean", "array", "object", "any", "duration", "color", "icon",
         "expr", "text", "source", "widget", "widgets",
     ]
     /// Parameters holding code are substituted only; the others are also
-    /// bound as `$<name>` (§7.2 rule 4).
+    /// bound as `$<name>`.
     public static let codeTypes: Set<String> = ["expr", "text", "widget", "widgets"]
 
     public var name: String
@@ -66,7 +66,7 @@ public struct TemplateParam: Equatable, Sendable {
     /// Whether `value` has this parameter's type.
     func accepts(_ value: AnyJSON) -> Bool {
         if case .object(let o) = value, o.count == 1, o["expr"] != nil, !Self.codeTypes.contains(type) {
-            return true  // computed at render (§4.1 R3)
+            return true  // computed at render
         }
         switch type {
         case "string", "text", "expr", "duration":
@@ -174,7 +174,7 @@ public struct TemplateRegistry: Equatable, Sendable {
         return result
     }()
 
-    /// `theme.density` `compact` (§8.1): the same templates and parameters,
+    /// `theme.density` `compact`: the same templates and parameters,
     /// with the bodies of DefaultPresets.compactTree in place of the ones
     /// it names.
     static let compactBuiltinTemplates: [String: TemplateDefinition] = {
@@ -222,11 +222,11 @@ public struct TemplateRegistry: Equatable, Sendable {
                                               severity: .error,
                                               suggestions: DidYouMean.suggestions(for: spec.type, among: Array(TemplateParam.types))))
             }
-            // Only data parameters are bound as variables (§7.2 rule 4).
+            // Only data parameters are bound as variables.
             for param in definition.params.keys.sorted()
             where ExprEnvironment.reservedVariables.contains(param) && definition.params[param]!.isData {
                 problems.append(ConfigWarning(kind: .invalidValue, path: "\(path).params.\(param)",
-                                              message: "\"\(param)\" is a reserved variable name (§4.2); rename the parameter",
+                                              message: "\"\(param)\" is a reserved variable name; rename the parameter",
                                               severity: .error))
             }
             user[name] = definition

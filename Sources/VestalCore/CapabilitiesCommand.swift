@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - vestal capabilities (EXTENSIBILITY.md §11.8, TASKS-v0.4 2f)
+// MARK: - vestal capabilities
 //
 //   vestal capabilities [--json] [--config <path>]
 //

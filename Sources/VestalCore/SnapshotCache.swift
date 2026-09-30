@@ -19,7 +19,7 @@ import Glibc
 // never reach the disk). AppRuntime serves the data either way, but
 // refetches at once when the definition changed.
 //
-// Privacy (EXTENSIBILITY.md 5.1): the directory is 0700 and every file 0600.
+// Privacy: the directory is 0700 and every file 0600.
 // A source with `"cache": false` is never written. The whole directory is
 // kept under 256 MiB, oldest files removed first.
 
@@ -147,8 +147,7 @@ public struct SnapshotCache: Sendable {
         if !ok || rename(temporary, path) != 0 { unlink(temporary) }
     }
 
-    /// The definition hash a file records for `source` (EXTENSIBILITY.md
-    /// 5.1: the cache records a definition hash).
+    /// The definition hash a file records for `source`.
     public static func fingerprint(_ source: SourceConfig) -> String {
         source.definitionHash
     }

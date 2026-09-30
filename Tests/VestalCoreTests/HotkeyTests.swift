@@ -1,7 +1,7 @@
 import VestalCore
 import XCTest
 
-/// Phase 6: the `hotkey` config string and the macOS keycode table that
+/// The `hotkey` config string and the macOS keycode table that
 /// VestalMac hands to Carbon's RegisterEventHotKey.
 final class HotkeyTests: XCTestCase {
     // MARK: Valid forms

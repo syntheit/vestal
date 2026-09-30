@@ -3,7 +3,7 @@ import Foundation
 
 // MARK: - vestal sources / vestal fetch
 //
-// EXTENSIBILITY.md 11.4. Both ask the running instance when there is one (so
+// Both ask the running instance when there is one (so
 // macOS permissions for the calendar and Apple Events belong to the app) and
 // otherwise work from the config and the disk cache, or fetch in this
 // process. Like check-config, they are functions of their arguments, so they
@@ -182,7 +182,6 @@ public enum SourceCommands {
                 if let problem = fetcher.problem(with: resolved) { throw SourceError(problem) }
                 if source.type == "system" {
                     // Two samples 500 ms apart, so CPU and rates are real
-                    // (EXTENSIBILITY.md 5.4).
                     _ = try await fetcher.fetchResult(resolved)
                     try await Task.sleep(nanoseconds: 500_000_000)
                 }
@@ -443,7 +442,7 @@ public enum SourceListing {
         return IPCResponse(ok: true, message: snapshot.info, data: value, fetchedAt: snapshot.fetchedAt)
     }
 
-    /// The table of EXTENSIBILITY.md 11.4, then one line per source with an
+    /// The table, then one line per source with an
     /// error or a note.
     public static func table(_ sources: [IPCSourceInfo], now: Date) -> String {
         let header = ["NAME", "TYPE", "REFRESH", "WHEN", "AGE", "STATUS", "USED BY"]
@@ -479,7 +478,7 @@ public enum SourceListing {
 
 // MARK: - Shape
 
-/// `vestal fetch --shape` (EXTENSIBILITY.md 11.4): every path in the data
+/// `vestal fetch --shape`: every path in the data
 /// with its types, arrays merged over all their elements.
 public enum SourceShape {
     public struct Line: Codable, Equatable, Sendable {

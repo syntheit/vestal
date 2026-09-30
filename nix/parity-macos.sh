@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The macOS parity check of EXTENSIBILITY.md §13.4 (TASKS-v0.4 6b), offscreen:
+# The macOS parity check, offscreen:
 # examples/full.json with the fixture data of Tests/VestalCoreTests/Fixtures/full
 # at a fixed time, drawn by the v0.4 renderer (`vestal screenshot`) and by the
 # v0.3 views (`vestal render-file --legacy <fixture dir>`, the same data through

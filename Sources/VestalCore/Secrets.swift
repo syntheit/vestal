@@ -4,7 +4,7 @@ import Foundation
 //
 // A source definition's text fields (`url`, `argv[]`, `env.*`, `headers.*`,
 // `path`, `ics[]`) are evaluated once before the source is fetched, with
-// `$secrets` and `$env` in scope (EXTENSIBILITY.md 5.1, 5.3). A secret is
+// `$secrets` and `$env` in scope. A secret is
 // read from a file, an environment variable or a command the first time a
 // source asks for it after a (re)load, trimmed of surrounding whitespace, and
 // kept in memory only. Every error a fetch reports is scrubbed of every
@@ -21,8 +21,8 @@ public enum LoadTimeText {
         text.contains("{{")
     }
 
-    /// `text` with each `{{ … }}` replaced by its value (EXTENSIBILITY.md
-    /// §4.1 R2); `{{{{` writes a literal `{{`. A hole is any jq expression
+    /// `text` with each `{{ … }}` replaced by its value;
+    /// `{{{{` writes a literal `{{`. A hole is any jq expression
     /// over `$secrets` and `$env` (template parameters were filled in when
     /// the config was expanded). `lookup` answers one variable path such as
     /// `$secrets.gh` or `$env.HOME` (nil: unknown, an error).
@@ -113,7 +113,7 @@ public final class SecretStore: @unchecked Sendable {
     private let definitions: [String: SecretConfig]
     private let environment: [String: String]
     private let home: String
-    /// False for a draft config (EXTENSIBILITY.md 11.1): `command` secrets
+    /// False for a draft config: `command` secrets
     /// are not run.
     private let allowCommands: Bool
     private let lock = NSLock()

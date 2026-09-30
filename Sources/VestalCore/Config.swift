@@ -27,7 +27,7 @@ public struct Config: Equatable, Sendable {
     public var sources: [String: SourceConfig] = [:]
     public var widgets: [String: WidgetConfig] = [:]
     public var views: [String: ViewConfig] = [:]
-    /// Named secrets for source definitions (EXTENSIBILITY.md 5.3).
+    /// Named secrets for source definitions.
     public var secrets: [String: SecretConfig] = [:]
     /// The config with templates expanded and the legacy adapter applied
     /// (ConfigExpansion), when it came from ConfigLoader: what the render
@@ -129,10 +129,9 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 //   media     player
 //   claude    argv (path, fiveHourLimit and weeklyLimit are accepted and ignored)
 //   codex     argv
-// docs/EXTENSIBILITY.md section 5 is the reference.
 
 public struct SourceConfig: Codable, Equatable, Sendable {
-    /// Keys every type accepts (EXTENSIBILITY.md 5.1).
+    /// Keys every type accepts.
     public static let commonKeys: Set<String> = ["refresh", "when", "transform", "history", "maxAge", "cache"]
     /// Keys each type accepts besides `type` (from SchemaRegistry).
     public static let keysByType = SchemaRegistry.keysByType(SchemaRegistry.sourceTypes)
@@ -149,7 +148,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public static let defaultPlayer = "auto"
     public static let defaultDisks = ["/"]
 
-    /// `refresh` when the source doesn't set it (EXTENSIBILITY.md 5.1).
+    /// `refresh` when the source doesn't set it.
     public static func defaultRefresh(for type: String) -> String {
         switch canonicalType(type) {
         case "system", "media": return "3s"
@@ -186,9 +185,9 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public var days: Int = SourceConfig.defaultDays          // calendar: lookahead in days
     public var calendars: [String]?         // calendar: names to include (nil = all)
 
-    // v0.4 (EXTENSIBILITY.md 5.1, 5.2)
+    // v0.4
     public var when: String                 // "always" | "visible"; per type by default
-    public var transform: String?           // jq, applied on read (phase 3)
+    public var transform: String?           // jq, applied on read
     public var history: [String: HistorySpec]?
     public var maxAge: String?              // duration: older cached data isn't shown at startup
     public var cache: Bool = true           // false: never written to disk
@@ -327,11 +326,11 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public var definitionHash: String { SHA256.hex(canonicalJSON) }
 
     /// An inline source's name: `inline:` and the first 8 hex digits of its
-    /// definition hash (EXTENSIBILITY.md 5.1).
+    /// definition hash.
     public var inlineName: String { "inline:" + definitionHash.prefix(8) }
 }
 
-/// One named history of a source (EXTENSIBILITY.md 5.6).
+/// One named history of a source.
 public struct HistorySpec: Codable, Equatable, Sendable {
     public static let defaultSize = 120
     public static let maxSize = 10_000
@@ -367,7 +366,7 @@ public struct HistorySpec: Codable, Equatable, Sendable {
 
 // MARK: - Secrets
 
-/// One named secret (EXTENSIBILITY.md 5.3): read from a file, an environment
+/// One named secret: read from a file, an environment
 /// variable or a command's output, once per load, and usable only in source
 /// definitions as `{{ $secrets.<name> }}`.
 public struct SecretConfig: Codable, Equatable, Sendable {

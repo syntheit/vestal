@@ -5,7 +5,7 @@ import XCTest
 /// The recipes of AGENTS.md (`vestal docs recipe/<name>`), the showcase
 /// configs in examples/showcase/ and every JSON example of the reference
 /// docs must be true: they load with no errors and no warnings on both OSes,
-/// and render with no diagnostics against fixture data (TASKS-v0.4 9b, 9c).
+/// and render with no diagnostics against fixture data.
 ///
 /// Fixture data: Fixtures/full (the built-in sources) overlaid with
 /// Fixtures/showcase/<recipe>/. Goldens: Fixtures/showcase/<recipe>.golden.txt,

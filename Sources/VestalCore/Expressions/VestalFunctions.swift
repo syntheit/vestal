@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Vestal functions (EXTENSIBILITY.md §4.6)
+// MARK: - Vestal functions
 //
 // The functions vestal adds to jq, registered through the engine's hook
 // (JQFunctions). Most are pure. The ones that read other sources (`meta`,
@@ -19,7 +19,7 @@ import Foundation
 // on a JSONSerialization tree made from the value's JSON text, so the
 // presets see exactly what the v0.3 widgets saw.
 
-/// One sample of a source's history (EXTENSIBILITY.md §5.6).
+/// One sample of a source's history.
 public struct HistorySample: Equatable, Sendable {
     /// Epoch seconds.
     public var time: Double
@@ -37,7 +37,7 @@ public protocol ExprData: AnyObject {
     /// A source's data as widgets see it (after `transform`); nil when the
     /// source has none (never loaded, or unknown).
     func data(_ source: String) -> JQValue?
-    /// A source's `$meta` object (EXTENSIBILITY.md §5.1); nil for a source
+    /// A source's `$meta` object; nil for a source
     /// the config doesn't have.
     func meta(_ source: String) -> JQValue?
     /// A named history of a source, oldest first; empty when there is none.
@@ -55,7 +55,7 @@ public enum VestalFunctions {
     /// (default: `RenderTheme.tokyoNight`).
     public static let paletteKey = "vestal.palette"
 
-    /// Registers every function of §4.6 (legacy helpers included).
+    /// Registers every function (legacy helpers included).
     public static func register(into functions: inout JQFunctions) {
         for entry in table {
             let name = entry.name, body = entry.body
@@ -637,7 +637,7 @@ public enum VestalFunctions {
         return .object(JQObject([("label", .string(rate.label)), ("text", .string(text))]))
     }
 
-    /// A foyer `/api/health` payload in the `system` shape (§5.4, §5.5),
+    /// A foyer `/api/health` payload in the `system` shape,
     /// through v0.3's parser, so missing numbers are 0 as v0.3 showed them.
     static func foyerHealth(_ input: JQValue) -> JQValue {
         guard let json = foundation(input) as? [String: Any] else { return .null }
@@ -684,7 +684,7 @@ public enum VestalFunctions {
         ]))
     }
 
-    /// A v0.3 host object → `{data, ok, seen}` (§4.6 `host_health`).
+    /// A v0.3 host object → `{data, ok, seen}` (`host_health`).
     static func hostHealth(_ host: JQValue, data: ExprData?) -> JQValue {
         func result(_ value: JQValue, ok: Bool, seen: Bool) -> JQValue {
             .object(JQObject([("data", ok ? value : .null), ("ok", .bool(ok)), ("seen", .bool(seen))]))

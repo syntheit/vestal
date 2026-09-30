@@ -3,7 +3,7 @@
 
 // MARK: - Icon map
 //
-// The bundled icon set's names and code points (EXTENSIBILITY.md §8.6). A
+// The bundled icon set's names and code points. A
 // name is Phosphor's kebab-case name without the weight suffix; the render
 // model sends it with the glyph of the requested weight, which a UI draws in
 // the matching font (`Phosphor` for regular, `Phosphor-Fill` for fill).
@@ -12,7 +12,7 @@ public enum IconMap {
     /// The weights vestal uses, in order.
     public static let weightNames = ["regular", "fill"]
 
-    /// Every icon the built-in presets use (docs/EXTENSIBILITY.md §8.6).
+    /// Every icon the built-in presets use.
     public static let presetIcons = [
         "clock", "hard-drives", "battery-full", "battery-high", "battery-medium", "battery-low", "battery-empty",
         "battery-charging", "hourglass", "arrow-down", "arrow-up", "microphone", "microphone-slash",

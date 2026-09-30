@@ -12,7 +12,7 @@ import VestalCore
 // `root`, `popup` and `theme` ops publish only what they name. The GTK UI
 // (VestalLinux/Dashboard.swift) applies patches with the same rules.
 //
-// The engine (phase 6b) or `vestal render-file` feeds it on the main actor:
+// The engine or `vestal render-file` feeds it on the main actor:
 //
 //   let store = RenderStore { input in … }  clicks and keys come back here
 //   store.apply(snapshot)                   a whole model
@@ -65,7 +65,7 @@ final class NodeHandle: ObservableObject, Identifiable {
     }
 
     /// A text has a first baseline, and so does a stack or grid holding
-    /// one (§10.4 rule 6); rings and drawings don't.
+    /// one (layout rule 6); rings and drawings don't.
     private static func hasBaseline(_ node: RenderNode, _ children: [NodeHandle]) -> Bool {
         switch node.content {
         case .text, .unknown: return true
@@ -96,7 +96,7 @@ public final class RenderStore: ObservableObject {
     /// Overrides `theme.icons.mode` (`vestal render-file --icons`).
     public let iconMode: String?
 
-    /// Every handle by node id. Ids are unique (§10.5); should one repeat,
+    /// Every handle by node id. Ids are unique; should one repeat,
     /// the first keeps it, as `RenderSnapshot.apply` finds the first match
     /// (root before popup).
     private var index: [String: NodeHandle] = [:]

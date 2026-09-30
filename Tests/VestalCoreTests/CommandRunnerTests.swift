@@ -7,7 +7,7 @@ import Darwin
 import Glibc
 #endif
 
-/// Phase 1 regressions: argv instead of `bash -c`, no pipe deadlock, timeouts
+/// Regressions: argv instead of `bash -c`, no pipe deadlock, timeouts
 /// and cancellation kill the child, lookups beyond a minimal PATH.
 final class CommandRunnerTests: XCTestCase {
     func testArgvIsPassedLiterally() async throws {

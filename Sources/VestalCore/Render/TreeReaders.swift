@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Which sources an expanded widget tree reads
 //
 // For scheduling (a visible-only source that no widget of the view reads is
-// not fetched, EXTENSIBILITY.md §5.1) and `vestal sources`. Static: a
+// not fetched) and `vestal sources`. Static: a
 // widget's `source` names, and the source names its expressions spell out
 // (`$sources.x`, `$sources["x"]`, `meta("x")`, `$history.x`,
 // `history("x"; …)`). `host_health` reads `system` and every `host:<name>`

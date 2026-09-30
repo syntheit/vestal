@@ -6,9 +6,8 @@ import VestalCore
 
 // MARK: - vestal render-file (macOS)
 //
-// The macOS counterpart of the GTK UI's development command, until the
-// render engine (phase 4) and `vestal screenshot` (6d) exist: draws a
-// render-model file with the same SwiftUI views the app will use, offscreen
+// The macOS counterpart of the GTK UI's development command: draws a
+// render-model file with the same SwiftUI views the app uses, offscreen
 // (ImageRenderer). No window is ever shown.
 //
 //   vestal render-file <model.json> [--patch <patch.json>]...
@@ -17,17 +16,17 @@ import VestalCore
 //                      [--icons native|phosphor]
 //   vestal render-file --legacy <data.json> [--config <config.json>] [--popup <host>] --screenshot <out.png> ...
 //
-// The model is a snapshot message (§10.2) or a bare node (drawn with the
-// default theme). The patches (§10.6) are applied in order before the
-// render. The picture is the window's content over the palette's `bg`
-// (the desktop blur and the aurora can't be captured), 1512x982 points at
-// scale 2 by default, like the Linux screenshots. `--frames` writes every
-// node's frame with `clipped` and `truncated` (§11.6).
+// The model is a snapshot message or a bare node (drawn with the default
+// theme). The patches are applied in order before the render. The picture is
+// the window's content over the palette's `bg` (the desktop blur and the
+// aurora can't be captured), 1512x982 points at scale 2 by default, like the
+// Linux screenshots. `--frames` writes every node's frame with `clipped` and
+// `truncated`.
 //
 // `--legacy` draws the v0.3 dashboard instead, for `config` (default
 // examples/full.json) with the fixed values of `data.json`, for the parity
-// check of §13.4, with `host`'s popup open if asked. The data's `timeZone`
-// becomes the process's, for the world clocks.
+// check, with `host`'s popup open if asked. The data's `timeZone` becomes the
+// process's, for the world clocks.
 //
 // `--interval`, `--exit-after` and `--hidden` (on-screen options on Linux)
 // are accepted and ignored.

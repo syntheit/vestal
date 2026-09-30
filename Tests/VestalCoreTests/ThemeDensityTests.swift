@@ -2,7 +2,7 @@ import Foundation
 import VestalCore
 import XCTest
 
-/// `theme.density` (§8.1): `comfortable` (the default) keeps the presets as
+/// `theme.density`: `comfortable` (the default) keeps the presets as
 /// they are; `compact` swaps in DefaultPresets.compactJSON's bodies, with
 /// the same parameters, and halves the views' default gap.
 final class ThemeDensityTests: XCTestCase {

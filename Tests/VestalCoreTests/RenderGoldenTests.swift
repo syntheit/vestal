@@ -2,8 +2,8 @@ import Foundation
 import VestalCore
 import XCTest
 
-// Golden renders of examples/full.json from Fixtures/full (TASKS-v0.4 4c,
-// 5d), `vestal explain`, and the icons the presets use.
+// Golden renders of examples/full.json from Fixtures/full,
+// `vestal explain`, and the icons the presets use.
 
 final class RenderGoldenTests: XCTestCase {
     static let at = Date(timeIntervalSince1970: 1_790_528_602)  // 2026-09-27T17:03:22Z

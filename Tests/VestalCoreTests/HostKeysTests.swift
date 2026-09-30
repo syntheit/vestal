@@ -1,7 +1,7 @@
 import VestalCore
 import XCTest
 
-/// Phase 1 regression: duplicate initials used to crash the app at launch.
+/// Regression: duplicate initials used to crash the app at launch.
 final class HostKeysTests: XCTestCase {
     func testFirstLetters() {
         XCTAssertEqual(HostKeys.assign(["swift", "harbor", "raven", "conduit"]),

@@ -206,7 +206,7 @@ case .command(.start(let hidden, let headlessFlag)):
         MainActor.assumeIsolated { ResidentInbox.shared.deliver(request, reply: reply) }
     }
     // `subscribe` streams the render model of the engine the app attaches
-    // to SubscriptionHub.shared (EXTENSIBILITY.md §10.8).
+    // to SubscriptionHub.shared.
     server.subscriptionHandler = { request, stream in
         MainActor.assumeIsolated { SubscriptionHub.shared.add(request, stream) }
     }

@@ -2,9 +2,9 @@ import Foundation
 import VestalCore
 import XCTest
 
-// Phase 2 (data layer), the agent-facing side: IPC requests with
+// The data layer's agent-facing side: IPC requests with
 // arguments, the resident's `sources` and `fetch`, `vestal sources` and
-// `vestal fetch` (EXTENSIBILITY.md 11.4), and check-config for the new keys.
+// `vestal fetch`, and check-config for the new keys.
 
 final class IPCFetchRequestTests: XCTestCase {
     private func parsed(_ line: String) -> IPCRequest? {

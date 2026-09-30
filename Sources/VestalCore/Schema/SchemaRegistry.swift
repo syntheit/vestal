@@ -2,8 +2,8 @@ import Foundation
 
 // MARK: - Schema registry
 //
-// One declarative table of every config key: its type, default, kind
-// (docs/EXTENSIBILITY.md §4.1), description, examples, allowed values and the
+// One declarative table of every config key: its type, default, kind,
+// description, examples, allowed values and the
 // version that introduced it. `vestal schema` (JSONSchema.swift), the key
 // tables of `check-config` (ConfigValidator) and `Config.keysByType` all read
 // from here, so they cannot drift. `vestal docs` reference pages will too.
@@ -11,7 +11,7 @@ import Foundation
 // The decoder in Config.swift is still hand-written; a test checks that every
 // key it reads is declared here and the other way round.
 
-/// How a field's value is read (§4.1).
+/// How a field's value is read.
 public enum SchemaKind: String, Sendable {
     /// A jq expression.
     case expr
@@ -62,7 +62,7 @@ public struct SchemaKey: Sendable {
     public var examples: [AnyJSON]
     public var since: String
     /// A literal field that may also be `{"expr": "<jq>"}`, computed at
-    /// render (§4.1 R3).
+    /// render.
     public var computed: Bool
 
     public init(_ name: String, _ type: SchemaType, kind: SchemaKind = .literal, default defaultValue: AnyJSON? = nil,
@@ -216,7 +216,7 @@ public enum SchemaRegistry {
             SchemaKey("fonts", .shape("fonts"), since: "0.4", examples: [.object(["sans": .string("Inter")])],
                       "A font family per role; null means the platform default."),
             SchemaKey("font", .string, since: "0.4", examples: [.string("Inter")],
-                      "Shorthand for fonts.sans (§16.1)."),
+                      "Shorthand for fonts.sans."),
             SchemaKey("scale", .number, default: .int(1), since: "0.4", examples: [.double(1.25)],
                       "Multiplies every text, icon and fixed size (not gaps or padding)."),
             SchemaKey("density", .oneOf(ThemeConfig.densities), default: .string("comfortable"), since: "0.4",
@@ -391,7 +391,7 @@ public enum SchemaRegistry {
                   "Ignored (it was a guessed weekly token limit)."),
     ]
 
-    /// The keys every source takes (EXTENSIBILITY.md 5.1), with the type's
+    /// The keys every source takes with the type's
     /// `refresh` and `when` defaults.
     private static func common(_ refresh: String, _ when: String) -> [SchemaKey] {
         [

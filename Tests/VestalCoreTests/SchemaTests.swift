@@ -7,7 +7,7 @@ final class SchemaTests: XCTestCase {
     // MARK: Registry
 
     /// The key tables Config and the validator read: v0.3's, plus the v0.4
-    /// source keys (phase 2).
+    /// source keys.
     func testKeyTablesAreUnchanged() {
         let common: Set<String> = ["refresh", "when", "transform", "history", "maxAge", "cache"]
         XCTAssertEqual(SourceConfig.keysByType, [
@@ -107,7 +107,7 @@ final class SchemaTests: XCTestCase {
             if case .shape(let shape) = key.type { XCTAssertNotNil(SchemaRegistry.shapes.first { $0.name == shape }, name) }
             if case .list(.shape(let shape)) = key.type { XCTAssertNotNil(SchemaRegistry.shapes.first { $0.name == shape }, name) }
         }
-        // §4.1: titles and labels are text.
+        // Titles and labels are text.
         XCTAssertEqual(SchemaRegistry.widgetType("agendaList")?.keys.first { $0.name == "title" }?.kind, .text)
         XCTAssertEqual(SchemaRegistry.shape("item").key("label")?.kind, .text)
         XCTAssertEqual(SchemaRegistry.shape("theme").key("palette")?.kind, .literal)
@@ -170,7 +170,7 @@ final class SchemaTests: XCTestCase {
                 XCTAssertNotNil(p["description"], "\(place).\(name)")
                 XCTAssertNotNil(p["examples"], "\(place).\(name)")
                 XCTAssertNotNil(p["x-vestal-kind"], "\(place).\(name)")
-                // v0.3 keys, and the v0.4 ones of the data layer (phase 2).
+                // v0.3 keys, and the v0.4 ones of the data layer.
                 XCTAssertTrue([.string("0.3"), .string("0.4")].contains(p["x-vestal-since"]), "\(place).\(name)")
             }
         }

@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Config diagnostics
 //
-// `check-config`'s structured findings (docs/EXTENSIBILITY.md §11.2): the
+// `check-config`'s structured findings: the
 // validator's warnings with a severity, a code, an RFC 6901 pointer into the
 // file the finding belongs to, that file's layer, and a line and column when
 // the pointer is in the user's file.

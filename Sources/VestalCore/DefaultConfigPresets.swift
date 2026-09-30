@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Built-in presets (EXTENSIBILITY.md §6.4, §7.3, §7.4)
+// MARK: - Built-in presets
 //
 // The built-in templates, written in the public config language: `section`,
 // `stat` and `badge`, the 8 v0.3 widget types (`clock`, `systemBar`,
@@ -8,11 +8,10 @@ import Foundation
 // `claudeUsage`), their helpers `claudeItem` and `hostDetail` (the host
 // popup), `aiUsage` with its cell `aiWindow` (Claude and Codex plan usage),
 // and the `foyer` source template. They live in their own registry
-// (TemplateRegistry), not in the merged config layers (§7.2 rule 8).
+// (TemplateRegistry), not in the merged config layers.
 //
 // Each v0.3 preset reproduces its SwiftUI view in VestalMac/Widgets (sizes,
-// weights, colours, spacing, order); docs/EXTENSIBILITY.md §7.3 describes
-// them. Icons are Phosphor names (§8.6). Nothing here may use `sf:` icons,
+// weights, colours, spacing, order). Icons are Phosphor names. Nothing here may use `sf:` icons,
 // and nothing personal belongs here.
 
 public enum DefaultPresets {

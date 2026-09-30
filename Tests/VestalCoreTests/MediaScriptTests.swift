@@ -1,7 +1,7 @@
 import VestalCore
 import XCTest
 
-/// Phase 5: the media widget's AppleScript comes from the configured player.
+/// The media widget's AppleScript comes from the configured player.
 final class MediaScriptTests: XCTestCase {
     func testQuoting() {
         XCTAssertEqual(MediaScript.quoted("Spotify"), #""Spotify""#)

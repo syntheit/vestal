@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Actions and keys (EXTENSIBILITY.md §9.2, §9.3)
+// MARK: - Actions and keys
 //
 // A click (`invoke`) or a key resolves to a widget's action, evaluated in
 // the scope the widget was written in (so `.` is the row's item). The
@@ -30,7 +30,7 @@ public enum RenderActionEffect: Equatable, Sendable {
     case changed
 }
 
-/// What a key is bound to (§9.2), for `vestal press --dry-run`.
+/// What a key is bound to, for `vestal press --dry-run`.
 public struct RenderKeyBinding: Equatable, Sendable {
     /// `reserved` (escape, alt+i), `popup` or `widget` (a widget's key),
     /// `view` (the view's `keys`), `global` (top-level `keys`), `view-key`
@@ -49,8 +49,7 @@ extension RenderSession {
         return perform(binding, data: data, now: now)
     }
 
-    /// What `key` is bound to in the current view and popup (§9.2
-    /// precedence), or nil. Nothing runs.
+    /// What `key` is bound to in the current view and popup, or nil. Nothing runs.
     public func binding(for key: String) -> RenderKeyBinding? {
         let key = RenderKeyMap.normalize(key)
         if key == "escape" {
@@ -79,7 +78,7 @@ extension RenderSession {
         return nil
     }
 
-    /// What key `key` does (§9.2 precedence): widget keys (the popup's
+    /// What key `key` does: widget keys (the popup's
     /// first), the view's `keys`, global `keys` and view shorthands, then
     /// `tab` cycling. `escape` closes the popup, else hides; `alt+i` opens
     /// or closes the info popup.
@@ -113,7 +112,7 @@ extension RenderSession {
                        data: data, now: now)
     }
 
-    /// The built-in info popup (§9.4, `vestal.info`): version, build, the
+    /// The built-in info popup (`vestal.info`): version, build, the
     /// config file and its version, as v0.3's InfoView showed them.
     func openInfoPopup() {
         closePopup()
@@ -237,7 +236,7 @@ extension RenderSession {
 
     /// A popup's widget at click time: its `{"expr"}` values evaluated in the
     /// clicked widget's scope, its text-valued parameters too, then
-    /// templates expanded (§9.3).
+    /// templates expanded.
     private func expandPopup(_ widget: [String: AnyJSON], pass: RenderPass, scope: RenderPass.Scope) -> [String: AnyJSON] {
         var resolved: [String: AnyJSON] = [:]
         let template = widget["type"]?.stringValue.flatMap { model.expanded.registry.lookup($0) }

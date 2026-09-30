@@ -2,9 +2,8 @@ import Foundation
 import VestalCore
 import XCTest
 
-// Phase 3: text templates, the expression environment (limits, user
-// functions), load-time text, engine-backed source expressions and
-// `vestal eval`.
+// Text templates, the expression environment (limits, user functions),
+// load-time text, engine-backed source expressions and `vestal eval`.
 
 final class TextTemplateTests: XCTestCase {
     private func parts(_ text: String) throws -> [TextTemplate.Part] {

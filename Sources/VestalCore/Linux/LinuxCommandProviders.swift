@@ -143,7 +143,7 @@ public final class PlayerctlMedia: MediaProvider {
 }
 
 /// The `media` source on Linux: MPRIS players through playerctl
-/// (EXTENSIBILITY.md 5.2). `players` is `playerctl -l`'s list without
+/// `players` is `playerctl -l`'s list without
 /// instance suffixes; a `player` matches a listed one by bus name
 /// (`LinuxProc.playerctlMatches`), and `auto` is the first one playing,
 /// else the first listed. Without playerctl, or with no players, it reads
