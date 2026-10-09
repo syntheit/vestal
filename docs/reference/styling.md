@@ -57,9 +57,21 @@ A missing family falls back to the default.
 
 ```json
 { "theme": { "background": "sky" } }
+```
+
+```json
 { "theme": { "background": { "type": "mesh", "colors": ["#1e2a62", "purple", "teal", "#5a2448"] }, "backgroundFPS": 20 } }
+```
+
+```json
 { "theme": { "background": { "type": "load", "source": "system", "value": ".cpu.percent" } } }
+```
+
+```json
 { "theme": { "background": { "type": "weather", "source": "weather", "condition": ".current_condition[0].weatherCode" } } }
+```
+
+```json
 { "theme": { "background": { "type": "artmesh", "source": "media" } } }
 ```
 
