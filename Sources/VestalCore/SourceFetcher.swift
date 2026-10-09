@@ -146,6 +146,11 @@ public struct LiveFetcher: SourceFetcher {
             return nil
         case "claude", "codex":
             return source.argv?.isEmpty == true ? "\"argv\" must not be empty" : nil
+        case "astro":
+            guard let latitude = source.latitude, let longitude = source.longitude else {
+                return "needs \"latitude\" and \"longitude\""
+            }
+            return abs(latitude) <= 90 && abs(longitude) <= 180 ? nil : "\"latitude\" is -90 to 90 and \"longitude\" -180 to 180"
         default:
             return "unknown source type \"\(source.type)\""
         }
@@ -186,6 +191,10 @@ public struct LiveFetcher: SourceFetcher {
             if source.argv != nil, !allowCommands { throw SourceError("not loaded (draft: pass --allow-commands)") }
             return FetchResult(data: try await CodexRateLimits.fetch(argv: source.argv ?? CodexRateLimits.defaultArgv,
                                                                      now: now()).canonicalData())
+        case "astro":
+            // Computed here, offline; "today" is the local calendar day.
+            let data = Astro.data(latitude: source.latitude ?? 0, longitude: source.longitude ?? 0, now: now(), calendar: .current)
+            return FetchResult(data: data.canonicalData())
         default:
             return try await readCalendar(source)
         }

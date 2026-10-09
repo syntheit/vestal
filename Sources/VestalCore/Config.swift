@@ -129,6 +129,7 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 //   media     player
 //   claude    backend, argv (path, fiveHourLimit and weeklyLimit are accepted and ignored)
 //   codex     argv
+//   astro     latitude, longitude
 
 public struct SourceConfig: Codable, Equatable, Sendable {
     /// Keys every type accepts.
@@ -154,6 +155,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public static func defaultRefresh(for type: String) -> String {
         switch canonicalType(type) {
         case "system", "media": return "3s"
+        case "astro": return "10m"
         case "file": return "30s"
         case "claude", "codex": return "5m"
         default: return defaultRefresh
@@ -164,7 +166,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     /// while the dashboard is shown, everything else always.
     public static func defaultWhen(for type: String) -> String {
         switch canonicalType(type) {
-        case "system", "media", "claude", "codex": return "visible"
+        case "system", "media", "claude", "codex", "astro": return "visible"
         default: return "always"
         }
     }
@@ -174,7 +176,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     /// passed: `claude` and `codex`, whose refresh is long, after a minute.
     /// Nil: only `refresh` counts.
     public var showRefreshSeconds: TimeInterval? {
-        type == "claude" || type == "codex" ? min(60, refreshSeconds) : nil
+        type == "claude" || type == "codex" || type == "astro" ? min(60, refreshSeconds) : nil
     }
 
     public var type: String                 // a key of `keysByType` (aliases resolved)
@@ -204,11 +206,13 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public var thunderbird: String?         // calendar: a Thunderbird profile ("" = the default one); nil: off
     public var backend: String?             // claude: see `claudeBackends` (nil: auto)
     public var caldav: [String]?            // calendar: CalDAV collection or server URLs
+    public var latitude: Double?            // astro (required): degrees north
+    public var longitude: Double?           // astro (required): degrees east
 
     enum CodingKeys: String, CodingKey {
         case type, url, refresh, parse, argv, timeout, env, days, calendars
         case when, transform, history, maxAge, cache, method, headers, body, path
-        case disks, interfaces, player, ics, thunderbird, backend, caldav
+        case disks, interfaces, player, ics, thunderbird, backend, caldav, latitude, longitude
     }
 
     public init(
@@ -236,7 +240,9 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         ics: [String]? = nil,
         thunderbird: String? = nil,
         backend: String? = nil,
-        caldav: [String]? = nil
+        caldav: [String]? = nil,
+        latitude: Double? = nil,
+        longitude: Double? = nil
     ) {
         let type = Self.canonicalType(type)
         self.type = type
@@ -248,6 +254,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         self.method = method; self.headers = headers; self.body = body; self.path = path
         self.disks = disks; self.interfaces = interfaces; self.player = player
         self.ics = ics; self.thunderbird = thunderbird; self.backend = backend; self.caldav = caldav
+        self.latitude = latitude; self.longitude = longitude
         fillDefaults()
     }
 
@@ -286,6 +293,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         thunderbird = c.lenient(String.self, .thunderbird).map { $0.trimmingCharacters(in: .whitespaces) }
             ?? (c.lenient(Bool.self, .thunderbird) == true ? "" : nil)
         backend   = c.lenient(String.self, .backend).map { $0.lowercased() }.flatMap { Self.claudeBackends.contains($0) ? $0 : nil }
+        latitude  = c.lenient(Double.self, .latitude)
+        longitude = c.lenient(Double.self, .longitude)
         fillDefaults()
     }
 
