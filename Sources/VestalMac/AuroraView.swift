@@ -48,7 +48,7 @@ final class AuroraMTKView: MTKView {
     }
 }
 
-private struct AuroraUniforms {
+struct AuroraUniforms {
     var resolution: SIMD2<Float>
     var time: Float
     var _pad: Float = 0
@@ -64,7 +64,15 @@ final class AuroraRenderer: NSObject, MTKViewDelegate {
         guard let dev = view.device, let q = dev.makeCommandQueue() else { return nil }
         self.queue = q
 
-        guard let lib = try? dev.makeLibrary(source: Self.shaderSource, options: nil),
+        guard let ps = Self.makePipeline(device: dev, pixelFormat: view.colorPixelFormat) else { return nil }
+        self.pipeline = ps
+
+        super.init()
+    }
+
+    /// The additive pipeline the live view and the offscreen screenshot share.
+    static func makePipeline(device dev: MTLDevice, pixelFormat: MTLPixelFormat) -> MTLRenderPipelineState? {
+        guard let lib = try? dev.makeLibrary(source: shaderSource, options: nil),
               let vfn = lib.makeFunction(name: "aurora_vertex"),
               let ffn = lib.makeFunction(name: "aurora_fragment")
         else { return nil }
@@ -73,7 +81,7 @@ final class AuroraRenderer: NSObject, MTKViewDelegate {
         desc.vertexFunction = vfn
         desc.fragmentFunction = ffn
         let att = desc.colorAttachments[0]!
-        att.pixelFormat = view.colorPixelFormat
+        att.pixelFormat = pixelFormat
         att.isBlendingEnabled = true
         att.rgbBlendOperation = .add
         att.alphaBlendOperation = .add
@@ -82,10 +90,7 @@ final class AuroraRenderer: NSObject, MTKViewDelegate {
         att.destinationRGBBlendFactor = .one
         att.destinationAlphaBlendFactor = .one
 
-        guard let ps = try? dev.makeRenderPipelineState(descriptor: desc) else { return nil }
-        self.pipeline = ps
-
-        super.init()
+        return try? dev.makeRenderPipelineState(descriptor: desc)
     }
 
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {

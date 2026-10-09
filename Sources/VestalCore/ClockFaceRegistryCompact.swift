@@ -7,8 +7,8 @@ import Foundation
 // on one line under (or, for stacked, beside) the time. They take the same
 // parameters and variables as the standard faces; `mono` is the compact
 // preset's own body (DefaultPresetsCompact.swift) and is not repeated here.
-// The drawn faces name the compact bodies of clockAnalog, clockFlip and
-// clockRing, which are about 120 points across.
+// The drawn faces name the compact bodies of clockAnalog, clockFlip,
+// clockMatrix and clockRing, which are about 120 points across.
 
 extension ClockFaces {
     /// Face name → compact widget body, parsed. No `mono`.
@@ -22,7 +22,7 @@ extension ClockFaces {
 
     static let compactSources: [String: String] = [
         "thin": compactThin, "stacked": compactStacked, "serif": compactSerif, "condensed": compactCondensed,
-        "rounded": compactRounded, "breathe": compactBreathe, "analog": compactAnalog, "flip": compactFlip, "ring": compactRing,
+        "rounded": compactRounded, "breathe": compactBreathe, "analog": compactAnalog, "flip": compactFlip, "ring": compactRing, "matrix": compactMatrix,
     ]
 
     // MARK: Pieces
@@ -189,10 +189,38 @@ extension ClockFaces {
 
     // MARK: Drawn faces
 
-    static let compactAnalog = drawn("analog", """
-    { "type": "clockAnalog", "size": { "param": "size" }, "ticks": { "param": "ticks" }, "dateWindow": { "param": "dateWindow" },
-      "numerals": { "param": "numerals" }, "seconds": { "param": "seconds" }, "date": { "param": "date" } }
-    """, compact: true)
+    static let compactAnalog = """
+    {
+      "type": "stack", "gap": 3, "align": "center", "spaceBefore": 0,
+      "vars": \(vars(seconds: false)),
+      "children": [
+        { "id": "analog", "type": "clockAnalog", "size": { "param": "size" }, "ticks": { "param": "ticks" }, "dateWindow": { "param": "dateWindow" },
+          "numerals": { "param": "numerals" }, "seconds": { "param": "seconds" }, "date": { "param": "date" } },
+        \(world(direction: "row", gap: 12, spaceBefore: 3, id: "2", when: "$subdials != \\\"worldClocks\\\"", row: """
+          { "type": "row", "gap": 4, "children": [
+            \(text("{{ .label }}", size: "10", weight: "semibold", color: "dim")),
+            \(zoneTime("{ \"size\": 10, \"font\": \"mono\", \"color\": \"subtle\" }"))
+          ] }
+          """)),
+        \(world(direction: "row", gap: 14, spaceBefore: 4, id: "3", when: "$subdials == \\\"worldClocks\\\"", row: """
+          { "type": "row", "gap": 6, "align": "center",
+            "vars": {
+              "day": "(now | fmt_time(\\"H\\"; $item.tz) | tonumber) as $h | $h >= 7 and $h < 19",
+              "delta": "((now | tz_offset($item.tz)) - (now | tz_offset(null))) / 3600"
+            },
+            "children": [
+              { "type": "analog", "size": 40, "ticks": "dots", "zone": "{{ $item.tz }}", "faceColor": "text@0.12", "nightFaceColor": "#00000052" },
+              { "type": "stack", "gap": 1, "align": "start", "children": [
+                \(text("{{ .label }}", size: "10", weight: "semibold", font: "sans")),
+                \(zoneTime("{ \"size\": 10, \"font\": \"mono\", \"color\": \"subtle\" }")),
+                \(text("{{ if $delta == 0 then \\\"local\\\" else (if $delta > 0 then \\\"+\\\" else \\\"−\\\" end) + ($delta | fabs | tostring) + \\\"h\\\" end }}",
+                       size: "9", font: "mono", color: "dim"))
+              ] }
+            ] }
+          """))
+      ]
+    }
+    """
 
     static let compactFlip = drawn("flip", """
     { "type": "clockFlip", "size": { "param": "size" },
@@ -201,5 +229,10 @@ extension ClockFaces {
 
     static let compactRing = drawn("ring", """
     { "type": "clockRing", "size": { "param": "size" }, "span": { "param": "span" }, "hour12": { "param": "hour12" } }
+    """, compact: true)
+
+    static let compactMatrix = drawn("matrix", """
+    { "type": "clockMatrix", "size": { "param": "size" }, "cells": { "param": "cells" }, "color": { "param": "color" },
+      "seconds": { "param": "seconds" }, "hour12": { "param": "hour12" }, "date": { "param": "date" } }
     """, compact: true)
 }

@@ -15,9 +15,9 @@ import VestalCore
 // instance's data for its own config, else the data modes), then
 // draws that snapshot offscreen with the app's SwiftUI renderer
 // (ImageRenderer, as `vestal render-file`). No window, no NSApplication and
-// no screen-recording permission; the desktop blur and the aurora can't be
-// captured, so the background is the palette's `bg` or transparent, with a
-// background of the library (theme.background: mesh, sky, ...) drawn over it
+// no screen-recording permission; the desktop blur can't be
+// captured, so the background is the palette's `bg` or transparent, with the
+// aurora or a background of the library (theme.background: mesh, sky, ...) drawn over it
 // at `--background-time` seconds (14), `sky` at the hour of `--at`.
 // `--size` defaults to the main screen's size in points (1512x982 without
 // one), `--scale` to 2. `<out.png>` may be `-` with `--frames` (no PNG).

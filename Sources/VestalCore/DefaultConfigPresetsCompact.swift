@@ -31,9 +31,12 @@ extension DefaultPresets {
 
       "clock": {
         "type": "stack", "gap": 2, "align": "center", "spaceBefore": 0,
-        "vars": { "clocks": "$worldClocks | map(select(.label != null and .tz != null and .tz != $tz and (.tz | tz_valid))) | uniq_by(.label)" },
+        "vars": {
+          "h12": "if $hour12 == \"auto\" then uses_12h else $hour12 end",
+          "clocks": "$worldClocks | map(select(.label != null and .tz != null and .tz != $tz and (.tz | tz_valid))) | uniq_by(.label)"
+        },
         "children": [
-          { "type": "text", "text": "{{ now | fmt_time(if $hour12 then \"h:mm:ss a\" else \"HH:mm:ss\" end) }}", "style": { "size": 38, "weight": "ultralight", "font": "mono" } },
+          { "type": "text", "text": "{{ now | fmt_time(if $h12 then \"h:mm:ss a\" else \"HH:mm:ss\" end) }}", "style": { "size": 38, "weight": "ultralight", "font": "mono" } },
           { "type": "row", "gap": 16, "align": "baseline", "children": [
             { "type": "text", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}", "style": { "size": 13, "font": "rounded", "color": "subtle" } },
             @WORLDCLOCKS($clocks | length > 0 and length <= 3)@
@@ -63,6 +66,25 @@ extension DefaultPresets {
             { "type": "text", "when": "$date != \"none\"", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}", "style": { "size": 11, "weight": "medium", "color": "subtle" } },
             { "type": "text", "when": "$h12", "text": "{{ now | fmt_time(\"a\") }}", "background": "text@0.1", "radius": 3,
               "padding": [2, 5, 2, 5], "style": { "size": 9, "weight": "bold", "tracking": 0.9, "case": "upper" } }
+          ] }
+        ]
+      },
+
+      "clockMatrix": {
+        "type": "stack", "gap": 10, "align": "center",
+        "vars": {
+          "h12": "$hour12 == true or ($hour12 == \"auto\" and uses_12h)",
+          "secs": "$seconds != false",
+          "hh": "now | fmt_time(if ($hour12 == true or ($hour12 == \"auto\" and uses_12h)) then \"h\" else \"HH\" end) | if length < 2 then \" \" + . else . end"
+        },
+        "children": [
+          { "type": "matrix", "size": { "expr": "if $size > 0 then $size else 56 end" }, "cells": { "param": "cells" }, "color": { "param": "color" },
+            "text": "{{ $hh }}:{{ now | fmt_time(if $secs then \"mm:ss\" else \"mm\" end) }}" },
+          { "type": "row", "gap": 10, "align": "baseline", "children": [
+            { "type": "text", "when": "$date != \"none\"", "text": "{{ now | fmt_localized(\"EEEMMMd\") }}",
+              "style": { "size": 10, "weight": "medium", "font": "mono", "color": "subtle", "tracking": 1.6, "case": "upper" } },
+            { "type": "text", "when": "$h12", "text": "{{ now | fmt_time(\"a\") }}",
+              "style": { "size": 10, "weight": "medium", "font": "mono", "color": { "param": "color" }, "tracking": 1.6, "case": "upper" } }
           ] }
         ]
       },
@@ -326,7 +348,7 @@ extension DefaultPresets {
           "items": "$clocks", "rowId": ".label",
           "row": { "type": "row", "gap": 4, "align": "baseline", "children": [
             { "type": "text", "text": "{{ .label }}", "style": { "size": 11, "weight": "semibold", "color": "dim" } },
-            { "type": "text", "text": "{{ now | fmt_time(if $hour12 then \"h:mm a\" else \"HH:mm\" end; $item.tz) }}", "style": { "size": 11, "font": "mono", "color": "subtle" } }
+            { "type": "text", "text": "{{ now | fmt_time(if $h12 then \"h:mm a\" else \"HH:mm\" end; $item.tz) }}", "style": { "size": 11, "font": "mono", "color": "subtle" } }
           ] }
         }
         """#

@@ -300,10 +300,35 @@ enum BackgroundOffscreen {
     /// `time` seconds. Nil for a background the library doesn't have, or
     /// when Metal isn't available.
     static func image(_ theme: RenderTheme, width: Int, height: Int, time: Double, hour: Double) -> CGImage? {
+        if theme.background == "aurora" { return aurora(width: width, height: height, time: time) }
         guard Backgrounds.isLibrary(theme.background), width > 0, height > 0,
               let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue(),
               let pipeline = BackgroundPipeline(device: device, name: theme.background, pixelFormat: .bgra8Unorm)
         else { return nil }
+        let colours = theme.backgroundParams?.artwork.flatMap(ArtworkColors.extract)
+        let values = Backgrounds.uniforms(theme.background, params: theme.backgroundParams, hour: hour, artworkColors: colours)
+        return draw(device: device, queue: queue, width: width, height: height) { enc in
+            pipeline.encode(enc, BackgroundPipeline.uniforms(size: SIMD2(Float(width), Float(height)), time: Float(time), values))
+        }
+    }
+
+    /// The aurora (AuroraView.swift) at `time` seconds, premultiplied, for
+    /// the screenshot to lay over the palette's `bg`.
+    static func aurora(width: Int, height: Int, time: Double) -> CGImage? {
+        guard width > 0, height > 0, let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue(),
+              let pipeline = AuroraRenderer.makePipeline(device: device, pixelFormat: .bgra8Unorm)
+        else { return nil }
+        return draw(device: device, queue: queue, width: width, height: height) { enc in
+            var u = AuroraUniforms(resolution: SIMD2(Float(width), Float(height)), time: Float(time))
+            enc.setRenderPipelineState(pipeline)
+            enc.setFragmentBytes(&u, length: MemoryLayout<AuroraUniforms>.stride, index: 0)
+            enc.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        }
+    }
+
+    /// Clears a texture to transparent, lets `encode` draw into it and reads it back.
+    private static func draw(device: MTLDevice, queue: MTLCommandQueue, width: Int, height: Int,
+                             encode: (MTLRenderCommandEncoder) -> Void) -> CGImage? {
         let desc = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: width, height: height, mipmapped: false)
         desc.usage = [.renderTarget, .shaderRead]
         desc.storageMode = .shared
@@ -313,10 +338,8 @@ enum BackgroundOffscreen {
         pass.colorAttachments[0].loadAction = .clear
         pass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         pass.colorAttachments[0].storeAction = .store
-        let colours = theme.backgroundParams?.artwork.flatMap(ArtworkColors.extract)
-        let values = Backgrounds.uniforms(theme.background, params: theme.backgroundParams, hour: hour, artworkColors: colours)
         guard let cmd = queue.makeCommandBuffer(), let enc = cmd.makeRenderCommandEncoder(descriptor: pass) else { return nil }
-        pipeline.encode(enc, BackgroundPipeline.uniforms(size: SIMD2(Float(width), Float(height)), time: Float(time), values))
+        encode(enc)
         enc.endEncoding()
         cmd.commit()
         cmd.waitUntilCompleted()

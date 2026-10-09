@@ -17,8 +17,8 @@ import VestalCore
 //
 // The model is a snapshot message or a bare node (drawn with the default
 // theme). The patches are applied in order before the render. The picture is
-// the window's content over the palette's `bg` (the desktop blur and the
-// aurora can't be captured; a background of the library is drawn, at
+// the window's content over the palette's `bg` (the desktop blur can't be
+// captured; the aurora and a background of the library are drawn, at
 // `--background-time` seconds, 14 by default), 1512x982 points at scale 2 by default, like the
 // Linux screenshots. `--frames` writes every node's frame with `clipped` and
 // `truncated`.
@@ -186,13 +186,14 @@ public enum MacRenderFileCommand {
         return frames
     }
 
-    /// A background of the library, drawn with Metal at its own resolution
-    /// (the aurora and the blur can't be captured). Nil for the others.
+    /// The aurora or a background of the library, drawn with Metal at its own
+    /// resolution (the blur can't be captured). Nil for the others.
     @MainActor
     private static func libraryBackground(_ store: RenderStore, options: Options) -> CGImage? {
         let theme = store.background
-        guard Backgrounds.isLibrary(theme.background) else { return nil }
-        let resolution = theme.backgroundResolution ?? Backgrounds.defaultResolution(theme.background)
+        let aurora = theme.background == "aurora"
+        guard aurora || Backgrounds.isLibrary(theme.background) else { return nil }
+        let resolution = aurora ? 1 : (theme.backgroundResolution ?? Backgrounds.defaultResolution(theme.background))
         let width = max(16, Int((options.width * options.scale * resolution).rounded()))
         let height = max(10, Int((options.height * options.scale * resolution).rounded()))
         return BackgroundOffscreen.image(theme, width: width, height: height, time: options.backgroundTime,
