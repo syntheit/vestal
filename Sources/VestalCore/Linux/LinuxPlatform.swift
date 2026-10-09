@@ -29,7 +29,9 @@ public enum LinuxPlatform {
     /// long hide is still a delta), wpctl, playerctl.
     public static let sources = SourcePlatform(
         calendar: calendar,
-        system: SystemSampler(stats: LinuxSystemStats(), audio: WirePlumberAudio()),
+        system: SystemSampler(stats: LinuxSystemStats(), audio: WirePlumberAudio(),
+                              stateDirectory: SnapshotCache.platformDirectory() + "/state",
+                              makeStats: { LinuxSystemStats() }),
         media: PlayerctlBackend())
 
     /// For `HeadlessApp`: the sources above, the inotify config watcher, and

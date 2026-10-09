@@ -45,9 +45,9 @@ public struct Sample: Equatable, Sendable {
 public enum SampleLibrary {
     /// Built-in templates a user doesn't place by themselves: parts of other
     /// presets (`claudeItem`, `aiWindow`), the host popup's body (`hostDetail`)
-    /// and a source (`foyer`). They are covered by the samples of the presets
+    /// and sources (`foyer`, `diskUsage`). They are covered by the samples of the presets
     /// that use them. Every other built-in template needs a sample.
-    public static let helpers: Set<String> = ["claudeItem", "aiWindow", "hostDetail", "foyer"]
+    public static let helpers: Set<String> = ["claudeItem", "aiWindow", "hostDetail", "foyer", "diskUsage"]
 
     /// The built-in templates a user places: each needs a sample.
     public static var userFacingPresets: [String] {

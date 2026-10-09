@@ -180,18 +180,25 @@ This machine, with the same shape on macOS and Linux. Units: bytes, bytes per se
 |---|---|---|
 | `disks` | `["/"]` | Mount points to report. |
 | `interfaces` | all but loopback | Network interfaces to sum. |
+| `processes` | none | How many of the busiest processes to report as `processes[]`, at most 20. Absent: `processes` is `[]` and no process is read, so a `system` source nothing reads it from costs what it always did. |
 
 ```jsonc
 {
   "host": "swift",
   "os": "macos",
   "uptime": 273600,
-  "cpu": { "percent": 12.5, "cores": 10, "load": [1.21, 1.43, 1.52] },
-  "memory": { "percent": 61, "pressure": 12, "compressed": 12, "psi": null, "used": 20957347840, "total": 34359738368 },
+  "cpu": { "percent": 12.5, "cores": 10, "load": [1.21, 1.43, 1.52], "perCore": [ { "percent": 64, "kind": "performance" }, { "percent": 9, "kind": "efficiency" } ] },
+  "memory": {
+    "percent": 61, "pressure": 12, "compressed": 12, "psi": null, "used": 20957347840, "total": 34359738368,
+    "parts": { "app": 10522669875, "wired": 3328599654, "compressed": 1503238553, "cached": 5583457484, "free": 13421772800 },
+    "swap": { "used": 536870912, "total": 4294967296 },
+    "state": "normal"
+  },
   "temperature": { "cpu": 54 },
-  "battery": { "percent": 81, "charging": false, "ac": false, "remaining": 14700 },
-  "disks": [ { "mount": "/", "total": 994662584320, "free": 263066746880, "used": 731595837440, "percent": 73.6 } ],
-  "network": { "rx": 12345, "tx": 678, "interfaces": [ { "name": "en0", "rx": 12345, "tx": 678 } ] },
+  "battery": { "percent": 81, "charging": false, "ac": false, "remaining": 14700, "power": 9.4, "health": 91, "cycles": 212, "temperature": 31.2 },
+  "disks": [ { "mount": "/", "name": "Macintosh HD", "total": 994662584320, "free": 263066746880, "used": 731595837440, "percent": 73.6 } ],
+  "network": { "rx": 12345, "tx": 678, "interfaces": [ { "name": "en0", "rx": 12345, "tx": 678 } ], "today": { "rx": 19543900000, "tx": 1502000000 } },
+  "processes": [ { "pid": 4021, "name": "Xcode", "cpu": 84.0, "memory": 3435973836 } ],
   "audio": { "volume": 42, "muted": false },
   "gpu": null,
   "services": {}
@@ -203,6 +210,13 @@ This machine, with the same shape on macOS and Linux. Units: bytes, bytes per se
 - `temperature.cpu`: the SMC on macOS; `coretemp`, `k10temp` or `zenpower`, else the first thermal zone, on Linux. `null` when unknown.
 - `battery` is `null` without a battery; `remaining` (seconds) is `null` while charging.
 - `audio` is always an object; its fields are `null` with no output device (Linux reads `wpctl`).
+- `cpu.perCore` lists every logical core's load since the previous read, performance cores first. `kind` is `"performance"` or `"efficiency"` where the OS says (Apple silicon; Intel hybrid CPUs; Arm big.LITTLE through `cpu_capacity`) and `null` where all cores are alike. (`cpu.cores` stays the count.)
+- `memory.parts` splits the RAM into five parts that add up to `memory.total`, on both systems. macOS, as Activity Monitor does: `app` (anonymous memory less purgeable pages), `wired`, `compressed` (the compressor's pages), `cached` (file cache and purgeable pages) and `free`. Linux, mapped onto the same names: `wired` is the kernel's unreclaimable memory (slab, stacks, page tables), `compressed` is zswap and zram, `cached` is the page cache with buffers and reclaimable slab, `free` is `MemFree`, and `app` is what is left. `memory.swap` is `{used, total}` in bytes. `memory.state` is `"normal"`, `"warning"` or `"critical"`: the kernel's memory pressure level on macOS; on Linux PSI `some avg10` below 10, below 50, and above (`null` without PSI).
+- `battery.power` is the watts flowing out of the battery (or into it while charging), always positive; `health` is the full-charge capacity as a percentage of the design capacity; `cycles` the charge cycle count; `temperature` is in °C. Each is `null` when the machine doesn't report it (macOS reads them from the battery's registry entry or the SMC; Linux from `/sys/class/power_supply`).
+- `network.today` is `{rx, tx}`, the bytes since local midnight over the same interfaces as `network.rx`. vestal adds up the counters' growth at every read (hidden periods included, a reboot handled) and keeps the total in `state/network-today.json` in the cache directory, so a restart continues it; traffic while vestal was not running is not counted. Rates over time need no field: `history` records them (`networkRates` does).
+- `processes[]` (only with `processes: N`) is `{pid, name, cpu, memory}`: `cpu` is percent of one core since the previous read (above 100 for a multi-threaded process; `null` on the first read, which ranks by memory), `memory` the resident bytes. macOS reads `libproc`, which only shows the current user's processes (not system daemons such as `WindowServer`); Linux reads `/proc/<pid>/stat` for every process but kernel threads.
+- `disks[].name` is the volume's name on macOS (`Macintosh HD`), `null` on Linux.
+- Sources that differ in `disks`, `interfaces` or `processes` each keep their own previous reading, so a second `system` source does not cut the first one's CPU and rate windows short.
 - A remote host's health, mapped to this shape (`foyer`, below), fills `services` and `gpu`.
 
 ### `media`
@@ -248,3 +262,21 @@ The Codex plan's usage, in the same shape as `claude`, with `source: "codex"`, `
 ### `foyer`
 
 A built-in source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while shown, and maps the payload to the `system` shape with `foyer_health`. Any source whose `transform` produces the `system` shape works the same way: write a source template for another health agent (`vestal docs templates`) and name it in `systemHealth`'s `provider`.
+
+### `diskUsage`
+
+A built-in source template, off until you define it: the size of each listed path, for the categories of `diskBreakdown`. It runs `sh` once with `du -sk` over the paths, at most once a day (`refresh: "24h"`, only while the dashboard is shown; the first read after a start can take minutes on a big tree, and `diskBreakdown` draws its plain bar until it lands), and gives `[{"label": "Developer", "bytes": 287762808832}]`. A path that doesn't exist, or that `du` can't read at all, is left out; unreadable files inside a path are skipped.
+
+| Key | Default | |
+|---|---|---|
+| `paths` | required | A list of `{"label": "Developer", "path": "~/Developer"}`. Absolute paths, or starting with `~/`. |
+
+```json
+{ "sources": { "diskUsage": { "type": "diskUsage", "paths": [
+  { "label": "Developer", "path": "~/Developer" },
+  { "label": "Documents", "path": "~/Documents" },
+  { "label": "Nix store", "path": "/nix" }
+] } } }
+```
+
+Programs: `sh` and `du` (`vestal check-config --commands` lists them). Pass the source's name as `diskBreakdown`'s `usage`.

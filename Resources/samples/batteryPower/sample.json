@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Battery power",
+  "description": "Charge, time left, power draw over time and the battery's health.",
+  "preset": "batteryPower",
+  "size": [
+    680,
+    150
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "system"
+  ]
+}

@@ -125,7 +125,7 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 //   command   argv, timeout, parse, env
 //   calendar  days, calendars, ics, caldav, thunderbird, timeout   ("eventkit" is an alias)
 //   file      path, parse
-//   system    disks, interfaces
+//   system    disks, interfaces, processes
 //   media     player
 //   claude    backend, argv (path, fiveHourLimit and weeklyLimit are accepted and ignored)
 //   codex     argv
@@ -149,6 +149,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public static let defaultDays = 1
     public static let defaultPlayer = "auto"
     public static let defaultDisks = ["/"]
+    /// The most top processes a `system` source reports.
+    public static let maxProcesses = 20
 
     /// `refresh` when the source doesn't set it.
     public static func defaultRefresh(for type: String) -> String {
@@ -204,11 +206,12 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public var thunderbird: String?         // calendar: a Thunderbird profile ("" = the default one); nil: off
     public var backend: String?             // claude: see `claudeBackends` (nil: auto)
     public var caldav: [String]?            // calendar: CalDAV collection or server URLs
+    public var processes: Int?              // system: how many top processes to report (nil: none, and none are read)
 
     enum CodingKeys: String, CodingKey {
         case type, url, refresh, parse, argv, timeout, env, days, calendars
         case when, transform, history, maxAge, cache, method, headers, body, path
-        case disks, interfaces, player, ics, thunderbird, backend, caldav
+        case disks, interfaces, player, ics, thunderbird, backend, caldav, processes
     }
 
     public init(
@@ -236,7 +239,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         ics: [String]? = nil,
         thunderbird: String? = nil,
         backend: String? = nil,
-        caldav: [String]? = nil
+        caldav: [String]? = nil,
+        processes: Int? = nil
     ) {
         let type = Self.canonicalType(type)
         self.type = type
@@ -248,6 +252,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         self.method = method; self.headers = headers; self.body = body; self.path = path
         self.disks = disks; self.interfaces = interfaces; self.player = player
         self.ics = ics; self.thunderbird = thunderbird; self.backend = backend; self.caldav = caldav
+        self.processes = processes
         fillDefaults()
     }
 
@@ -285,6 +290,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         caldav    = c.lenient([String].self, .caldav) ?? c.lenient(String.self, .caldav).map { [$0] }
         thunderbird = c.lenient(String.self, .thunderbird).map { $0.trimmingCharacters(in: .whitespaces) }
             ?? (c.lenient(Bool.self, .thunderbird) == true ? "" : nil)
+        processes = c.lenientPositive(.processes).map { min($0, Self.maxProcesses) }
         backend   = c.lenient(String.self, .backend).map { $0.lowercased() }.flatMap { Self.claudeBackends.contains($0) ? $0 : nil }
         fillDefaults()
     }

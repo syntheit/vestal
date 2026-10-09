@@ -259,7 +259,8 @@ public enum RenderSources {
                     .map { String(decoding: $0, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines) }
                 let snapshot = SourceSnapshot(data: data, fetchedAt: data == nil ? nil : now, lastError: failure)
                 let meta = SourceMeta(name: name, snapshot: snapshot, refresh: definition?.refreshSeconds ?? 60, now: now)
-                inputs.append(RenderSourceInput(name: name, definition: definition, data: data, meta: meta.json))
+                inputs.append(RenderSourceInput(name: name, definition: definition, data: data, meta: meta.json,
+                                                histories: fixtureHistories(dir: dir, name: name, definition: definition, now: now)))
             }
         case .cached, .auto, .fetch:
             var fetched: [String: Result<SourceSnapshot, SourceError>] = [:]
@@ -324,5 +325,30 @@ public enum RenderSources {
             }
         }
         return RenderTransformCache().data(for: inputs, environment: model.environment, names: names)
+    }
+
+    /// A fixture's histories: `<source>.history.json`, an object of number
+    /// lists (oldest first) keyed by a history's name or by its `value`
+    /// expression, the last sample being at `now` and the others one
+    /// `every` (the source's refresh) apart.
+    static func fixtureHistories(dir: String, name: String, definition: SourceConfig?, now: Date) -> [String: [HistorySample]] {
+        guard let specs = definition?.history, !specs.isEmpty,
+              let raw = FileManager.default.contents(atPath: "\(dir)/\(name).history.json"),
+              case .success(let json) = AnyJSON.parse(raw), let lists = json.objectValue else { return [:] }
+        var series: [String: [HistorySample]] = [:]
+        for (history, spec) in specs {
+            guard let values = (lists[history] ?? lists[spec.value])?.arrayValue?.compactMap({ (item: AnyJSON) -> Double? in
+                switch item {
+                case .int(let n): return Double(n)
+                case .double(let x): return x
+                default: return nil
+                }
+            }) else { continue }
+            let step = spec.every.flatMap(ConfigDuration.seconds) ?? definition?.refreshSeconds ?? 60
+            series[history] = values.enumerated().map { index, value in
+                HistorySample(time: now.timeIntervalSince1970 - Double(values.count - 1 - index) * step, value: value)
+            }
+        }
+        return series
     }
 }

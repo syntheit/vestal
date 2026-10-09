@@ -393,6 +393,9 @@ public enum SchemaRegistry {
                       examples: [.array([.string("/"), .string("/home")])], "Mount points to report."),
             SchemaKey("interfaces", .list(.string), examples: [.array([.string("en0")])],
                       "Network interfaces to report and sum. Default: all but loopback (on Linux, the physical ones)."),
+            SchemaKey("processes", .integer(minimum: 1), examples: [.int(5)],
+                      "Report the busiest processes by CPU as processes[] ({pid, name, cpu, memory}), at most 20. "
+                      + "Absent: processes is an empty list and no process is read."),
         ] + common("3s", "visible")),
         SchemaEntityType("media", since: "0.4", "One music player: state, track, album, position, duration and the players seen.", keys: [
             SchemaKey("player", .any, default: .array([.string(SourceConfig.defaultPlayer)]), examples: [.string("Spotify"), .array([.string("Spotify"), .string("spotifyd")])],

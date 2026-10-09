@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "widgets": {
+    "networkRates": {
+      "type": "networkRates"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "networkRates"
+      ],
+      "padding": 24
+    }
+  }
+}

@@ -331,7 +331,7 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 |---|---|
 | Containers | `stack`, `row`, `grid`, `list`, `table`, `switch` |
 | Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer`, and the charts `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
-| Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` |
+| Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage`, `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower` |
 
 Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` (`"fill"`), `spaceBefore`, `action`, `key`.
 
@@ -361,7 +361,7 @@ Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` 
 
 ## 4. Test data
 
-Write fixtures to test looks and edge cases without waiting for live data: a directory with `<source name>.json` (the data before `transform`; for `parse: "lines"` a JSON list of strings; a `.txt` for `parse: "raw"`), `<source>.error` holding an error message for a failed source, and the built-ins as `system.json`, `media.json`, `calendar.json`, `claude.json`. An inline source reads the file named after its type (`file.json`).
+Write fixtures to test looks and edge cases without waiting for live data: a directory with `<source name>.json` (the data before `transform`; for `parse: "lines"` a JSON list of strings; a `.txt` for `parse: "raw"`), `<source>.error` holding an error message for a failed source, and the built-ins as `system.json`, `media.json`, `calendar.json`, `claude.json`. An inline source reads the file named after its type (`file.json`). `<source>.history.json` fills the histories sparklines record: `{".network.rx": [1200, 3400, …]}`, oldest first.
 
 ```text
 $ mkdir /tmp/fx && vestal fetch system --local > /tmp/fx/system.json
@@ -1519,6 +1519,121 @@ A small pill: `text` (size 10, semibold) in `color`, on `color` at 15%, with an 
 { "type": "badge", "text": "HN", "color": "orange" }
 ```
 
+## System
+
+Widgets over the detail fields of the `system` source (`vestal docs source/system`). All but `topProcesses` take `source` (default `system`: any source in the `system` shape, such as a named copy or a remote host mapped to it) and hide themselves when the machine can't give their data.
+
+### `cpuCores`
+
+One column per logical core, 0 to 100, labelled `P1`..`P4` (performance) and `E1`..`E6` (efficiency); cores at or above `warn` are `warn`-coloured, the rest `cyan` (performance) or `teal` (efficiency). Beside them: the CPU total, the load averages, and the layout with the CPU temperature (`4P + 6E · 61°`). Where the OS doesn't tell the kinds, the columns are numbered and the layout reads `16 cores`.
+
+| Parameter | Default | |
+|---|---|---|
+| `source` | `system` | |
+| `warn` | `70` | The percentage from which a core is drawn in `warn`. |
+
+```json
+{ "type": "cpuCores" }
+```
+
+```nix
+programs.vestal.settings.views.main.children = [ { type = "cpuCores"; warn = 80; } ];
+```
+
+### `memoryBreakdown`
+
+"In use / total" (everything but free: the cache counts as in use because the bar shows it apart), the memory pressure state as a badge (`normal`, `warning`, `critical`; hidden where unknown), and a bar split into App, Wired, Compressed, Cached and Free with a legend of their sizes. Linux maps the same five parts (`vestal docs source/system`).
+
+| Parameter | Default | |
+|---|---|---|
+| `source` | `system` | |
+
+```json
+{ "type": "memoryBreakdown" }
+```
+
+```nix
+programs.vestal.settings.views.main.children = [ { type = "memoryBreakdown"; } ];
+```
+
+### `diskBreakdown`
+
+Every volume the source lists (its `disks`, `["/"]` by default): the first with its name, "used / total" and a bar, the others as one row each with a bar coloured `good`, `warn` from 80% and `bad` from 95%. With `usage` naming a `diskUsage` source, the first volume's bar is split by those categories and an "Other" part for the rest, with a legend; until that source has data, and without `usage`, it is one bar. List more volumes with `disks` on the `system` source.
+
+| Parameter | Default | |
+|---|---|---|
+| `source` | `system` | A `system` source; its `disks` are drawn. |
+| `usage` | none | A `diskUsage` source (or any source giving `[{label, bytes}]`). |
+
+```json
+{
+  "sources": {
+    "system": { "type": "system", "disks": ["/", "/Volumes/Media"] },
+    "usage": { "type": "diskUsage", "paths": [ { "label": "Developer", "path": "~/Developer" }, { "label": "Nix store", "path": "/nix" } ] }
+  },
+  "widgets": { "disks": { "type": "diskBreakdown", "usage": "usage" } }
+}
+```
+
+```nix
+programs.vestal.settings = {
+  sources.usage = { type = "diskUsage"; paths = [ { label = "Developer"; path = "~/Developer"; } ]; };
+  views.main.children = [ { type = "diskBreakdown"; usage = "usage"; } ];
+};
+```
+
+### `networkRates`
+
+Download and upload: the rate with its unit (`4.8 MB/s`) and a sparkline of the last `minutes` minutes (a sample every 3 seconds, kept across restarts), then a line with today's totals (`today 18.2 GB down, 1.4 GB up`), the interface's name when the source names exactly one `interfaces`, and the history's length. The histories record on the source, which samples only while the dashboard is shown.
+
+| Parameter | Default | |
+|---|---|---|
+| `source` | `system` | |
+| `minutes` | `3` | Only the label: the history's length is `samples`. |
+| `samples` | `60` | Samples kept per sparkline, at most 10000 (20 per minute). |
+
+```json
+{ "type": "networkRates" }
+```
+
+```nix
+programs.vestal.settings.views.main.children = [ { type = "networkRates"; minutes = 10; samples = 200; } ];
+```
+
+### `topProcesses`
+
+The busiest processes by CPU: name, CPU in percent of one core (`warn`-coloured from `warn`), resident memory and a bar. It reads its own `system` source with `processes` set to `count`, so no process is read for configs that don't place it. Linux shows every process but kernel threads; macOS shows the current user's processes only (system daemons are not visible). The first reading after a start ranks by memory: CPU needs two.
+
+| Parameter | Default | |
+|---|---|---|
+| `count` | `5` | Processes shown, at most 20. |
+| `warn` | `70` | The CPU percentage from which a row is `warn`-coloured. |
+
+```json
+{ "type": "topProcesses", "count": 8 }
+```
+
+```nix
+programs.vestal.settings.views.main.children = [ { type = "topProcesses"; count = 8; } ];
+```
+
+### `batteryPower`
+
+A ring with the charge and "On battery", "Charging" or "Plugged in" under it; the time left (`5h 12m left`, from the OS or computed from the energy and the power); the power draw in watts with a sparkline of its last 10 minutes; and `health 91% · 212 cycles · 31°`. Parts the machine doesn't report are left out; hidden without a battery.
+
+| Parameter | Default | |
+|---|---|---|
+| `source` | `system` | |
+| `samples` | `60` | Power samples kept (one every 10 seconds). |
+
+```json
+{ "type": "batteryPower" }
+```
+
+```nix
+programs.vestal.settings.views.main.children = [ { type = "batteryPower"; } ];
+```
+
 ## The v0.3 widgets
 
 These keep their v0.3 names, parameters and look, so v0.3 configs work unchanged.
@@ -1578,6 +1693,10 @@ The host popup of `systemHealth`: CPU, RAM, GPU, pools or mounts, network, docke
 ### `foyer`
 
 A source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while shown, and maps the payload to the `system` shape.
+
+### `diskUsage`
+
+A source template: `{"type": "diskUsage", "paths": [{"label": "Developer", "path": "~/Developer"}]}` runs `du -sk` over the paths once a day while shown and gives `[{label, bytes}]`, for `diskBreakdown`'s `usage` (`vestal docs source/diskUsage`).
 
 """#,
         "protocol": #"""
@@ -1900,7 +2019,7 @@ A minimal config: the preset (or page) alone in `views.main`, with the sources i
 
 ### `data/`
 
-What `vestal render --data` reads: `<source name>.json` for each source (`.txt` for `raw` ones), `<type>.json` for an inline source such as `media` or `claude`, and `<source name>.error` for a source whose last fetch failed. A source with no file reads as having no data yet, which draws placeholders: if the image shows dashes, the data does not match what the config reads. `vestal fetch <name> --shape` shows the shape a real source has.
+What `vestal render --data` reads: `<source name>.json` for each source (`.txt` for `raw` ones), `<type>.json` for an inline source such as `media` or `claude`, `<source name>.error` for a source whose last fetch failed, and `<source name>.history.json` for the histories a sparkline records: an object of number lists (oldest first) keyed by the history's `value` expression (`".network.rx"`) or its name, the last sample being at the render's time and the others one `every` (the source's refresh) apart. A source with no file reads as having no data yet, which draws placeholders: if the image shows dashes, the data does not match what the config reads. `vestal fetch <name> --shape` shows the shape a real source has.
 
 Keep the data realistic and generic: no personal names, hosts or places beyond a generic city, and nothing copied from a real machine.
 
@@ -2096,18 +2215,25 @@ This machine, with the same shape on macOS and Linux. Units: bytes, bytes per se
 |---|---|---|
 | `disks` | `["/"]` | Mount points to report. |
 | `interfaces` | all but loopback | Network interfaces to sum. |
+| `processes` | none | How many of the busiest processes to report as `processes[]`, at most 20. Absent: `processes` is `[]` and no process is read, so a `system` source nothing reads it from costs what it always did. |
 
 ```jsonc
 {
   "host": "swift",
   "os": "macos",
   "uptime": 273600,
-  "cpu": { "percent": 12.5, "cores": 10, "load": [1.21, 1.43, 1.52] },
-  "memory": { "percent": 61, "pressure": 12, "compressed": 12, "psi": null, "used": 20957347840, "total": 34359738368 },
+  "cpu": { "percent": 12.5, "cores": 10, "load": [1.21, 1.43, 1.52], "perCore": [ { "percent": 64, "kind": "performance" }, { "percent": 9, "kind": "efficiency" } ] },
+  "memory": {
+    "percent": 61, "pressure": 12, "compressed": 12, "psi": null, "used": 20957347840, "total": 34359738368,
+    "parts": { "app": 10522669875, "wired": 3328599654, "compressed": 1503238553, "cached": 5583457484, "free": 13421772800 },
+    "swap": { "used": 536870912, "total": 4294967296 },
+    "state": "normal"
+  },
   "temperature": { "cpu": 54 },
-  "battery": { "percent": 81, "charging": false, "ac": false, "remaining": 14700 },
-  "disks": [ { "mount": "/", "total": 994662584320, "free": 263066746880, "used": 731595837440, "percent": 73.6 } ],
-  "network": { "rx": 12345, "tx": 678, "interfaces": [ { "name": "en0", "rx": 12345, "tx": 678 } ] },
+  "battery": { "percent": 81, "charging": false, "ac": false, "remaining": 14700, "power": 9.4, "health": 91, "cycles": 212, "temperature": 31.2 },
+  "disks": [ { "mount": "/", "name": "Macintosh HD", "total": 994662584320, "free": 263066746880, "used": 731595837440, "percent": 73.6 } ],
+  "network": { "rx": 12345, "tx": 678, "interfaces": [ { "name": "en0", "rx": 12345, "tx": 678 } ], "today": { "rx": 19543900000, "tx": 1502000000 } },
+  "processes": [ { "pid": 4021, "name": "Xcode", "cpu": 84.0, "memory": 3435973836 } ],
   "audio": { "volume": 42, "muted": false },
   "gpu": null,
   "services": {}
@@ -2119,6 +2245,13 @@ This machine, with the same shape on macOS and Linux. Units: bytes, bytes per se
 - `temperature.cpu`: the SMC on macOS; `coretemp`, `k10temp` or `zenpower`, else the first thermal zone, on Linux. `null` when unknown.
 - `battery` is `null` without a battery; `remaining` (seconds) is `null` while charging.
 - `audio` is always an object; its fields are `null` with no output device (Linux reads `wpctl`).
+- `cpu.perCore` lists every logical core's load since the previous read, performance cores first. `kind` is `"performance"` or `"efficiency"` where the OS says (Apple silicon; Intel hybrid CPUs; Arm big.LITTLE through `cpu_capacity`) and `null` where all cores are alike. (`cpu.cores` stays the count.)
+- `memory.parts` splits the RAM into five parts that add up to `memory.total`, on both systems. macOS, as Activity Monitor does: `app` (anonymous memory less purgeable pages), `wired`, `compressed` (the compressor's pages), `cached` (file cache and purgeable pages) and `free`. Linux, mapped onto the same names: `wired` is the kernel's unreclaimable memory (slab, stacks, page tables), `compressed` is zswap and zram, `cached` is the page cache with buffers and reclaimable slab, `free` is `MemFree`, and `app` is what is left. `memory.swap` is `{used, total}` in bytes. `memory.state` is `"normal"`, `"warning"` or `"critical"`: the kernel's memory pressure level on macOS; on Linux PSI `some avg10` below 10, below 50, and above (`null` without PSI).
+- `battery.power` is the watts flowing out of the battery (or into it while charging), always positive; `health` is the full-charge capacity as a percentage of the design capacity; `cycles` the charge cycle count; `temperature` is in °C. Each is `null` when the machine doesn't report it (macOS reads them from the battery's registry entry or the SMC; Linux from `/sys/class/power_supply`).
+- `network.today` is `{rx, tx}`, the bytes since local midnight over the same interfaces as `network.rx`. vestal adds up the counters' growth at every read (hidden periods included, a reboot handled) and keeps the total in `state/network-today.json` in the cache directory, so a restart continues it; traffic while vestal was not running is not counted. Rates over time need no field: `history` records them (`networkRates` does).
+- `processes[]` (only with `processes: N`) is `{pid, name, cpu, memory}`: `cpu` is percent of one core since the previous read (above 100 for a multi-threaded process; `null` on the first read, which ranks by memory), `memory` the resident bytes. macOS reads `libproc`, which only shows the current user's processes (not system daemons such as `WindowServer`); Linux reads `/proc/<pid>/stat` for every process but kernel threads.
+- `disks[].name` is the volume's name on macOS (`Macintosh HD`), `null` on Linux.
+- Sources that differ in `disks`, `interfaces` or `processes` each keep their own previous reading, so a second `system` source does not cut the first one's CPU and rate windows short.
 - A remote host's health, mapped to this shape (`foyer`, below), fills `services` and `gpu`.
 
 ### `media`
@@ -2164,6 +2297,24 @@ The Codex plan's usage, in the same shape as `claude`, with `source: "codex"`, `
 ### `foyer`
 
 A built-in source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while shown, and maps the payload to the `system` shape with `foyer_health`. Any source whose `transform` produces the `system` shape works the same way: write a source template for another health agent (`vestal docs templates`) and name it in `systemHealth`'s `provider`.
+
+### `diskUsage`
+
+A built-in source template, off until you define it: the size of each listed path, for the categories of `diskBreakdown`. It runs `sh` once with `du -sk` over the paths, at most once a day (`refresh: "24h"`, only while the dashboard is shown; the first read after a start can take minutes on a big tree, and `diskBreakdown` draws its plain bar until it lands), and gives `[{"label": "Developer", "bytes": 287762808832}]`. A path that doesn't exist, or that `du` can't read at all, is left out; unreadable files inside a path are skipped.
+
+| Key | Default | |
+|---|---|---|
+| `paths` | required | A list of `{"label": "Developer", "path": "~/Developer"}`. Absolute paths, or starting with `~/`. |
+
+```json
+{ "sources": { "diskUsage": { "type": "diskUsage", "paths": [
+  { "label": "Developer", "path": "~/Developer" },
+  { "label": "Documents", "path": "~/Documents" },
+  { "label": "Nix store", "path": "/nix" }
+] } } }
+```
+
+Programs: `sh` and `du` (`vestal check-config --commands` lists them). Pass the source's name as `diskBreakdown`'s `usage`.
 
 """#,
         "styling": #"""
@@ -2477,7 +2628,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 | Containers | `stack` (top to bottom), `row` (left to right), `grid` (aligned columns), `list` (an array as rows), `table` (a list with aligned columns), `switch` (one child picked by a value) |
 | Primitives | `text`, `icon`, `progress` (bar), `gauge` (ring), `sparkline`, `keyValue`, `divider`, `spacer` |
 | Charts | `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
-| Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, and `aiUsage` (Claude and Codex plan usage) (`vestal docs presets`) |
+| Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the system presets `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower` (`vestal docs presets`) |
 | Your templates | any name under `templates` (`vestal docs templates`) |
 
 ## Fields every widget takes
