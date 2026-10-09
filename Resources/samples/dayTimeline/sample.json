@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Day timeline",
+  "preset": "dayTimeline",
+  "description": "Today's calendar events on a strip with a now line, overlaps on separate rows and finished events dimmed.",
+  "size": [
+    680,
+    110
+  ],
+  "at": "2026-09-27T10:30:00Z",
+  "tags": [
+    "calendar",
+    "time"
+  ]
+}

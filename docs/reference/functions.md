@@ -52,6 +52,7 @@ Arguments see the piped input, not the row: inside `now | fmt_time("HH:mm"; …)
 | `find(obj)` | array → the first element whose fields equal all of `obj`'s, else `null` | `find({casa: "blue"})` |
 | `where(obj)` | array → every such element | `where({state: "on"})` |
 | `uniq_by(f)` | like `unique_by`, but keeps the first of each and the order | `uniq_by(.label)` |
+| `meeting_link` | a calendar entry (`url`, `location`, `notes`) or text → the link that joins the meeting, or `null`. Links to Zoom, Google Meet, Microsoft Teams, Webex and a few other call services win, wherever they are, else the first `http(s)` link; fields are scanned in the order url, location, notes. | `{url: null, notes: "Join: https://us02web.zoom.us/j/123."} \| meeting_link` → `"https://us02web.zoom.us/j/123"` |
 | `pct(part; whole)` | `100 * part / whole`, `null` when `whole` is 0 | `pct(.used; .total)` |
 | `meta(name)` | a source's metadata, as `$meta`: `{name, fetchedAt, age, ok, error, stale, loaded}` | `meta("weather").age` |
 | `history(source; name)` | the same as `$history[source][name]` | `history("stats"; "cpu") \| last` |

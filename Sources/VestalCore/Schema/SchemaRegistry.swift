@@ -364,6 +364,9 @@ public enum SchemaRegistry {
                          "Events: EventKit on macOS, or .ics files, directories and URLs (ics), CalDAV servers (caldav) or Thunderbird's calendars (thunderbird) on both OSes.", keys: [
             SchemaKey("days", .integer(minimum: 1), default: .int(SourceConfig.defaultDays), examples: [.int(2)],
                       "How many days to read, today being the first."),
+            SchemaKey("includePast", .boolean, since: "0.4", examples: [.bool(true)],
+                      "true: read from the start of today instead of from now, so events that already ended are in the data too "
+                      + "(the dayTimeline preset dims them). Widgets that list what is coming filter on the end time. Default: false."),
             SchemaKey("calendars", .list(.string), examples: [.array([.string("Work"), .string("Home")])],
                       "Only calendars with these names. Default: all."),
             SchemaKey("ics", .any, kind: .text, since: "0.4",
@@ -386,8 +389,24 @@ public enum SchemaRegistry {
             SchemaKey("path", .string, kind: .text, required: true, examples: [.string("~/.local/state/notes.json")],
                       "The file. A leading ~/ expands."),
             SchemaKey("parse", .oneOf(SourceConfig.fileParseModes), default: .string("json"), examples: [.string("exists")],
-                      "As for http, plus exists: {exists, modified}, which never fails."),
+                      "As for http, plus exists: {exists, modified}, which never fails; and checklist: a markdown file's task list "
+                      + "as {path, size, hash, items: [{line, text, done, section}]} (vestal docs source/file)."),
         ] + common("30s", "always")),
+        SchemaEntityType("timer", since: "0.4",
+                         "A pomodoro timer that keeps its state in the running vestal: focus and break lengths, rounds, a task label.", keys: [
+            SchemaKey("focus", .duration, since: "0.4", examples: [.string("50m")],
+                      "The length of a focus phase. Default: \(TimerSettings.defaultFocus)."),
+            SchemaKey("shortBreak", .duration, since: "0.4", examples: [.string("10m")],
+                      "The break after a focus phase. Default: \(TimerSettings.defaultShortBreak)."),
+            SchemaKey("longBreak", .duration, since: "0.4", examples: [.string("20m")],
+                      "The break after the last focus round. Default: \(TimerSettings.defaultLongBreak)."),
+            SchemaKey("rounds", .integer(minimum: 1), since: "0.4", examples: [.int(3)],
+                      "Focus rounds before the long break. Default: \(TimerSettings.defaultRounds)."),
+            SchemaKey("task", .string, since: "0.4", examples: [.string("Writing: onboarding copy")],
+                      "The task label the focusTimer preset shows."),
+            SchemaKey("autoStart", .boolean, since: "0.4", examples: [.bool(true)],
+                      "true: start the next phase by itself when one ends. Default: false, the timer waits, ready, for the start key."),
+        ] + common("1s", "visible", cache: false)),
         SchemaEntityType("system", since: "0.4", "This machine's CPU, memory, temperature, battery, disks, network and volume.", keys: [
             SchemaKey("disks", .list(.string), default: .array(SourceConfig.defaultDisks.map(AnyJSON.string)),
                       examples: [.array([.string("/"), .string("/home")])], "Mount points to report."),
@@ -428,7 +447,7 @@ public enum SchemaRegistry {
 
     /// The keys every source takes with the type's
     /// `refresh` and `when` defaults.
-    private static func common(_ refresh: String, _ when: String) -> [SchemaKey] {
+    private static func common(_ refresh: String, _ when: String, cache: Bool = true) -> [SchemaKey] {
         [
             SchemaKey("refresh", .duration, default: .string(refresh), examples: [.string("5m"), .string("4h")],
                       "How often to fetch."),
@@ -441,7 +460,7 @@ public enum SchemaRegistry {
                       "Named number histories for sparklines, kept across restarts."),
             SchemaKey("maxAge", .duration, since: "0.4", examples: [.string("1h")],
                       "Cached data older than this is not shown at startup."),
-            SchemaKey("cache", .boolean, default: .bool(true), since: "0.4", examples: [.bool(false)],
+            SchemaKey("cache", .boolean, default: .bool(cache), since: "0.4", examples: [.bool(!cache)],
                       "false: never written to disk."),
         ]
     }

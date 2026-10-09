@@ -142,7 +142,7 @@ public struct LiveFetcher: SourceFetcher {
             return (source.path ?? "").isEmpty ? "needs a \"path\"" : nil
         case "system":
             return platform.system == nil ? "system stats are not supported on this platform" : nil
-        case "calendar", "media":
+        case "calendar", "media", "timer":
             return nil
         case "claude", "codex":
             return source.argv?.isEmpty == true ? "\"argv\" must not be empty" : nil
@@ -164,6 +164,8 @@ public struct LiveFetcher: SourceFetcher {
         case "system":
             guard let system = platform.system else { throw SourceError("system stats are not supported on this platform") }
             return FetchResult(data: await system.read(source).canonicalData())
+        case "timer":
+            return FetchResult(data: TimerStore.shared.data(settings: TimerSettings(source), at: now()).canonicalData())
         case "media":
             let reading = await platform.media?.read(source.player ?? [SourceConfig.defaultPlayer])
                 ?? MediaReading(player: nil, playing: .off, players: [])
@@ -195,6 +197,7 @@ public struct LiveFetcher: SourceFetcher {
         switch source.type {
         case "system": return platform.system?.readNow(source).canonicalData()
         case "file": return try? readFile(source)
+        case "timer": return TimerStore.shared.data(settings: TimerSettings(source), at: now()).canonicalData()
         default: return nil
         }
     }
@@ -268,6 +271,10 @@ public struct LiveFetcher: SourceFetcher {
         if let size = (attributes[.size] as? NSNumber)?.intValue, size > Self.maxBytes {
             throw SourceError("\(path) is larger than 10 MiB")
         }
+        if source.parse == "checklist" {
+            return TodoChecklist.shape(try Self.readLimited(path), path: path,
+                                       modified: attributes[.modificationDate] as? Date).canonicalData()
+        }
         return try Self.parsed(try Self.readLimited(path), parse: source.parse)
     }
 
@@ -285,7 +292,8 @@ public struct LiveFetcher: SourceFetcher {
     // MARK: Calendar
 
     private func readCalendar(_ source: SourceConfig) async throws -> FetchResult {
-        let range = Self.calendarRange(days: source.days, now: now())
+        var range = Self.calendarRange(days: source.days, now: now())
+        if source.includePast == true { range.start = Calendar.current.startOfDay(for: range.start) }
         if let caldav = source.caldav, !caldav.isEmpty {
             return try await readCalDAV(caldav, source: source, range: range)
         }

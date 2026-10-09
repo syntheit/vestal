@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "sources": {
+    "habits": {
+      "type": "file",
+      "path": "~/.local/share/vestal/habits.json"
+    }
+  },
+  "widgets": {
+    "habits": {
+      "type": "habits",
+      "source": "habits"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "habits"
+      ],
+      "padding": 24
+    }
+  }
+}

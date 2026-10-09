@@ -13,12 +13,13 @@ final class SchemaTests: XCTestCase {
         XCTAssertEqual(SourceConfig.keysByType, [
             "http": common.union(["url", "parse", "method", "headers", "body", "timeout"]),
             "command": common.union(["argv", "timeout", "parse", "env"]),
-            "calendar": common.union(["days", "calendars", "ics", "caldav", "thunderbird", "timeout"]),
+            "calendar": common.union(["days", "includePast", "calendars", "ics", "caldav", "thunderbird", "timeout"]),
             "file": common.union(["path", "parse"]),
             "system": common.union(["disks", "interfaces"]),
             "media": common.union(["player"]),
             "claude": common.union(["argv", "path", "fiveHourLimit", "weeklyLimit", "backend"]),
             "codex": common.union(["argv"]),
+            "timer": common.union(["focus", "shortBreak", "longBreak", "rounds", "task", "autoStart"]),
         ])
         XCTAssertEqual(SourceConfig.aliases, ["eventkit": "calendar"])
         XCTAssertEqual(WidgetConfig.keysByType, [
@@ -56,7 +57,8 @@ final class SchemaTests: XCTestCase {
         }
         let source = SourceConfig(
             type: "command", url: "u", argv: ["a"], env: [:], calendars: [], transform: ".", history: [:], maxAge: "1h",
-            headers: [:], body: .null, path: "p", disks: [], interfaces: [], player: [], ics: [], thunderbird: "", backend: "auto", caldav: [])
+            headers: [:], body: .null, path: "p", disks: [], interfaces: [], player: [], ics: [], thunderbird: "", backend: "auto", caldav: [],
+            includePast: true, focus: "25m", shortBreak: "5m", longBreak: "15m", rounds: 4, task: "t", autoStart: true)
         // The v0.3 Claude options are declared (accepted, then ignored) but
         // not decoded; a source's `path` is still the file source's.
         let ignored: Set<String> = ["path", "fiveHourLimit", "weeklyLimit"]

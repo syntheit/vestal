@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Todo file",
+  "preset": "todoFile",
+  "description": "The open tasks of a markdown checklist, each with a key that ticks it off in the file.",
+  "size": [
+    680,
+    220
+  ],
+  "at": "2026-09-27T10:30:00Z",
+  "tags": [
+    "tasks",
+    "files"
+  ]
+}

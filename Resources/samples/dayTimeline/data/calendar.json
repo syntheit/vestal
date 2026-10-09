@@ -1,0 +1,72 @@
+[
+  {
+    "title": "Standup",
+    "start": 1790492400,
+    "end": 1790496000,
+    "allDay": false,
+    "calendar": "Work",
+    "location": null,
+    "url": null,
+    "notes": null
+  },
+  {
+    "title": "Focus block",
+    "start": 1790496900,
+    "end": 1790502300,
+    "allDay": false,
+    "calendar": "Focus",
+    "location": null,
+    "url": null,
+    "notes": null
+  },
+  {
+    "title": "Design review",
+    "start": 1790506800,
+    "end": 1790513100,
+    "allDay": false,
+    "calendar": "Work",
+    "location": "Room 2",
+    "url": null,
+    "notes": null
+  },
+  {
+    "title": "Dentist",
+    "start": 1790509500,
+    "end": 1790514900,
+    "allDay": false,
+    "calendar": "Personal",
+    "location": null,
+    "url": null,
+    "notes": null
+  },
+  {
+    "title": "1:1",
+    "start": 1790514000,
+    "end": 1790517600,
+    "allDay": false,
+    "calendar": "Work",
+    "location": null,
+    "url": null,
+    "notes": null
+  },
+  {
+    "title": "Dinner",
+    "start": 1790521200,
+    "end": 1790528400,
+    "allDay": false,
+    "calendar": "Personal",
+    "location": null,
+    "url": null,
+    "notes": null
+  },
+  {
+    "title": "Public holiday",
+    "start": 1790467200,
+    "end": 1790553600,
+    "allDay": true,
+    "calendar": "Home",
+    "location": null,
+    "url": null,
+    "notes": null
+  }
+]
