@@ -261,6 +261,8 @@ class NodeView {
             return 40
         case .spark:
             return 60
+        case .bars, .stackedBar, .heatmap, .timeline, .image:
+            return Self.chartSize(node.content)?.width ?? 0
         case .divider(let d):
             return d.axis == .v ? d.thickness : 0
         case .spacer(let s):
@@ -287,6 +289,8 @@ class NodeView {
             return (width, nil) // square
         case .spark:
             return (20, nil)
+        case .bars, .stackedBar, .heatmap, .timeline, .image:
+            return (Self.chartSize(node.content)?.height ?? 0, nil)
         case .divider(let d):
             return (d.axis == .h ? d.thickness : 0, nil)
         case .spacer(let s):
@@ -645,6 +649,11 @@ class NodeView {
         case .bar(let bar): drawBar(snapshot, bar, inner)
         case .ring(let ring): drawRing(snapshot, ring, inner)
         case .spark(let spark): drawSpark(snapshot, spark, inner)
+        case .bars(let bars): drawBars(snapshot, bars, inner)
+        case .stackedBar(let bar): drawStackedBar(snapshot, bar, inner)
+        case .heatmap(let heatmap): drawHeatmap(snapshot, heatmap, inner)
+        case .timeline(let timeline): drawTimeline(snapshot, timeline, inner)
+        case .image(let image): drawImage(snapshot, image, inner)
         case .divider(let divider): drawDivider(snapshot, divider, inner)
         default: break
         }

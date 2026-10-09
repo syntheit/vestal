@@ -19,7 +19,7 @@ final class CheckConfigV04Tests: XCTestCase {
 
     func testExamplesAndDefaultsHaveNoErrorsOrWarnings() throws {
         for platform in ConfigPlatform.allCases {
-            for name in ["full.json", "full-v04.json"] {
+            for name in ["full.json", "full-v04.json", "charts.json"] {
                 let loaded = ConfigLoader.load(path: Fixture.example(name).path, platform: platform)
                 XCTAssertEqual(loaded.warnings, [], "\(name) on \(platform)")
                 let output = ConfigCommands.checkConfig([Fixture.example(name).path, "--json", "--strict", "--platform", platform.rawValue])

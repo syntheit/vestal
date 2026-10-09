@@ -66,6 +66,16 @@ struct RenderNodeView: View {
             DividerDrawing(divider: divider, style: style)
         case .spacer:
             Color.clear
+        case .bars(let bars):
+            BarsDrawing(bars: bars, style: style)
+        case .stackedBar(let bar):
+            StackedBarDrawing(bar: bar, style: style)
+        case .heatmap(let heatmap):
+            HeatmapDrawing(heatmap: heatmap, style: style)
+        case .timeline(let timeline):
+            TimelineDrawing(timeline: timeline, style: style)
+        case .image(let image):
+            ImageDrawing(image: image, style: style)
         }
     }
 
@@ -85,6 +95,14 @@ struct RenderNodeView: View {
         case .divider(let d): return d.axis == .v ? .fixed(width: d.thickness, height: 0) : .fixed(width: 0, height: d.thickness)
         case .spacer(let s):
             return .fixed(width: parentAxis == .h ? s.min : 0, height: parentAxis == .v ? s.min : 0)
+        // The core gives these a size; these are the fallbacks, as on Linux.
+        case .bars: return .fixed(width: 160, height: 48)
+        case .stackedBar: return .fixed(width: 60, height: 8)
+        case .heatmap(let h):
+            let columns = Double(h.columns), rows = Double(h.rows)
+            return .fixed(width: columns * h.cell + max(0, columns - 1) * h.gap, height: rows * h.cell + max(0, rows - 1) * h.gap)
+        case .timeline: return .fixed(width: 120, height: 36)
+        case .image: return .fixed(width: 48, height: 48)
         }
     }
 }

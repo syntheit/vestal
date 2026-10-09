@@ -67,6 +67,32 @@ public enum RenderText {
             parts = ["divider", d.axis.rawValue]
         case .spacer:
             parts = ["spacer"]
+        case .bars(let b):
+            parts = ["bars", "values=[" + b.values.map(number).joined(separator: ",") + "]", "max=\(number(b.max))"]
+            if let width = b.barWidth { parts.append("barWidth=\(number(width))") }
+            if let first = b.colors.first, Set(b.colors).count == 1 {
+                parts.append("color=\(first)")
+            } else if !b.colors.isEmpty {
+                parts.append("colors=[" + b.colors.joined(separator: ",") + "]")
+            }
+        case .stackedBar(let b):
+            parts = ["stackedBar", "segments=[" + b.segments.map { "\(number(($0.value * 1000).rounded() / 1000)):\($0.color)" }
+                .joined(separator: ",") + "]"]
+        case .heatmap(let h):
+            parts = ["heatmap", "cells=\(h.cells.count)", "empty=\(h.cells.filter { $0 == nil }.count)", "rows=\(h.rows)"]
+            if h.direction != "columns" { parts.append("direction=\(h.direction)") }
+            parts.append("cell=\(number(h.cell))")
+            let colors = Set(h.cells.compactMap { $0 })
+            if !colors.isEmpty { parts.append("colors=\(colors.count)") }
+        case .timeline(let t):
+            parts = ["timeline", "items=\(t.items.count)", "lanes=\(t.lanes)", "ticks=[" + t.ticks.map(\.label).joined(separator: ",") + "]"]
+            if let now = t.now { parts.append("now=\(number(now))") }
+            for item in t.items {
+                parts.append("(\(number(item.start))" + (item.end.map { "-\(number($0))" } ?? "")
+                    + (item.label.map { " \(quoted($0))" } ?? "") + ")")
+            }
+        case .image(let i):
+            parts = ["image", i.path.map(quoted) ?? "empty", "fit=\(i.fit)"]
         case .unknown(let type):
             parts = [type]
         }
@@ -118,6 +144,17 @@ public enum RenderText {
             return String(repeating: "▮", count: filled) + String(repeating: "▯", count: 10 - filled)
         case .ring(let r): return "◔\(Int((r.value * 100).rounded()))%"
         case .spark(let s): return "~\(s.values.count)~"
+        case .bars(let b):
+            let top = b.max > 0 ? b.max : 1
+            let levels = Array("▁▂▃▄▅▆▇█")
+            return String(b.values.map { levels[min(max(Int(($0 / top * 7).rounded()), 0), 7)] })
+        case .stackedBar(let b):
+            var cells = ""
+            for segment in b.segments { cells += String(repeating: "▮", count: Int((segment.value * 10).rounded())) }
+            return cells + String(repeating: "▯", count: max(0, 10 - cells.count))
+        case .heatmap(let h): return "▦\(h.columns)x\(h.rows)"
+        case .timeline(let t): return "─\(t.items.count) items─"
+        case .image(let i): return i.path == nil ? "(image)" : "[image]"
         case .divider(let d): return d.axis == .h ? "────" : "│"
         case .spacer: return " "
         case .stack(let s):

@@ -360,7 +360,9 @@ struct V04Checker {
                 icon(value, path: fieldPath, scope: scope, inTemplate: inTemplate)
             case "labelStyle", "textStyle", "valueStyle":
                 style(value, path: fieldPath, scope: scope, inTemplate: inTemplate)
-            case "color", "trackColor", "overlayColor", "iconColor", "fill":
+            case "from", "to":
+                timelineTime(value, path: fieldPath, scope: scope, inTemplate: inTemplate)
+            case "color", "trackColor", "overlayColor", "iconColor", "fill", "nowColor":
                 color(value, path: fieldPath, scope: scope.adding(["value"]), inTemplate: inTemplate)
             default:
                 switch key.kind {
@@ -373,6 +375,9 @@ struct V04Checker {
                     literal(value, path: fieldPath, scope: scope, inTemplate: inTemplate)
                 }
             }
+        }
+        if Self.chartTypes.contains(type.name) {
+            charts(w, type: type.name, path: path, scope: scope, inTemplate: inTemplate)
         }
     }
 
@@ -748,7 +753,7 @@ struct V04Checker {
         warnings.append(warning)
     }
 
-    private mutating func add(_ kind: ConfigWarning.Kind, _ path: String, _ message: String, code: String? = nil,
+    mutating func add(_ kind: ConfigWarning.Kind, _ path: String, _ message: String, code: String? = nil,
                               severity: ConfigDiagnostic.Severity = .error, suggestions: [String] = [],
                               expected: String? = nil, found: String? = nil) {
         warnings.append(ConfigWarning(kind: kind, path: path, message: message, code: code, severity: severity,

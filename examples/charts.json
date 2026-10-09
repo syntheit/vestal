@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "theme": { "background": "aurora" },
+  "sources": {
+    "weather": { "type": "http", "url": "https://wttr.in/?m&format=j1", "refresh": "30m" },
+    "calendar": { "type": "calendar", "refresh": "5m", "days": 1 }
+  },
+  "widgets": {
+    "now": {
+      "type": "section",
+      "title": "Today",
+      "children": [
+        {
+          "type": "timeline",
+          "source": "calendar",
+          "items": "[.[] | select(.allDay | not) | {start, end, label: .title, color: (if .calendar == \"Home\" then \"purple\" else \"accent\" end)}]",
+          "from": "now | fmt_time(\"yyyy-MM-dd'T'08:00:00xxx\") | to_epoch",
+          "to": "now | fmt_time(\"yyyy-MM-dd'T'20:00:00xxx\") | to_epoch",
+          "height": 44
+        }
+      ]
+    },
+    "temperature": {
+      "type": "section",
+      "title": "Temperature, every 3 hours",
+      "source": "weather",
+      "children": [
+        {
+          "type": "bars",
+          "values": "[.weather[0].hourly[] | {value: (.tempC | tonumber), label: (.time | tonumber / 100 | floor | tostring)}]",
+          "labels": true,
+          "width": 320,
+          "height": 56,
+          "color": { "steps": [[0, "cyan"], [15, "good"], [25, "warn"], [32, "bad"]] }
+        }
+      ]
+    },
+    "load": {
+      "type": "section",
+      "title": "Load average",
+      "source": "system",
+      "children": [
+        {
+          "type": "bars",
+          "orientation": "horizontal",
+          "values": "[{value: .cpu.load[0], label: \"1 min\"}, {value: .cpu.load[1], label: \"5 min\"}, {value: .cpu.load[2], label: \"15 min\"}]",
+          "max": ".cpu.cores",
+          "format": "fixed:2",
+          "color": { "steps": [[0, "good"], [4, "warn"], [8, "bad"]] }
+        }
+      ]
+    },
+    "storage": {
+      "type": "section",
+      "title": "Disk and memory",
+      "source": "system",
+      "children": [
+        {
+          "type": "stackedBar",
+          "segments": "[{value: .disks[0].used, label: \"Used \\(.disks[0].used | fmt_bytes)\", color: \"accent\"}, {value: .disks[0].free, label: \"Free \\(.disks[0].free | fmt_bytes)\", color: \"good@0.5\"}]",
+          "legend": true
+        },
+        {
+          "type": "stackedBar",
+          "segments": "[{value: (.memory.used - .memory.total * .memory.compressed / 100), label: \"App\", color: \"purple\"}, {value: (.memory.total * .memory.compressed / 100), label: \"Compressed\", color: \"orange\"}]",
+          "total": ".memory.total",
+          "legend": true
+        }
+      ]
+    },
+    "activity": {
+      "type": "section",
+      "title": "Commits, last 12 weeks",
+      "children": [
+        {
+          "type": "row",
+          "gap": 16,
+          "children": [
+            {
+              "type": "heatmap",
+              "values": [0, 2, 5, 1, 0, 0, 0, 3, 4, 8, 6, 2, 0, 1, 0, 1, 2, 3, 1, 0, 0, 0, 5, 9, 12, 7, 3, 0, 0, 0, 1, 0, 2, 4, 0, 0, 0, 6, 11, 14, 9, 4, 1, 0, 2, 3, 4, 2, 0, 0, 0, 7, 10, 8, 5, 0, 0, 1, 2, 0, 0, 3, 5, 6, 4, 1, 0, 0, 1, 2, 0, null, null, null, null, null, null, null, null, null, null],
+              "scale": ["good@0.2", "good"],
+              "cell": 10,
+              "gap": 3
+            },
+            {
+              "type": "image",
+              "src": "~/Pictures/vestal-art.png",
+              "width": 64,
+              "height": 64,
+              "radius": 10
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["now", "temperature", "load", "storage", "activity"], "gap": 20 } }
+}

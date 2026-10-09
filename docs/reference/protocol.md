@@ -26,7 +26,7 @@ Any vestal instance serves subscribers, including a Linux `vestal daemon` with n
 |---|---|---|
 | `role` | `observer` | `ui` draws the dashboard; `observer` watches (status bars, debuggers); `control` is an observer with `control: true`. |
 | `protocol` | `[1]` | The major versions the client speaks. Without `1`: an `error` message, and the connection closes. |
-| `minor` | `1` | The minor version the client understands; newer node types come as `text` with their `alt`. |
+| `minor` | `1` | The minor version the client understands (the current one is `1`); newer node types come as `text` with their `alt`. A client that draws `bars`, `stackedBar`, `heatmap`, `timeline` and `image` asks for `1`. |
 | `client` | none | A name for logs. |
 | `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise vestal's own UI takes it (macOS), or the headless daemon runs `wl-copy`. (`screenshot` delegation is specified but not implemented yet.) |
 | `whileHidden` | `false` | Keep evaluating and sending patches while the dashboard is hidden (debugging). |

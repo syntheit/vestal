@@ -88,6 +88,8 @@ public final class RenderEngine {
     private var observers: [(id: Int, handler: @MainActor (RenderUpdate) -> Void)] = []
     private var lastObserverID = 0
     private var runtimeObservation: RuntimeObservation?
+    /// The image cache's observer: a fetched picture renders its widget again.
+    private var imageObserver: Int?
     private var tick: Task<Void, Never>?
     private var changed: Set<String> = []
     private var fullPending = false
@@ -115,10 +117,23 @@ public final class RenderEngine {
             guard let self, case .snapshot(let key) = event else { return }
             self.sourceChanged(key)
         }
+        // A live dashboard fetches the pictures of `image` widgets.
+        ImageCache.shared.fetchesRemote = true
+        imageObserver = ImageCache.shared.observe { [weak self] key in
+            Task { @MainActor [weak self] in self?.imageFetched(key) }
+        }
     }
 
     deinit {
         tick?.cancel()
+        if let imageObserver { ImageCache.shared.removeObserver(imageObserver) }
+    }
+
+    /// A picture arrived: the widgets that wait for it render again.
+    private func imageFetched(_ key: String) {
+        changed.insert(ImageCache.sourcePrefix + key)
+        guard isEvaluating else { return }
+        schedule()
     }
 
     // MARK: Observing

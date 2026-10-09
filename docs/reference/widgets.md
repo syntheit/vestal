@@ -8,6 +8,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 |---|---|
 | Containers | `stack` (top to bottom), `row` (left to right), `grid` (aligned columns), `list` (an array as rows), `table` (a list with aligned columns), `switch` (one child picked by a value) |
 | Primitives | `text`, `icon`, `progress` (bar), `gauge` (ring), `sparkline`, `keyValue`, `divider`, `spacer` |
+| Charts | `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
 | Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, and `aiUsage` (Claude and Codex plan usage) (`vestal docs presets`) |
 | Your templates | any name under `templates` (`vestal docs templates`) |
 
@@ -209,4 +210,54 @@ Flexible space along the parent's axis: in a row it pushes the rest to the end. 
 
 ```json
 { "type": "spacer", "height": 12 }
+```
+
+## Charts
+
+Five primitives draw many values at once. They share `sparkline`'s conventions: data is an expression (or a literal array), colours are palette names, `name@alpha`, `{"steps": …}` or `{"expr": …}`, and sizes are points (`theme.scale` multiplies them). A `null` data field draws an empty chart of the same size, or shows the widget's `placeholder` text when it has one; an empty array is data, not null, and draws an empty chart. Every chart has an `alt` (a summary of its values) for `vestal render --format tree` and for clients older than render-model minor 1 (`vestal docs render-model`).
+
+### `bars`
+
+A bar chart. `values` is an expression (or a literal array) giving numbers, or objects `{"value", "label", "color"}`; a `null` value is an empty slot. `max` is the value of a full bar (a number or an expression; default the largest value). `color` is one colour for every bar, or `{"steps": …}` applied to each bar's value; an object's own `color` wins.
+
+`orientation: "vertical"` (default) draws columns, 160 wide and 48 tall unless `width` and `height` say otherwise (`height` is the columns' height). The columns share the width, `gap` (3) apart, or are `barWidth` wide, in which case the widget is as wide as they are. With `labels: true` (default `false`) each `label` is drawn small and dim under its column; an empty label draws nothing, and a label wider than its column is cut with `…`, so label every Nth bar for a long series. `orientation: "horizontal"` draws a row per bar: its `label` before the bar, the bar (`barWidth` thick, 6; `gap` between rows, 6), and its value after it, rounded, or through `format` (a text format name, as on `text`). `labels` defaults to `true` there; `labelWidth` fixes the label column's width (default the widest label). Horizontal bars fill the width.
+
+```json
+{ "type": "bars", "source": "system", "values": "[{value: .cpu.load[0], label: \"1m\"}, {value: .cpu.load[1], label: \"5m\"}, {value: .cpu.load[2], label: \"15m\"}]", "labels": true, "barWidth": 24, "gap": 8, "height": 48, "color": { "steps": [[0, "good"], [2, "warn"], [4, "bad"]] } }
+```
+
+```json
+{ "type": "bars", "source": "system", "orientation": "horizontal", "values": "[.disks[] | {value: .percent, label: .mount}]", "max": 100, "format": "percent", "color": { "steps": [[0, "good"], [80, "warn"], [95, "bad"]] } }
+```
+
+### `stackedBar`
+
+One bar split into coloured segments. `segments` is an expression (or a literal array) giving objects `{"value", "label", "color"}`; segments whose value is not above 0 are dropped. `total` (a number or an expression; default the segments' sum) is the whole bar: what the segments leave is drawn in `trackColor` (`track`); segments that add up to more than `total` share the bar. A segment without a `color` takes the widget's `color` (which may use `steps` of its value), else a cycle of palette colours (`accent`, `purple`, `cyan`, `teal`, `orange`, `good`, `warn`, `bad`). `height` is 8 and the width fills; `radius` defaults to half the height. With `legend: true` a row of colour dots and labels (segments with no label are left out) goes under the bar.
+
+```json
+{ "type": "stackedBar", "source": "system", "legend": true, "segments": "[{value: .disks[0].used, label: \"Used \\(.disks[0].used | fmt_bytes)\", color: \"accent\"}, {value: .disks[0].free, label: \"Free \\(.disks[0].free | fmt_bytes)\", color: \"good@0.5\"}]" }
+```
+
+### `heatmap`
+
+A grid of square cells, as GitHub draws contributions. `values` is an expression (or a literal array) giving numbers; `null` is an empty cell, drawn in `trackColor` (`track`). They fill `rows` (7) cells down a column and then the next column (`direction: "columns"`, default), or across a row and then the next row (`"rows"`, with `rows` rows). `cell` (8) is a cell's size, `gap` (2) the space between cells, `radius` (2) a cell's corner; the widget is as large as its cells. Colours: `scale` is two colours, low and high (default `["accent@0.2", "accent"]`), mixed by where a value is between `min` and `max` (default the smallest and largest value; all equal is the high colour); or `steps` is `[[threshold, colour], …]`, a value taking the last stop at or below it, the first when below all.
+
+```json
+{ "type": "heatmap", "values": [0, 2, 5, 1, 0, 0, 0, 3, 4, 8, 6, 2, 0, 1, 0, 1, 2, 3, 1, 0, 0, 0, 5, 9, 12, 7, 3, 0, null, null, null], "scale": ["good@0.2", "good"], "cell": 10, "gap": 3 }
+```
+
+### `timeline`
+
+A horizontal time axis with items. `from` and `to` are the times at its edges: epoch seconds, ISO 8601 (as written, or an expression giving one; without an offset it is UTC, as in `to_epoch`); the default is today, midnight to midnight in the config's time zone. `items` is an expression (or a literal array) giving objects `{"start", "end", "label", "color"}` with times like `from`; no `end` is a point marker. Items outside the range are dropped and the rest cut at its edges; overlapping items go on separate rows. `color` is the colour of items without their own (`accent`). Under the axis go tick labels at a sensible step (5 minutes to a week, at most nine of them) in the clock's 12 or 24 hour setting (`fmt_localized`). Height is 36 and the width fills. A label is drawn inside its bar when it fits, else left out. With `now` (default `true`) a thin `nowColor` (`accent`) line marks the current time, to the minute, and the dashboard redraws as time passes.
+
+```json
+{ "type": "timeline", "source": "calendar", "from": "now | fmt_time(\"yyyy-MM-dd'T'08:00:00xxx\") | to_epoch", "to": "now | fmt_time(\"yyyy-MM-dd'T'20:00:00xxx\") | to_epoch", "items": "[.[] | select(.allDay | not) | {start, end, label: .title}]", "height": 44 }
+```
+
+### `image`
+
+A picture. `src` is a file path (`~` expanded) or an http(s) URL; it is text, so `{{ }}` holes work (`"src": "{{ .artUrl }}"`), and so does `{"expr": …}`. `width` and `height` default to 48, `fit` is `cover` (default: fill the frame, cropping) or `contain` (the whole picture), and `radius` (6) rounds the picture. A URL is fetched once, off the UI's thread, at most 5 MB, into vestal's cache directory (`~/Library/Caches/Vestal/images` on macOS, `$XDG_CACHE_HOME/vestal/images` or `~/.cache/vestal/images` on Linux), named by a hash of the URL, and fetched again only if the URL changes; `vestal render` never fetches. While it has no picture, because the file is missing or unreadable, the fetch is still running or it failed (tried again after five minutes), the widget draws an empty rounded rectangle in the `track` colour, never an error. The render model carries the local file's path, not the picture (`vestal docs render-model`).
+
+```json
+{ "type": "image", "src": "~/Pictures/avatar.png", "width": 64, "height": 64, "radius": 12 }
 ```
