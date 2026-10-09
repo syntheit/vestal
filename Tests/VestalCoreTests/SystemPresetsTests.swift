@@ -88,7 +88,8 @@ final class SystemPresetsTests: XCTestCase {
         XCTAssertTrue(split.contains("Other"), split)
         // No data yet: the plain bar.
         let waiting = try render(#"{ "d": { "type": "diskBreakdown", "usage": "usage" } }"#, system: try systemData(), sources: sources)
-        XCTAssertTrue(waiting.contains("Used 740G"), waiting)
+        XCTAssertTrue(waiting.contains("segments=[0.744:"), waiting)
+        XCTAssertFalse(waiting.contains("Other"), waiting)
     }
 
     func testNetworkRatesHistoryAndTotals() throws {
@@ -98,7 +99,7 @@ final class SystemPresetsTests: XCTestCase {
         XCTAssertTrue(text.contains("412"), text)
         XCTAssertTrue(text.contains("today 18.2 GB down, 1.4 GB up"), text)
         XCTAssertTrue(text.contains("last 1 min"), text)
-        let expanded = ConfigExpansion.expand(try parse(#"{ "widgets": { "n": { "type": "networkRates", "samples": 30 } }, "views": { "main": { "children": ["n"] } } }"#))
+        let expanded = ConfigExpansion.expand(try parse(#"{ "sources": { "system": { "type": "system" } }, "widgets": { "n": { "type": "networkRates", "samples": 30 } }, "views": { "main": { "children": ["n"] } } }"#))
         let history = expanded.sources["system"]?.history ?? [:]
         XCTAssertEqual(history.count, 2)
         XCTAssertTrue(history.values.allSatisfy { $0.size == 30 && $0.every == "3s" })
