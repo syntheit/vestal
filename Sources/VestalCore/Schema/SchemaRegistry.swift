@@ -342,13 +342,18 @@ public enum SchemaRegistry {
         SchemaEntityType("http", "Fetches a URL.", keys: [
             SchemaKey("url", .string, kind: .text, required: true, examples: [.string("https://wttr.in/?m&format=j1")],
                       "An http:// or https:// URL. The answer must have a 2xx status. May use {{ $secrets.name }} and {{ $env.NAME }}."),
+            SchemaKey("also", .any, kind: .text, since: "0.4",
+                      examples: [.array([.string("https://status.example.com/api/status-page/heartbeat/main")])],
+                      "More http(s) URLs fetched together with url, with the same method, headers and body. The data is then a list "
+                      + "of the answers, url's first, in order; if any fails, the fetch fails. For APIs that spread what one widget "
+                      + "needs over two endpoints (join them with transform)."),
             SchemaKey("method", .oneOf(SourceConfig.methods), default: .string("GET"), since: "0.4", examples: [.string("POST")],
                       "GET or POST."),
             SchemaKey("headers", .map(.string), kind: .text, since: "0.4",
                       examples: [.object(["Authorization": .string("Bearer {{ $secrets.token }}")])],
                       "Request headers."),
             SchemaKey("body", .any, since: "0.4", examples: [.object(["query": .string("x")]), .string("a=1&b=2")],
-                      "The POST body: text, or a JSON value sent as application/json."),
+                      "The POST body: text, or a JSON value sent as application/json. Text, and every string inside a JSON value, may use {{ $secrets.name }} and {{ $env.NAME }}."),
             timeout("The request fails after this long."),
         ] + common("30m", "always") + [parse("the body")]),
         SchemaEntityType("command", "Runs a program, never through a shell.", keys: [
@@ -384,7 +389,7 @@ public enum SchemaRegistry {
         ] + common("30m", "always")),
         SchemaEntityType("file", since: "0.4", "Reads a file.", keys: [
             SchemaKey("path", .string, kind: .text, required: true, examples: [.string("~/.local/state/notes.json")],
-                      "The file. A leading ~/ expands."),
+                      "The file, or a directory of .json files (the data is then a list of their contents, each object with _file and _modified added). A leading ~/ expands."),
             SchemaKey("parse", .oneOf(SourceConfig.fileParseModes), default: .string("json"), examples: [.string("exists")],
                       "As for http, plus exists: {exists, modified}, which never fails."),
         ] + common("30s", "always")),

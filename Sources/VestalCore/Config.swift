@@ -121,7 +121,7 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 //
 // One flat struct for every type; `type` says which keys apply (besides the
 // common `refresh`, `when`, `transform`, `history`, `maxAge` and `cache`):
-//   http      url, parse, method, headers, body, timeout
+//   http      url, also, parse, method, headers, body, timeout
 //   command   argv, timeout, parse, env
 //   calendar  days, calendars, ics, caldav, thunderbird, timeout   ("eventkit" is an alias)
 //   file      path, parse
@@ -204,11 +204,12 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public var thunderbird: String?         // calendar: a Thunderbird profile ("" = the default one); nil: off
     public var backend: String?             // claude: see `claudeBackends` (nil: auto)
     public var caldav: [String]?            // calendar: CalDAV collection or server URLs
+    public var also: [String]?              // http: more URLs fetched with `url`; the data is then a list of the answers
 
     enum CodingKeys: String, CodingKey {
         case type, url, refresh, parse, argv, timeout, env, days, calendars
         case when, transform, history, maxAge, cache, method, headers, body, path
-        case disks, interfaces, player, ics, thunderbird, backend, caldav
+        case disks, interfaces, player, ics, thunderbird, backend, caldav, also
     }
 
     public init(
@@ -236,7 +237,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         ics: [String]? = nil,
         thunderbird: String? = nil,
         backend: String? = nil,
-        caldav: [String]? = nil
+        caldav: [String]? = nil,
+        also: [String]? = nil
     ) {
         let type = Self.canonicalType(type)
         self.type = type
@@ -248,6 +250,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         self.method = method; self.headers = headers; self.body = body; self.path = path
         self.disks = disks; self.interfaces = interfaces; self.player = player
         self.ics = ics; self.thunderbird = thunderbird; self.backend = backend; self.caldav = caldav
+        self.also = also
         fillDefaults()
     }
 
@@ -283,6 +286,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         player    = c.lenient([String].self, .player) ?? c.lenient(String.self, .player).map { [$0] }
         ics       = c.lenient([String].self, .ics) ?? c.lenient(String.self, .ics).map { [$0] }
         caldav    = c.lenient([String].self, .caldav) ?? c.lenient(String.self, .caldav).map { [$0] }
+        also      = c.lenient([String].self, .also) ?? c.lenient(String.self, .also).map { [$0] }
+        if also?.isEmpty == true { also = nil }
         thunderbird = c.lenient(String.self, .thunderbird).map { $0.trimmingCharacters(in: .whitespaces) }
             ?? (c.lenient(Bool.self, .thunderbird) == true ? "" : nil)
         backend   = c.lenient(String.self, .backend).map { $0.lowercased() }.flatMap { Self.claudeBackends.contains($0) ? $0 : nil }

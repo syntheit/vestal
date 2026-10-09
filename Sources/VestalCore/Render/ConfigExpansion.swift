@@ -198,7 +198,7 @@ public enum ConfigExpansion {
 
     /// Source-definition text fields.
     static let loadTimeFields = ["url", "path", "body"]
-    static let loadTimeLists = ["argv", "ics", "caldav"]
+    static let loadTimeLists = ["argv", "ics", "caldav", "also"]
     static let loadTimeMaps = ["env", "headers"]
 
     /// `source` with every `{{ }}` hole that reads only template
@@ -248,7 +248,15 @@ public enum ConfigExpansion {
             }
             return changed ? .string(out) : value
         }
-        for field in loadTimeFields { if let v = members[field] { members[field] = text(v) } }
+        func deep(_ value: AnyJSON) -> AnyJSON {
+            switch value {
+            case .string: return text(value)
+            case .array(let items): return .array(items.map(deep))
+            case .object(let map): return .object(map.mapValues(deep))
+            default: return value
+            }
+        }
+        for field in loadTimeFields { if let v = members[field] { members[field] = field == "body" ? deep(v) : text(v) } }
         for field in loadTimeLists {
             if case .array(let items)? = members[field] { members[field] = .array(items.map(text)) }
             else if let v = members[field] { members[field] = text(v) }
