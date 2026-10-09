@@ -2309,7 +2309,7 @@ These keep their v0.3 names, parameters and look, so v0.3 configs work unchanged
 
 The local time (size 56, ultralight, mono), the date, and `worldClocks` under them: `[{"label": "NYC", "tz": "America/New_York"}]`. A world clock in the local zone, or with an unknown zone, is skipped. Times are 24-hour on every system (`13:46:38`); `hour12: true` shows `1:46:38 PM`, and `hour12: "auto"` follows the system's 12 or 24 hour setting (macOS: the user's time format; Linux: `LC_ALL`, `LC_TIME` or `LANG`). The date follows the locale.
 
-`face` picks the look. Every face is built from `text`, `row`, `stack`, `list`, `progress` and `icon`, shows the world clocks, and sets its time in the `display` font role (`vestal docs styling`): the theme's `display` family (a `typeface` or `theme.fonts.display`) when it sets one, else the face's own, which ships with vestal. `theme.density: "compact"` draws `mono` only.
+`face` picks the look. The text faces (`mono` through `breathe`) are built from `text`, `row`, `stack`, `list`, `progress` and `icon`, shows the world clocks, and sets its time in the `display` font role (`vestal docs styling`): the theme's `display` family (a `typeface` or `theme.fonts.display`) when it sets one, else the face's own, which ships with vestal. `theme.density: "compact"` draws `mono` only.
 
 | `face` | Looks like | Own family (point size) | Parameters it reads |
 |---|---|---|---|
@@ -2328,7 +2328,7 @@ The local time (size 56, ultralight, mono), the date, and `worldClocks` under th
 
 The breathing colon steps its opacity once a second (the dashboard redraws each second while a clock shows), which approximates a fade without an animation in the render model. Italic is not part of the render model, so the `serif` face's am and pm are lower-case roman.
 
-`face` picks how the time is drawn (default `mono`, the above). The drawn faces, each with the world clocks under it (not in the compact density, which keeps `mono`):
+The drawn faces (`analog`, `flip`, `ring`) are the same `face` parameter, registered like the others but drawn by the UIs from the `clockAnalog`, `clockFlip` and `clockRing` widgets below; `seconds` takes `true` or `false` on the text faces and `flip`, and `false`, `"step"` or `"sweep"` on `analog`, `hour12` takes `"auto"` on all. The drawn faces, each with the world clocks under it (not in the compact density, which keeps `mono`):
 
 | `face` | Parameters | |
 |---|---|---|
