@@ -418,13 +418,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
 
     /// The Metal aurora and the library backgrounds draw only while the
     /// window is on screen. A view made later (a reload) starts in the right
-    /// state by itself (`AuroraMTKView.viewDidMoveToWindow`).
+    /// state by itself (`PacedMTKView.viewDidMoveToWindow`).
     private func setAuroraPaused(_ paused: Bool) {
         // Drawn clock faces run their hands and folds only while shown.
         RenderPulse.shared.running = !paused
         func visit(_ view: NSView) {
-            if let aurora = view as? AuroraMTKView { aurora.isPaused = paused }
-            if let background = view as? BackgroundMTKView { background.isPaused = paused }
+            if let background = view as? PacedMTKView { background.running = !paused }
             view.subviews.forEach(visit)
         }
         if let content = window?.contentView { visit(content) }

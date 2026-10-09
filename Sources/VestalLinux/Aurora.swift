@@ -11,8 +11,8 @@ import VestalCore
 // GTK 4 gives the area an RGBA texture it composites as premultiplied, over
 // the window's translucent `bg` tint and the compositor's blur, so no
 // channel may exceed alpha. It renders only while the dashboard is shown: a
-// tick callback queues one frame per display refresh, and `stop()` removes
-// it, so a hidden dashboard draws nothing. Without GL (no EGL, or a context
+// tick callback queues a frame when one is due, `theme.backgroundFPS` times
+// a second, and `stop()` removes it, so a hidden dashboard draws nothing. Without GL (no EGL, or a context
 // that fails) the area hides itself and the background is the plain blur.
 // A background of the library (BackgroundLibrary.swift) takes the ribbons'
 // place in the same area, drawn at theme.backgroundFPS.
@@ -42,6 +42,10 @@ final class AuroraArea {
     /// backdrop (`blur`).
     var ribbons = true {
         didSet { if ribbons != oldValue, running { stop(); start() } }
+    }
+    /// The ribbons' frames a second (`theme.backgroundFPS`).
+    var fps = Backgrounds.defaultFPS {
+        didSet { if fps != oldValue, running, library == nil { stop(); start() } }
     }
     /// A background of the library instead of the ribbons.
     var library: LibrarySettings? {
@@ -96,37 +100,30 @@ final class AuroraArea {
         g_object_unref(UnsafeMutableRawPointer(widget))
     }
 
-    /// Draw while mapped: one frame per display refresh with ribbons, else
-    /// one frame now (the backdrop is still).
+    /// Draw while mapped: `fps` frames a second with ribbons or a moving
+    /// library background, else one frame now (the backdrop is still).
     func start() {
         running = true
         guard !failed else { return }
         guard animates else { return gtk_gl_area_queue_render(area) }
         guard tickId == 0 else { return }
-        if let library {
-            // At most `fps` frames a second: the tick comes with every
-            // display refresh and queues a frame when one is due.
-            let interval = 1_000_000 / max(library.fps, 1)
-            var last = 0
-            let due: () -> Void = { [weak self] in
-                guard let self else { return }
-                let now = g_get_monotonic_time()
-                guard now - last >= interval * 9 / 10 else { return }
-                last = now
-                gtk_gl_area_queue_render(self.area)
-            }
-            let tick: GtkTickCallback = { _, _, data in
-                Box<() -> Void>.from(data)()
-                return 1
-            }
-            tickId = gtk_widget_add_tick_callback(widget, tick, Box(due).retained(), releaseBox)
-            return
+        // At most `fps` frames a second (the library background's, or the
+        // ribbons'): the tick comes with every display refresh and queues
+        // a frame when one is due.
+        let interval = 1_000_000 / max(library?.fps ?? fps, 1)
+        var last = 0
+        let due: () -> Void = { [weak self] in
+            guard let self else { return }
+            let now = g_get_monotonic_time()
+            guard now - last >= interval * 9 / 10 else { return }
+            last = now
+            gtk_gl_area_queue_render(self.area)
         }
-        let tick: GtkTickCallback = { widget, _, _ in
-            gtk_gl_area_queue_render(cast(UnsafeMutableRawPointer(widget)))
+        let tick: GtkTickCallback = { _, _, data in
+            Box<() -> Void>.from(data)()
             return 1 // G_SOURCE_CONTINUE
         }
-        tickId = gtk_widget_add_tick_callback(widget, tick, nil, nil)
+        tickId = gtk_widget_add_tick_callback(widget, tick, Box(due).retained(), releaseBox)
     }
 
     /// Stop drawing (the dashboard is hidden).

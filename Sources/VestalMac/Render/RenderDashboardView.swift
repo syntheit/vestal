@@ -25,7 +25,7 @@ struct RenderDashboardView: View {
                     .allowsHitTesting(false)
             }
             if aurora {
-                AuroraView()
+                AuroraView(theme: store.background)
                     .allowsHitTesting(false)
             } else if Backgrounds.isLibrary(store.background.background) {
                 BackgroundView(theme: store.background)

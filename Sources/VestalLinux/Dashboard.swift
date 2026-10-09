@@ -249,6 +249,7 @@ public final class LinuxDashboard {
 
     private func setTheme(_ theme: RenderTheme) {
         context.theme = ThemeState(theme)
+        aurora.fps = theme.backgroundFPS ?? Backgrounds.defaultFPS
         aurora.ribbons = theme.background == "aurora"
         aurora.library = LibrarySettings(theme, still: Self.reducedMotion)
         aurora.tint = context.theme.backdropTint

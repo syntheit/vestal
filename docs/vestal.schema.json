@@ -7191,7 +7191,7 @@
         },
         "backgroundFPS": {
           "default": 30,
-          "description": "Frames a second of a library background (not the aurora, which draws at the display's rate). Lower is cheaper.",
+          "description": "Frames a second of the aurora or a library background. Lower is cheaper.",
           "examples": [
             20
           ],

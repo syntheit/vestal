@@ -219,7 +219,7 @@ public enum SchemaRegistry {
                       "Linux, backdrop self: the blur's radius in points, 0 to 200. Default 48."),
             SchemaKey("backgroundFPS", .integer(minimum: 1, maximum: 60), default: .int(Backgrounds.defaultFPS), since: "0.4",
                       examples: [.int(20)],
-                      "Frames a second of a library background (not the aurora, which draws at the display's rate). Lower is cheaper."),
+                      "Frames a second of the aurora or a library background. Lower is cheaper."),
             SchemaKey("backgroundResolution", .number, since: "0.4", examples: [.double(0.5)],
                       "The share of the screen's pixels a library background renders at, 0.1 to 1; it is scaled up to fit. "
                       + "Default: per background, from 0.25 (mesh, plasma) to 0.9 (grain)."),

@@ -3,48 +3,44 @@ import AppKit
 import Metal
 import MetalKit
 import SwiftUI
+import VestalCore
 import simd
 
 struct AuroraView: NSViewRepresentable {
+    let theme: RenderTheme
+
     func makeNSView(context: Context) -> AuroraMTKView { AuroraMTKView() }
-    func updateNSView(_ nsView: AuroraMTKView, context: Context) {}
+
+    func updateNSView(_ nsView: AuroraMTKView, context: Context) {
+        nsView.configure(theme)
+    }
 
     static func dismantleNSView(_ nsView: AuroraMTKView, coordinator: ()) {
         nsView.shutdown()
     }
 }
 
-final class AuroraMTKView: MTKView {
+/// The aurora, drawn like a library background (PacedMTKView): only while
+/// its window is on screen, `theme.backgroundFPS` times a second.
+final class AuroraMTKView: PacedMTKView {
     private var renderer: AuroraRenderer?
 
     init() {
-        guard let dev = MTLCreateSystemDefaultDevice() else {
-            super.init(frame: .zero, device: nil)
-            return
-        }
-        super.init(frame: .zero, device: dev)
-        framebufferOnly = false
-        wantsLayer = true
-        layer?.isOpaque = false
-        (layer as? CAMetalLayer)?.isOpaque = false
-        colorPixelFormat = .bgra8Unorm
-        clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
-        preferredFramesPerSecond = 60
-        autoResizeDrawable = true
+        // Every pixel of the screen, as before: a smaller drawable would
+        // save the GPU, not the CPU.
+        super.init(resolution: 1)
+        guard device != nil else { return }
+        framebufferOnly = true
         renderer = AuroraRenderer(view: self)
         delegate = renderer
     }
 
     required init(coder: NSCoder) { fatalError() }
 
-    func shutdown() { renderer = nil; delegate = nil }
+    func shutdown() { running = false; renderer = nil; delegate = nil }
 
-    /// Draws only while its window is on screen: the app pauses it on hide
-    /// and resumes it on show, and a view made while the window is hidden (a
-    /// reload) starts paused.
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        isPaused = !(window?.isVisible ?? false)
+    func configure(_ theme: RenderTheme) {
+        fps = theme.backgroundFPS ?? Backgrounds.defaultFPS
     }
 }
 
@@ -98,9 +94,8 @@ final class AuroraRenderer: NSObject, MTKViewDelegate {
     }
 
     func draw(in view: MTKView) {
-        if viewSize.x == 0 || viewSize.y == 0 {
-            viewSize = SIMD2(Float(view.drawableSize.width), Float(view.drawableSize.height))
-        }
+        // The drawable is sized by hand, which not every change reports.
+        viewSize = SIMD2(Float(view.drawableSize.width), Float(view.drawableSize.height))
         guard viewSize.x > 0,
               let cmd = queue.makeCommandBuffer(),
               let rpd = view.currentRenderPassDescriptor,

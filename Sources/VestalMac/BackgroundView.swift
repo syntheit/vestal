@@ -9,12 +9,12 @@ import simd
 // MARK: - Background library (macOS)
 //
 // The shader backgrounds of `theme.background` besides the aurora
-// (AuroraView.swift, which stays as it was): Metal ports of
-// Resources/shaders, drawn into an MTKView at `theme.backgroundResolution`
-// of the screen's pixels (per background by default) and scaled up by the
-// layer, `theme.backgroundFPS` times a second (30). It draws only while its
-// window is on screen (the app pauses it on hide, like the aurora), and
-// with reduced motion draws one still frame. The uniforms come from
+// (AuroraView.swift): Metal ports of Resources/shaders, drawn into a
+// PacedMTKView (below, which the aurora uses too) at
+// `theme.backgroundResolution` of the screen's pixels (per background by
+// default) and scaled up by the layer, `theme.backgroundFPS` times a second
+// (30). It draws only while its window is on screen (the app stops it on
+// hide), and with reduced motion draws one still frame. The uniforms come from
 // VestalCore (`Backgrounds.uniforms`); what a background reads from a
 // source arrives in the snapshot's theme.
 
@@ -32,52 +32,83 @@ struct BackgroundView: NSViewRepresentable {
     }
 }
 
-final class BackgroundMTKView: MTKView {
+final class BackgroundMTKView: PacedMTKView {
     private var renderer: BackgroundRenderer?
-    private var resolution = 0.5
 
     init() {
-        guard let dev = MTLCreateSystemDefaultDevice() else {
-            super.init(frame: .zero, device: nil)
-            return
-        }
-        super.init(frame: .zero, device: dev)
+        super.init(resolution: 0.5)
+        guard device != nil else { return }
         // Never read back: the drawable can go straight to the compositor.
         framebufferOnly = true
-        wantsLayer = true
-        layer?.isOpaque = false
-        (layer as? CAMetalLayer)?.isOpaque = false
-        colorPixelFormat = .bgra8Unorm
-        clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
-        // The drawable is sized by hand, below.
-        autoResizeDrawable = false
-        preferredFramesPerSecond = Backgrounds.defaultFPS
         renderer = BackgroundRenderer(view: self)
         delegate = renderer
     }
 
     required init(coder: NSCoder) { fatalError() }
 
-    func shutdown() { renderer = nil; delegate = nil }
+    func shutdown() { running = false; renderer = nil; delegate = nil }
 
     /// Takes the theme's background, its parameters, rate and resolution.
     func configure(_ theme: RenderTheme) {
         guard let renderer else { return }
-        // The dashboard's view updates reach this often; setting a property
-        // MTKView acts on (the frame rate restarts its display link) only
-        // when it changed keeps them from costing a frame.
         resolution = theme.backgroundResolution ?? Backgrounds.defaultResolution(theme.background)
-        let fps = theme.backgroundFPS ?? Backgrounds.defaultFPS
-        if preferredFramesPerSecond != fps { preferredFramesPerSecond = fps }
+        fps = theme.backgroundFPS ?? Backgrounds.defaultFPS
         let changed = renderer.configure(name: theme.background, params: theme.backgroundParams)
-        updateDrawableSize()
         // Reduced motion draws one frame: a changed picture needs another.
-        if changed, window?.isVisible == true { isPaused = false }
+        if changed, window?.isVisible == true { running = true }
     }
+}
+
+// MARK: - Paced Metal view
+
+/// An MTKView that draws `fps` times a second from a display link of its
+/// own, only while `running`, into a drawable of `resolution` times the
+/// screen's pixels that the layer scales up. MTKView's own loop stays
+/// paused: it wakes a display link thread at the display's full rate
+/// whatever `preferredFramesPerSecond` asks, and `autoResizeDrawable`
+/// would size the drawable to the full screen again on every layout.
+class PacedMTKView: MTKView {
+    /// Frames a second.
+    var fps = Backgrounds.defaultFPS {
+        didSet { if fps != oldValue { link?.preferredFrameRateRange = Self.range(fps) } }
+    }
+    /// The share of the screen's pixels the drawable has.
+    var resolution: Double {
+        didSet { if resolution != oldValue { updateDrawableSize() } }
+    }
+    /// Draws while true: the app sets it when the window shows and hides,
+    /// and a view made while the window is hidden (a reload) starts false.
+    /// A still frame (reduced motion) clears it once drawn.
+    var running = false {
+        didSet { if running != oldValue { updateLink() } }
+    }
+    private var link: CADisplayLink?
+
+    init(resolution: Double) {
+        self.resolution = resolution
+        guard let dev = MTLCreateSystemDefaultDevice() else {
+            super.init(frame: .zero, device: nil)
+            return
+        }
+        super.init(frame: .zero, device: dev)
+        wantsLayer = true
+        layer?.isOpaque = false
+        (layer as? CAMetalLayer)?.isOpaque = false
+        colorPixelFormat = .bgra8Unorm
+        clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
+        // Drawn only through `draw()`, from the link below.
+        isPaused = true
+        enableSetNeedsDisplay = false
+        // The drawable is sized by hand, below.
+        autoResizeDrawable = false
+    }
+
+    required init(coder: NSCoder) { fatalError() }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
-        isPaused = !(window?.isVisible ?? false)
+        running = window?.isVisible ?? false
+        updateLink()
         updateDrawableSize()
     }
 
@@ -89,6 +120,28 @@ final class BackgroundMTKView: MTKView {
     override func viewDidChangeBackingProperties() {
         super.viewDidChangeBackingProperties()
         updateDrawableSize()
+    }
+
+    /// A link exists only while drawing, in a window: it holds the view, so
+    /// it goes when the view stops or leaves its window.
+    private func updateLink() {
+        guard running, window != nil, device != nil else {
+            link?.invalidate()
+            link = nil
+            return
+        }
+        guard link == nil else { return }
+        let link = displayLink(target: self, selector: #selector(step(_:)))
+        link.preferredFrameRateRange = Self.range(fps)
+        link.add(to: .main, forMode: .common)
+        self.link = link
+    }
+
+    @objc private func step(_ link: CADisplayLink) { draw() }
+
+    private static func range(_ fps: Int) -> CAFrameRateRange {
+        let rate = Float(fps)
+        return CAFrameRateRange(minimum: rate, maximum: rate, preferred: rate)
     }
 
     private func updateDrawableSize() {
@@ -220,9 +273,8 @@ final class BackgroundRenderer: NSObject, MTKViewDelegate {
     }
 
     func draw(in view: MTKView) {
-        if viewSize.x == 0 || viewSize.y == 0 {
-            viewSize = SIMD2(Float(view.drawableSize.width), Float(view.drawableSize.height))
-        }
+        // The drawable is sized by hand, which not every change reports.
+        viewSize = SIMD2(Float(view.drawableSize.width), Float(view.drawableSize.height))
         guard let pipeline, viewSize.x > 0,
               let cmd = queue.makeCommandBuffer(),
               let rpd = view.currentRenderPassDescriptor,
@@ -247,7 +299,7 @@ final class BackgroundRenderer: NSObject, MTKViewDelegate {
         cmd.commit()
         // With reduced motion, the one frame is drawn: stop until the
         // window is shown again or the parameters change.
-        if still { view.isPaused = true }
+        if still { (view as? PacedMTKView)?.running = false }
     }
 
     /// The uniform values, worked out again when the parameters changed or
