@@ -20,7 +20,7 @@ final class FaceState {
     var timer: guint = 0
     /// A fold: when it started (monotonic microseconds) and the characters the
     /// changed tiles showed before.
-    var foldStart: Int64 = 0
+    var foldStart: gint64 = 0
     var before: [Int: String] = [:]
 
     func stop(_ widget: WidgetPtr?) {
