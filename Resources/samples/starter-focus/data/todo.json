@@ -1,0 +1,74 @@
+{
+  "path": "/home/user/notes/todo.md",
+  "size": 223,
+  "hash": "9aa8dd9b5e02a7e7bbbaa616d81f5706a914889b1547b91eec29a21c333bff41",
+  "modified": 1790504400,
+  "items": [
+    {
+      "line": 5,
+      "text": "Reply to the landlord about the boiler",
+      "done": false,
+      "indent": 0,
+      "section": "Today",
+      "sections": [
+        "Notes",
+        "Today"
+      ]
+    },
+    {
+      "line": 6,
+      "text": "Review the export endpoint PR",
+      "done": false,
+      "indent": 0,
+      "section": "Today",
+      "sections": [
+        "Notes",
+        "Today"
+      ]
+    },
+    {
+      "line": 7,
+      "text": "Renew the domain",
+      "done": true,
+      "indent": 0,
+      "section": "Today",
+      "sections": [
+        "Notes",
+        "Today"
+      ]
+    },
+    {
+      "line": 8,
+      "text": "Book the train to Porto",
+      "done": false,
+      "indent": 0,
+      "section": "Today",
+      "sections": [
+        "Notes",
+        "Today"
+      ]
+    },
+    {
+      "line": 9,
+      "text": "Back up the photo library",
+      "done": true,
+      "indent": 0,
+      "section": "Today",
+      "sections": [
+        "Notes",
+        "Today"
+      ]
+    },
+    {
+      "line": 13,
+      "text": "Plan the autumn trip",
+      "done": false,
+      "indent": 0,
+      "section": "Later",
+      "sections": [
+        "Notes",
+        "Later"
+      ]
+    }
+  ]
+}

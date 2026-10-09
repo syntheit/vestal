@@ -1,0 +1,27 @@
+{
+  "id": "default",
+  "title": "Default",
+  "pitch": "Today's dashboard: time, this machine, music, agenda, your hosts, rates and weather.",
+  "kind": "dashboard",
+  "background": "aurora",
+  "pages": [
+    {
+      "name": "main",
+      "title": "Main"
+    },
+    {
+      "name": "focus",
+      "title": "Focus"
+    }
+  ],
+  "needs": [
+    "Calendar access (macOS asks the first time; on Linux set an `ics` or `caldav` calendar source)",
+    "Optional: your own hosts under `systems` (`vestal docs preset/systemHealth`)",
+    "Optional: a location for the weather (wttr.in guesses it from your IP)",
+    "Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)"
+  ],
+  "tags": [
+    "general",
+    "starter"
+  ]
+}

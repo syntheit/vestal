@@ -1,0 +1,26 @@
+{
+  "id": "media",
+  "title": "Media",
+  "pitch": "Now playing, large, with the queue. The background takes the album's colours.",
+  "kind": "dashboard",
+  "background": "artmesh",
+  "pages": [
+    {
+      "name": "now",
+      "title": "Now playing"
+    },
+    {
+      "name": "main",
+      "title": "Main"
+    }
+  ],
+  "needs": [
+    "A music player: Spotify or Music on macOS (allow Automation the first time), any MPRIS player with `playerctl` on Linux",
+    "Optional: a player name in the `player` of the `now` widget",
+    "Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)"
+  ],
+  "tags": [
+    "media",
+    "starter"
+  ]
+}

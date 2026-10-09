@@ -1,0 +1,76 @@
+{
+  "data": {
+    "search": {
+      "nodes": [
+        {
+          "number": 1482,
+          "title": "Rate-limit the export endpoint",
+          "url": "https://github.com/acme/api/pull/1482",
+          "additions": 84,
+          "deletions": 12,
+          "createdAt": "2026-09-27T15:03:22Z",
+          "isDraft": false,
+          "reviewDecision": "REVIEW_REQUIRED",
+          "author": {
+            "login": "kim"
+          },
+          "repository": {
+            "name": "api",
+            "nameWithOwner": "acme/api"
+          }
+        },
+        {
+          "number": 977,
+          "title": "Move settings to the new form kit",
+          "url": "https://github.com/acme/web/pull/977",
+          "additions": 412,
+          "deletions": 380,
+          "createdAt": "2026-09-26T16:03:22Z",
+          "isDraft": false,
+          "reviewDecision": "CHANGES_REQUESTED",
+          "author": {
+            "login": "ren"
+          },
+          "repository": {
+            "name": "web",
+            "nameWithOwner": "acme/web"
+          }
+        },
+        {
+          "number": 311,
+          "title": "Bump nixpkgs to 26.05",
+          "url": "https://github.com/acme/infra/pull/311",
+          "additions": 3,
+          "deletions": 3,
+          "createdAt": "2026-09-24T16:03:22Z",
+          "isDraft": false,
+          "reviewDecision": "APPROVED",
+          "author": {
+            "login": "bot"
+          },
+          "repository": {
+            "name": "infra",
+            "nameWithOwner": "acme/infra"
+          }
+        },
+        {
+          "number": 1479,
+          "title": "Fix flaky retry test",
+          "url": "https://github.com/acme/api/pull/1479",
+          "additions": 21,
+          "deletions": 9,
+          "createdAt": "2026-09-22T15:03:22Z",
+          "isDraft": false,
+          "reviewDecision": "REVIEW_REQUIRED",
+          "author": {
+            "login": "lee"
+          },
+          "repository": {
+            "name": "api",
+            "nameWithOwner": "acme/api"
+          }
+        }
+      ]
+    }
+  }
+}

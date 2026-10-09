@@ -1,0 +1,42 @@
+[
+  {
+    "id": "a1",
+    "state": "running",
+    "repo": "api",
+    "task": "Fix the flaky retry test",
+    "note": "38k tok",
+    "elapsed": "14m"
+  },
+  {
+    "id": "a2",
+    "state": "input",
+    "repo": "web",
+    "task": "Migrate settings to the new form kit",
+    "note": "waiting for you",
+    "elapsed": "41m"
+  },
+  {
+    "id": "a3",
+    "state": "running",
+    "repo": "infra",
+    "task": "Bump nixpkgs and fix the build",
+    "note": "12k tok",
+    "elapsed": "6m"
+  },
+  {
+    "id": "a4",
+    "state": "done",
+    "repo": "docs",
+    "task": "Write the pages reference",
+    "note": "PR #212 opened",
+    "elapsed": "22m"
+  },
+  {
+    "id": "a5",
+    "state": "failed",
+    "repo": "api",
+    "task": "Profile the export job",
+    "note": "tests failed",
+    "elapsed": "9m"
+  }
+]

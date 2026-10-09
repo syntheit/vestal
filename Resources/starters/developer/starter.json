@@ -1,0 +1,32 @@
+{
+  "id": "developer",
+  "title": "Developer",
+  "pitch": "Reviews waiting on you, CI per repo, plan usage and your commit rhythm.",
+  "kind": "dashboard",
+  "background": "topo",
+  "pages": [
+    {
+      "name": "main",
+      "title": "Main"
+    },
+    {
+      "name": "reviews",
+      "title": "Reviews"
+    },
+    {
+      "name": "builds",
+      "title": "Builds"
+    }
+  ],
+  "needs": [
+    "GitHub login (`gh auth login`); the `github` secret runs `gh auth token`",
+    "Your repositories: replace `acme/*` in the `ci` widgets and the paths in `commits`",
+    "Optional: the Nix flake to watch in `flake` (needs `nix` on the PATH)",
+    "Claude Code or Codex logins for the plan usage rows (`vestal docs ai-usage`)",
+    "Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)"
+  ],
+  "tags": [
+    "developer",
+    "starter"
+  ]
+}

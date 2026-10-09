@@ -1,0 +1,219 @@
+{
+  "version": 1,
+  "hotkey": "cmd+shift+space",
+  "defaultView": "overview",
+  "theme": {
+    "background": "aurora",
+    "density": "compact"
+  },
+  "pages": {
+    "order": [
+      "overview",
+      "nas",
+      "network"
+    ]
+  },
+  "sources": {
+    "status": {
+      "type": "uptimeKuma",
+      "url": "https://status.example.com",
+      "slug": "main"
+    },
+    "usage": {
+      "type": "diskUsage",
+      "paths": [
+        {
+          "label": "Home",
+          "path": "~"
+        },
+        {
+          "label": "Data",
+          "path": "/var/lib"
+        }
+      ]
+    }
+  },
+  "widgets": {
+    "clock": {
+      "type": "clock"
+    },
+    "systems": {
+      "type": "systemHealth",
+      "title": "Hosts",
+      "hosts": [
+        {
+          "source": "local"
+        },
+        {
+          "name": "nas",
+          "url": "https://nas.example.com"
+        }
+      ]
+    },
+    "services": {
+      "type": "uptimeMonitors",
+      "source": "status"
+    },
+    "disks": {
+      "type": "diskBreakdown",
+      "usage": "usage"
+    },
+    "containers": {
+      "type": "containers",
+      "title": "nas",
+      "host": "ssh://nas",
+      "limit": 5
+    },
+    "containersAll": {
+      "type": "containers",
+      "title": "nas",
+      "host": "ssh://nas",
+      "limit": 14
+    },
+    "backups": {
+      "type": "backups",
+      "dir": "~/.local/state/vestal/backups"
+    },
+    "tailnet": {
+      "type": "tailnet",
+      "limit": 8
+    },
+    "tailnetAll": {
+      "type": "tailnet",
+      "limit": 14
+    },
+    "net": {
+      "type": "networkRates"
+    },
+    "overview": {
+      "type": "row",
+      "gap": 36,
+      "align": "start",
+      "width": "fill",
+      "children": [
+        {
+          "type": "stack",
+          "gap": 24,
+          "width": "fill",
+          "children": [
+            "systems",
+            {
+              "type": "section",
+              "title": "Services",
+              "children": [
+                "services"
+              ]
+            },
+            {
+              "type": "section",
+              "title": "Disks",
+              "children": [
+                "disks"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "stack",
+          "gap": 24,
+          "width": "fill",
+          "children": [
+            {
+              "type": "section",
+              "title": "Containers",
+              "children": [
+                "containers"
+              ]
+            },
+            {
+              "type": "section",
+              "title": "Backups",
+              "children": [
+                "backups"
+              ]
+            },
+            {
+              "type": "section",
+              "title": "Tailnet",
+              "children": [
+                "tailnet"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "nasHost": {
+      "type": "systemHealth",
+      "title": "nas",
+      "hosts": [
+        {
+          "name": "nas",
+          "url": "https://nas.example.com"
+        }
+      ]
+    }
+  },
+  "views": {
+    "overview": {
+      "key": "1",
+      "title": "Overview",
+      "children": [
+        "clock",
+        "overview"
+      ],
+      "maxWidth": 1080,
+      "gap": 22
+    },
+    "nas": {
+      "key": "2",
+      "title": "nas",
+      "children": [
+        "nasHost",
+        {
+          "type": "section",
+          "title": "Containers",
+          "children": [
+            "containersAll"
+          ]
+        },
+        {
+          "type": "section",
+          "title": "Backups",
+          "children": [
+            "backups"
+          ]
+        }
+      ],
+      "maxWidth": 1080
+    },
+    "network": {
+      "key": "3",
+      "title": "Network",
+      "children": [
+        {
+          "type": "section",
+          "title": "Throughput",
+          "children": [
+            "net"
+          ]
+        },
+        {
+          "type": "section",
+          "title": "Tailnet",
+          "children": [
+            "tailnetAll"
+          ]
+        },
+        {
+          "type": "section",
+          "title": "Services",
+          "children": [
+            "services"
+          ]
+        }
+      ],
+      "maxWidth": 1080
+    }
+  }
+}

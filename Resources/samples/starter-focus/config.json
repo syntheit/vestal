@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "hotkey": "cmd+shift+space",
+  "defaultView": "focus",
+  "theme": {
+    "background": "grain"
+  },
+  "pages": {
+    "order": [
+      "focus",
+      "main"
+    ]
+  },
+  "sources": {
+    "timer": {
+      "type": "timer",
+      "focus": "25m",
+      "task": "Writing: onboarding copy"
+    },
+    "calendar": {
+      "type": "calendar",
+      "refresh": "5m",
+      "days": 1
+    },
+    "weather": {
+      "type": "http",
+      "url": "https://wttr.in/?m&format=j1",
+      "refresh": "30m",
+      "parse": "json"
+    },
+    "todo": {
+      "type": "file",
+      "path": "~/notes/todo.md",
+      "parse": "checklist"
+    },
+    "habits": {
+      "type": "file",
+      "path": "~/.local/share/vestal/habits.json"
+    }
+  },
+  "widgets": {
+    "timer": {
+      "type": "focusTimer",
+      "source": "timer",
+      "alignSelf": "center"
+    },
+    "next": {
+      "type": "row",
+      "gap": 10,
+      "alignSelf": "center",
+      "source": "calendar",
+      "vars": {
+        "e": "[.[] | select((.allDay | not) and .end > now)] | first"
+      },
+      "when": "$e != null",
+      "children": [
+        {
+          "type": "text",
+          "text": "next",
+          "style": {
+            "size": 12,
+            "color": "dim"
+          }
+        },
+        {
+          "type": "text",
+          "text": "{{ $e.start | fmt_time(\"HH:mm\") }}",
+          "style": {
+            "size": 12,
+            "font": "mono",
+            "color": "subtle"
+          }
+        },
+        {
+          "type": "text",
+          "text": "{{ $e.title }}",
+          "style": {
+            "size": 12,
+            "weight": "medium"
+          }
+        }
+      ]
+    },
+    "todo": {
+      "type": "todoFile",
+      "source": "todo",
+      "path": "~/notes/todo.md",
+      "section": "Today"
+    },
+    "habits": {
+      "type": "habits",
+      "source": "habits"
+    },
+    "clock": {
+      "type": "clock"
+    },
+    "systemBar": {
+      "type": "systemBar",
+      "show": [
+        "uptime",
+        "disk",
+        "battery",
+        "network"
+      ]
+    },
+    "agenda": {
+      "type": "agendaList",
+      "title": "Today",
+      "source": "calendar",
+      "maxEvents": 5
+    },
+    "weather": {
+      "type": "weatherCard",
+      "title": "Weather",
+      "source": "weather",
+      "units": "metric",
+      "fields": {
+        "location": ".nearest_area[0].areaName[0].value",
+        "region": ".nearest_area[0].region[0].value",
+        "condition": ".current_condition[0].weatherDesc[0].value",
+        "temp": ".current_condition[0].temp_C",
+        "sunrise": ".weather[0].astronomy[0].sunrise",
+        "sunset": ".weather[0].astronomy[0].sunset"
+      }
+    }
+  },
+  "views": {
+    "focus": {
+      "key": "1",
+      "title": "Focus",
+      "children": [
+        "timer",
+        "next",
+        {
+          "type": "section",
+          "title": "Today",
+          "children": [
+            "todo"
+          ]
+        },
+        {
+          "type": "section",
+          "title": "Habits",
+          "children": [
+            "habits"
+          ]
+        }
+      ],
+      "gap": 28
+    },
+    "main": {
+      "key": "2",
+      "title": "Main",
+      "children": [
+        "clock",
+        "systemBar",
+        "agenda",
+        "weather"
+      ]
+    }
+  }
+}

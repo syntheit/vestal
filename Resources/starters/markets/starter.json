@@ -1,0 +1,26 @@
+{
+  "id": "markets",
+  "title": "Markets",
+  "pitch": "A watchlist, crypto and exchange rates with intraday lines.",
+  "kind": "dashboard",
+  "background": "mesh",
+  "pages": [
+    {
+      "name": "markets",
+      "title": "Markets"
+    },
+    {
+      "name": "main",
+      "title": "Main"
+    }
+  ],
+  "needs": [
+    "Nothing to sign in to: Yahoo Finance, CoinGecko and open.er-api.com need no key",
+    "Your own tickers in `quotes` and coins in `coins`",
+    "Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)"
+  ],
+  "tags": [
+    "markets",
+    "starter"
+  ]
+}

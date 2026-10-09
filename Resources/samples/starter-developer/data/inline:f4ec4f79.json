@@ -1,0 +1,60 @@
+{
+  "path": "~/config",
+  "inputs": [
+    {
+      "name": "nixpkgs",
+      "type": "github",
+      "owner": "example",
+      "repo": "nixpkgs",
+      "ref": "nixpkgs-unstable",
+      "rev": "0123456789abcdef0123456789abcdef01234567",
+      "lastModified": 1788883402,
+      "url": "https://github.com/example/nixpkgs",
+      "behind": 412
+    },
+    {
+      "name": "home-manager",
+      "type": "github",
+      "owner": "example",
+      "repo": "home-manager",
+      "ref": "release-26.05",
+      "rev": "0123456789abcdef0123456789abcdef01234567",
+      "lastModified": 1788883402,
+      "url": "https://github.com/example/home-manager",
+      "behind": 28
+    },
+    {
+      "name": "nix-darwin",
+      "type": "github",
+      "owner": "example",
+      "repo": "nix-darwin",
+      "ref": null,
+      "rev": "0123456789abcdef0123456789abcdef01234567",
+      "lastModified": 1790006602,
+      "url": "https://github.com/example/nix-darwin",
+      "behind": 4
+    },
+    {
+      "name": "sops-nix",
+      "type": "github",
+      "owner": "example",
+      "repo": "sops-nix",
+      "ref": null,
+      "rev": "0123456789abcdef0123456789abcdef01234567",
+      "lastModified": 1786982602,
+      "url": "https://github.com/example/sops-nix",
+      "behind": 2
+    },
+    {
+      "name": "flake-utils",
+      "type": "github",
+      "owner": "example",
+      "repo": "flake-utils",
+      "ref": null,
+      "rev": "0123456789abcdef0123456789abcdef01234567",
+      "lastModified": 1790352202,
+      "url": "https://github.com/example/flake-utils",
+      "behind": 0
+    }
+  ]
+}

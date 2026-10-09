@@ -1,0 +1,59 @@
+{
+  "data": {
+    "search": {
+      "nodes": [
+        {
+          "number": 1490,
+          "title": "Add a retry budget to the client",
+          "url": "https://github.com/acme/api/pull/1490",
+          "additions": 133,
+          "deletions": 41,
+          "createdAt": "2026-09-25T17:03:22Z",
+          "isDraft": false,
+          "reviewDecision": "REVIEW_REQUIRED",
+          "author": {
+            "login": "you"
+          },
+          "repository": {
+            "name": "api",
+            "nameWithOwner": "acme/api"
+          }
+        },
+        {
+          "number": 981,
+          "title": "Draft: dark mode tokens",
+          "url": "https://github.com/acme/web/pull/981",
+          "additions": 612,
+          "deletions": 90,
+          "createdAt": "2026-09-21T17:03:22Z",
+          "isDraft": true,
+          "reviewDecision": null,
+          "author": {
+            "login": "you"
+          },
+          "repository": {
+            "name": "web",
+            "nameWithOwner": "acme/web"
+          }
+        },
+        {
+          "number": 318,
+          "title": "Move the cache to the new bucket",
+          "url": "https://github.com/acme/infra/pull/318",
+          "additions": 12,
+          "deletions": 12,
+          "createdAt": "2026-09-27T08:03:22Z",
+          "isDraft": false,
+          "reviewDecision": "APPROVED",
+          "author": {
+            "login": "you"
+          },
+          "repository": {
+            "name": "infra",
+            "nameWithOwner": "acme/infra"
+          }
+        }
+      ]
+    }
+  }
+}

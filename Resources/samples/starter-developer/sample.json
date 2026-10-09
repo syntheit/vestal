@@ -1,0 +1,14 @@
+{
+  "kind": "dashboard",
+  "title": "Developer starter",
+  "description": "The Developer starter dashboard: Reviews waiting on you, CI per repo, plan usage and your commit rhythm.",
+  "size": [
+    760,
+    880
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "starter",
+    "developer"
+  ]
+}

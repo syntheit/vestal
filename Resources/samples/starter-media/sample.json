@@ -1,0 +1,14 @@
+{
+  "kind": "dashboard",
+  "title": "Media starter",
+  "description": "The Media starter dashboard: Now playing, large, with the queue. The background takes the album's colours.",
+  "size": [
+    760,
+    700
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "starter",
+    "media"
+  ]
+}

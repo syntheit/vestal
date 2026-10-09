@@ -1,0 +1,14 @@
+{
+  "kind": "dashboard",
+  "title": "Default starter",
+  "description": "The Default starter dashboard: Today's dashboard: time, this machine, music, agenda, your hosts, rates and weather.",
+  "size": [
+    760,
+    880
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "starter",
+    "general"
+  ]
+}
