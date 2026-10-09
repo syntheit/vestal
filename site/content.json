@@ -1,0 +1,121 @@
+{
+  "repo": "https://github.com/syntheit/vestal",
+  "screen": [1512, 945],
+  "walls": {
+    "blue": "radial-gradient(40% 55% at 27% 38%, rgba(233,235,242,.42), transparent 70%), radial-gradient(42% 60% at 72% 50%, rgba(28,29,36,.55), transparent 72%), radial-gradient(30% 28% at 35% 79%, rgba(46,123,214,.5), transparent 70%), linear-gradient(160deg, #2c4a86 0%, #4d3b86 45%, #b0656e 100%)",
+    "dune": "radial-gradient(44% 56% at 32% 46%, rgba(242,239,232,.4), transparent 70%), radial-gradient(30% 40% at 75% 30%, rgba(35,35,39,.55), transparent 72%), linear-gradient(170deg, #3a2b4a 0%, #9a5a4a 50%, #d9a066 100%)",
+    "moss": "radial-gradient(50% 62% at 31% 41%, rgba(24,25,30,.6), transparent 72%), radial-gradient(34% 50% at 75% 55%, rgba(244,244,246,.38), transparent 70%), linear-gradient(160deg, #173a3a 0%, #2d5a48 50%, #8aa070 100%)",
+    "night": "radial-gradient(36% 48% at 32% 38%, rgba(34,36,44,.6), transparent 72%), radial-gradient(36% 56% at 72% 52%, rgba(223,227,234,.32), transparent 70%), radial-gradient(40% 20% at 50% 80%, rgba(122,92,200,.5), transparent 70%), linear-gradient(180deg, #0c1024 0%, #1b2048 60%, #3a2c5a 100%)"
+  },
+  "hero": {
+    "background": "aurora",
+    "wall": "blue",
+    "pages": [
+      { "name": "main", "title": "Main", "key": "1", "samples": ["clock", "systemBar", "media", "agendaList", "systemHealth", "weatherCard"] },
+      { "name": "dev", "title": "Developer", "key": "2", "samples": ["clock", "aiUsage", "reviewQueue", "ciStatus"] },
+      { "name": "home", "title": "Homelab", "key": "3", "layout": "grid", "columns": 2, "maxWidth": 1120, "gap": 36,
+        "samples": ["systemHealth", "containers", "uptimeMonitors", "backups", "networkRates", "tailnet"] }
+    ]
+  },
+  "exchange": {
+    "ask": "Put the pull requests waiting on my review under the clock.",
+    "size": [840, 880],
+    "widget": { "reviews": { "type": "reviewQueue", "limit": 4 } },
+    "children": ["clock", "systemBar", "reviews", "agenda", "weather"],
+    "result": {
+      "background": "aurora",
+      "wall": "moss",
+      "pages": [ { "name": "main", "title": "Main", "samples": ["clock", "systemBar", "reviewQueue:reviews", "agendaList:agenda", "weatherCard:weather"] } ]
+    }
+  },
+  "starters": [
+    { "id": "default", "name": "Default", "background": "aurora", "wall": "blue",
+      "pitch": "Today's dashboard: time, this machine, music, agenda, your hosts and the weather.",
+      "pages": [
+        { "name": "main", "title": "Main", "key": "1", "samples": ["clock", "systemBar", "media", "agendaList", "systemHealth", "weatherCard"] },
+        { "name": "focus", "title": "Focus", "key": "2", "samples": ["focusTimer", "nextMeeting", "todoFile", "habits"] }
+      ] },
+    { "id": "minimal", "name": "Minimal", "background": "sky", "wall": "dune",
+      "pitch": "The clock, the date and the next event. Nothing to read twice.",
+      "pages": [
+        { "name": "main", "title": "Main", "key": "1", "gap": 40, "at": "2026-09-27T10:30:00Z", "samples": ["clock", "nextMeeting"] }
+      ] },
+    { "id": "developer", "name": "Developer", "background": "topo", "wall": "moss",
+      "pitch": "Reviews waiting on you, CI per repo, plan usage and your commit rhythm.",
+      "pages": [
+        { "name": "main", "title": "Main", "key": "1", "samples": ["clock", "aiUsage", "reviewQueue", "ciStatus"] },
+        { "name": "reviews", "title": "Reviews", "key": "2", "samples": ["reviewQueue", "commitActivity"] },
+        { "name": "builds", "title": "Builds", "key": "3", "samples": ["ciStatus", "flakeInputs"] }
+      ] },
+    { "id": "homelab", "name": "Homelab", "background": "aurora", "wall": "night",
+      "pitch": "Hosts, monitors, containers, backups and the tailnet, two columns wide.",
+      "pages": [
+        { "name": "overview", "title": "Overview", "key": "1", "layout": "grid", "columns": 2, "maxWidth": 1120, "gap": 36,
+          "samples": ["systemHealth", "containers", "uptimeMonitors", "backups", "diskBreakdown", "tailnet"] },
+        { "name": "nas", "title": "nas", "key": "2", "samples": ["containers", "transfers", "backups"] },
+        { "name": "network", "title": "Network", "key": "3", "samples": ["tailnet", "networkRates", "uptimeMonitors"] }
+      ] },
+    { "id": "markets", "name": "Markets", "background": "mesh", "wall": "blue",
+      "pitch": "A watchlist, crypto and exchange rates with intraday lines.",
+      "pages": [
+        { "name": "markets", "title": "Markets", "key": "1", "samples": ["clock", "watchlist", "cryptoTicker", "keyValueList"] },
+        { "name": "main", "title": "Main", "key": "2", "samples": ["clock", "systemBar", "agendaList", "weatherCard"] }
+      ] },
+    { "id": "focus", "name": "Focus", "background": "grain", "wall": "dune",
+      "pitch": "A timer, the one task, today's list and habits. Tab away to everything else.",
+      "pages": [
+        { "name": "focus", "title": "Focus", "key": "1", "samples": ["focusTimer", "nextMeeting", "todoFile", "habits"] },
+        { "name": "main", "title": "Main", "key": "2", "samples": ["clock", "systemBar", "agendaList", "weatherCard"] }
+      ] },
+    { "id": "media", "name": "Media", "background": "artmesh", "wall": "dune",
+      "pitch": "Now playing with the artwork, the day around it, and the background in the album's colours.",
+      "pages": [
+        { "name": "playing", "title": "Now playing", "key": "1", "samples": ["clock", "nowPlaying", "forecast"] },
+        { "name": "main", "title": "Main", "key": "2", "samples": ["clock", "systemBar", "agendaList", "weatherCard"] }
+      ] },
+    { "id": "agentops", "name": "Agent ops", "background": "flow", "wall": "night",
+      "pitch": "Plan headroom, the reviews and builds your agents produce, and what needs you.",
+      "pages": [
+        { "name": "ops", "title": "Ops", "key": "1", "samples": ["clock", "aiPlan", "reviewQueue", "ciStatus"] },
+        { "name": "main", "title": "Main", "key": "2", "samples": ["clock", "systemBar", "agendaList", "weatherCard"] },
+        { "name": "reviews", "title": "Reviews", "key": "3", "samples": ["reviewQueue", "commitActivity"] }
+      ] }
+  ],
+  "categories": [
+    { "id": "time", "label": "Time and day", "tags": ["time", "calendar", "focus", "tasks", "sky"] },
+    { "id": "system", "label": "System", "tags": ["system", "metrics", "hosts"] },
+    { "id": "ai", "label": "AI usage", "tags": ["ai"] },
+    { "id": "dev", "label": "Developer", "tags": ["dev", "github", "git", "nix"] },
+    { "id": "homelab", "label": "Homelab", "tags": ["homelab", "network", "monitoring", "storage"] },
+    { "id": "markets", "label": "Markets", "tags": ["markets", "finance"] },
+    { "id": "weather", "label": "Weather", "tags": ["weather"] },
+    { "id": "media", "label": "Media", "tags": ["media"] },
+    { "id": "feeds", "label": "Feeds and home", "tags": ["feeds", "home"] },
+    { "id": "layout", "label": "Building blocks", "tags": ["layout"] }
+  ],
+  "sourceLabels": {
+    "system": "built-in system",
+    "media": "built-in media",
+    "calendar": "built-in calendar",
+    "claude": "built-in claude",
+    "codex": "built-in codex",
+    "audio": "built-in audio",
+    "weather": "built-in weather (wttr.in)",
+    "http": "http",
+    "file": "file",
+    "command": "command"
+  },
+  "presetSources": {
+    "containers": "docker or podman (command)",
+    "tailnet": "tailscale status (command)",
+    "systemHealth": "built-in system, foyer hosts",
+    "clock": "the clock",
+    "worldClocks": "the clock",
+    "countdowns": "the clock",
+    "badge": "none",
+    "reviewQueue": "github (gh auth token)",
+    "ciStatus": "github (gh auth token)",
+    "flakeInputs": "nix flake metadata (command)",
+    "commitActivity": "git log (command)"
+  }
+}
