@@ -12,7 +12,7 @@ import Foundation
 
 extension ClockFaces {
     /// Face name → compact widget body, parsed. No `mono`.
-    static let compactBodies: [String: AnyJSON] = {
+    public static let compactBodies: [String: AnyJSON] = {
         var result: [String: AnyJSON] = [:]
         for (name, body) in compactSources {
             if case .success(let tree) = AnyJSON.parse(Data(body.utf8)) { result[name] = tree }
