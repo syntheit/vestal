@@ -47,7 +47,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 | `calendar` | `30m` | `always` | EventKit (macOS) or `.ics` (both) |
 | `system` | `3s` | `visible` | this machine |
 | `media` | `3s` | `visible` | a music player |
-| `claude` | `5m` | `visible` | the Claude plan's usage, from `claude -p /usage` |
+| `claude` | `5m` | `visible` | the Claude plan's usage, from the usage endpoint or `claude -p /usage` |
 | `codex` | `5m` | `visible` | the Codex plan's usage, from `codex app-server` |
 
 **Built-in sources.** The defaults define `system`, `media` (`player: "auto"`), `claude`, `codex`, `calendar` and `weather` (wttr.in). A `visible` source that nothing on screen reads is never fetched, so unused ones cost nothing.
@@ -219,19 +219,20 @@ One music player.
 
 ### `claude`
 
-The Claude plan's usage (Pro and Max) as `claude -p /usage` prints it: `session` is the 5-hour window, `weekly` the week's (all models), `extra` the per-model weekly limits Claude Code lists (`label` is the name in parentheses). v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an info finding.
+The Claude plan's usage (Pro and Max), from Anthropic's usage endpoint or from `claude -p /usage`: `session` is the 5-hour window, `weekly` the week's (all models), `extra` the per-model weekly limits Claude Code lists (`label` is the name in parentheses). v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an info finding.
 
 ```jsonc
 { "session": { "percent": 25, "resetsAt": 1790547000, "resetsText": "Sep 27 at 7:10pm (America/Buenos_Aires)" },
   "weekly": { "percent": 59, "resetsAt": 1791064800, "resetsText": "Oct 3 at 7pm (America/Buenos_Aires)" },
   "extra": [{ "label": "Fable", "percent": 0, "resetsAt": 1791064800, "resetsText": "Oct 3 at 7pm (America/Buenos_Aires)" }],
-  "updatedAt": 1790528602, "source": "cli", "plan": null }
+  "updatedAt": 1790528602, "source": "cli", "plan": null }   // "source": "api" or "cli"
 ```
 
-`percent` is a whole number 0-100, `resetsAt` and `updatedAt` epoch seconds, `resetsText` the reset as printed (a reset vestal can't read has `resetsAt: null`). A window may be `null`; one whose reset has passed reads `{"percent": 0, "resetsAt": null}` until the next fetch. vestal runs `claude -p --no-session-persistence /usage` in its cache directory (no model call, no transcript); Claude Code's own login is used, and nothing of it is read. It refreshes every `5m` while shown, and on a show when its data is over a minute old. See `vestal docs ai-usage`.
+`percent` is a whole number 0-100, `resetsAt` and `updatedAt` epoch seconds, `resetsText` the reset as printed (a reset vestal can't read has `resetsAt: null`). A window may be `null`; one whose reset has passed reads `{"percent": 0, "resetsAt": null}` until the next fetch. With `backend: "auto"` (the default) vestal asks the usage endpoint with the access token of Claude Code's login (read from `$CLAUDE_CONFIG_DIR/.credentials.json`, `~/.claude` by default, on macOS also the keychain; never refreshed, written or logged), and runs `claude -p --no-session-persistence /usage` in its cache directory (no model call, no transcript) when there is no valid token or the endpoint fails; after a 429 it asks neither until the wait is over. `source` says which answered. It refreshes every `5m` while shown, and on a show when its data is over a minute old. See `vestal docs ai-usage`.
 
 | Key | Default | |
 |---|---|---|
+| `backend` | `"auto"` | `api`, `cli` or `auto` (the endpoint, else the command). |
 | `argv` | `["claude", "-p", "--no-session-persistence", "/usage"]` | The command, when `claude` isn't on `PATH`. |
 
 ### `codex`

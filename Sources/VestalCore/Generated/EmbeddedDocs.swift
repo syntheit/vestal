@@ -101,7 +101,7 @@ sources:
   media     ok  MPRIS through playerctl: no MPRIS player running
   calendar  no  none: no calendar backend: set `ics` (files, a vdirsyncer directory or URLs) on the calendar source
   audio     no  wpctl: wpctl found, but no default output device
-  claude    ok  claude -p /usage: /etc/profiles/per-user/me/bin/claude
+  claude    ok  api: Claude Code's login token found; claude -p /usage is the fallback
   codex     ok  codex app-server: /etc/profiles/per-user/me/bin/codex
 icons: ok  …/share/vestal/icons/Phosphor.ttf, …/share/vestal/icons/Phosphor-Fill.ttf
 screenshot: no  needs a Wayland session (WAYLAND_DISPLAY is not set); `vestal render` works anywhere
@@ -898,8 +898,8 @@ User: *"Show how much of my Claude and Codex limits I've used."*
 }
 ```
 
-- `aiUsage` draws Claude's and Codex's 5-hour and weekly windows as bars, each followed by when it resets (`in 4h`), on one line; a service with no data yet is left out. The numbers are the services' own: vestal reads no credentials.
-- Claude's come from `claude -p /usage` (the user's Claude Code login, Pro or Max; no model call, no transcript); `vestal fetch claude` checks it. No status line is needed: don't set one up for vestal. If `claude` is somewhere other than `PATH`, the Nix and Homebrew directories or `~/.local/bin`, set `"argv": ["/path/to/claude", "-p", "--no-session-persistence", "/usage"]` on the `claude` source. Per-model weekly limits are in `.extra`.
+- `aiUsage` draws Claude's and Codex's 5-hour and weekly windows as bars, each followed by when it resets (`in 4h`), on one line; a service with no data yet is left out. The numbers are the services' own.
+- Claude's come from Anthropic's usage endpoint with Claude Code's access token (read only; `"backend": "api"`, `"cli"` or `"auto"`), falling back to `claude -p /usage` (the user's Claude Code login, Pro or Max; no model call, no transcript); `vestal fetch claude` checks it. No status line is needed: don't set one up for vestal. If `claude` is somewhere other than `PATH`, the Nix and Homebrew directories or `~/.local/bin`, set `"argv": ["/path/to/claude", "-p", "--no-session-persistence", "/usage"]` on the `claude` source. Per-model weekly limits are in `.extra`.
 - Codex's come from `codex app-server` (the user's `codex login`); `vestal fetch codex` checks it. For the system bar instead: `"show": [..., "claudeUsage", "codexUsage", ...]`. Details: `vestal docs ai-usage`.
 
 ### Recipe `disk-table`: disks as a table
@@ -952,11 +952,15 @@ User: *"A table of my disks: used, free and size, red when nearly full."*
         "ai-usage": #"""
 # AI plan usage
 
-vestal can show how much of a Claude or Codex plan's rate limits you have used: the 5-hour window and the weekly one, with when each resets. The numbers are the services' own (what Claude Code's `/usage` and Codex's `/status` show), not estimates. vestal never reads a credential, a token or the Keychain for them, and makes no request of its own to Anthropic or OpenAI.
+vestal can show how much of a Claude or Codex plan's rate limits you have used: the 5-hour window and the weekly one, with when each resets. The numbers are the services' own (what Claude Code's `/usage` and Codex's `/status` show), not estimates. Codex's come from `codex app-server`, which keeps its own login; vestal reads none of it. Claude's come from Anthropic's usage endpoint with Claude Code's access token (read only), or from `claude -p /usage`.
 
 ## Claude
 
-The `claude` source runs `claude -p --no-session-persistence /usage`. Claude Code prints the account's plan usage, the same numbers as `/usage` in a session, without a model call, and exits within a few seconds:
+The `claude` source has two backends, chosen by `backend` (`auto`, `api` or `cli`; default `auto`).
+
+**api.** One `GET https://api.anthropic.com/api/oauth/usage`, the request Claude Code's own `/usage` makes, with the access token of Claude Code's login: it takes a fraction of a second and starts no other program. The token is read from `.credentials.json` in `$CLAUDE_CONFIG_DIR` (default `~/.claude`) or, on macOS, from the login keychain item `Claude Code-credentials` when the file has no valid token. vestal only reads it: it never refreshes or writes it, never logs or shows it, and sends it to `api.anthropic.com` only. `five_hour` is `session`, `seven_day` is `weekly`, and the per-model windows (Claude Code's own names, such as `Fable`) are `extra`. The endpoint is not documented by Anthropic, so it may change.
+
+**cli.** Runs `claude -p --no-session-persistence /usage`. Claude Code prints the account's plan usage, the same numbers as `/usage` in a session, without a model call, and exits within a few seconds:
 
 ```
 Current session: 25% used · resets Sep 27 at 7:10pm (America/Buenos_Aires)
@@ -966,7 +970,7 @@ Current week (Fable): 0% used · resets Oct 3 at 7pm (America/Buenos_Aires)
 
 vestal reads those lines: `Current session` is `session`, `Current week (all models)` is `weekly`, and any other `Current week (<name>)` goes to `extra` with that name as its `label`. A reset time is read in the zone in parentheses (`Sep 27 at 7:10pm`, `Oct 3, 7pm`, `7:10pm`, `in 3h 20m`); one vestal can't read keeps its text in `resetsText` with `resetsAt` null. Colour codes, notices and the rest of the output are ignored.
 
-Claude Code uses its own login (Pro or Max). It runs in vestal's cache directory (`~/Library/Caches/Vestal` on macOS, `$XDG_CACHE_HOME/vestal` or `~/.cache/vestal` on Linux), and `--no-session-persistence` keeps it from writing a transcript at every refresh (vestal drops the flag for a Claude Code too old to know it). It refreshes every 5 minutes while the dashboard is shown, and when you show the dashboard with data older than a minute. `vestal fetch claude` runs it and shows the data. vestal looks for `claude` on `PATH`, in the Nix and Homebrew directories and in `~/.local/bin` (Claude Code's native installer); anywhere else, set `"argv": ["~/.local/bin/claude", "-p", "--no-session-persistence", "/usage"]` on the source.
+Claude Code uses its own login (Pro or Max). The command runs in vestal's cache directory (`~/Library/Caches/Vestal` on macOS, `$XDG_CACHE_HOME/vestal` or `~/.cache/vestal` on Linux), and `--no-session-persistence` keeps it from writing a transcript at every refresh (vestal drops the flag for a Claude Code too old to know it). It refreshes every 5 minutes while the dashboard is shown, and when you show the dashboard with data older than a minute. `vestal fetch claude` runs it and shows the data. vestal looks for `claude` on `PATH`, in the Nix and Homebrew directories and in `~/.local/bin` (Claude Code's native installer); anywhere else, set `"argv": ["~/.local/bin/claude", "-p", "--no-session-persistence", "/usage"]` on the source.
 
 No status line is needed. Earlier versions read Claude's numbers from Claude Code's `statusLine` input, but those are the session's, not the account's. `vestal claude-statusline` still works as a status line that shows the `claude` source's cached numbers (`5h 25% · wk 59%`, nothing before the first fetch), with `--then <command>` to chain another one; it writes nothing. Under Home Manager, `programs.vestal.claudeStatusLine.enable` (off by default) sets it up; while it is off, activation removes a `statusLine` from `~/.claude/settings.json` only when it is exactly vestal's own (`/nix/store/…/bin/vestal claude-statusline`), leaves one that chains another command with a warning, and touches nothing else. A status line you set by hand stays until you remove it.
 
@@ -990,7 +994,7 @@ Both sources give the same shape:
     { "label": "Fable", "percent": 0, "resetsAt": 1791064800, "resetsText": "Oct 3 at 7pm (America/Buenos_Aires)" }
   ],
   "updatedAt": 1790528602,                                // epoch seconds
-  "source": "cli",                                        // "cli" (claude) or "codex"
+  "source": "cli",                                        // "api" or "cli" (claude), or "codex"
   "plan": null                                            // Codex: the plan's name
 }
 ```
@@ -1006,7 +1010,7 @@ Both sources give the same shape:
 
 ## When it shows nothing
 
-- `vestal fetch claude` says `claude not found`: set `argv` (see above). `not logged in`: run `claude` and `/login`. `shows no plan usage`: Claude Code is logged in with an API key, not a Pro or Max subscription.
+- `vestal fetch claude` says `claude not found` (the cli backend, or auto with no valid token): set `argv` (see above). `source` in the data says which backend answered; `"backend": "cli"` skips the endpoint, and `vestal capabilities` shows which one will be used. `not logged in`: run `claude` and `/login`. `shows no plan usage`: Claude Code is logged in with an API key, not a Pro or Max subscription.
 - `vestal fetch codex` says `codex not found`: set `argv`. An error from `codex app-server` usually means `codex login` is needed.
 - `vestal capabilities` lists both sources and whether their programs are found.
 - v0.3's `path`, `fiveHourLimit` and `weeklyLimit` on a `claude` source or `claudeUsage` widget are ignored now (an info finding says so); remove them.
@@ -1865,7 +1869,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 | `calendar` | `30m` | `always` | EventKit (macOS) or `.ics` (both) |
 | `system` | `3s` | `visible` | this machine |
 | `media` | `3s` | `visible` | a music player |
-| `claude` | `5m` | `visible` | the Claude plan's usage, from `claude -p /usage` |
+| `claude` | `5m` | `visible` | the Claude plan's usage, from the usage endpoint or `claude -p /usage` |
 | `codex` | `5m` | `visible` | the Codex plan's usage, from `codex app-server` |
 
 **Built-in sources.** The defaults define `system`, `media` (`player: "auto"`), `claude`, `codex`, `calendar` and `weather` (wttr.in). A `visible` source that nothing on screen reads is never fetched, so unused ones cost nothing.
@@ -2037,19 +2041,20 @@ One music player.
 
 ### `claude`
 
-The Claude plan's usage (Pro and Max) as `claude -p /usage` prints it: `session` is the 5-hour window, `weekly` the week's (all models), `extra` the per-model weekly limits Claude Code lists (`label` is the name in parentheses). v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an info finding.
+The Claude plan's usage (Pro and Max), from Anthropic's usage endpoint or from `claude -p /usage`: `session` is the 5-hour window, `weekly` the week's (all models), `extra` the per-model weekly limits Claude Code lists (`label` is the name in parentheses). v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an info finding.
 
 ```jsonc
 { "session": { "percent": 25, "resetsAt": 1790547000, "resetsText": "Sep 27 at 7:10pm (America/Buenos_Aires)" },
   "weekly": { "percent": 59, "resetsAt": 1791064800, "resetsText": "Oct 3 at 7pm (America/Buenos_Aires)" },
   "extra": [{ "label": "Fable", "percent": 0, "resetsAt": 1791064800, "resetsText": "Oct 3 at 7pm (America/Buenos_Aires)" }],
-  "updatedAt": 1790528602, "source": "cli", "plan": null }
+  "updatedAt": 1790528602, "source": "cli", "plan": null }   // "source": "api" or "cli"
 ```
 
-`percent` is a whole number 0-100, `resetsAt` and `updatedAt` epoch seconds, `resetsText` the reset as printed (a reset vestal can't read has `resetsAt: null`). A window may be `null`; one whose reset has passed reads `{"percent": 0, "resetsAt": null}` until the next fetch. vestal runs `claude -p --no-session-persistence /usage` in its cache directory (no model call, no transcript); Claude Code's own login is used, and nothing of it is read. It refreshes every `5m` while shown, and on a show when its data is over a minute old. See `vestal docs ai-usage`.
+`percent` is a whole number 0-100, `resetsAt` and `updatedAt` epoch seconds, `resetsText` the reset as printed (a reset vestal can't read has `resetsAt: null`). A window may be `null`; one whose reset has passed reads `{"percent": 0, "resetsAt": null}` until the next fetch. With `backend: "auto"` (the default) vestal asks the usage endpoint with the access token of Claude Code's login (read from `$CLAUDE_CONFIG_DIR/.credentials.json`, `~/.claude` by default, on macOS also the keychain; never refreshed, written or logged), and runs `claude -p --no-session-persistence /usage` in its cache directory (no model call, no transcript) when there is no valid token or the endpoint fails; after a 429 it asks neither until the wait is over. `source` says which answered. It refreshes every `5m` while shown, and on a show when its data is over a minute old. See `vestal docs ai-usage`.
 
 | Key | Default | |
 |---|---|---|
+| `backend` | `"auto"` | `api`, `cli` or `auto` (the endpoint, else the command). |
 | `argv` | `["claude", "-p", "--no-session-persistence", "/usage"]` | The command, when `claude` isn't on `PATH`. |
 
 ### `codex`

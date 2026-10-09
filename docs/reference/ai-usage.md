@@ -1,10 +1,14 @@
 # AI plan usage
 
-vestal can show how much of a Claude or Codex plan's rate limits you have used: the 5-hour window and the weekly one, with when each resets. The numbers are the services' own (what Claude Code's `/usage` and Codex's `/status` show), not estimates. vestal never reads a credential, a token or the Keychain for them, and makes no request of its own to Anthropic or OpenAI.
+vestal can show how much of a Claude or Codex plan's rate limits you have used: the 5-hour window and the weekly one, with when each resets. The numbers are the services' own (what Claude Code's `/usage` and Codex's `/status` show), not estimates. Codex's come from `codex app-server`, which keeps its own login; vestal reads none of it. Claude's come from Anthropic's usage endpoint with Claude Code's access token (read only), or from `claude -p /usage`.
 
 ## Claude
 
-The `claude` source runs `claude -p --no-session-persistence /usage`. Claude Code prints the account's plan usage, the same numbers as `/usage` in a session, without a model call, and exits within a few seconds:
+The `claude` source has two backends, chosen by `backend` (`auto`, `api` or `cli`; default `auto`).
+
+**api.** One `GET https://api.anthropic.com/api/oauth/usage`, the request Claude Code's own `/usage` makes, with the access token of Claude Code's login: it takes a fraction of a second and starts no other program. The token is read from `.credentials.json` in `$CLAUDE_CONFIG_DIR` (default `~/.claude`) or, on macOS, from the login keychain item `Claude Code-credentials` when the file has no valid token. vestal only reads it: it never refreshes or writes it, never logs or shows it, and sends it to `api.anthropic.com` only. `five_hour` is `session`, `seven_day` is `weekly`, and the per-model windows (Claude Code's own names, such as `Fable`) are `extra`. The endpoint is not documented by Anthropic, so it may change.
+
+**cli.** Runs `claude -p --no-session-persistence /usage`. Claude Code prints the account's plan usage, the same numbers as `/usage` in a session, without a model call, and exits within a few seconds:
 
 ```
 Current session: 25% used · resets Sep 27 at 7:10pm (America/Buenos_Aires)
@@ -14,7 +18,7 @@ Current week (Fable): 0% used · resets Oct 3 at 7pm (America/Buenos_Aires)
 
 vestal reads those lines: `Current session` is `session`, `Current week (all models)` is `weekly`, and any other `Current week (<name>)` goes to `extra` with that name as its `label`. A reset time is read in the zone in parentheses (`Sep 27 at 7:10pm`, `Oct 3, 7pm`, `7:10pm`, `in 3h 20m`); one vestal can't read keeps its text in `resetsText` with `resetsAt` null. Colour codes, notices and the rest of the output are ignored.
 
-Claude Code uses its own login (Pro or Max). It runs in vestal's cache directory (`~/Library/Caches/Vestal` on macOS, `$XDG_CACHE_HOME/vestal` or `~/.cache/vestal` on Linux), and `--no-session-persistence` keeps it from writing a transcript at every refresh (vestal drops the flag for a Claude Code too old to know it). It refreshes every 5 minutes while the dashboard is shown, and when you show the dashboard with data older than a minute. `vestal fetch claude` runs it and shows the data. vestal looks for `claude` on `PATH`, in the Nix and Homebrew directories and in `~/.local/bin` (Claude Code's native installer); anywhere else, set `"argv": ["~/.local/bin/claude", "-p", "--no-session-persistence", "/usage"]` on the source.
+Claude Code uses its own login (Pro or Max). The command runs in vestal's cache directory (`~/Library/Caches/Vestal` on macOS, `$XDG_CACHE_HOME/vestal` or `~/.cache/vestal` on Linux), and `--no-session-persistence` keeps it from writing a transcript at every refresh (vestal drops the flag for a Claude Code too old to know it). It refreshes every 5 minutes while the dashboard is shown, and when you show the dashboard with data older than a minute. `vestal fetch claude` runs it and shows the data. vestal looks for `claude` on `PATH`, in the Nix and Homebrew directories and in `~/.local/bin` (Claude Code's native installer); anywhere else, set `"argv": ["~/.local/bin/claude", "-p", "--no-session-persistence", "/usage"]` on the source.
 
 No status line is needed. Earlier versions read Claude's numbers from Claude Code's `statusLine` input, but those are the session's, not the account's. `vestal claude-statusline` still works as a status line that shows the `claude` source's cached numbers (`5h 25% · wk 59%`, nothing before the first fetch), with `--then <command>` to chain another one; it writes nothing. Under Home Manager, `programs.vestal.claudeStatusLine.enable` (off by default) sets it up; while it is off, activation removes a `statusLine` from `~/.claude/settings.json` only when it is exactly vestal's own (`/nix/store/…/bin/vestal claude-statusline`), leaves one that chains another command with a warning, and touches nothing else. A status line you set by hand stays until you remove it.
 
@@ -38,7 +42,7 @@ Both sources give the same shape:
     { "label": "Fable", "percent": 0, "resetsAt": 1791064800, "resetsText": "Oct 3 at 7pm (America/Buenos_Aires)" }
   ],
   "updatedAt": 1790528602,                                // epoch seconds
-  "source": "cli",                                        // "cli" (claude) or "codex"
+  "source": "cli",                                        // "api" or "cli" (claude), or "codex"
   "plan": null                                            // Codex: the plan's name
 }
 ```
@@ -54,7 +58,7 @@ Both sources give the same shape:
 
 ## When it shows nothing
 
-- `vestal fetch claude` says `claude not found`: set `argv` (see above). `not logged in`: run `claude` and `/login`. `shows no plan usage`: Claude Code is logged in with an API key, not a Pro or Max subscription.
+- `vestal fetch claude` says `claude not found` (the cli backend, or auto with no valid token): set `argv` (see above). `source` in the data says which backend answered; `"backend": "cli"` skips the endpoint, and `vestal capabilities` shows which one will be used. `not logged in`: run `claude` and `/login`. `shows no plan usage`: Claude Code is logged in with an API key, not a Pro or Max subscription.
 - `vestal fetch codex` says `codex not found`: set `argv`. An error from `codex app-server` usually means `codex login` is needed.
 - `vestal capabilities` lists both sources and whether their programs are found.
 - v0.3's `path`, `fiveHourLimit` and `weeklyLimit` on a `claude` source or `claudeUsage` widget are ignored now (an info finding says so); remove them.

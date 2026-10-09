@@ -315,7 +315,10 @@ private struct Walker {
         case "media":
             if case .string? = source["player"] {} else { _ = strings(source["player"], "\(path).player") }
         case "claude", "codex":
-            if canonical == "claude" { ignoredClaudeOptions(source, path) }
+            if canonical == "claude" {
+                ignoredClaudeOptions(source, path)
+                oneOf(source["backend"], "\(path).backend", SourceConfig.claudeBackends)
+            }
             if let argv = strings(source["argv"], "\(path).argv"), argv.isEmpty {
                 add(.invalidValue, "\(path).argv", "must not be empty")
             }
@@ -631,7 +634,7 @@ private struct Walker {
         for key in ["path", "fiveHourLimit", "weeklyLimit"] where object[key] != nil && object[key] != .null {
             warnings.append(ConfigWarning(
                 kind: .invalidValue, path: "\(path).\(key)",
-                message: "ignored: Claude usage now comes from `claude -p /usage` (vestal docs ai-usage)",
+                message: "ignored: Claude usage now comes from Claude's usage endpoint or `claude -p /usage` (vestal docs ai-usage)",
                 code: "ignored", severity: .info))
         }
     }
