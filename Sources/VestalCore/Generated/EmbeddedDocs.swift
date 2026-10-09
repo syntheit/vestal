@@ -1062,6 +1062,7 @@ With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "..
 | `vestal --headless`, `vestal daemon --headless` | The same without a UI (also `VESTAL_HEADLESS=1`): sources, these commands and stats; show and hide only change the state it reports. |
 | `vestal show [view]`, `vestal toggle [view]` | Show, or show or hide, the dashboard; start vestal if needed. `show` opens `view`, or `defaultView` without one (also when the dashboard is shown on another view). `toggle view` hides the dashboard when it is shown on that view, and otherwise shows that view. `view` must name a view of the config (exit 4 otherwise). |
 | `vestal press <key>` | Send a key to the running dashboard, as if typed on it (`h`, `2`, `tab`, `shift+tab`, `alt+i`, `escape`). Exit 1 when none runs or it is hidden. |
+| `vestal login-item on\|off\|status` | macOS, from `Vestal.app` (DMG or Homebrew): register or remove a login item that runs `vestal daemon` (hidden), through SMAppService; `status` prints `login-item: on`, `off` or that macOS waits for approval in System Settings. Off until turned on; independent of the Nix launch agent. Exit 1 from a bare executable and on Linux. |
 | `vestal hide`, `vestal reload`, `vestal quit` | Tell the running instance. Exit 1 when none runs; they never start one. |
 | `vestal status [--json]` | The running instance: pid, build, config file, warnings, each source's age and last error, and this machine's stats. |
 | `vestal subscribe [--view <name>] [--while-hidden] [--role ui\|observer\|control] [--control] [--minor <n>] [--input]` | Print the live render-model stream (`vestal docs protocol`) until the instance hangs up or Ctrl-C; `--input` forwards JSON commands typed on stdin. Exit 1 when none runs. |
@@ -1441,6 +1442,61 @@ The fonts are `Phosphor.ttf` (family `Phosphor`) and `Phosphor-Fill.ttf` (`Phosp
 | Development builds | the directories in `$VESTAL_FONT_DIRS` (colon-separated) |
 
 A UI draws an icon as one glyph in the icon font: the render model carries the name, the glyph (the code point) and the weight (`vestal docs render-model`).
+
+"""#,
+        "install": #"""
+# Installing vestal
+
+## macOS: DMG
+
+1. Download `Vestal-<version>.dmg` from the GitHub releases page and open it.
+2. Drag `Vestal.app` onto the `Applications` link.
+3. Start it once from Applications. It has no Dock icon and no menu bar item; it shows the dashboard and then stays resident while hidden.
+
+The app is signed with a Developer ID and notarized, so Gatekeeper opens it without a warning. macOS 14 (Sonoma) or later; Apple silicon and Intel.
+
+To use the `vestal` command from a shell, put a small wrapper on your PATH (not a symlink: macOS finds the app's bundle, and so its permissions and fonts, from the path the program was started by):
+
+```sh
+printf '#!/bin/sh\nexec /Applications/Vestal.app/Contents/MacOS/vestal "$@"\n' | sudo tee /usr/local/bin/vestal >/dev/null
+sudo chmod +x /usr/local/bin/vestal
+```
+
+## macOS: Homebrew
+
+```sh
+brew install --cask syntheit/vestal/vestal
+```
+
+This installs `Vestal.app` and puts a `vestal` wrapper on the PATH. `brew upgrade --cask vestal` updates it; `brew uninstall --zap --cask vestal` also removes the config, the data cache and the log.
+
+## macOS or Linux: Nix
+
+The flake provides the package and a Home Manager module (`programs.vestal`), which writes the config, starts vestal at login and signs the app on your machine. See the README and `nix/hm-module.nix`. Nix users do not need the DMG.
+
+## First run
+
+- **Config.** With no config file vestal runs on built-in defaults. Create `~/.config/vestal/config.json` (or `$XDG_CONFIG_HOME/vestal/config.json`); `examples/` in the repository has complete files, `vestal docs agents` explains the format, and `vestal check-config` checks a file. There is no `vestal init`; copy an example. The file is watched, and `vestal reload` reads it at once.
+- **Hotkey.** None by default. Set `"hotkey": "f3"` (or `"cmd+shift+space"`) in the config. The key is taken from every app. Until then, `vestal toggle` (from a shell, skhd or Shortcuts) shows and hides the dashboard.
+- **Calendar.** The first time the agenda source reads your calendars, macOS asks whether Vestal may access Calendar. Allow it (Full Access: it reads events only). Change it later in System Settings > Privacy & Security > Calendars.
+- **Automation.** The first time the media widget talks to Music, Spotify or another player, macOS asks whether Vestal may control it. Allow it. Change it in System Settings > Privacy & Security > Automation.
+- **Nothing else.** The screenshot command and the trackpad pinch gesture need no permission.
+
+## Start at login
+
+Off by default.
+
+```sh
+vestal login-item on       # register: runs `vestal daemon`, hidden, at login
+vestal login-item status   # login-item: on | off | waiting for approval
+vestal login-item off
+```
+
+macOS may ask you to approve it once in System Settings > General > Login Items & Extensions; `status` says when it is waiting. The command works from `Vestal.app` only (DMG or Homebrew), and the entry lives with the app: move or delete the app and macOS drops it. Nix users set `programs.vestal.launchAtLogin` instead; do not use both.
+
+## Linux
+
+Install through Nix (above). The Home Manager module starts a systemd user service; Wayland has no global hotkeys, so bind `vestal toggle` in the compositor (the module's `programs.vestal.hyprland.enable` does it for Hyprland).
 
 """#,
         "keys": #"""

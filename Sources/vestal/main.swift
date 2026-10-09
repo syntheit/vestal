@@ -176,6 +176,13 @@ case .command(.gallery(let arguments)):
     emit(GalleryCommand.run(arguments, platform: sourcePlatform, shoot: GalleryCommand.selfShooter, fixedSize: false))
     #endif
 
+case .command(.loginItem(let action)):
+    #if os(macOS)
+    emit(MacLoginItem.run(action))
+    #else
+    emit(CLI.Output(status: 1, stderr: "vestal: login-item is macOS only; on Linux the systemd user service starts vestal (see docs/reference/install.md)\n"))
+    #endif
+
 case .command(.schema(let arguments)):
     emit(ConfigCommands.schema(arguments))
 
