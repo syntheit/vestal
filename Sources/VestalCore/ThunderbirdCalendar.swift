@@ -23,9 +23,9 @@ import CSQLite
 public enum ThunderbirdCalendar {
 
     /// A calendar registered in prefs.js.
-    struct Registered: Equatable {
-        var id: String
-        var name: String
+    public struct Registered: Equatable {
+        public var id: String
+        public var name: String
     }
 
     /// One row of cal_events.
@@ -325,7 +325,7 @@ public enum ThunderbirdCalendar {
     /// The default profile's directory: the `[Install…]` section's `Default=`,
     /// else the `[Profile…]` with `Default=1`, else the only profile.
     /// A relative path is relative to `base`, the ini's directory.
-    static func defaultProfile(inINI text: String, base: String) -> String? {
+    public static func defaultProfile(inINI text: String, base: String) -> String? {
         var sections: [(name: String, values: [String: String])] = []
         for raw in text.split(whereSeparator: { $0 == "\n" || $0 == "\r" }) {
             let line = raw.trimmingCharacters(in: .whitespaces)
@@ -353,7 +353,7 @@ public enum ThunderbirdCalendar {
     /// `calendar.registry.<id>.name`, `.type`, `.disabled` and `.color`
     /// lines are looked at; every other line is skipped unread, and `.uri`
     /// is never read.
-    static func registered(_ prefs: String) -> [Registered] {
+    public static func registered(_ prefs: String) -> [Registered] {
         var order: [String] = []
         var names: [String: String] = [:]
         var disabled: Set<String> = []
