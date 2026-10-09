@@ -7,6 +7,11 @@ final class StarterTests: XCTestCase {
     static var directory: String { Fixture.repository("Resources/starters").path }
     static let ids = ["agentops", "default", "developer", "focus", "homelab", "markets", "media", "minimal"]
 
+    func parsed(_ data: Data) -> AnyJSON? {
+        if case .success(let value) = AnyJSON.parse(data) { return value }
+        return nil
+    }
+
     func loaded() -> StarterLibrary.Loaded { StarterLibrary.load(Self.directory) }
 
     // MARK: The starters
@@ -26,8 +31,8 @@ final class StarterTests: XCTestCase {
         for starter in loaded().starters {
             for platform in ["macos", "linux"] {
                 let result = ConfigCommands.checkConfig([starter.configPath, "--json", "--platform", platform])
-                let json = try XCTUnwrap(AnyJSON.parse(Data(result.stdout.utf8)).successValue, starter.id)
-                XCTAssertEqual(json.objectValue?["counts"]?.objectValue?["error"], .int(0), "\(starter.id) \(platform): \(result.stdout)")
+                let json = try XCTUnwrap(parsed(Data(result.stdout.utf8)), starter.id)
+                XCTAssertEqual(json.objectValue?["counts"]?.objectValue?["error"], AnyJSON.int(0), "\(starter.id) \(platform): \(result.stdout)")
                 XCTAssertEqual(result.status, 0, "\(starter.id) \(platform)")
             }
         }
@@ -36,16 +41,16 @@ final class StarterTests: XCTestCase {
     func testStarterConfigsMatchTheirMetadata() throws {
         for starter in loaded().starters {
             let text = try String(contentsOfFile: starter.configPath, encoding: .utf8)
-            let config = try XCTUnwrap(AnyJSON.parse(Data(text.utf8)).successValue?.objectValue, starter.id)
+            let config = try XCTUnwrap(parsed(Data(text.utf8))?.objectValue, starter.id)
             XCTAssertEqual(config["hotkey"]?.stringValue, "cmd+shift+space", "\(starter.id) sets the hotkey")
-            let order = config["pages"]?.objectValue?["order"]?.arrayValue?.compactMap(\.stringValue)
+            let order: [String]? = config["pages"]?.objectValue?["order"]?.arrayValue?.compactMap { $0.stringValue }
             XCTAssertEqual(order, starter.pages.map(\.name), starter.id)
             XCTAssertEqual(config["defaultView"]?.stringValue, starter.pages.first?.name, starter.id)
             let views = config["views"]?.objectValue ?? [:]
             for page in starter.pages {
                 XCTAssertEqual(views[page.name]?.objectValue?["title"]?.stringValue, page.title, "\(starter.id)/\(page.name)")
             }
-            let theme = config["theme"]?.objectValue?["background"]
+            let theme: AnyJSON? = config["theme"]?.objectValue?["background"]
             XCTAssertEqual(theme?.stringValue ?? theme?.objectValue?["type"]?.stringValue, starter.background, starter.id)
             XCTAssertFalse(text.contains("/Users/") || text.contains("/home/"), "\(starter.id) has a personal path")
         }
