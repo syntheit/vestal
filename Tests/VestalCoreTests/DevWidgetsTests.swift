@@ -8,6 +8,11 @@ import XCTest
 final class DevWidgetsTests: XCTestCase {
     // MARK: Helpers
 
+    private static func object(_ data: Data) -> [String: AnyJSON]? {
+        if case .success(.object(let members)) = AnyJSON.parse(data) { return members }
+        return nil
+    }
+
     private func fixture(_ name: String) throws -> AnyJSON {
         let data = try Fixture.data("dev/\(name)")
         guard case .success(let json) = AnyJSON.parse(data) else {
@@ -86,7 +91,7 @@ final class DevWidgetsTests: XCTestCase {
         var inputs = FlakeInputs.parse(try fixture("flake-metadata.json"))
         XCTAssertEqual(FlakeInputs.compared(inputs), [0, 1, 2, 4])
         let body = try XCTUnwrap(FlakeInputs.behindRequest(inputs))
-        let request = try XCTUnwrap(AnyJSON.parse(body).successValue?.objectValue?["query"]?.stringValue)
+        let request = try XCTUnwrap(Self.object(body)?["query"]?.stringValue)
         XCTAssertTrue(request.hasPrefix("query { i0: repository(owner: \"example\", name: \"flake-utils\") { defaultBranchRef { name compare(headRef: \"1111111111111111111111111111111111111111\") { behindBy } } }"), request)
         XCTAssertTrue(request.contains("i1: repository(owner: \"example\", name: \"home-manager\") { ref(qualifiedName: \"release-26.05\")"), request)
         XCTAssertFalse(request.contains("i3:"), "the git input is not asked about")
@@ -107,7 +112,7 @@ final class DevWidgetsTests: XCTestCase {
         // `nix` stands in as a program that prints the recorded document; the path is its extra argument.
         let source = SourceConfig(type: "flake", argv: ["sh", "-c", "cat \"$0\"", metadata], path: "~/config", behind: true)
         let result = try await fetcher.fetchResult(source)
-        let data = try XCTUnwrap(AnyJSON.parse(result.data).successValue?.objectValue)
+        let data = try XCTUnwrap(Self.object(result.data))
         XCTAssertEqual(data["path"], .string("~/config"))
         let inputs = try XCTUnwrap(data["inputs"]?.arrayValue)
         XCTAssertEqual(inputs.count, 5)
@@ -187,13 +192,13 @@ final class DevWidgetsTests: XCTestCase {
     // MARK: Commands
 
     func testCommandsListWhatThePresetsRun() throws {
-        let user: [String: AnyJSON] = try XCTUnwrap(AnyJSON.parse(Data(#"""
+        let user: [String: AnyJSON] = try XCTUnwrap(Self.object(Data(#"""
         { "version": 1, "widgets": {
           "reviews": { "type": "reviewQueue" },
           "commits": { "type": "commitActivity", "paths": ["~/code/api"] },
           "flake": { "type": "flakeInputs", "path": "~/config", "behind": true } },
           "views": { "main": { "children": ["reviews", "commits", "flake"] } } }
-        """#.utf8)).successValue?.objectValue)
+        """#.utf8)))
         let entries = ConfigCommands.commandEntries(user: user, platform: .linux, environment: ["PATH": "/nonexistent"])
         let programs = entries.map { $0.argv.first ?? "" }
         XCTAssertEqual(programs.sorted(), ["gh", "nix", "sh"])
@@ -215,7 +220,7 @@ final class DevWidgetsTests: XCTestCase {
         XCTAssertEqual(source.refresh, "5m")
         XCTAssertEqual(source.when, "visible")
         XCTAssertEqual(source.headers?["Authorization"], "Bearer {{ $secrets.github }}")
-        let body = try XCTUnwrap(AnyJSON.parse(Data((source.body?.stringValue ?? "").utf8)).successValue?.objectValue)
+        let body = try XCTUnwrap(Self.object(Data((source.body?.stringValue ?? "").utf8)))
         XCTAssertTrue(try XCTUnwrap(body["query"]?.stringValue).contains("search(query: $q"))
         XCTAssertEqual(body["variables"]?.objectValue?["q"], .string("is:pr is:open review-requested:@me archived:false"))
 
@@ -257,7 +262,7 @@ final class DevWidgetsTests: XCTestCase {
     func testCIStatusQueryTransformAndRender() throws {
         let loaded = load(#"{ "w": { "type": "ciStatus", "repos": ["acme/api", "acme/infra@update-flake", 7, "nonsense"] } }"#)
         let source = try inlineSource(of: loaded, where: isGraphQL)
-        let body = try XCTUnwrap(AnyJSON.parse(Data((source.body?.stringValue ?? "").utf8)).successValue?.objectValue)
+        let body = try XCTUnwrap(Self.object(Data((source.body?.stringValue ?? "").utf8)))
         let query = try XCTUnwrap(body["query"]?.stringValue)
         XCTAssertTrue(query.contains("r0: repository(owner: \"acme\", name: \"api\") { name nameWithOwner defaultBranchRef {"), query)
         XCTAssertTrue(query.contains("r1: repository(owner: \"acme\", name: \"infra\") { name nameWithOwner ref(qualifiedName: \"update-flake\") {"), query)
