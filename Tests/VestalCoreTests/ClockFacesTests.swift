@@ -143,7 +143,7 @@ final class ClockFacesTests: XCTestCase {
         XCTAssertEqual(layout.tileCount, 6)
         XCTAssertEqual(layout.height, 114)
         // 4 big tiles (80) and the colon cell (21), 4 gaps of 6; then 14, two small tiles (36) and 3.
-        XCTAssertEqual(layout.width, 4 * 80 + 21 + 4 * 6 + 14 + 2 * 36 + 3)
+        XCTAssertEqual(layout.width, 454.0)
         XCTAssertEqual(FlipLayout.characters(layout), ["1", "0", "4", "2", "0", "7"])
         let tiles = layout.items.filter { $0.kind == .tile }
         XCTAssertEqual(tiles.map(\.index), [0, 1, 2, 3, 4, 5])
@@ -319,7 +319,7 @@ final class ClockFacesTests: XCTestCase {
         XCTAssertEqual(f.size, 90)
         XCTAssertEqual(f.smallSize, 40)
         XCTAssertTrue(f.animate)
-        XCTAssertEqual(n.width, .points(4 * 80 + 21 + 4 * 6 + 14 + 2 * 36 + 3))
+        XCTAssertEqual(n.width, .points(454))
         XCTAssertEqual(n.height, .points(114))
         XCTAssertEqual(n.alt, "17:03 22")
     }
@@ -421,7 +421,7 @@ final class ClockFacesTests: XCTestCase {
         XCTAssertTrue(r.dot)
         XCTAssertEqual(r.labels, ["00", "06", "12", "18"])
         // 17:03:22 of the day.
-        XCTAssertEqual(r.value, (17 * 3600 + 3 * 60 + 22) / 86400.0, accuracy: 1e-6)
+        XCTAssertEqual(r.value, Double(61402) / 86400.0, accuracy: 1e-6)
         let texts = s.root.node(withId: "main/w/ring/0")?.children.first?.children ?? []
         XCTAssertEqual(texts.count, 2)
     }
@@ -429,10 +429,10 @@ final class ClockFacesTests: XCTestCase {
     func testRingFaceAcrossWorkHours() {
         let s = clock(#""face": "ring", "span": "work","#)
         let r = ring(node(s, "main/w/ring/0"))
-        XCTAssertEqual(r.value, (17 * 3600 + 3 * 60 + 22 - 9 * 3600) / 32400.0, accuracy: 1e-6)
+        XCTAssertEqual(r.value, Double(61402 - 32400) / 32400.0, accuracy: 1e-6)
         XCTAssertEqual(r.labels, ["09", "11", "13", "15"])
         let custom = ring(node(clock(#""face": "ring", "span": ["08:00", "20:00"],"#), "main/w/ring/0"))
-        XCTAssertEqual(custom.value, (17 * 3600 + 3 * 60 + 22 - 8 * 3600) / 43200.0, accuracy: 1e-6)
+        XCTAssertEqual(custom.value, Double(61402 - 28800) / 43200.0, accuracy: 1e-6)
         XCTAssertEqual(custom.labels, ["08", "11", "14", "17"])
     }
 

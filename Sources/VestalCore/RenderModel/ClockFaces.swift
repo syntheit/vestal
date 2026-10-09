@@ -70,6 +70,12 @@ public struct AnalogGeometry: Equatable, Sendable {
         public var length: Double
         public var tail: Double
         public var width: Double
+
+        public init(length: Double, tail: Double, width: Double) {
+            self.length = length
+            self.tail = tail
+            self.width = width
+        }
     }
 
     public struct Window: Equatable, Sendable {
