@@ -58,7 +58,7 @@ public final class RenderConfigModel: @unchecked Sendable {
         viewNames = views.keys.sorted()
         let pagesConfig = PagesConfig(top["pages"])
         pages = pagesConfig
-        let order = RenderConfigModel.pageOrder(pages: pagesConfig, views: views)
+        let order = RenderConfigModel.pageOrder(pages: pagesConfig, views: views, userViews: expanded.userViews)
         pageOrder = order
         let requested = top["defaultView"]?.stringValue ?? "main"
         if views[requested] != nil {
@@ -108,9 +108,13 @@ public final class RenderConfigModel: @unchecked Sendable {
     }
 
     /// The pages, in paging order: `pages.order` (known, enabled views
-    /// once each), else the cycle order.
-    private static func pageOrder(pages: PagesConfig, views: [String: ViewSpec]) -> [String] {
-        guard let written = pages.order else { return cycleOrder(views: views) }
+    /// once each), else the cycle order of the views the user's own config
+    /// defines (all of them when it defines none).
+    private static func pageOrder(pages: PagesConfig, views: [String: ViewSpec], userViews: Set<String>?) -> [String] {
+        guard let written = pages.order else {
+            guard let userViews else { return cycleOrder(views: views) }
+            return cycleOrder(views: views).filter(userViews.contains)
+        }
         var seen = Set<String>()
         return written.filter { views[$0] != nil && seen.insert($0).inserted }
     }

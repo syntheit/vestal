@@ -235,7 +235,13 @@ public enum ConfigLoader {
             }
         }
 
-        return make(path: path, merged: merged, warnings: warnings)
+        var loaded = make(path: path, merged: merged, warnings: warnings)
+        var names = Set(user["views"]?.objectValue?.keys.map { $0 } ?? [])
+        if let block = user["platform"]?.objectValue?[platform.rawValue]?.objectValue {
+            names.formUnion(block["views"]?.objectValue?.keys.map { $0 } ?? [])
+        }
+        loaded.expanded.userViews = names.isEmpty ? nil : names
+        return loaded
     }
 
     private static func failed(path: String?, _ warning: ConfigWarning) -> LoadedConfig {

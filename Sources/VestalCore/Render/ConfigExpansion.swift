@@ -21,6 +21,10 @@ public struct ExpandedConfig: Equatable, Sendable {
     public var warnings: [ConfigWarning]
     /// `legacy` info diagnostics: each coupling the adapter applied.
     public var notes: [ConfigWarning]
+    /// The view names the user's own layers (the file and its platform block)
+    /// define, when there are any; nil otherwise. Without `pages.order`
+    /// only these are paged.
+    public var userViews: Set<String>?
 
     public init(tree: AnyJSON, registry: TemplateRegistry, warnings: [ConfigWarning], notes: [ConfigWarning]) {
         self.tree = tree; self.registry = registry; self.warnings = warnings; self.notes = notes

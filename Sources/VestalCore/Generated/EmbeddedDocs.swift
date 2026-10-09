@@ -2426,11 +2426,13 @@ With two or more views the dashboard pages like a phone's home screens: `left` a
 
 | Key | Default | |
 |---|---|---|
-| `order` | the views in key order, then by name | The views to page through, in order. A view not listed stays reachable by its `key` and `vestal show`, but is not paged to. A name that isn't an enabled view is a check-config warning and is skipped. |
+| `order` | your views in key order, then by name (see below) | The views to page through, in order. A view not listed stays reachable by its `key` and `vestal show`, but is not paged to. A name that isn't an enabled view is a check-config warning and is skipped. |
 | `transition` | `"slide"` | How a change of page is drawn: `"slide"` (the old page leaves sideways while the new one comes in, 250 ms), `"fade"` (a crossfade, 180 ms) or `"none"`. With reduced motion on (macOS "Reduce motion", GTK `gtk-enable-animations` off), `slide` is a short fade. A jump to a view that is not a page also fades. |
 | `indicator` | `"dots"` | `"dots"`: one dot per page near the bottom of the screen, the current one in the accent colour; drawn only with two or more pages. `"none"`. |
 | `swipe` | `true` | A two-finger horizontal swipe on the trackpad pages. The page follows the fingers and goes on past about 12 % of the screen width or with a quick flick, else springs back. |
 | `wrap` | `false` | Whether `right` on the last page goes to the first (and `left` on the first to the last). `tab` and `shift+tab` always cycle round. |
+
+Without `pages.order`, the pages are the views your own config defines (the file and its `platform` block), not the ones merged in from the built-in defaults: three views of yours are three pages. The built-in `main` is a page only if you name `main` yourself or define no views at all. A built-in view that is not a page stays reachable by its `key` and `vestal show`.
 
 `left` and `right` go to the previous and next page, and `tab` and `shift+tab` keep cycling, unless you bind those keys yourself: your bindings win (see keys). On Linux the swipe assumes natural scrolling.
 
