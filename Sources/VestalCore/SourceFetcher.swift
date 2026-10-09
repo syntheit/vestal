@@ -537,7 +537,7 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
                     completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
         let method = challenge.protectionSpace.authenticationMethod
         if method == NSURLAuthenticationMethodHTTPBasic || method == NSURLAuthenticationMethodHTTPDigest {
-            completionHandler(.rejectProtectionSpace, nil)
+            completionHandler(.cancelAuthenticationChallenge, nil)
         } else {
             completionHandler(.performDefaultHandling, nil)
         }
