@@ -529,6 +529,20 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
         if over { dataTask.cancel() }
     }
 
+    /// Credentials are sent preemptively, so a Basic or Digest challenge means
+    /// they were wrong or missing: let the 401 through at once instead of
+    /// leaving the request waiting for an answer (Linux). TLS checks keep
+    /// the default handling.
+    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge,
+                    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        let method = challenge.protectionSpace.authenticationMethod
+        if method == NSURLAuthenticationMethodHTTPBasic || method == NSURLAuthenticationMethodHTTPDigest {
+            completionHandler(.rejectProtectionSpace, nil)
+        } else {
+            completionHandler(.performDefaultHandling, nil)
+        }
+    }
+
     /// The whole request's time is up; the caller cancels the task next.
     func expire() {
         lock.lock()
