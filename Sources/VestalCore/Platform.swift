@@ -272,20 +272,49 @@ public struct CalendarEntry: Codable, Equatable, Sendable {
     public var calendar: String
     /// v0.4; nil when the event has none.
     public var location: String?
+    /// The event's URL (usually a call link); nil when it has none.
+    public var url: String?
+    /// The event's description, cut to `maxNotes` characters; nil when it has none.
+    public var notes: String?
 
-    public init(title: String, start: Date, end: Date, allDay: Bool, calendar: String, location: String? = nil) {
+    /// Notes are kept this long: a call link sits near the top of an invitation.
+    public static let maxNotes = 4000
+
+    public init(title: String, start: Date, end: Date, allDay: Bool, calendar: String, location: String? = nil,
+                url: String? = nil, notes: String? = nil) {
         self.title = title
         self.start = start
         self.end = end
         self.allDay = allDay
         self.calendar = calendar
         self.location = location
+        self.url = url
+        self.notes = notes.flatMap(Self.trimmedNotes)
     }
 
-    enum CodingKeys: String, CodingKey { case title, start, end, allDay, calendar, location }
+    /// `text` without surrounding space and cut to `maxNotes`; nil when empty.
+    public static func trimmedNotes(_ text: String) -> String? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return nil }
+        return trimmed.count > maxNotes ? String(trimmed.prefix(maxNotes)) : trimmed
+    }
 
-    /// `location` is written as null when absent, so every entry has the
-    /// same keys.
+    enum CodingKeys: String, CodingKey { case title, start, end, allDay, calendar, location, url, notes }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        title = try c.decode(String.self, forKey: .title)
+        start = try c.decode(Date.self, forKey: .start)
+        end = try c.decode(Date.self, forKey: .end)
+        allDay = try c.decode(Bool.self, forKey: .allDay)
+        calendar = try c.decode(String.self, forKey: .calendar)
+        location = try c.decodeIfPresent(String.self, forKey: .location)
+        url = try c.decodeIfPresent(String.self, forKey: .url)
+        notes = try c.decodeIfPresent(String.self, forKey: .notes)
+    }
+
+    /// `location`, `url` and `notes` are written as null when absent, so
+    /// every entry has the same keys.
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(title, forKey: .title)
@@ -294,6 +323,8 @@ public struct CalendarEntry: Codable, Equatable, Sendable {
         try c.encode(allDay, forKey: .allDay)
         try c.encode(calendar, forKey: .calendar)
         try c.encode(location, forKey: .location)
+        try c.encode(url, forKey: .url)
+        try c.encode(notes, forKey: .notes)
     }
 }
 
