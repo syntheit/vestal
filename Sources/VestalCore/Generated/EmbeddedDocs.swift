@@ -1004,6 +1004,7 @@ Both sources give the same shape:
 ## Showing it
 
 - **`aiUsage`**: one row with Claude's and Codex's windows as small bars, a percentage each and `in 4h` after it, all on one line. A service without data yet is left out. `{"type": "aiUsage"}`; `show: ["codex"]` for one service.
+- **`aiPlan`**: the same windows as full-width bars, one per window (5 hours, week, and a `<model> week` for each of Claude's per-model windows) with the percentage and when it resets. The weekly bars carry a white tick where usage would be at an even pace through the week (the elapsed share of the 7-day window, found from `resetsAt`). The plan badge is Codex's `plan`; Claude's endpoint doesn't give one, so write `"claudePlan": "Max"`. `{"type": "aiPlan"}`; `show: ["codex"]` for one service.
 - **System bar items**: `"claudeUsage"` and `"codexUsage"` in a `systemBar`'s `show` draw `session% / weekly%` with an icon. `codexUsage` is only drawn when listed.
 - **`claudeUsage`**: the Claude item as a row of its own.
 - **Your own**: any widget over the sources, such as `{ "type": "progress", "source": "claude", "label": "Claude", "value": ".weekly.percent // 0" }`, `{{ .weekly.resetsAt - now | fmt_duration(1) }}` for the time left, or a `list` over `.extra` for the per-model limits.
@@ -1380,6 +1381,7 @@ Arguments see the piped input, not the row: inside `now | fmt_time("HH:mm"; …)
 |---|---|---|
 | `to_epoch` | ISO 8601 (with or without fractional seconds and offset) or epoch → epoch seconds | `"2026-09-26T18:02:11Z" \| to_epoch` → `1790445731` |
 | `tz_valid` | whether a text is a known IANA time zone | `"Europe/Lisbon" \| tz_valid` → `true` |
+| `tz_offset(zone)` | time → seconds the IANA zone is ahead of UTC at that time (`null` for the local zone) | `now \| tz_offset("Asia/Tokyo")` → `32400` |
 | `sun_context(sunrise; sunset)` | `"H:mm"` times → `"sets in 5h 17m"` and the like, from now | `sun_context(.sunrise; .sunset)` |
 | `find(obj)` | array → the first element whose fields equal all of `obj`'s, else `null` | `find({casa: "blue"})` |
 | `where(obj)` | array → every such element | `where({state: "on"})` |
@@ -1674,6 +1676,96 @@ The Claude plan's usage as a status row: `session% / weekly%` from the `claude` 
 
 Claude and Codex plan usage in one row: each service's 5-hour and weekly windows as small bars with their percentage, each followed by when it resets (`in 4h`), all on one line. A bar turns red from 90%. `show` (default `["claude", "codex"]`) picks the services and their order; `claudeSource` and `codexSource` (defaults `claude`, `codex`) what they read. A service whose source has no data yet is left out, and so is a Codex 5-hour window the plan doesn't have. See `vestal docs ai-usage`.
 
+### `worldClocks`
+
+Cities side by side: the time there, a sun or moon for day (07:00 to 19:00) or night, the offset from here (`+5h`, `−3h`, `local`) and `· working` in green while it is working hours in that city. `cities` is `[{label, zone}]` with IANA zones (a zone that isn't known is skipped, a label repeated shows once); the default is San Francisco, New York, London and Tokyo. The zones come from the system's time zone database, on Linux too (the Nix build points Foundation at tzdata).
+
+| Parameter | Default | |
+|---|---|---|
+| `cities` | four cities | `[{label, zone}]`. |
+| `workHours` | `[9, 18]` | The city's own hours that count as working. |
+| `columns` | `4` | Cities per row. |
+| `hour12` | `false` | 12-hour times with AM/PM. |
+
+```json
+{ "type": "worldClocks", "cities": [{ "label": "Lisbon", "zone": "Europe/Lisbon" }, { "label": "Sydney", "zone": "Australia/Sydney" }], "workHours": [8, 17], "columns": 2 }
+```
+
+Under Home Manager: `programs.vestal.settings.widgets.world = { type = "worldClocks"; cities = [ { label = "Lisbon"; zone = "Europe/Lisbon"; } ]; };`
+
+### `sunMoon`
+
+The sun's place on today's arc (a line from sunrise to sunset, a dot where the sun is now, drawn only while it is up), sunrise and sunset under it, `sets in 1h 22m` (or `rises in`), the day's length with its change from yesterday (`day 11h 57m · −2m 30s/day`), and the moon: an icon for its phase, its name, how much is lit and `full in 4d` (`new in` while it wanes). All of it is computed offline by the [`astro` source](sources.md) from a latitude and a longitude, so it needs no network. In polar day or night the arc and the times are left out. The moon's icon is a circle, a crescent (`moon`) or a half circle by illumination: Phosphor has no phases, so waxing and waning look alike.
+
+| Parameter | Default | |
+|---|---|---|
+| `source` | `"astro"` | An `astro` source. |
+| `hour12` | `false` | 12-hour sunrise and sunset. |
+
+```json
+{
+  "sources": { "astro": { "type": "astro", "latitude": 38.72, "longitude": -9.14 } },
+  "widgets": { "sky": { "type": "sunMoon" } }
+}
+```
+
+Under Home Manager: `programs.vestal.settings.sources.astro = { type = "astro"; latitude = 38.72; longitude = -9.14; };` and `programs.vestal.settings.widgets.sky.type = "sunMoon";`.
+
+### `countdowns`
+
+Days until the dates you care about, soonest first, each with how much of the wait has passed. `items` is `[{title, date, since?, color?}]` with dates as `2026-12-24`: the number of days from today (local date) is shown large, then the title and a thin bar of the time passed since `since`. Without `since` there is no bar. A date in the past is left out. The colour is automatic (`warn` within 14 days, `accent` within 60, else plain), or `color` on the item.
+
+| Parameter | Default | |
+|---|---|---|
+| `items` | `[]` | `[{title, date, since?, color?}]`. |
+| `limit` | `6` | At most this many. |
+
+```json
+{ "type": "countdowns", "items": [
+  { "title": "Trip", "date": "2026-12-24", "since": "2026-10-01" },
+  { "title": "Lease ends", "date": "2027-04-30" }
+] }
+```
+
+Under Home Manager: `programs.vestal.settings.widgets.dates = { type = "countdowns"; items = [ { title = "Trip"; date = "2026-12-24"; since = "2026-10-01"; } ]; };`
+
+### `forecast`
+
+Twelve hours of temperature as bars (hour labels under them, blue where the rain chance is 40% or more), a row of rain-chance marks under those, the current temperature with `Rain from 19:00`, and the next five days as low-to-high range bars with the weather's icon. The data is the `openMeteo` source template (below): Open-Meteo is free and needs no key.
+
+| Parameter | Default | |
+|---|---|---|
+| `source` | `"forecast"` | An `openMeteo` source. |
+| `hours` | `12` | Hours of bars. |
+| `days` | `5` | Days of range bars, today first. |
+
+```json
+{
+  "sources": { "forecast": { "type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric" } },
+  "widgets": { "outlook": { "type": "forecast" } }
+}
+```
+
+Under Home Manager: `programs.vestal.settings.sources.forecast = { type = "openMeteo"; latitude = 38.72; longitude = -9.14; };` and `programs.vestal.settings.widgets.outlook.type = "forecast";`.
+
+### `aiPlan`
+
+Claude and Codex plan windows, one full-width bar each: the label (`5 hours`, `Week`, and a `<model> week` for each of Claude's per-model windows), the percentage and when it resets (`resets 19:20` within a day, else `resets Wed`). The weekly bars carry a white tick where usage would be at an even pace through the week: the elapsed share of the window, found from `resetsAt` (the windows are 5 hours and 7 days long). A bar turns red from 90%. A plan badge follows the service's name when known: Codex says its plan; Claude's usage endpoint doesn't, so set `claudePlan`. A service with no data yet is left out. See `vestal docs ai-usage`.
+
+| Parameter | Default | |
+|---|---|---|
+| `show` | `["claude", "codex"]` | Which services, in order. |
+| `claudeSource`, `codexSource` | `"claude"`, `"codex"` | What each reads. |
+| `claudePlan`, `codexPlan` | none | The badge text (`"Max"`); Codex's default is what the app server reports. |
+| `hint` | `true` | The line explaining the tick. |
+| `hour12` | `false` | 12-hour reset times. |
+
+```json
+{ "type": "aiPlan", "claudePlan": "Max" }
+```
+
+Under Home Manager: `programs.vestal.settings.widgets.plan = { type = "aiPlan"; claudePlan = "Max"; };`
+
 ## Helpers
 
 ### `claudeItem`
@@ -1683,6 +1775,10 @@ An icon (`icon`, default `hourglass`) and `session% / weekly%` of a `claude` or 
 ### `aiWindow`
 
 One of `aiUsage`'s cells: `label`, `window` (an expression such as `.session`) and `color`.
+
+### `aiPlanService`
+
+One of `aiPlan`'s blocks: `name`, `color`, `plan` and `hour12`, reading the `claude` or `codex` shape of the widget's source.
 
 ### `hostDetail`
 
@@ -1697,6 +1793,11 @@ A source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `f
 ### `diskUsage`
 
 A source template: `{"type": "diskUsage", "paths": [{"label": "Developer", "path": "~/Developer"}]}` runs `du -sk` over the paths once a day while shown and gives `[{label, bytes}]`, for `diskBreakdown`'s `usage` (`vestal docs source/diskUsage`).
+
+### `openMeteo`
+
+A source template for [Open-Meteo](https://open-meteo.com/) (free, no key): `{"type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric"}` (`units` `metric` or `imperial`) fetches the forecast every 30 minutes while shown and maps it to `{tz, temp, code, hours: [{time, temp, rain}], days: [{time, code, min, max, rain}]}`: `time` epoch seconds, `rain` the chance in percent, `code` a WMO weather code, `tz` the place's time zone. `forecast` draws it.
+
 
 """#,
         "protocol": #"""
@@ -1877,9 +1978,9 @@ Keys are sorted and defaults are left out, so output is deterministic.
 | `grid` | `columns` (`[{ "width": number \| "fill" \| "fit", "align" }]`), `gap` (0), `rowGap` (0), `children` | Children row by row, honouring `span`; cells centred vertically. |
 | `text` | `text`, `size` (13), `weight` (400), `font` (`sans`), `color` (`text`), `tracking` (0), `lines` (unlimited), `textAlign` (`start`) | One run of text, case already applied; cut at the tail with `…` beyond `lines`. |
 | `icon` | `name`, `glyph` (one character; absent for `sf:` names), `weight` (`regular` or `fill`), `size` (13), `color` (`text`) | The glyph in the icon font, centred in a `size`×`size` box. |
-| `bar` | `value` (0…1), `overlay` (0…1), `overlayPosition` (`above`), `color`, `trackColor`, `overlayColor`, `radius` (2) | A rounded track, the fill from the leading edge, the overlay above or below it. |
+| `bar` | `value` (0…1), `start` (0), `overlay` (0…1), `overlayPosition` (`above`), `tick` (0…1), `tickColor`, `color`, `trackColor`, `overlayColor`, `radius` (2) | A rounded track, the fill from `start` to `value`, the overlay above or below it, and a 1.5 point mark at `tick`. |
 | `ring` | `value` (0…1), `sweep` (270), `thickness` (6), `color`, `trackColor`, `center` (a node) | An arc track with its gap at the bottom, the fill arc with round caps, and `center` inside. Its size is its `width`. |
-| `spark` | `values`, `min`, `max`, `color`, `fill`, `strokeWidth` (1.5), `dot` (false) | A polyline, x evenly spaced, y scaled to `min`…`max`; fewer than two values draw nothing. |
+| `spark` | `values`, `min`, `max`, `color`, `fill`, `strokeWidth` (1.5), `dot` (false), `dotAt` (0…1), `dotColor` | A polyline, x evenly spaced, y scaled to `min`…`max`; fewer than two values draw nothing. A dot on the last point, or with `dotAt` at that fraction of the width, on the line. |
 | `divider` | `axis` (`h`), `thickness` (0.5), `color` (`dim`) | A rule filling the width (`h`) or the height (`v`). |
 | `spacer` | `min` (0) | Nothing. |
 | `bars` | `values` (one number per column), `max` (1), `colors` (one per column), `barWidth` (columns share the width), `gap` (3) | Columns from the left edge on the bottom line, each `value / max` tall (clamped, at least 1 when above 0), corners rounded by 2. |
@@ -2029,7 +2130,7 @@ Keep the data realistic and generic: no personal names, hosts or places beyond a
 2. `vestal gallery --only <name> --out /tmp/gallery` and look at the PNG: nothing empty, clipped or showing placeholders.
 3. `swift test` (SampleTests): every user-facing preset has a sample, every config checks with no errors, and every render has no diagnostics.
 
-Presets that are only parts of another preset (`claudeItem`, `aiWindow`, `hostDetail`) or a source (`foyer`) have no sample of their own; the samples of the presets that use them cover them (`SampleLibrary.helpers`).
+Presets that are only parts of another preset (`claudeItem`, `aiWindow`, `aiPlanService`, `hostDetail`) or a source (`foyer`, `openMeteo`) have no sample of their own; the samples of the presets that use them cover them (`SampleLibrary.helpers`).
 
 """#,
         "sources": #"""
@@ -2066,7 +2167,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 
 | Key | Default | Meaning |
 |---|---|---|
-| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, `codex`, or a source template such as `foyer`. |
+| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, `codex`, `astro`, or a source template such as `foyer` or `openMeteo`. |
 | `refresh` | per type | How often to fetch: `"30s"`, `"5m"`, `"4h"`, `"1d"`. |
 | `when` | per type | `always`: fetched whether or not the dashboard is shown. `visible`: only while it is shown and a widget of the view reads it, with an immediate fetch on show when stale. |
 | `transform` | none | A jq expression applied to the data before widgets see it. The cache keeps the untransformed data, so editing a transform needs no refetch. |
@@ -2084,6 +2185,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 | `media` | `3s` | `visible` | a music player |
 | `claude` | `5m` | `visible` | the Claude plan's usage, from the usage endpoint or `claude -p /usage` |
 | `codex` | `5m` | `visible` | the Codex plan's usage, from `codex app-server` |
+| `astro` | `10m` | `visible` | nothing: sun and moon computed from `latitude` and `longitude` |
 
 **Built-in sources.** The defaults define `system`, `media` (`player: "auto"`), `claude`, `codex`, `calendar` and `weather` (wttr.in). A `visible` source that nothing on screen reads is never fetched, so unused ones cost nothing.
 
@@ -2294,6 +2396,29 @@ The Codex plan's usage, in the same shape as `claude`, with `source: "codex"`, `
 |---|---|---|
 | `argv` | `["codex", "app-server"]` | The app server, when `codex` isn't on `PATH`. |
 
+### `astro`
+
+The sun and moon for a place, computed offline (no network, no key) from `latitude` and `longitude`, for the local calendar day. The sun follows NOAA's solar calculator (sunrise and sunset for a 90.833 degree zenith, good to about a minute away from the poles); the moon counts the mean synodic month from a known new moon, so its phases are within about half a day of the real ones.
+
+```jsonc
+{ "latitude": 38.72, "longitude": -9.14, "date": "2026-09-27",
+  "sunrise": 1790490535, "sunset": 1790533572, "solarNoon": 1790512053,   // epoch seconds; null in polar day or night
+  "dayLength": 43036, "dayLengthChange": -150,                            // seconds; the change from yesterday
+  "polar": null,                                                          // "day": the sun stays up, "night": it stays down
+  "arc": [0, 1.4, 3.5, "..."], "peak": 49.52,                              // the sun's altitude in degrees, 49 samples from sunrise to sunset (null when polar); the highest of them
+  "moon": { "phase": 0.542, "age": 16.0, "illumination": 98.2, "name": "Full moon",
+            "nextFull": 1792971954, "nextNew": 1791696232, "daysToFull": 28.3, "daysToNew": 13.5 } }
+```
+
+`phase` is 0 (new) to 1, 0.5 full; `illumination` percent; the sun's position now is not stored, a widget works it out from `now` and `sunrise`/`sunset`.
+
+| Key | Default | |
+|---|---|---|
+| `latitude` | required | Degrees north, -90 to 90. |
+| `longitude` | required | Degrees east, -180 to 180 (west is negative). |
+
+`refresh` defaults to `10m` and `when` to `visible`; a dashboard shown with data older than a minute recomputes at once. `sunMoon` draws it.
+
 ### `foyer`
 
 A built-in source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while shown, and maps the payload to the `system` shape with `foyer_health`. Any source whose `transform` produces the `system` shape works the same way: write a source template for another health agent (`vestal docs templates`) and name it in `systemHealth`'s `provider`.
@@ -2315,6 +2440,10 @@ A built-in source template, off until you define it: the size of each listed pat
 ```
 
 Programs: `sh` and `du` (`vestal check-config --commands` lists them). Pass the source's name as `diskBreakdown`'s `usage`.
+
+### `openMeteo`
+
+A built-in source template for [Open-Meteo](https://open-meteo.com/) (free, no key): `{"type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric"}`. It fetches every 30 minutes while shown and maps the answer to `{tz, temp, code, hours: [{time, temp, rain}], days: [{time, code, min, max, rain}]}` (`time` epoch seconds, `rain` percent, `code` a WMO weather code, `tz` the place's zone, six days of daily values and 144 hourly ones). `units` is `metric` (Celsius) or `imperial` (Fahrenheit). The `forecast` preset draws it.
 
 """#,
         "styling": #"""
@@ -2777,7 +2906,7 @@ A glyph from the bundled Phosphor set (`vestal icons <query>`), `regular` or `fi
 
 ### `progress`
 
-A horizontal bar: `(value − min) / (max − min)`, clamped. Optional `label` before it, `text` after it (default `"{{ $value | round }}%"`; `""` for none), and an `overlay`, a second value on the same scale drawn `above` or `below` the fill. `width` is the bar's own width (default `fill`).
+A horizontal bar: `(value − min) / (max − min)`, clamped. Optional `label` before it, `text` after it (default `"{{ $value | round }}%"`; `""` for none), and an `overlay`, a second value on the same scale drawn `above` or `below` the fill. `start` (same scale) moves where the fill begins, so the fill covers `start` to `value`: a range bar for a low-to-high span. `tick` (same scale) draws a thin mark, `tickColor` its colour (default white at about 55%): where usage would be at an even pace, say. `width` is the bar's own width (default `fill`).
 
 ```json
 { "type": "progress", "source": "system", "label": "RAM", "labelWidth": 30, "value": ".memory.percent", "overlay": ".memory.pressure", "width": 120, "textWidth": 34, "color": "purple" }
@@ -2793,7 +2922,7 @@ A ring with centre `text` (default `"{{ $value | round }}"`) and an optional `la
 
 ### `sparkline`
 
-A line from `values` (an array of numbers), or from `value` plus `history`, which records the value on the widget's source at every fetch (`vestal docs sources`). `min` and `max` fix the scale; `fill` colours the area under the line; `dot` marks the last point. Fewer than two points draw nothing, keeping the size.
+A line from `values` (an array of numbers), or from `value` plus `history`, which records the value on the widget's source at every fetch (`vestal docs sources`). `min` and `max` fix the scale; `fill` colours the area under the line; `dot` marks the last point, or `dotAt` (0 to 1, a fraction of the width, `dotColor` for its colour) a point along the line, such as the sun on its arc. Fewer than two points draw nothing, keeping the size.
 
 ```json
 { "type": "sparkline", "source": "system", "value": ".cpu.percent", "history": { "size": 120 }, "min": 0, "max": 100, "height": 32, "fill": "accent@0.15", "dot": true }

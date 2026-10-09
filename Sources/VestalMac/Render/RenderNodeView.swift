@@ -268,17 +268,24 @@ struct BarDrawing: View {
         let overlay = bar.overlayColor.map { style.color($0) } ?? Color(white: 1, opacity: 0.2)
         Canvas { context, size in
             let radius = min(CGFloat(bar.radius), size.height / 2)
-            func segment(_ fraction: Double, _ c: Color) {
+            func segment(_ fraction: Double, _ c: Color, from: Double = 0) {
                 let f = min(max(fraction, 0), 1)
-                guard f > 0 else { return }
+                guard f > from else { return }
                 let scale = max(displayScale, 1)
-                let rect = CGRect(x: 0, y: 0, width: (size.width * CGFloat(f) * scale).rounded() / scale, height: size.height)
+                let x = from > 0 ? (size.width * CGFloat(from) * scale).rounded() / scale : 0
+                let rect = CGRect(x: x, y: 0, width: (size.width * CGFloat(f) * scale).rounded() / scale - x, height: size.height)
                 context.fill(RoundedRectangle(cornerRadius: radius).path(in: rect), with: .color(c))
             }
             segment(1, track)
             if let o = bar.overlay, bar.overlayPosition == "below" { segment(o, overlay) }
-            segment(bar.value, color)
+            segment(bar.value, color, from: bar.start)
             if let o = bar.overlay, bar.overlayPosition != "below" { segment(o, overlay) }
+            if let tick = bar.tick {
+                let x = size.width * CGFloat(min(max(tick, 0), 1))
+                let width: CGFloat = 1.5
+                let rect = CGRect(x: min(max(x - width / 2, 0), size.width - width), y: 0, width: width, height: size.height)
+                context.fill(Path(rect), with: .color(bar.tickColor.map { style.color($0) } ?? Color(white: 1, opacity: 0.55)))
+            }
         }
     }
 }
@@ -332,7 +339,7 @@ struct SparkDrawing: View {
             let values = spark.values
             guard values.count >= 2, size.width > 0, size.height > 0 else { return }
             let lo = spark.min ?? values.min()!, hi = spark.max ?? values.max()!
-            let inset = spark.strokeWidth / 2 + (spark.dot ? spark.strokeWidth : 0)
+            let inset = spark.strokeWidth / 2 + (spark.dotAt != nil ? spark.strokeWidth * 2.5 : spark.dot ? spark.strokeWidth : 0)
             let plot = CGRect(x: inset, y: inset, width: max(0, Double(size.width) - 2 * inset),
                               height: max(0, Double(size.height) - 2 * inset))
             func point(_ i: Int) -> CGPoint {
@@ -354,7 +361,17 @@ struct SparkDrawing: View {
             }
             context.stroke(line, with: .color(color),
                            style: StrokeStyle(lineWidth: CGFloat(spark.strokeWidth), lineCap: .round, lineJoin: .round))
-            if spark.dot {
+            if let at = spark.dotAt {
+                // Between two points, at a fraction of the width.
+                let position = min(max(at, 0), 1) * Double(values.count - 1)
+                let i = min(Int(position), values.count - 2)
+                let a = point(i), b = point(i + 1)
+                let t = CGFloat(position - Double(i))
+                let r = CGFloat(spark.strokeWidth * 2.5)
+                let x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t
+                context.fill(Path(ellipseIn: CGRect(x: x - r, y: y - r, width: 2 * r, height: 2 * r)),
+                             with: .color(spark.dotColor.map { style.color($0) } ?? color))
+            } else if spark.dot {
                 let last = point(values.count - 1)
                 let r = CGFloat(spark.strokeWidth * 1.5)
                 context.fill(Path(ellipseIn: CGRect(x: last.x - r, y: last.y - r, width: 2 * r, height: 2 * r)),

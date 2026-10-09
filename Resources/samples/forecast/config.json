@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "sources": {
+    "forecast": {
+      "type": "openMeteo",
+      "latitude": 38.72,
+      "longitude": -9.14
+    }
+  },
+  "widgets": {
+    "forecast": {
+      "type": "forecast"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "forecast"
+      ],
+      "padding": 24
+    }
+  }
+}

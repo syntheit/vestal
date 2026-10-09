@@ -166,6 +166,9 @@ extension SchemaRegistry {
             key("overlay", .any, kind: .expr, .string(".memory.pressure"), "A second value on the same scale."),
             key("overlayPosition", .oneOf(["above", "below"]), default: .string("above"), .string("below"), computed: true,
                 "above: over the fill. below: under it."),
+            key("start", .any, kind: .expr, .int(10), "Where the fill begins, on the same scale: the fill covers start to value (a range bar). Default: min."),
+            key("tick", .any, kind: .expr, .int(57), "A thin mark at this value on the same scale, such as where usage would be at an even pace."),
+            colorKey("tickColor", "#ffffff8c", "The mark's colour."),
             key("label", .string, kind: .text, .string("RAM"), "Drawn before the bar."),
             key("labelWidth", .number, .int(24), computed: true, "The label's minimum width; it aligns to its end, and a wider label widens it."),
             key("text", .string, kind: .text, default: .string("{{ $value | round }}%"), .string(""), "Drawn after the bar; \"\" for none."),
@@ -201,6 +204,8 @@ extension SchemaRegistry {
             colorKey("fill", nil, "A colour under the line."),
             key("strokeWidth", .number, default: .double(1.5), .int(2), computed: true, "The line's width."),
             key("dot", .boolean, default: .bool(false), .bool(true), computed: true, "A dot on the last point."),
+            key("dotAt", .any, kind: .expr, .double(0.4), "A dot on the line at this fraction of its width, 0 to 1, instead of on the last point."),
+            colorKey("dotColor", nil, "The dotAt dot's colour. Default: the line's."),
         ]),
         SchemaEntityType("keyValue", since: "0.4", "Labelled values side by side.", keys: [
             key("items", .list(.shape("keyValueItem")), required: true,

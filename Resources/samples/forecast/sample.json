@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Forecast",
+  "description": "Twelve hours of temperature with the rain chance marked, and five days as low-to-high range bars.",
+  "preset": "forecast",
+  "size": [
+    680,
+    170
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "weather"
+  ]
+}

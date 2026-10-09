@@ -412,6 +412,12 @@ public enum SchemaRegistry {
                       examples: [.array([.string("~/.local/bin/claude"), .string("-p"), .string(ClaudeUsage.noPersistence), .string("/usage")])],
                       "The command to run for backend cli (and for auto's fallback). Default: claude -p --no-session-persistence /usage, claude found on PATH; set it when it isn't."),
         ] + ignoredClaudeKeys + common("5m", "visible")),
+        SchemaEntityType("astro", since: "0.4", "Sunrise, sunset, day length, the sun's arc and the moon's phase for a place, computed offline.", keys: [
+            SchemaKey("latitude", .number, required: true, since: "0.4", examples: [.double(38.72)],
+                      "Degrees north, -90 to 90."),
+            SchemaKey("longitude", .number, required: true, since: "0.4", examples: [.double(-9.14)],
+                      "Degrees east, -180 to 180 (west is negative)."),
+        ] + common("10m", "visible")),
         SchemaEntityType("codex", since: "0.4", "Codex plan usage (5-hour and weekly windows) from `codex app-server`.", keys: [
             SchemaKey("argv", .list(.string), since: "0.4", examples: [.array([.string("~/.local/bin/codex"), .string("app-server")])],
                       "The app server to ask. Default: codex app-server, codex found on PATH; set it when it isn't."),

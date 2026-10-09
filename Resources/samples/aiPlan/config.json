@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "widgets": {
+    "aiPlan": {
+      "type": "aiPlan",
+      "claudePlan": "Max"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "aiPlan"
+      ],
+      "padding": 24
+    }
+  }
+}

@@ -201,6 +201,12 @@ final class VestalFunctionsTests: XCTestCase {
     func testZonesAndSun() throws {
         XCTAssertEqual(try one("\"Europe/Lisbon\" | tz_valid"), .bool(true))
         XCTAssertEqual(try one("\"Mars/Olympus\" | tz_valid"), .bool(false))
+        // Seconds ahead of UTC, with daylight saving: Sydney is +11h in January, +10h in July.
+        XCTAssertEqual(try one("1768478400 | tz_offset(\"Australia/Sydney\")"), .number(39600))
+        XCTAssertEqual(try one("1784116800 | tz_offset(\"Australia/Sydney\")"), .number(36000))
+        XCTAssertEqual(try one("0 | tz_offset(\"Asia/Kolkata\")"), .number(19800))
+        XCTAssertEqual(try one("0 | tz_offset(null)"), .number(0), "the local zone (UTC in these tests)")
+        XCTAssertThrowsError(try one("0 | tz_offset(\"Mars/Olympus\")"))
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = Self.utc
         for (sunrise, sunset) in [("6:15", "18:40"), ("15:00", "20:00"), ("5:00", "12:00"), ("bad", "18:00")] {
@@ -418,7 +424,7 @@ final class VestalFunctionsTests: XCTestCase {
                      "fmt_percent/0", "fmt_percent/1", "fmt_bytes/0", "fmt_rate/0", "fmt_duration/0", "fmt_duration/1",
                      "fmt_uptime/0", "fmt_uptime_long/0", "fmt_relative/0", "starts_in/0", "fmt_time/1", "fmt_time/2",
                      "fmt_localized/1", "fmt_localized/2", "clock24/0", "capitalize/0", "titlecase/0", "truncate/1",
-                     "step/1", "color_mix/3", "alpha/1", "to_epoch/0", "tz_valid/0", "sun_context/2", "find/1", "where/1",
+                     "step/1", "color_mix/3", "alpha/1", "to_epoch/0", "tz_valid/0", "tz_offset/1", "sun_context/2", "find/1", "where/1",
                      "uniq_by/1", "pct/2", "meta/1", "history/2", "history_times/2", "path_get/1", "kv_legacy/2",
                      "weather_legacy/2", "foyer_health/0", "host_health/2", "fmt_legacy/1"] {
             XCTAssertTrue(signatures.contains(name), name)

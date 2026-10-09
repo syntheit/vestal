@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "sources": {
+    "astro": {
+      "type": "astro",
+      "latitude": 38.72,
+      "longitude": -9.14
+    }
+  },
+  "widgets": {
+    "sunMoon": {
+      "type": "sunMoon"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "sunMoon"
+      ],
+      "padding": 24
+    }
+  }
+}

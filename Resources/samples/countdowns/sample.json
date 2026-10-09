@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Countdowns",
+  "description": "Days until the dates that matter, with how much of the wait has passed.",
+  "preset": "countdowns",
+  "size": [
+    680,
+    170
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time"
+  ]
+}

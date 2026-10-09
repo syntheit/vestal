@@ -725,14 +725,21 @@ class NodeView {
         let overlayColor = bar.overlayColor.map { theme.color($0) } ?? RGBA(r: 1, g: 1, b: 1, a: 0.2)
         let radius = min(bar.radius, box.height / 2)
         fillRounded(snapshot, box, radius: radius, color: track)
-        func segment(_ fraction: Double, _ c: RGBA) {
+        func segment(_ fraction: Double, _ c: RGBA, from: Double = 0) {
             let f = min(max(fraction, 0), 1)
-            guard f > 0 else { return }
-            fillRounded(snapshot, Rect(x: box.x, y: box.y, width: box.width * f, height: box.height), radius: radius, color: c)
+            guard f > from else { return }
+            fillRounded(snapshot, Rect(x: box.x + box.width * from, y: box.y, width: box.width * (f - from), height: box.height),
+                        radius: radius, color: c)
         }
         if let overlay = bar.overlay, bar.overlayPosition == "below" { segment(overlay, overlayColor) }
-        segment(bar.value, color)
+        segment(bar.value, color, from: bar.start)
         if let overlay = bar.overlay, bar.overlayPosition != "below" { segment(overlay, overlayColor) }
+        if let tick = bar.tick {
+            let width = 1.5
+            let x = min(max(box.x + box.width * min(max(tick, 0), 1) - width / 2, box.x), box.x + box.width - width)
+            fillRounded(snapshot, Rect(x: x, y: box.y, width: width, height: box.height), radius: 0,
+                        color: bar.tickColor.map { theme.color($0) } ?? RGBA(r: 1, g: 1, b: 1, a: 0.55))
+        }
     }
 
     // MARK: Ring
@@ -773,7 +780,7 @@ class NodeView {
         let theme = context.theme
         let color = theme.color(spark.color, default: "accent")
         let lo = spark.min ?? values.min()!, hi = spark.max ?? values.max()!
-        let inset = spark.strokeWidth / 2 + (spark.dot ? spark.strokeWidth : 0)
+        let inset = spark.strokeWidth / 2 + (spark.dotAt != nil ? spark.strokeWidth * 2.5 : spark.dot ? spark.strokeWidth : 0)
         let plot = Rect(x: box.x + inset, y: box.y + inset, width: max(0, box.width - 2 * inset), height: max(0, box.height - 2 * inset))
         func point(_ i: Int) -> (Double, Double) {
             let x = plot.x + plot.width * Double(i) / Double(values.count - 1)
@@ -801,7 +808,16 @@ class NodeView {
         cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND)
         setSource(cr, color)
         cairo_stroke(cr)
-        if spark.dot {
+        if let at = spark.dotAt {
+            // Between two points, at a fraction of the width.
+            let position = min(max(at, 0), 1) * Double(values.count - 1)
+            let i = min(Int(position), values.count - 2)
+            let (xa, ya) = point(i), (xb, yb) = point(i + 1)
+            let t = position - Double(i)
+            setSource(cr, spark.dotColor.map { theme.color($0) } ?? color)
+            cairo_arc(cr, xa + (xb - xa) * t, ya + (yb - ya) * t, spark.strokeWidth * 2.5, 0, 2 * .pi)
+            cairo_fill(cr)
+        } else if spark.dot {
             let (x, y) = point(values.count - 1)
             cairo_arc(cr, x, y, spark.strokeWidth * 1.5, 0, 2 * .pi)
             cairo_fill(cr)

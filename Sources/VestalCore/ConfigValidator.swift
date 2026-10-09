@@ -332,6 +332,23 @@ private struct Walker {
             if let argv = strings(source["argv"], "\(path).argv"), argv.isEmpty {
                 add(.invalidValue, "\(path).argv", "must not be empty")
             }
+        case "astro":
+            for (key, limit) in [("latitude", 90.0), ("longitude", 180.0)] {
+                let value: Double?
+                switch source[key] {
+                case .int(let n)?: value = Double(n)
+                case .double(let d)?: value = d
+                case nil, .null?:
+                    add(.missingKey, path, "missing \"\(key)\"; the source never computes")
+                    value = nil
+                case let other?:
+                    wrongType(other, "\(path).\(key)", expected: "a number")
+                    value = nil
+                }
+                if let value, abs(value) > limit {
+                    add(.invalidValue, "\(path).\(key)", "must be between -\(Int(limit)) and \(Int(limit))")
+                }
+            }
         default:
             break
         }

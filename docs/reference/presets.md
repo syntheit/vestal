@@ -189,6 +189,96 @@ The Claude plan's usage as a status row: `session% / weekly%` from the `claude` 
 
 Claude and Codex plan usage in one row: each service's 5-hour and weekly windows as small bars with their percentage, each followed by when it resets (`in 4h`), all on one line. A bar turns red from 90%. `show` (default `["claude", "codex"]`) picks the services and their order; `claudeSource` and `codexSource` (defaults `claude`, `codex`) what they read. A service whose source has no data yet is left out, and so is a Codex 5-hour window the plan doesn't have. See `vestal docs ai-usage`.
 
+### `worldClocks`
+
+Cities side by side: the time there, a sun or moon for day (07:00 to 19:00) or night, the offset from here (`+5h`, `−3h`, `local`) and `· working` in green while it is working hours in that city. `cities` is `[{label, zone}]` with IANA zones (a zone that isn't known is skipped, a label repeated shows once); the default is San Francisco, New York, London and Tokyo. The zones come from the system's time zone database, on Linux too (the Nix build points Foundation at tzdata).
+
+| Parameter | Default | |
+|---|---|---|
+| `cities` | four cities | `[{label, zone}]`. |
+| `workHours` | `[9, 18]` | The city's own hours that count as working. |
+| `columns` | `4` | Cities per row. |
+| `hour12` | `false` | 12-hour times with AM/PM. |
+
+```json
+{ "type": "worldClocks", "cities": [{ "label": "Lisbon", "zone": "Europe/Lisbon" }, { "label": "Sydney", "zone": "Australia/Sydney" }], "workHours": [8, 17], "columns": 2 }
+```
+
+Under Home Manager: `programs.vestal.settings.widgets.world = { type = "worldClocks"; cities = [ { label = "Lisbon"; zone = "Europe/Lisbon"; } ]; };`
+
+### `sunMoon`
+
+The sun's place on today's arc (a line from sunrise to sunset, a dot where the sun is now, drawn only while it is up), sunrise and sunset under it, `sets in 1h 22m` (or `rises in`), the day's length with its change from yesterday (`day 11h 57m · −2m 30s/day`), and the moon: an icon for its phase, its name, how much is lit and `full in 4d` (`new in` while it wanes). All of it is computed offline by the [`astro` source](sources.md) from a latitude and a longitude, so it needs no network. In polar day or night the arc and the times are left out. The moon's icon is a circle, a crescent (`moon`) or a half circle by illumination: Phosphor has no phases, so waxing and waning look alike.
+
+| Parameter | Default | |
+|---|---|---|
+| `source` | `"astro"` | An `astro` source. |
+| `hour12` | `false` | 12-hour sunrise and sunset. |
+
+```json
+{
+  "sources": { "astro": { "type": "astro", "latitude": 38.72, "longitude": -9.14 } },
+  "widgets": { "sky": { "type": "sunMoon" } }
+}
+```
+
+Under Home Manager: `programs.vestal.settings.sources.astro = { type = "astro"; latitude = 38.72; longitude = -9.14; };` and `programs.vestal.settings.widgets.sky.type = "sunMoon";`.
+
+### `countdowns`
+
+Days until the dates you care about, soonest first, each with how much of the wait has passed. `items` is `[{title, date, since?, color?}]` with dates as `2026-12-24`: the number of days from today (local date) is shown large, then the title and a thin bar of the time passed since `since`. Without `since` there is no bar. A date in the past is left out. The colour is automatic (`warn` within 14 days, `accent` within 60, else plain), or `color` on the item.
+
+| Parameter | Default | |
+|---|---|---|
+| `items` | `[]` | `[{title, date, since?, color?}]`. |
+| `limit` | `6` | At most this many. |
+
+```json
+{ "type": "countdowns", "items": [
+  { "title": "Trip", "date": "2026-12-24", "since": "2026-10-01" },
+  { "title": "Lease ends", "date": "2027-04-30" }
+] }
+```
+
+Under Home Manager: `programs.vestal.settings.widgets.dates = { type = "countdowns"; items = [ { title = "Trip"; date = "2026-12-24"; since = "2026-10-01"; } ]; };`
+
+### `forecast`
+
+Twelve hours of temperature as bars (hour labels under them, blue where the rain chance is 40% or more), a row of rain-chance marks under those, the current temperature with `Rain from 19:00`, and the next five days as low-to-high range bars with the weather's icon. The data is the `openMeteo` source template (below): Open-Meteo is free and needs no key.
+
+| Parameter | Default | |
+|---|---|---|
+| `source` | `"forecast"` | An `openMeteo` source. |
+| `hours` | `12` | Hours of bars. |
+| `days` | `5` | Days of range bars, today first. |
+
+```json
+{
+  "sources": { "forecast": { "type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric" } },
+  "widgets": { "outlook": { "type": "forecast" } }
+}
+```
+
+Under Home Manager: `programs.vestal.settings.sources.forecast = { type = "openMeteo"; latitude = 38.72; longitude = -9.14; };` and `programs.vestal.settings.widgets.outlook.type = "forecast";`.
+
+### `aiPlan`
+
+Claude and Codex plan windows, one full-width bar each: the label (`5 hours`, `Week`, and a `<model> week` for each of Claude's per-model windows), the percentage and when it resets (`resets 19:20` within a day, else `resets Wed`). The weekly bars carry a white tick where usage would be at an even pace through the week: the elapsed share of the window, found from `resetsAt` (the windows are 5 hours and 7 days long). A bar turns red from 90%. A plan badge follows the service's name when known: Codex says its plan; Claude's usage endpoint doesn't, so set `claudePlan`. A service with no data yet is left out. See `vestal docs ai-usage`.
+
+| Parameter | Default | |
+|---|---|---|
+| `show` | `["claude", "codex"]` | Which services, in order. |
+| `claudeSource`, `codexSource` | `"claude"`, `"codex"` | What each reads. |
+| `claudePlan`, `codexPlan` | none | The badge text (`"Max"`); Codex's default is what the app server reports. |
+| `hint` | `true` | The line explaining the tick. |
+| `hour12` | `false` | 12-hour reset times. |
+
+```json
+{ "type": "aiPlan", "claudePlan": "Max" }
+```
+
+Under Home Manager: `programs.vestal.settings.widgets.plan = { type = "aiPlan"; claudePlan = "Max"; };`
+
 ## Helpers
 
 ### `claudeItem`
@@ -198,6 +288,10 @@ An icon (`icon`, default `hourglass`) and `session% / weekly%` of a `claude` or 
 ### `aiWindow`
 
 One of `aiUsage`'s cells: `label`, `window` (an expression such as `.session`) and `color`.
+
+### `aiPlanService`
+
+One of `aiPlan`'s blocks: `name`, `color`, `plan` and `hour12`, reading the `claude` or `codex` shape of the widget's source.
 
 ### `hostDetail`
 
@@ -212,3 +306,8 @@ A source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `f
 ### `diskUsage`
 
 A source template: `{"type": "diskUsage", "paths": [{"label": "Developer", "path": "~/Developer"}]}` runs `du -sk` over the paths once a day while shown and gives `[{label, bytes}]`, for `diskBreakdown`'s `usage` (`vestal docs source/diskUsage`).
+
+### `openMeteo`
+
+A source template for [Open-Meteo](https://open-meteo.com/) (free, no key): `{"type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric"}` (`units` `metric` or `imperial`) fetches the forecast every 30 minutes while shown and maps it to `{tz, temp, code, hours: [{time, temp, rain}], days: [{time, code, min, max, rain}]}`: `time` epoch seconds, `rain` the chance in percent, `code` a WMO weather code, `tz` the place's time zone. `forecast` draws it.
+

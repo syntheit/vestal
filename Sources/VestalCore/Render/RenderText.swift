@@ -55,7 +55,9 @@ public enum RenderText {
             if i.glyph == nil { parts.append("no-glyph") }
         case .bar(let b):
             parts = ["bar", "value=\(number(b.value))"]
+            if b.start > 0 { parts.append("start=\(number(b.start))") }
             if let o = b.overlay { parts.append("overlay=\(number(o))") }
+            if let t = b.tick { parts.append("tick=\(number(t))") }
             if let c = b.color { parts.append("color=\(c)") }
         case .ring(let r):
             parts = ["ring", "value=\(number(r.value))"]
