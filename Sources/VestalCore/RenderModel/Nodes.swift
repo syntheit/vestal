@@ -624,7 +624,7 @@ public struct RenderNode: Equatable, Sendable, Codable {
     public struct Analog: Equatable, Sendable {
         /// The face's diameter.
         public var size: Double = 236
-        /// `none`, `hours` (twelve marks) or `minutes` (sixty).
+        /// `none`, `hours` (twelve marks), `minutes` (sixty) or `dots` (twelve dots, for a small dial).
         public var ticks: String = "hours"
         /// `none`, `step` (once a second) or `sweep` (every frame).
         public var seconds: String = "none"
@@ -637,12 +637,16 @@ public struct RenderNode: Equatable, Sendable, Codable {
         /// The hands, ticks and numerals.
         public var color: String = "text"
         public var faceColor: String?
+        /// The face's fill while it is night in `zone` (19:00 to 07:00); nil:
+        /// `faceColor` always. The UI picks it from the zone's time of day.
+        public var nightFaceColor: String?
         public var secondsColor: String = "bad"
         public var pivotColor: String = "accent"
 
         public init(size: Double = 236, ticks: String = "hours", seconds: String = "none", dateWindow: Bool = false,
                     numerals: Bool = false, zone: String? = nil, color: String = "text", faceColor: String? = nil,
-                    secondsColor: String = "bad", pivotColor: String = "accent") {
+                    nightFaceColor: String? = nil, secondsColor: String = "bad", pivotColor: String = "accent") {
+            self.nightFaceColor = nightFaceColor
             self.size = size
             self.ticks = ticks
             self.seconds = seconds
@@ -882,6 +886,7 @@ public struct RenderNode: Equatable, Sendable, Codable {
                 zone: try opt("zone"),
                 color: try opt("color") ?? "text",
                 faceColor: try opt("faceColor"),
+                nightFaceColor: try opt("nightFaceColor"),
                 secondsColor: try opt("secondsColor") ?? "bad",
                 pivotColor: try opt("pivotColor") ?? "accent"))
         case "flip":
@@ -1048,6 +1053,7 @@ public struct RenderNode: Equatable, Sendable, Codable {
             try put("zone", a.zone)
             try put("color", a.color, default: "text")
             try put("faceColor", a.faceColor)
+            try put("nightFaceColor", a.nightFaceColor)
             try put("secondsColor", a.secondsColor, default: "bad")
             try put("pivotColor", a.pivotColor, default: "accent")
         case .flip(let f):

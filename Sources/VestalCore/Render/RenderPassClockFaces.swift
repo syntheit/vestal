@@ -13,7 +13,7 @@ extension RenderPass {
 
     func analog(_ w: [String: AnyJSON], id: String, scope: Scope) -> RenderNode {
         let scale = scope.style.scale
-        let ticks = choice(w["ticks"], id: id, field: "ticks", scope: scope, allowed: ["none", "hours", "minutes"]) ?? "hours"
+        let ticks = choice(w["ticks"], id: id, field: "ticks", scope: scope, allowed: ["none", "hours", "minutes", "dots"]) ?? "hours"
         let seconds = secondsMode(w["seconds"], id: id, scope: scope)
         let quiet = ticks == "none"
         var analog = RenderNode.Analog()
@@ -28,6 +28,7 @@ extension RenderPass {
         analog.color = colorField(w["color"], id: id, field: "color", scope: scope) ?? "text"
         analog.faceColor = colorField(w["faceColor"], id: id, field: "faceColor", scope: scope)
             ?? model.palette.resolve(quiet ? "text@0.035" : "bg@0.32")
+        analog.nightFaceColor = colorField(w["nightFaceColor"], id: id, field: "nightFaceColor", scope: scope)
         analog.secondsColor = colorField(w["secondsColor"], id: id, field: "secondsColor", scope: scope) ?? "bad"
         analog.pivotColor = colorField(w["pivotColor"], id: id, field: "pivotColor", scope: scope)
             ?? (seconds == "none" ? "accent" : analog.secondsColor)
@@ -53,7 +54,8 @@ extension RenderPass {
 
     /// An IANA zone, nil for the system's (an unknown name is reported).
     private func zone(_ value: AnyJSON?, id: String, scope: Scope) -> String? {
-        guard let name = string(value, id: id, field: "zone", scope: scope), !name.isEmpty else { return nil }
+        let name = fieldText(value, id: id, field: "zone", scope: scope)
+        guard !name.isEmpty else { return nil }
         guard TimeZone(identifier: name) != nil else {
             report(id: id, field: "zone", severity: "warning", code: "invalid-value", message: "unknown time zone \"\(name)\"")
             return nil

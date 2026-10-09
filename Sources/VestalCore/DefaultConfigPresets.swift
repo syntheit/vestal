@@ -108,6 +108,7 @@ public enum DefaultPresets {
           "ticks": { "type": "string", "default": "none", "enum": ["none", "hours", "minutes"], "description": "analog: none, hours or minutes" },
           "dateWindow": { "type": "boolean", "default": false, "description": "analog: the day of the month in a window at three o'clock" },
           "numerals": { "type": "boolean", "default": false, "description": "analog: the numerals 1 to 12" },
+          "subdials": { "type": "string", "default": "none", "enum": ["none", "worldClocks"], "description": "analog: worldClocks puts a small dial under the face for each world clock, filled light by day and dark by night there, with the offset from here and day or night; none: the row of times" },
           "span": { "type": "any", "default": "day", "description": "ring: \"day\", \"work\" or [\"09:00\", \"18:00\"]" }
         }
       },

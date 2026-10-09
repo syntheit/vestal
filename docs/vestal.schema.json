@@ -10531,6 +10531,23 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "nightFaceColor": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The face's fill while it is night in zone (19:00 to 07:00). Default: faceColor always.",
+          "examples": [
+            "accent"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "numerals": {
           "anyOf": [
             {
@@ -10765,7 +10782,8 @@
               "enum": [
                 "none",
                 "hours",
-                "minutes"
+                "minutes",
+                "dots"
               ],
               "type": "string"
             },
@@ -10777,7 +10795,7 @@
             }
           ],
           "default": "hours",
-          "description": "none: a hairline ring and a dot at twelve, short hands. hours: twelve marks. minutes: sixty, heavier at the hours.",
+          "description": "none: a hairline ring and a dot at twelve, short hands. hours: twelve marks. minutes: sixty, heavier at the hours. dots: twelve dots and short plain hands, for a dial of about 64.",
           "examples": [
             "minutes"
           ],
@@ -14634,6 +14652,19 @@
               "color": "subtle",
               "size": 12
             }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "subdials": {
+          "default": "none",
+          "description": "analog: worldClocks puts a small dial under the face for each world clock, filled light by day and dark by night there, with the offset from here and day or night; none: the row of times",
+          "examples": [
+            "none"
+          ],
+          "type": [
+            "string",
+            "null"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -32372,6 +32403,23 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "nightFaceColor": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The face's fill while it is night in zone (19:00 to 07:00). Default: faceColor always.",
+          "examples": [
+            "accent"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "now": {
           "anyOf": [
             {
@@ -33304,6 +33352,18 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "subdials": {
+          "description": "analog: worldClocks puts a small dial under the face for each world clock, filled light by day and dark by night there, with the offset from here and day or night; none: the row of times",
+          "examples": [
+            "none"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "suffix": {
           "description": "The suffix parameter (text).",
           "examples": [
@@ -33466,7 +33526,8 @@
               "enum": [
                 "none",
                 "hours",
-                "minutes"
+                "minutes",
+                "dots"
               ],
               "type": "string"
             },
@@ -33477,7 +33538,7 @@
               "type": "null"
             }
           ],
-          "description": "none: a hairline ring and a dot at twelve, short hands. hours: twelve marks. minutes: sixty, heavier at the hours.",
+          "description": "none: a hairline ring and a dot at twelve, short hands. hours: twelve marks. minutes: sixty, heavier at the hours. dots: twelve dots and short plain hands, for a dial of about 64.",
           "examples": [
             "minutes"
           ],

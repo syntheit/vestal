@@ -346,10 +346,41 @@ public enum ClockFaces {
         """
     }
 
-    static let analog = drawn("analog", """
-    { "type": "clockAnalog", "size": { "param": "size" }, "ticks": { "param": "ticks" }, "dateWindow": { "param": "dateWindow" },
-      "numerals": { "param": "numerals" }, "seconds": { "param": "seconds" }, "date": { "param": "date" } }
-    """)
+    /// The analog face; `subdials: "worldClocks"` puts a small dial per world
+    /// clock under it instead of the row of times.
+    static let analog = """
+    {
+      "type": "stack", "gap": 4, "align": "center", "spaceBefore": 0,
+      "vars": \(vars(seconds: false)),
+      "children": [
+        { "id": "analog", "type": "clockAnalog", "size": { "param": "size" }, "ticks": { "param": "ticks" }, "dateWindow": { "param": "dateWindow" },
+          "numerals": { "param": "numerals" }, "seconds": { "param": "seconds" }, "date": { "param": "date" } },
+        { "type": "switch", "on": "$subdials",
+          "default": \(world(direction: "row", gap: 16, spaceBefore: 10, id: "2", row: """
+          { "type": "row", "gap": 4, "children": [
+            \(text("{{ .label }}", size: "11", weight: "semibold", color: "dim")),
+            \(zoneTime("{ \"size\": 11, \"font\": \"mono\", \"color\": \"subtle\" }"))
+          ] }
+          """)),
+          "cases": { "worldClocks": \(world(direction: "row", gap: 22, spaceBefore: 14, id: "2", row: """
+          { "type": "row", "gap": 10, "align": "center",
+            "vars": {
+              "day": "(now | fmt_time(\\"H\\"; $item.tz) | tonumber) as $h | $h >= 7 and $h < 19",
+              "delta": "((now | tz_offset($item.tz)) - (now | tz_offset(null))) / 3600"
+            },
+            "children": [
+              { "type": "analog", "size": 64, "ticks": "dots", "zone": "{{ $item.tz }}", "faceColor": "text@0.12", "nightFaceColor": "#00000052" },
+              { "type": "stack", "gap": 2, "align": "start", "children": [
+                \(text("{{ .label }}", size: "12", weight: "semibold", font: "sans")),
+                \(zoneTime("{ \"size\": 12, \"font\": \"mono\", \"color\": \"subtle\" }")),
+                \(text("{{ if $delta == 0 then \\\"local\\\" else (if $delta > 0 then \\\"+\\\" else \\\"−\\\" end) + ($delta | fabs | tostring) + \\\"h\\\" end }} · {{ if $day then \\\"day\\\" else \\\"night\\\" end }}",
+                       size: "10", font: "mono", color: "dim"))
+              ] }
+            ] }
+          """)) } }
+      ]
+    }
+    """
 
     static let flip = drawn("flip", """
     { "type": "clockFlip", "size": { "param": "size" },

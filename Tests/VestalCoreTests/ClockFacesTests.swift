@@ -401,6 +401,56 @@ final class ClockFacesTests: XCTestCase {
         XCTAssertNotNil(s.root.node(withId: "main/w/analog/1"))
     }
 
+    func testAnalogSubdialsForTheWorldClocks() {
+        let s = render(#"""
+            { "type": "clock", "face": "analog", "subdials": "worldClocks",
+              "worldClocks": [{ "label": "NYC", "tz": "America/New_York" }, { "label": "TYO", "tz": "Asia/Tokyo" }] }
+            """#)
+        var dials: [RenderNode.Analog] = [], texts: [String] = []
+        s.root.walk { n in
+            if case .analog(let a) = n.content { dials.append(a) }
+            if case .text(let t) = n.content { texts.append(t.text) }
+        }
+        XCTAssertEqual(dials.count, 3, "the local dial and one per world clock")
+        XCTAssertEqual(dials[1].zone, "America/New_York")
+        XCTAssertEqual(dials[2].zone, "Asia/Tokyo")
+        XCTAssertEqual(dials[1].ticks, "dots")
+        XCTAssertEqual(dials[1].size, 64)
+        XCTAssertNotNil(dials[1].nightFaceColor)
+        XCTAssertNil(dials[0].nightFaceColor)
+        // 17:03 UTC: 13:03 in New York (4 hours behind, day), 02:03 in Tokyo (9 ahead, night).
+        XCTAssertTrue(texts.contains("\u{2212}4h \u{00B7} day"), "\(texts)")
+        XCTAssertTrue(texts.contains("+9h \u{00B7} night"), "\(texts)")
+        XCTAssertEqual(s.diagnostics.count, 0, "\(s.diagnostics)")
+        // Without it the row of times stays.
+        var plain = 0
+        render(#"{ "type": "clock", "face": "analog", "worldClocks": [{ "label": "TYO", "tz": "Asia/Tokyo" }] }"#).root.walk {
+            if case .analog = $0.content { plain += 1 }
+        }
+        XCTAssertEqual(plain, 1)
+    }
+
+    func testAnalogDotTicksAndDayNight() throws {
+        let g = AnalogGeometry(size: 64, ticks: "dots", seconds: "none", dateWindow: false, numerals: false)
+        XCTAssertEqual(g.dotMarks.count, 12)
+        XCTAssertEqual(g.dotMarks.filter(\.major).map(\.degrees), [0, 90, 180, 270])
+        XCTAssertEqual(g.ticks.count, 0)
+        XCTAssertEqual(g.hour.length, 15, accuracy: 1e-9)
+        XCTAssertEqual(g.minute.length, 23, accuracy: 1e-9)
+        XCTAssertEqual(g.tickDotOrbit, 27, accuracy: 1e-9)
+        XCTAssertEqual(g.pivotRadius, 2, accuracy: 1e-9)
+        XCTAssertTrue(AnalogGeometry(size: 64, ticks: "hours", seconds: "none", dateWindow: false, numerals: false).dotMarks.isEmpty)
+        XCTAssertFalse(AnalogMath.isDay(hour: 6))
+        XCTAssertTrue(AnalogMath.isDay(hour: 7))
+        XCTAssertTrue(AnalogMath.isDay(hour: 18))
+        XCTAssertFalse(AnalogMath.isDay(hour: 19))
+        let n = analog(node(render(##"{ "type": "analog", "size": 64, "ticks": "dots", "faceColor": "text@0.12", "nightFaceColor": "#00000052" }"##), "main/w"))
+        XCTAssertEqual(n.ticks, "dots")
+        XCTAssertEqual(n.nightFaceColor, "#00000052")
+        let node = RenderNode(id: "a", .analog(n))
+        XCTAssertEqual(try JSONDecoder().decode(RenderNode.self, from: JSONEncoder().encode(node)), node)
+    }
+
     func testFlipFace() {
         let s = clock(#""face": "flip", "seconds": true,"#)
         let f = flip(node(s, "main/w/flip/0"))

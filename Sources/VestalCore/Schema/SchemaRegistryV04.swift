@@ -308,8 +308,8 @@ extension SchemaRegistry {
         ]),
         SchemaEntityType("analog", since: "0.4", "A round clock the UI draws and runs itself.", keys: [
             key("size", .number, .int(236), computed: true, "The face's diameter. Default: 236 without ticks, 260 with."),
-            key("ticks", .oneOf(["none", "hours", "minutes"]), default: .string("hours"), .string("minutes"), computed: true,
-                "none: a hairline ring and a dot at twelve, short hands. hours: twelve marks. minutes: sixty, heavier at the hours."),
+            key("ticks", .oneOf(["none", "hours", "minutes", "dots"]), default: .string("hours"), .string("minutes"), computed: true,
+                "none: a hairline ring and a dot at twelve, short hands. hours: twelve marks. minutes: sixty, heavier at the hours. dots: twelve dots and short plain hands, for a dial of about 64."),
             key("seconds", .any, default: .bool(false), .string("sweep"), computed: true,
                 "false: no seconds hand. true or \"step\": it moves once a second. \"sweep\": it moves every frame while the dashboard is shown."),
             key("dateWindow", .boolean, default: .bool(false), .bool(true), computed: true, "A window with the day of the month at three o'clock."),
@@ -317,6 +317,7 @@ extension SchemaRegistry {
             key("zone", .string, kind: .text, .string("Asia/Tokyo"), "An IANA time zone. Default: the system's."),
             colorKey("color", "text", "The hands, ticks and numerals."),
             colorKey("faceColor", nil, "The face's fill. Default: text at 3.5% without ticks, bg at 32% with."),
+            colorKey("nightFaceColor", nil, "The face's fill while it is night in zone (19:00 to 07:00). Default: faceColor always."),
             colorKey("secondsColor", "bad", "The seconds hand."),
             colorKey("pivotColor", nil, "The pivot. Default: accent, or the seconds hand's color with one."),
         ]),

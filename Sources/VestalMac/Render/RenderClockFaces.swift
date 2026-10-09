@@ -48,7 +48,8 @@ struct AnalogDrawing: View {
         let time = AnalogMath.time(date, zone: analog.zone)
         let angles = AnalogMath.angles(time, mode: mode)
         let ink = style.color(analog.color)
-        let faceColor = style.color(analog.faceColor, default: "text@0.035")
+        let dayFace = style.color(analog.faceColor, default: "text@0.035")
+        let faceColor = AnalogMath.isDay(hour: time.hour) ? dayFace : (analog.nightFaceColor.map { style.color($0) } ?? dayFace)
         let secondsColor = style.color(analog.secondsColor)
         let pivotColor = style.color(analog.pivotColor)
         let hole = style.color("bg")
@@ -68,6 +69,12 @@ struct AnalogDrawing: View {
             if g.dotRadius > 0 {
                 context.fill(Path(ellipseIn: CGRect(x: c - g.dotRadius, y: g.dotY - g.dotRadius, width: g.dotRadius * 2, height: g.dotRadius * 2)),
                              with: .color(style.color(analog.color + "@0.75")))
+            }
+            for mark in g.dotMarks {
+                let p = point(g.tickDotOrbit, mark.degrees)
+                let r = mark.major ? g.tickDotMajorRadius : g.tickDotRadius
+                context.fill(Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)),
+                             with: .color(style.color(analog.color + "@0.6")))
             }
             for tick in g.ticks {
                 let length = tick.major ? g.hourTickLength : g.minuteTickLength

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  analogTime, handAngles, analogGeometry, analogTicks, polar, flipLayout, colonSquares, changedTiles, ringGeometry, analogSVG,
+  analogTime, handAngles, analogGeometry, analogTicks, polar, flipLayout, colonSquares, changedTiles, ringGeometry, analogSVG, analogDots, isDay,
 } from "./clock.js";
 import { makePalette } from "./color.js";
 
@@ -81,4 +81,22 @@ test("analog markup carries the hands and the fixed time", () => {
   assert.match(svg, /data-mode="sweep"/);
   assert.match(svg, />27</);
   assert.equal((svg.match(/<line /g) || []).length, 60 + 3);
+});
+
+test("small dials: dots, plain hands and a day or night fill", () => {
+  const g = analogGeometry(64, "dots", "none", false, false);
+  assert.equal(analogDots(g).length, 12);
+  assert.deepEqual(analogDots(g).filter((d) => d.major).map((d) => d.degrees), [0, 90, 180, 270]);
+  close(g.hour.length, 15); close(g.minute.length, 23); close(g.tickDotOrbit, 27); close(g.pivotRadius, 2);
+  assert.equal(analogDots(analogGeometry(64, "hours", "none", false, false)).length, 0);
+  assert.deepEqual([6, 7, 18, 19].map(isDay), [false, true, true, false]);
+  const env = { pal: makePalette({}), theme: {}, now: NOW, timeZone: "UTC" };
+  const node = { size: 64, ticks: "dots", faceColor: "#ffffff1f", nightFaceColor: "#00000052" };
+  // 17:03 UTC is day in London and night in Tokyo (02:03).
+  const london = analogSVG({ ...node, zone: "Europe/London" }, 64, 64, env);
+  const tokyo = analogSVG({ ...node, zone: "Asia/Tokyo" }, 64, 64, env);
+  assert.match(london, /data-face="1"[^>]*fill="rgba\(255,255,255,0.122\)"/);
+  assert.match(tokyo, /data-face="1"[^>]*fill="rgba\(0,0,0,0.322\)"/);
+  assert.match(tokyo, /data-nightfill="rgba\(0,0,0,0.322\)"/);
+  assert.equal((london.match(/<circle /g) || []).length, 1 + 12 + 1);
 });

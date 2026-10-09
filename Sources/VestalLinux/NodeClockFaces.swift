@@ -140,7 +140,8 @@ extension NodeView {
         let ink = theme.color(analog.color)
 
         cairo_arc(cr, c, c, g.faceRadius, 0, 2 * .pi)
-        setSource(cr, theme.color(analog.faceColor, default: "text@0.035"))
+        let dayFace = theme.color(analog.faceColor, default: "text@0.035")
+        setSource(cr, AnalogMath.isDay(hour: time.hour) ? dayFace : (analog.nightFaceColor.map { theme.color($0) } ?? dayFace))
         cairo_fill_preserve(cr)
         setSource(cr, theme.color(analog.color + (quiet ? "@0.18" : "@0.2")))
         cairo_set_line_width(cr, 1)
@@ -149,6 +150,12 @@ extension NodeView {
         if g.dotRadius > 0 {
             cairo_arc(cr, c, g.dotY, g.dotRadius, 0, 2 * .pi)
             setSource(cr, ink.withAlpha(0.75))
+            cairo_fill(cr)
+        }
+        for mark in g.dotMarks {
+            let p = point(g.tickDotOrbit, mark.degrees)
+            cairo_arc(cr, p.x, p.y, mark.major ? g.tickDotMajorRadius : g.tickDotRadius, 0, 2 * .pi)
+            setSource(cr, ink.withAlpha(0.6))
             cairo_fill(cr)
         }
         cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND)

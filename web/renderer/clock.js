@@ -56,21 +56,32 @@ export function analogGeometry(size, ticks, seconds, dateWindow, numerals) {
   const k = size / (quiet ? 236 : 260);
   const tickEvery = ticks === "minutes" ? 1 : ticks === "hours" ? 5 : 0;
   const hand = (length, tail, width) => ({ length: length * k, tail: tail * k, width: width * k });
+  // The small world dials are drawn at 64.
+  const u = size / 64, dots = ticks === "dots";
   return {
+    dotTicks: dots, tickDotOrbit: c - 5 * u, tickDotRadius: 0.8 * u, tickDotMajorRadius: 1.4 * u,
     size, center: c, faceRadius: c - 1,
     tickOuter: c - 7 * k, tickEvery,
     hourTickLength: (tickEvery === 1 ? 15 : 10) * k, minuteTickLength: 6 * k,
     hourTickWidth: 2.5 * k, minuteTickWidth: 1 * k,
     dotY: quiet ? 14 * k : 0, dotRadius: quiet ? 2.5 * k : 0,
-    hour: quiet ? hand(58, 0, 5) : hand(66, 14, 6),
-    minute: quiet ? hand(92, 0, 3) : hand(102, 16, 4),
+    hour: dots ? { length: 15 * u, tail: 0, width: 2.5 * u } : quiet ? hand(58, 0, 5) : hand(66, 14, 6),
+    minute: dots ? { length: 23 * u, tail: 0, width: 1.5 * u } : quiet ? hand(92, 0, 3) : hand(102, 16, 4),
     second: seconds === "none" ? null : hand(114, 26, 1.6),
     secondDotOffset: 22 * k, secondDotRadius: 3.5 * k,
-    pivotRadius: (seconds === "none" ? 5 : 4.5) * k, pivotHole: seconds === "none" ? 0 : 1.6 * k,
+    pivotRadius: dots ? 2 * u : (seconds === "none" ? 5 : 4.5) * k, pivotHole: seconds === "none" || dots ? 0 : 1.6 * k,
     window: dateWindow ? { x: c + 58 * k, y: c - 11 * k, width: 32 * k, height: 22 * k, fontSize: 13 * k } : null,
     numeralRadius: numerals ? c - (tickEvery === 0 ? 28 : 42) * k : 0,
     numeralSize: numerals ? 20 * k : 0,
   };
+}
+
+/** Whether it is day in a zone at `hour`: 07:00 to 19:00. */
+export const isDay = (hour) => hour >= 7 && hour < 19;
+
+/** The twelve dots of `ticks: "dots"` as { degrees, major }. */
+export function analogDots(g) {
+  return g.dotTicks ? Array.from({ length: 12 }, (_, i) => ({ degrees: i * 30, major: i % 3 === 0 })) : [];
 }
 
 /** The tick marks as { degrees, major }. */
@@ -102,7 +113,14 @@ export function analogSVG(n, w, h, env) {
   const angles = handAngles(time, seconds);
   const sans = fontFamily("sans", theme), mono = fontFamily("mono", theme);
   let out = `<g class="vr-analog" transform="translate(${f((w - size) / 2)} ${f((h - size) / 2)})" data-zone="${zone || ""}" data-mode="${seconds}" data-window="${g.window ? 1 : 0}" data-size="${f(size)}">`;
-  out += `<circle cx="${f(c)}" cy="${f(c)}" r="${f(g.faceRadius)}" fill="${pal.css(n.faceColor, quiet ? "text@0.035" : "bg@0.32")}" stroke="${ink(quiet ? 0.18 : 0.2)}" stroke-width="1"/>`;
+  const dayFace = pal.css(n.faceColor, quiet ? "text@0.035" : "bg@0.32");
+  const face = n.nightFaceColor && !isDay(time.hour) ? pal.css(n.nightFaceColor) : dayFace;
+  // The fill the driver swaps at 07:00 and 19:00 in the zone.
+  out += `<circle data-face="1" data-dayfill="${esc(dayFace)}" data-nightfill="${n.nightFaceColor ? esc(pal.css(n.nightFaceColor)) : ""}" cx="${f(c)}" cy="${f(c)}" r="${f(g.faceRadius)}" fill="${face}" stroke="${ink(quiet ? 0.18 : 0.2)}" stroke-width="1"/>`;
+  for (const d of analogDots(g)) {
+    const [x, y] = polar(c, c, g.tickDotOrbit, d.degrees);
+    out += `<circle cx="${f(x)}" cy="${f(y)}" r="${f(d.major ? g.tickDotMajorRadius : g.tickDotRadius)}" fill="${ink(0.6)}"/>`;
+  }
   if (g.dotRadius > 0) out += `<circle cx="${f(c)}" cy="${f(g.dotY)}" r="${f(g.dotRadius)}" fill="${ink(0.75)}"/>`;
   for (const t of analogTicks(g)) {
     const len = t.major ? g.hourTickLength : g.minuteTickLength;
@@ -353,7 +371,7 @@ export class ClockDriver {
     this.faces = [...this.root.querySelectorAll(".vr-analog")].map((el) => ({
       el, zone: el.dataset.zone || null, mode: el.dataset.mode || "none",
       h: el.querySelector('[data-hand="h"]'), m: el.querySelector('[data-hand="m"]'), s: el.querySelector('[data-hand="s"]'),
-      day: el.querySelector("[data-day]"), c: Number(el.dataset.size) / 2,
+      day: el.querySelector("[data-day]"), c: Number(el.dataset.size) / 2, fill: el.querySelector("[data-face]"),
     }));
     this.update();
   }
@@ -387,6 +405,10 @@ export class ClockDriver {
       const a = handAngles(time, face.mode === "sweep" && this.reduced() ? "step" : face.mode);
       const set = (el, deg) => el && el.setAttribute("transform", rotate(deg, face.c));
       set(face.h, a.hour); set(face.m, a.minute); set(face.s, a.second);
+      if (face.fill && face.fill.dataset.nightfill) {
+        const fill = isDay(time.hour) ? face.fill.dataset.dayfill : face.fill.dataset.nightfill;
+        if (face.fill.getAttribute("fill") !== fill) face.fill.setAttribute("fill", fill);
+      }
       if (face.day && face.day.textContent !== String(time.day)) face.day.textContent = String(time.day);
     }
   }

@@ -60,6 +60,9 @@ public enum AnalogMath {
         angles(hour: time.hour, minute: time.minute, second: mode == "sweep" ? time.second : time.second.rounded(.down))
     }
 
+    /// Whether it is day in a zone at `hour` (0 to 23): from 07:00 to 19:00.
+    public static func isDay(hour: Int) -> Bool { hour >= 7 && hour < 19 }
+
     /// The point `radius` from `center` at `degrees` clockwise from 12 o'clock
     /// (y grows downwards).
     public static func point(center: Double, radius: Double, degrees: Double) -> (x: Double, y: Double) {
@@ -121,6 +124,12 @@ public struct AnalogGeometry: Equatable, Sendable {
     /// The numerals' radius and font size; 0: none.
     public var numeralRadius: Double
     public var numeralSize: Double
+    /// Twelve dots instead of marks (`ticks: "dots"`, for a small dial): the
+    /// radius they sit on, and the radius of an ordinary and a quarter dot.
+    public var dotTicks: Bool
+    public var tickDotOrbit: Double
+    public var tickDotRadius: Double
+    public var tickDotMajorRadius: Double
 
     public init(size: Double, ticks: String, seconds: String, dateWindow: Bool, numerals: Bool) {
         self.size = size
@@ -130,6 +139,12 @@ public struct AnalogGeometry: Equatable, Sendable {
         let quiet = ticks == "none"
         // The approved faces are drawn at 236 (quiet) and 260; scale from those.
         let k = size / (quiet ? 236 : 260)
+        // The small world dials are drawn at 64.
+        let u = size / 64
+        dotTicks = ticks == "dots"
+        tickDotOrbit = c - 5 * u
+        tickDotRadius = 0.8 * u
+        tickDotMajorRadius = 1.4 * u
         tickEvery = ticks == "minutes" ? 1 : ticks == "hours" ? 5 : 0
         tickOuter = c - 7 * k
         hourTickLength = (tickEvery == 1 ? 15 : 10) * k
@@ -138,7 +153,10 @@ public struct AnalogGeometry: Equatable, Sendable {
         minuteTickWidth = 1 * k
         dotY = quiet ? 14 * k : 0
         dotRadius = quiet ? 2.5 * k : 0
-        if quiet {
+        if dotTicks {
+            hour = Hand(length: 15 * u, tail: 0, width: 2.5 * u)
+            minute = Hand(length: 23 * u, tail: 0, width: 1.5 * u)
+        } else if quiet {
             hour = Hand(length: 58 * k, tail: 0, width: 5 * k)
             minute = Hand(length: 92 * k, tail: 0, width: 3 * k)
         } else {
@@ -148,11 +166,18 @@ public struct AnalogGeometry: Equatable, Sendable {
         second = seconds == "none" ? nil : Hand(length: 114 * k, tail: 26 * k, width: 1.6 * k)
         secondDotOffset = 22 * k
         secondDotRadius = 3.5 * k
-        pivotRadius = (seconds == "none" ? 5 : 4.5) * k
-        pivotHole = seconds == "none" ? 0 : 1.6 * k
+        pivotRadius = dotTicks ? 2 * u : (seconds == "none" ? 5 : 4.5) * k
+        pivotHole = seconds == "none" || dotTicks ? 0 : 1.6 * k
         window = dateWindow ? Window(x: c + 58 * k, y: c - 11 * k, width: 32 * k, height: 22 * k, fontSize: 13 * k) : nil
         numeralRadius = numerals ? c - (tickEvery == 0 ? 28 : 42) * k : 0
         numeralSize = numerals ? 20 * k : 0
+    }
+
+    /// The twelve dots of `ticks: "dots"` as (angle in degrees, major) pairs: a
+    /// larger one at 12, 3, 6 and 9.
+    public var dotMarks: [(degrees: Double, major: Bool)] {
+        guard dotTicks else { return [] }
+        return (0..<12).map { (Double($0) * 30, $0 % 3 == 0) }
     }
 
     /// The tick marks as (angle in degrees, major) pairs.
