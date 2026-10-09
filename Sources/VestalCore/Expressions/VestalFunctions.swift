@@ -221,6 +221,11 @@ public enum VestalFunctions {
             guard case .string(let s) = input else { return .bool(false) }
             return .bool(TimeZone(identifier: s) != nil)
         },
+        f("tz_offset", 1) { input, args, context in
+            guard let t = try time(input, "tz_offset") else { return .null }
+            let zone = try zone(args[0], "tz_offset", context)
+            return .number(Double(zone.secondsFromGMT(for: Date(timeIntervalSince1970: t))))
+        },
         f("sun_context", 2) { _, args, context in
             var calendar = Calendar(identifier: .gregorian)
             calendar.timeZone = context.timeZone

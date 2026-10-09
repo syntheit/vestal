@@ -48,6 +48,7 @@ Arguments see the piped input, not the row: inside `now | fmt_time("HH:mm"; …)
 |---|---|---|
 | `to_epoch` | ISO 8601 (with or without fractional seconds and offset) or epoch → epoch seconds | `"2026-09-26T18:02:11Z" \| to_epoch` → `1790445731` |
 | `tz_valid` | whether a text is a known IANA time zone | `"Europe/Lisbon" \| tz_valid` → `true` |
+| `tz_offset(zone)` | time → seconds the IANA zone is ahead of UTC at that time (`null` for the local zone) | `now \| tz_offset("Asia/Tokyo")` → `32400` |
 | `sun_context(sunrise; sunset)` | `"H:mm"` times → `"sets in 5h 17m"` and the like, from now | `sun_context(.sunrise; .sunset)` |
 | `find(obj)` | array → the first element whose fields equal all of `obj`'s, else `null` | `find({casa: "blue"})` |
 | `where(obj)` | array → every such element | `where({state: "on"})` |
