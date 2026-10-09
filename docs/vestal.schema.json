@@ -9775,7 +9775,8 @@
           "x-vestal-since": "0.4"
         },
         "title": {
-          "description": "A label before the counts, such as the host's name",
+          "default": "",
+          "description": "A label before the badges, such as the host's name",
           "examples": [
             "x"
           ],

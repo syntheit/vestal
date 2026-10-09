@@ -202,35 +202,6 @@ public enum ConfigCommands {
             let env = (source["env"]?.objectValue ?? [:]).keys.sorted()
             add(["sources", name, "type"], "source \"\(name)\" (template \"\(template)\"), every \(refresh), \(shown)", argv, env: env)
         }
-        // The inline command sources a preset makes (`containers` runs
-        // `docker`): they exist only after expansion. One whose argv is
-        // listed already (a source written inline) is skipped.
-        let expandedTop = ConfigExpansion.expand(merged).top
-        func readers(of source: String) -> [(segments: [String], label: String)] {
-            func reads(_ value: AnyJSON) -> Bool {
-                switch value {
-                case .object(let object): return object["source"]?.stringValue == source || object.values.contains(where: reads)
-                case .array(let items): return items.contains(where: reads)
-                default: return false
-                }
-            }
-            var found: [(segments: [String], label: String)] = []
-            for (key, noun) in [("widgets", "widget"), ("views", "view")] {
-                for (name, value) in (expandedTop[key]?.objectValue ?? [:]).sorted(by: { $0.key < $1.key }) where reads(value) {
-                    found.append(([key, name], "\(noun) \"\(name)\""))
-                }
-            }
-            return found
-        }
-        for (name, value) in expandedSources.sorted(by: { $0.key < $1.key }) where name.hasPrefix("inline:") {
-            guard let source = value.objectValue, source["type"]?.stringValue.map(SourceConfig.canonicalType) == "command",
-                  let argv = strings(source["argv"]), !argv.isEmpty, !entries.contains(where: { $0.argv == argv }),
-                  let owner = readers(of: name).first else { continue }
-            let refresh = source["refresh"]?.stringValue ?? SourceConfig.defaultRefresh
-            let shown = source["when"]?.stringValue == "visible" ? "while the dashboard is shown" : "shown or hidden"
-            let env = (source["env"]?.objectValue ?? [:]).keys.sorted()
-            add(owner.segments, "\(owner.label), every \(refresh), \(shown)", argv, env: env)
-        }
         // v0.4: command secrets, `run` actions and inline command sources
         // anywhere in widgets, views, keys and templates.
         for (name, value) in (top["secrets"]?.objectValue ?? [:]).sorted(by: { $0.key < $1.key }) {
@@ -274,6 +245,36 @@ public enum ConfigCommands {
         }
         for key in ["widgets", "views", "keys", "templates"] {
             if let value = top[key] { visit(value, [key]) }
+        }
+        // The inline command sources a preset makes (`containers` runs
+        // `docker`): they exist only after expansion. A widget that already
+        // lists one of its own (a source written inline) adds nothing.
+        let expandedTop = ConfigExpansion.expand(merged).top
+        func readers(of source: String) -> [(segments: [String], label: String)] {
+            func reads(_ value: AnyJSON) -> Bool {
+                switch value {
+                case .object(let object): return object["source"]?.stringValue == source || object.values.contains(where: reads)
+                case .array(let items): return items.contains(where: reads)
+                default: return false
+                }
+            }
+            var found: [(segments: [String], label: String)] = []
+            for (key, noun) in [("widgets", "widget"), ("views", "view")] {
+                for (name, value) in (expandedTop[key]?.objectValue ?? [:]).sorted(by: { $0.key < $1.key }) where reads(value) {
+                    found.append(([key, name], "\(noun) \"\(name)\""))
+                }
+            }
+            return found
+        }
+        for (name, value) in expandedSources.sorted(by: { $0.key < $1.key }) where name.hasPrefix("inline:") {
+            guard let source = value.objectValue, source["type"]?.stringValue.map(SourceConfig.canonicalType) == "command",
+                  let argv = strings(source["argv"]), !argv.isEmpty, let owner = readers(of: name).first else { continue }
+            let inside = "/" + owner.segments.joined(separator: "/") + "/"
+            guard !entries.contains(where: { $0.pointer.hasPrefix(inside) }) else { continue }
+            let refresh = source["refresh"]?.stringValue ?? SourceConfig.defaultRefresh
+            let shown = source["when"]?.stringValue == "visible" ? "while the dashboard is shown" : "shown or hidden"
+            let env = (source["env"]?.objectValue ?? [:]).keys.sorted()
+            add(owner.segments, "\(owner.label), every \(refresh), \(shown)", argv, env: env)
         }
         return entries.enumerated().sorted {
             ($0.element.pointer, $0.offset) < ($1.element.pointer, $1.offset)

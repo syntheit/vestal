@@ -328,7 +328,7 @@ extension DefaultPresets {
           "containers": {
             "description": "Containers of a Docker or Podman host: how many run and have exited, each one's state, CPU and memory",
             "params": {
-              "title": { "type": "string", "description": "A label before the counts, such as the host's name" },
+              "title": { "type": "string", "default": "", "description": "A label before the badges, such as the host's name" },
               "program": { "type": "string", "default": "docker", "description": "docker, podman, or the path of either" },
               "host": { "type": "string", "description": "Another machine's Docker host URL, such as ssh://nas. Default: this machine" },
               "stats": { "type": "boolean", "default": true, "description": "Show CPU and memory (docker stats, which runs only while the dashboard is shown)" },
@@ -337,6 +337,7 @@ extension DefaultPresets {
             "widget": {
               "type": "stack", "gap": 8, "width": "fill",
               "source": { "type": "dockerPs", "program": { "param": "program" }, "host": { "param": "host" } },
+              "input": "if type == \"array\" then map(select(type == \"object\")) else [] end",
               "vars": {
                 "bad": "map(select(.kind == \"failed\" or .kind == \"unhealthy\" or .kind == \"restarting\"))",
                 "shown": "($bad | .[:$limit]) as $b | $b + (map(select(.kind != \"failed\" and .kind != \"unhealthy\" and .kind != \"restarting\")) | .[:([$limit - ($b | length), 0] | max)]) | sort_by(if .state == \"running\" then 0 else 1 end)",
@@ -349,9 +350,9 @@ extension DefaultPresets {
               },
               "children": [
                 { "type": "row", "gap": 10, "style": { "size": 12 },
-                  "when": "$title != null or $running > 0 or $exited > 0 or $trouble > 0",
+                  "when": "$title != \"\" or $running > 0 or $exited > 0 or $trouble > 0",
                   "children": [
-                    { "type": "text", "when": "$title != null", "text": "{{ $title }}", "style": { "weight": "semibold" } },
+                    { "type": "text", "when": "$title != \"\"", "text": "{{ $title }}", "style": { "weight": "semibold" } },
                     { "type": "badge", "when": "$running > 0", "text": "{{ $running }} running", "color": "good" },
                     { "type": "badge", "when": "$trouble > 0", "text": "{{ $trouble }} unhealthy", "color": "warn" },
                     { "type": "badge", "when": "$failed > 0", "text": "{{ $exited }} exited", "color": "bad" },
@@ -398,12 +399,13 @@ extension DefaultPresets {
             "widget": {
               "type": "stack", "gap": 8, "width": "fill",
               "source": { "type": "tailscaleStatus", "program": { "param": "program" } },
+              "input": "if type == \"object\" then . else {} end",
               "vars": {
-                "devices": "(.devices // []) | map(select($showOffline or .online)) | .[:$limit]",
+                "devices": "(.devices | if type == \"array\" then . else [] end) | map(select(type == \"object\" and ($showOffline or .online))) | .[:$limit]",
                 "nameWidth": "[60, ((($devices | map(.name | length) | max) // 0) * 8.6 | ceil), 180] | sort | .[1]"
               },
               "children": [
-                { "type": "text", "when": ".state != \"Running\"", "text": "Tailscale is {{ .state | ascii_downcase }}", "style": { "size": 12, "color": "subtle" } },
+                { "type": "text", "when": ".state != null and .state != \"Running\"", "text": "Tailscale is {{ .state | ascii_downcase }}", "style": { "size": 12, "color": "subtle" } },
                 { "type": "list", "gap": 8, "width": "fill", "items": "$devices", "rowId": ".name",
                   "row": {
                     "type": "row", "gap": 10, "width": "fill",
@@ -434,8 +436,10 @@ extension DefaultPresets {
             },
             "widget": {
               "type": "stack", "gap": 9, "width": "fill",
+              "input": "if type == \"object\" then . + {services: ((.services | if type == \"array\" then . else [] end) | map(select(type == \"object\")))} else {services: []} end",
               "vars": {
                 "notice": ".notice",
+                "nameWidth": "[84, ((((.services // []) | map(.name | length) | max) // 0) * 7.2 | ceil), 170] | sort | .[1]",
                 "inc": "[(.services // [])[] | select(.incident != null) | .incident + {name: .name}] | sort_by(.at) | last",
                 "mins": "if $inc == null or $inc.seconds == null then null else ($inc.seconds / 60 | round) end",
                 "dur": "if $mins == null then \"\" elif $mins < 120 then \" \\($mins) min\" else \" \" + ($inc.seconds | fmt_duration(2)) end",
@@ -448,7 +452,7 @@ extension DefaultPresets {
                     "children": [
                       { "type": "icon", "name": "circle", "weight": "fill", "size": 7,
                         "color": { "expr": "if .state == \"down\" then \"bad\" elif .state == \"degraded\" or .state == \"maintenance\" or (.uptime != null and .uptime < $warnBelow) then \"warn\" elif .state == \"up\" then \"good\" else \"dim\" end" } },
-                      { "type": "text", "text": "{{ .name }}", "lines": 1, "width": 84 },
+                      { "type": "text", "text": "{{ .name }}", "lines": 1, "width": { "expr": "$nameWidth" } },
                       { "type": "bars", "when": ".days != null", "width": "fill", "height": 16, "gap": 2, "max": 1,
                         "values": ".days | map({value: 1, color: ({good: \"good@0.7\", warn: \"warn\", bad: \"bad\", none: \"track\"}[.] // \"track\")})" },
                       { "type": "text", "when": ".days == null", "width": "fill", "lines": 1,
@@ -479,7 +483,7 @@ extension DefaultPresets {
               "type": "stack", "gap": 9, "width": "fill",
               "source": { "type": "file", "path": { "param": "dir" }, "refresh": "30s", "when": "visible" },
               "vars": {
-                "jobs": "\#(jq(secondsDef)) map(((.lastRun // ._modified) | try to_epoch catch null) as $last | ((.expectEvery // $expectEvery) | secs) as $every | (.ok != false) as $ok | . + {last: $last, good: $ok, late: ($last == null or ($every != null and (now - $last) > $every)), over: (if $last != null and $every != null then now - $last - $every else null end)}) | map(. + {rank: (if .good | not then 0 elif .late then 1 else 2 end), label: (.name // ._file // \"job\")}) | sort_by([.rank, (.label | ascii_downcase)]) | .[:$limit]"
+                "jobs": "\#(jq(secondsDef)) (if type == \"array\" then map(select(type == \"object\")) else [] end) | map(((.lastRun // ._modified) | try to_epoch catch null) as $last | ((.expectEvery // $expectEvery) | secs) as $every | (.ok != false) as $ok | . + {last: $last, good: $ok, late: ($last == null or ($every != null and (now - $last) > $every)), over: (if $last != null and $every != null then now - $last - $every else null end)}) | map(. + {rank: (if .good | not then 0 elif .late then 1 else 2 end), label: (.name // ._file // \"job\")}) | sort_by([.rank, (.label | ascii_downcase)]) | .[:$limit]"
               },
               "children": [
                 { "type": "list", "gap": 9, "width": "fill", "items": "$jobs", "rowId": ".label",
@@ -514,7 +518,7 @@ extension DefaultPresets {
               "limit": { "type": "integer", "default": 6, "description": "Transfers shown" }
             },
             "widget": {
-              "type": "list", "gap": 10, "width": "fill", "items": ".", "limit": { "param": "limit" }, "rowId": ".name",
+              "type": "list", "gap": 10, "width": "fill", "items": "if type == \"array\" then map(select(type == \"object\")) else [] end", "limit": { "param": "limit" }, "rowId": ".name",
               "row": {
                 "type": "stack", "gap": 5, "width": "fill",
                 "vars": { "c": ".color // (if .percent != null and .percent >= 100 then \"good\" else \"accent\" end)" },

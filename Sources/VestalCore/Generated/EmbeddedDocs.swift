@@ -883,6 +883,7 @@ User: *"List my Docker containers; clicking one restarts it."*
 - `docker ps --format json` prints one JSON object per line: `parse: "lines"` then `transform: "map(fromjson)"`. The source is `visible`: docker is only asked while the dashboard is shown.
 - The row's `run` action restarts the container without a shell. `optimistic` shows it as restarting at once (it replaces the source's data until the next fetch), and the source is fetched again when `docker restart` exits.
 - Tell the user: a click restarts a container (there is no confirmation); `docker` must be on the daemon's PATH.
+- To only watch them, with state, CPU and memory, use the `containers` preset (`vestal docs presets`): `{"type": "containers"}`.
 
 ### Recipe `ai-usage`: Claude and Codex plan usage
 

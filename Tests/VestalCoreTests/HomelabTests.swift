@@ -156,14 +156,15 @@ final class HomelabTests: XCTestCase {
         XCTAssertEqual(number(services[0]["uptime"]), 100)
         XCTAssertEqual(number(services[1]["uptime"]) ?? 0, 99.91, accuracy: 0.0001)
         XCTAssertEqual(services[0]["incident"], .null)
-        // API: one failed beat among the last 45; Mail: nine, then fine.
+        // API: one failed beat among the last 45; Mail: nine pending ones, the 29th to the 37th.
         let api = (services[1]["days"]?.arrayValue ?? []).compactMap(\.stringValue)
         XCTAssertEqual(api.filter { $0 == "bad" }.count, 1)
         let mail = (services[3]["days"]?.arrayValue ?? []).compactMap(\.stringValue)
-        XCTAssertEqual(Array(mail.prefix(10)), Array(repeating: "bad", count: 9) + ["good"])
+        XCTAssertEqual(mail.filter { $0 == "warn" }.count, 9)
+        XCTAssertEqual(Array(mail[27...37]), ["good"] + Array(repeating: "warn", count: 9) + ["good"])
         let incident = try XCTUnwrap(services[3]["incident"]?.objectValue)
-        XCTAssertEqual(text(incident["status"]), "down")
-        XCTAssertEqual(number(incident["at"]), 1_790_515_200, "13:20 UTC")
+        XCTAssertEqual(text(incident["status"]), "degraded")
+        XCTAssertEqual(number(incident["at"]), 1_790_523_600, "15:40 UTC")
         XCTAssertEqual(number(incident["seconds"]), 2_700, "nine beats five minutes apart")
         XCTAssertEqual(bool(incident["ongoing"]), false)
     }
@@ -347,7 +348,7 @@ final class HomelabTests: XCTestCase {
 
     func testUptimeMonitorsWidget() throws {
         let picture = try render("uptimeMonitors")
-        for expected in ["Website", "Mail", "100.00%", "99.40%", "Mail: down 45 min,", "last 45 checks"] {
+        for expected in ["Website", "Mail", "100.00%", "99.40%", "Mail: degraded 45 min,", "last 45 checks"] {
             XCTAssertTrue(picture.contains(expected), "\(expected)\n\(picture)")
         }
     }
@@ -355,7 +356,7 @@ final class HomelabTests: XCTestCase {
     func testBackupsWidget() throws {
         let picture = try render("backups")
         let lines = picture.components(separatedBy: "\n")
-        for expected in ["Home to B2", "restic", "failed 1d ago · lock held by pid 4410", "Time Machine", "late by", "Postgres dump"] {
+        for expected in ["Home to B2", "restic", "failed 26h ago · lock held by pid 4410", "Time Machine", "late by", "Postgres dump"] {
             XCTAssertTrue(picture.contains(expected), "\(expected)\n\(picture)")
         }
         let failed = lines.firstIndex { $0.contains("Photos to nas") } ?? -1
@@ -367,6 +368,48 @@ final class HomelabTests: XCTestCase {
         let picture = try render("transfers")
         for expected in ["ubuntu-26.04-desktop-amd64.iso", "62%", "41M/s", "1m 10s left", "112 / 340 derivations", "done 2 min ago"] {
             XCTAssertTrue(picture.contains(expected), "\(expected)\n\(picture)")
+        }
+    }
+
+    /// Every preset with only its required parameters, on data: no diagnostics (an optional parameter
+    /// that is left out is not an undefined variable).
+    func testPresetsWithTheirDefaultsRenderCleanOnData() throws {
+        let config = #"""
+        {"version": 1,
+         "sources": {"status": {"type": "uptimeKuma", "url": "https://s.example", "slug": "x"}, "downloads": {"type": "aria2"}},
+         "widgets": {"c": {"type": "containers"}, "t": {"type": "tailnet"}, "m": {"type": "uptimeMonitors", "source": "status"},
+                     "b": {"type": "backups"}, "x": {"type": "transfers", "source": "downloads"}},
+         "views": {"main": {"children": ["c", "t", "m", "b", "x"]}}}
+        """#
+        let directory = try makeTemporaryDirectory()
+        let path = directory.appendingPathComponent("config.json")
+        try Data(config.utf8).write(to: path)
+        let data = directory.appendingPathComponent("data")
+        try FileManager.default.createDirectory(at: data, withIntermediateDirectories: true)
+        func put(_ fixture: String, as name: String) throws {
+            try Fixture.data("labs/\(fixture)").write(to: data.appendingPathComponent(name))
+        }
+        for (name, source) in ConfigExpansion.expand(try parse(config)).sources where name.hasPrefix("inline:") {
+            switch (source.type, source.argv?.dropFirst().first) {
+            case ("command", "ps"?): try put("docker-ps.txt", as: name + ".txt")
+            case ("command", "stats"?): try put("docker-stats.txt", as: name + ".txt")
+            case ("command", "status"?): try put("tailscale-status.json", as: name + ".json")
+            case ("file", _):
+                let jobs = try ["home-b2", "photos-nas"].map { try Fixture.data("labs/backups/\($0).json") }
+                    .map { try XCTUnwrap(AnyJSON.parse($0).successOrNil) }
+                try Data(AnyJSON.array(jobs).canonicalData()).write(to: data.appendingPathComponent(name + ".json"))
+            default: XCTFail("a source nobody expected: \(name) \(source.type)")
+            }
+        }
+        try put("kuma-both.json", as: "status.json")
+        try put("aria2-batch.json", as: "downloads.json")
+        let output = RenderCommands.render(
+            ["--config", path.path, "--data", data.path, "--at", "2026-09-27T17:03:22Z", "--format", "text", "--strict"],
+            platform: SourcePlatform(), client: { _, _ in throw IPCError.notRunning(path: "") },
+            cache: SnapshotCache(directory: try makeTemporaryDirectory().path))
+        XCTAssertEqual(output.status, 0, output.stdout + output.stderr)
+        for expected in ["jellyfin", "atlas", "Website", "Home to B2", "ubuntu-26.04-desktop-amd64.iso"] {
+            XCTAssertTrue(output.stdout.contains(expected), "\(expected)\n\(output.stdout)")
         }
     }
 
