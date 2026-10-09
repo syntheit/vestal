@@ -458,6 +458,8 @@ public final class RenderEngine {
                     ops.append(.popup(next.popup))
                 }
             }
+            // A background that reads data (load, weather, album art).
+            if previous.theme != next.theme { ops.append(.theme(next.theme)) }
             if previous.diagnostics != next.diagnostics { ops.append(.diagnostics(next.diagnostics)) }
             snapshot = next
             if !ops.isEmpty { send(.patch(RenderPatch(seq: seq, base: previous.seq, ops: ops))) }

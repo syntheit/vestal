@@ -179,6 +179,7 @@ in
         ../AGENTS.md
         ../Resources/icons
         ../Resources/samples
+        ../Resources/shaders
       ];
     };
     nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.python3 ];

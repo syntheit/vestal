@@ -245,6 +245,8 @@ public enum ConfigSchema {
             return ref("duration")
         case .oneOf(let values):
             return ["type": .string("string"), "enum": .array(values.map(AnyJSON.string))]
+        case .nameOrShape(let values, let name):
+            return ["anyOf": .array([.object(["type": .string("string"), "enum": .array(values.map(AnyJSON.string))]), .object(ref(name))])]
         case .list(let element):
             return ["type": .string("array"), "items": .object(typeSchema(element))]
         case .map(let value):

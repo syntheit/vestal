@@ -39,7 +39,7 @@ final class SchemaTests: XCTestCase {
                                                          "defaultView", "pages", "keys", "templates", "functions", "platform"])
         XCTAssertEqual(SchemaRegistry.shape("history").keyNames, ["value", "size", "every"])
         XCTAssertEqual(SchemaRegistry.shape("secret").keyNames, ["file", "env", "command"])
-        XCTAssertEqual(SchemaRegistry.shape("theme").keyNames, ["palette", "background", "dim", "backdrop", "blur", "palettes", "colors", "fonts", "font", "scale", "density", "icons"])
+        XCTAssertEqual(SchemaRegistry.shape("theme").keyNames, ["palette", "background", "dim", "backdrop", "blur", "backgroundFPS", "backgroundResolution", "palettes", "colors", "fonts", "font", "scale", "density", "icons"])
         XCTAssertEqual(SchemaRegistry.shape("view").keyNames, ["order", "layout", "children", "title", "key", "enabled", "columns", "gap",
                                                                "align", "padding", "maxWidth", "keys"])
         XCTAssertEqual(SchemaRegistry.shape("worldClock").keyNames, ["label", "tz"])

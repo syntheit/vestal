@@ -13,12 +13,13 @@ import VestalCore
 //   vestal render-file <model.json> [--patch <patch.json>]...
 //                      [--screenshot <out.png>] [--frames <out.json>]
 //                      [--size <w>x<h>] [--scale <n>] [--background solid|transparent]
-//                      [--icons native|phosphor]
+//                      [--icons native|phosphor] [--background-time <seconds>]
 //
 // The model is a snapshot message or a bare node (drawn with the default
 // theme). The patches are applied in order before the render. The picture is
 // the window's content over the palette's `bg` (the desktop blur and the
-// aurora can't be captured), 1512x982 points at scale 2 by default, like the
+// aurora can't be captured; a background of the library is drawn, at
+// `--background-time` seconds, 14 by default), 1512x982 points at scale 2 by default, like the
 // Linux screenshots. `--frames` writes every node's frame with `clipped` and
 // `truncated`.
 //
@@ -29,6 +30,7 @@ public enum MacRenderFileCommand {
     static let usage = """
     usage: vestal render-file <model.json> [--patch <patch.json>]... [--screenshot <out.png>] [--frames <out.json>]
                               [--size <w>x<h>] [--scale <n>] [--background solid|transparent] [--icons native|phosphor]
+                              [--background-time <seconds>]
     """
 
     struct Options {
@@ -41,6 +43,10 @@ public enum MacRenderFileCommand {
         var scale = 2.0
         var transparent = false
         var icons: String?
+        /// The shader time of a library background, and the hour of `sky`
+        /// (nil: the clock).
+        var backgroundTime = Backgrounds.Uniforms.stillTime
+        var hour: Double?
     }
 
     static func parse(_ arguments: [String]) -> Options? {
@@ -68,6 +74,9 @@ public enum MacRenderFileCommand {
                 case "transparent": o.transparent = true
                 default: return nil
                 }
+            case "--background-time":
+                guard let v = value().flatMap(Double.init), v >= 0, v < 1_000_000 else { return nil }
+                o.backgroundTime = v
             case "--icons":
                 guard let v = value(), v == "native" || v == "phosphor" else { return nil }
                 o.icons = v
@@ -147,9 +156,18 @@ public enum MacRenderFileCommand {
     static func draw(_ store: RenderStore, options: Options, collect: Bool = false, status: inout Int32) -> [RenderedFrame]? {
         let collector = options.frames != nil || collect ? FrameCollector() : nil
         let background = options.transparent ? Color.clear : store.style.rgba("bg").withAlpha(1).color
+        let library = options.transparent ? nil : libraryBackground(store, options: options)
         let content = RenderStageView(store: store)
             .environment(\.renderFrames, collector)
             .frame(width: CGFloat(options.width), height: CGFloat(options.height))
+            .background {
+                if let library {
+                    Image(decorative: library, scale: 1)
+                        .resizable()
+                        .interpolation(.high)
+                        .frame(width: CGFloat(options.width), height: CGFloat(options.height))
+                }
+            }
             .background(background)
             .environment(\.colorScheme, .dark)
         if !render(content, options: options, status: &status) { return nil }
@@ -166,6 +184,19 @@ public enum MacRenderFileCommand {
             }
         }
         return frames
+    }
+
+    /// A background of the library, drawn with Metal at its own resolution
+    /// (the aurora and the blur can't be captured). Nil for the others.
+    @MainActor
+    private static func libraryBackground(_ store: RenderStore, options: Options) -> CGImage? {
+        let theme = store.background
+        guard Backgrounds.isLibrary(theme.background) else { return nil }
+        let resolution = theme.backgroundResolution ?? Backgrounds.defaultResolution(theme.background)
+        let width = max(16, Int((options.width * options.scale * resolution).rounded()))
+        let height = max(10, Int((options.height * options.scale * resolution).rounded()))
+        return BackgroundOffscreen.image(theme, width: width, height: height, time: options.backgroundTime,
+                                         hour: options.hour ?? Backgrounds.hour(of: Date()))
     }
 
     /// Writes the PNG, if asked. False on failure (status set).

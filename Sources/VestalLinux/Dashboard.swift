@@ -205,6 +205,12 @@ public final class LinuxDashboard {
             case .popup(let popup):
                 stage.setPopup(popup)
             case .theme(let theme):
+                // A background that follows data (the load, the weather):
+                // only the background changes, not the look of the nodes.
+                if let before = snapshot?.theme, backgroundOnly(before, theme) {
+                    aurora.library = LibrarySettings(theme, still: Self.reducedMotion)
+                    continue
+                }
                 setTheme(theme)
                 stage.setRoot(model.root)
                 stage.setPopup(model.popup)
@@ -234,9 +240,17 @@ public final class LinuxDashboard {
         return true
     }
 
+    /// Whether `new` differs from `old` only in what the background reads.
+    private func backgroundOnly(_ old: RenderTheme, _ new: RenderTheme) -> Bool {
+        var same = old
+        same.backgroundParams = new.backgroundParams
+        return same == new
+    }
+
     private func setTheme(_ theme: RenderTheme) {
         context.theme = ThemeState(theme)
         aurora.ribbons = theme.background == "aurora"
+        aurora.library = LibrarySettings(theme, still: Self.reducedMotion)
         aurora.tint = context.theme.backdropTint
         // A reload away from `self` while shown drops the backdrop now; one
         // to `self` (or a new `blur`) takes effect at the next show, which
@@ -248,7 +262,7 @@ public final class LinuxDashboard {
         applyThemeCSS()
         updateAuroraVisibility()
         // A reload that changes the background while shown: animate or stop now.
-        if isVisible { aurora.ribbons || selfBackdrop ? aurora.start() : aurora.stop() }
+        if isVisible { aurora.animates || aurora.library != nil || selfBackdrop ? aurora.start() : aurora.stop() }
     }
 
     private func applyThemeCSS() {
@@ -260,7 +274,7 @@ public final class LinuxDashboard {
 
     /// The GL area draws the aurora, the self backdrop, or both.
     private func updateAuroraVisibility() {
-        let wanted = (context.theme.theme.background == "aurora" || selfBackdrop) && !aurora.failed
+        let wanted = (context.theme.theme.background == "aurora" || aurora.library != nil || selfBackdrop) && !aurora.failed
         gtk_widget_set_visible(aurora.widget, wanted ? 1 : 0)
     }
 
@@ -324,7 +338,7 @@ public final class LinuxDashboard {
         }
         gtk_widget_set_visible(window, 1)
         gtk_window_present(gtkWindow)
-        if aurora.ribbons || selfBackdrop { aurora.start() }
+        if aurora.animates || aurora.library != nil || selfBackdrop { aurora.start() }
         fade(to: 1, duration: animated ? 0.2 : 0, easeOut: true, then: nil)
     }
 

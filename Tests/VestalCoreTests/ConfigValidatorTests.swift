@@ -168,7 +168,7 @@ final class ConfigValidatorTests: XCTestCase {
         ])
         XCTAssertEqual(Set(found.map(\.kind)), [.invalidValue])
         XCTAssertEqual(found[1].message, "unknown value \"dracula\" (expected tokyo-night)")
-        XCTAssertEqual(found[2].message, "unknown value \"glass\" (expected aurora, blur or none)")
+        XCTAssertEqual(found[2].message, "unknown value \"glass\" (expected aurora, blur, none, mesh, topo, stars, flow, rain, plasma, grain, sky, weather, load or artmesh)")
     }
 
     func testWrongJSONTypes() {

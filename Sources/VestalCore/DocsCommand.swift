@@ -446,6 +446,7 @@ public enum DocsCommand {
         case .number: return "number"
         case .duration: return "duration"
         case .oneOf(let values): return values.map { "`\($0)`" }.joined(separator: ", ")
+        case .nameOrShape(let values, let name): return values.map { "`\($0)`" }.joined(separator: ", ") + " or a `\(name)` object"
         case .list(let element): return "list of \(describe(element))"
         case .map(let value): return "object of \(describe(value))"
         case .shape(let name): return "`\(name)` object"

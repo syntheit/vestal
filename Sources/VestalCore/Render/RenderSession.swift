@@ -95,6 +95,8 @@ public final class RenderSession {
 
     private var children: [RenderedChild] = []
     private var popupChild: RenderedChild?
+    /// The sources the background read in the last render.
+    private var backgroundSources: Set<String> = []
     private var renderedView: String?
     /// Key → node id of the last render (widget keys, popup first).
     public private(set) var widgetKeys: [String: String] = [:]
@@ -166,6 +168,15 @@ public final class RenderSession {
             }
         }
         let root = pass.root(spec, children: children)
+        // The library background's data, read again on every render.
+        var theme = model.theme
+        var backgroundDiagnostics: [RenderDiagnostic] = []
+        if let background = model.backgroundSpec, background.isDynamic {
+            let result = pass.renderBackground(background)
+            theme.backgroundParams = result.params
+            backgroundDiagnostics = result.diagnostics
+            backgroundSources = pass.sources.union(data.reads)
+        }
 
         // Keys and actions: popup first (popup keys first), then the view.
         var candidates: [KeyCandidate] = []
@@ -191,19 +202,21 @@ public final class RenderSession {
         }
         for child in children { diagnostics += child.diagnostics }
         if let popupChild { diagnostics += popupChild.diagnostics }
+        diagnostics += backgroundDiagnostics
 
         let renderedPopup = popup.flatMap { state in
             popupChild?.node.map { RenderPopup(width: state.width, node: $0) }
         }
         return RenderSnapshot(seq: 1, view: view, views: model.viewInfos,
                               pages: model.renderPages(view: view, direction: pageDirection),
-                              visible: true, theme: model.theme, root: root, popup: renderedPopup, diagnostics: diagnostics)
+                              visible: true, theme: theme, root: root, popup: renderedPopup, diagnostics: diagnostics)
     }
 
     /// Every source any root child or the popup read in the last render.
     public var sourcesRead: Set<String> {
         var all = Set<String>()
         for child in children { all.formUnion(child.sources) }
+        all.formUnion(backgroundSources)
         if let popupChild { all.formUnion(popupChild.sources) }
         return all
     }

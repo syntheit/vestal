@@ -135,8 +135,9 @@ extension ThemeConfig {
         Self.palettes.contains(palette) ? palette : Self.defaultPalette
     }
 
-    /// `background`, or the aurora for an unknown value (check-config warns).
+    /// `background`, or the aurora for an unknown value (check-config
+    /// warns). A background of the shader library is drawn over the blur.
     public var backgroundStyle: Background {
-        Background(rawValue: background) ?? .aurora
+        Background(rawValue: background) ?? (Backgrounds.isLibrary(background) ? .blur : .aurora)
     }
 }

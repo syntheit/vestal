@@ -33,6 +33,8 @@ public indirect enum SchemaType: Equatable, Sendable {
     case duration
     /// One of these strings.
     case oneOf([String])
+    /// One of these strings, or an object of the named shape.
+    case nameOrShape([String], String)
     case list(SchemaType)
     /// An object with free keys, every value of this type.
     case map(SchemaType)
@@ -201,8 +203,11 @@ public enum SchemaRegistry {
         SchemaShape("theme", "Palette and background.", keys: [
             SchemaKey("palette", .string, default: .string("tokyo-night"), examples: [.string("tokyo-night")],
                       "The colour palette: tokyo-night, or a key of palettes. An unknown name falls back to tokyo-night."),
-            SchemaKey("background", .oneOf(ThemeConfig.backgrounds), default: .string("aurora"), examples: [.string("blur")],
-                      "aurora: the animated aurora over the blurred desktop. blur: the blurred desktop only. none: the palette's solid background."),
+            SchemaKey("background", .nameOrShape(Backgrounds.names, "background"), default: .string("aurora"),
+                      examples: [.string("blur"), .object(["type": .string("sky")])],
+                      "aurora: the animated aurora over the blurred desktop. blur: the blurred desktop only. none: the palette's "
+                      + "solid background. Or a background of the library: mesh, topo, stars, flow, rain, plasma, grain, sky, "
+                      + "weather, load, artmesh (`vestal docs styling`), written as a name or as an object with `type` and its parameters."),
             SchemaKey("dim", .number, since: "0.4", examples: [.double(0.8)],
                       "0 to 1: the opacity of the palette's bg over the blurred desktop, for aurora and blur. Default: 0.5 on "
                       + "Linux; on macOS none (the material's own tint). About 0.75 to 0.85 hides busy windows behind."),
@@ -212,6 +217,12 @@ public enum SchemaRegistry {
                       + "compositor can capture the screen, else compositor. macOS ignores it."),
             SchemaKey("blur", .number, since: "0.4", examples: [.int(64)],
                       "Linux, backdrop self: the blur's radius in points, 0 to 200. Default 48."),
+            SchemaKey("backgroundFPS", .integer(minimum: 1, maximum: 60), default: .int(Backgrounds.defaultFPS), since: "0.4",
+                      examples: [.int(20)],
+                      "Frames a second of a library background (not the aurora, which draws at the display's rate). Lower is cheaper."),
+            SchemaKey("backgroundResolution", .number, since: "0.4", examples: [.double(0.5)],
+                      "The share of the screen's pixels a library background renders at, 0.1 to 1; it is scaled up to fit. "
+                      + "Default: per background, from 0.25 (mesh, plasma) to 0.9 (grain)."),
             SchemaKey("palettes", .map(.shape("palette")), since: "0.4",
                       examples: [.object(["ember": .object(["extends": .string("tokyo-night"), "colors": .object(["accent": .string("#ff9e64")])])])],
                       "User palettes: name → extends and colors."),
@@ -231,6 +242,22 @@ public enum SchemaRegistry {
             SchemaKey("icons", .oneOf(["native", "phosphor"]), since: "0.4", examples: [.string("phosphor")],
                       "native: the macOS UI draws the presets' icons as SF Symbols (the default on macOS). phosphor: the bundled "
                       + "Phosphor font everywhere."),
+        ]),
+        SchemaShape("background", "A library background with parameters; theme.background takes this or just a name.", keys: [
+            SchemaKey("type", .oneOf(Backgrounds.names), required: true, since: "0.4", examples: [.string("mesh")],
+                      "Which background."),
+            SchemaKey("colors", .list(.string), since: "0.4", examples: [.array([.string("#1e2a62"), .string("purple")])],
+                      "mesh (and artmesh without artwork): up to four colours (hex or palette names); fewer repeat."),
+            SchemaKey("source", .string, since: "0.4", examples: [.string("system")],
+                      "load, weather, artmesh: the source value, condition and artwork read. Default: system, weather, media."),
+            SchemaKey("value", .string, kind: .expr, since: "0.4", examples: [.string(".cpu.percent")],
+                      "load: an expression over the source giving 0 to 100 (shown as 0 to 1). Default .cpu.percent."),
+            SchemaKey("condition", .string, kind: .expr, since: "0.4", examples: [.string(".current_condition[0].weatherCode")],
+                      "weather: clear, rain, snow or storm written as is, or an expression over the source giving one of those, "
+                      + "a description in words, or a WMO or wttr.in weather code. Default .current_condition[0].weatherCode."),
+            SchemaKey("artwork", .string, kind: .expr, since: "0.4", examples: [.string(".artwork")],
+                      "artmesh: an expression over the source giving a picture's path or URL, whose colours the mesh takes. "
+                      + "Default .artwork. Without a picture the mesh keeps its default colours."),
         ]),
         SchemaShape("pages", "Paging between views. A page is an enabled view; the dots show when there are two or more.", keys: [
             SchemaKey("order", .list(.string), since: "0.4", examples: [.array([.string("main"), .string("focus")])],

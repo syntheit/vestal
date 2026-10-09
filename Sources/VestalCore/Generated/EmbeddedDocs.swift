@@ -1145,9 +1145,9 @@ Everything about one widget, for "why is it missing or wrong": its template chai
 
 Says what a key is bound to and what it would do, without running anything and without an instance: the binding's level (`reserved`, `popup`, `widget` with its node id, `view`, `global`, `view-key`, `tab`), the action as written, and each effect (`run [argv]…`, `open <url>`, `copy "…"`, `refresh …`, `media …`, `audio …`, `hide the dashboard`, `show view …`, `open a popup`). `--press` presses keys first (open a popup, switch views). Exit 1 when the key is unbound.
 
-`vestal screenshot <out.png|-> [--view <name>] [--press <key>]... [--config <path>|-] [--cached|--fetch|--data <dir>] [--at <time>] [--size <w>x<h>] [--scale <n>] [--background solid|transparent] [--frames <file.json>] [--json] [--strict]`
+`vestal screenshot <out.png|-> [--view <name>] [--press <key>]... [--config <path>|-] [--cached|--fetch|--data <dir>] [--at <time>] [--size <w>x<h>] [--scale <n>] [--background solid|transparent] [--frames <file.json>] [--json] [--strict] [--background-time <seconds>]`
 
-The same render as `vestal render`, drawn by the dashboard's own renderer. macOS: offscreen with the SwiftUI renderer, into a PNG. It needs no window, no running instance and no screen-recording permission, and shows nothing. The data is `vestal render`'s. The blur and the aurora can't be captured: the background is the palette's `bg`, or transparent. `--size` defaults to the main screen in points, `--scale` to 2. `--frames` also writes every node's frame with `clipped` and `truncated` flags (`-` as the PNG path writes only the frames). It prints the path, or with `--json` `{"path", "width", "height", "scale", "clipped", "truncated"}`. Linux: the same, drawn offscreen by the GTK UI: by the running dashboard when one answers (from any shell, SSH included; while it is hidden nothing appears on screen, and while it is shown the model is drawn in place for a moment, normally the same picture), else by this process, which needs a Wayland session (exit 5 without one) and maps its own window for about a second. Either way it draws the screen as it is, so `--size`, `--scale` and `--background` are macOS-only (exit 2) and the reported size is the PNG's in pixels (scale 1). The GTK UI draws its aurora into the PNG; the compositor's blur is never captured.
+The same render as `vestal render`, drawn by the dashboard's own renderer. macOS: offscreen with the SwiftUI renderer, into a PNG. It needs no window, no running instance and no screen-recording permission, and shows nothing. The data is `vestal render`'s. The blur and the aurora can't be captured: the background is the palette's `bg`, or transparent; a background of the library (`theme.background`: `mesh`, `sky`, ...) is drawn over it, frozen at `--background-time` seconds (default 14), with `sky` at the hour of `--at`. `--size` defaults to the main screen in points, `--scale` to 2. `--frames` also writes every node's frame with `clipped` and `truncated` flags (`-` as the PNG path writes only the frames). It prints the path, or with `--json` `{"path", "width", "height", "scale", "clipped", "truncated"}`. Linux: the same, drawn offscreen by the GTK UI: by the running dashboard when one answers (from any shell, SSH included; while it is hidden nothing appears on screen, and while it is shown the model is drawn in place for a moment, normally the same picture), else by this process, which needs a Wayland session (exit 5 without one) and maps its own window for about a second. Either way it draws the screen as it is, so `--size`, `--scale` and `--background` are macOS-only (exit 2) and the reported size is the PNG's in pixels (scale 1). The GTK UI draws its aurora into the PNG; the compositor's blur is never captured.
 
 `vestal gallery [--out <dir>] [--only <name>...] [--scale <n>] [--samples <dir>] [--json]`
 
@@ -3287,7 +3287,9 @@ Hacker News through Algolia rather than the Firebase API or `hnrss.org`: Firebas
 | Key | Default | |
 |---|---|---|
 | `palette` | `tokyo-night` | A built-in palette or a key of `palettes`. |
-| `background` | `aurora` | `aurora` (animated, over the blurred desktop), `blur` (the blurred desktop) or `none` (the palette's `bg`). A UI that can't draw the aurora draws `blur`. |
+| `background` | `aurora` | `aurora` (animated, over the blurred desktop), `blur` (the blurred desktop), `none` (the palette's `bg`), or a background of the library ([below](#backgrounds)) as a name or an object `{ "type": ..., ... }`. A UI that can't draw the aurora draws `blur`. |
+| `backgroundFPS` | `30` | Frames a second of a library background, 1 to 60 (not the aurora, which draws at the display's rate). |
+| `backgroundResolution` | per background | The share of the screen's pixels a library background renders at, 0.1 to 1, scaled up to fit. The default is in the table below. |
 | `dim` | Linux `0.5`, macOS none | 0 to 1: the opacity of the palette's `bg` over the blurred desktop, for `aurora` and `blur`. About `0.75` to `0.85` hides busy windows behind the dashboard. macOS by default keeps the material's own tint; set, it adds `bg` over it. On Linux it lies over vestal's own blur (`backdrop` `self`), or over the compositor's (`compositor`), where it is the knob for how much shows through: Hyprland can't set blur strength per layer, and below its `ignore_alpha` (0.3 by default) it blurs only behind the aurora's ribbons, not the tint (check-config warns). Clamped to 0 to 1. |
 | `backdrop` | Linux `self` | Linux only (macOS ignores it). `self`: vestal captures the output it is about to cover right before it shows and blurs it itself, heavily, under `bg` at `dim` (the window is opaque). `compositor`: a translucent window over the compositor's blur. `none`: translucent, no blur. Without screen capture (`ext-image-copy-capture-v1` or `wlr-screencopy-unstable-v1`) a show falls back to `compositor`. |
 | `blur` | `48` | Linux, `backdrop` `self`: the blur radius in points, 0 to 200. |
@@ -3316,6 +3318,51 @@ Fonts are the usual reason for a `platform` block:
 | `rounded` | SF Pro Rounded | same as `sans` |
 
 A missing family falls back to the default.
+
+## Backgrounds
+
+`theme.background` takes `aurora`, `blur`, `none` and these, drawn over the blurred desktop (`theme.dim` tints it as for the aurora). Each is a fragment shader (`Resources/shaders`, the same on macOS and Linux) rendered at a reduced resolution and scaled up. None draws while the dashboard is hidden: the frame loop stops, so the cost is zero. With reduced motion on (macOS "Reduce motion", GTK animations off) a library background draws one still frame.
+
+| Name | Feel | Cost | Resolution | Parameters |
+|---|---|---|---|---|
+| `mesh` | Four soft colour fields drifting over minutes; fills the screen. | low | 0.25 | `colors`: up to four colours (hex or palette names; fewer repeat). Default `#1e2a62 #4a2a72 #164f5c #5a2448`. |
+| `topo` | Contour lines of slowly shifting terrain, every fifth brighter. | medium | 0.6 | none |
+| `stars` | Three depths of stars drifting sideways. Near-black stays near-black. | low | 0.8 | none |
+| `flow` | Short comet trails carried along an invisible current. The busiest. | medium | 0.6 | none |
+| `rain` | Drops sliding down a pane over out-of-focus city lights. Dense near the text. | high | 0.45 | none |
+| `plasma` | Very low-contrast interference bands in blue and violet. | low | 0.25 | none |
+| `grain` | Film grain and darker corners; almost no motion. | low | 0.9 | none |
+| `sky` | Sky colour, sun or moon and stars follow the local clock: navy at night, amber at dusk. | low | 0.5 | none |
+| `weather` | Rain, snow, a storm with lightning, or a clear-day haze. | medium | 0.7 | `source`, `condition` |
+| `load` | The aurora, thicker, warmer and faster as the load rises. | low | 0.35 | `source`, `value` |
+| `artmesh` | The mesh coloured from the playing track's artwork. | low | 0.25 | `source`, `artwork`, `colors` |
+
+```json
+{ "theme": { "background": "sky" } }
+```
+
+```json
+{ "theme": { "background": { "type": "mesh", "colors": ["#1e2a62", "purple", "teal", "#5a2448"] }, "backgroundFPS": 20 } }
+```
+
+```json
+{ "theme": { "background": { "type": "load", "source": "system", "value": ".cpu.percent" } } }
+```
+
+```json
+{ "theme": { "background": { "type": "weather", "source": "weather", "condition": ".current_condition[0].weatherCode" } } }
+```
+
+```json
+{ "theme": { "background": { "type": "artmesh", "source": "media" } } }
+```
+
+The data-driven ones read a source through the render engine: `value`, `condition` and `artwork` are expressions over the source's data (as in a widget with that `source`), evaluated again whenever the source updates; the background never polls. Without data yet they draw their idle look (load 0, clear weather, the default mesh colours).
+
+- `load`: `value` gives 0 to 100 (shown as 0 to 1). Default source `system`, value `.cpu.percent`. Time runs at 0.5 + 3.2 times the load.
+- `weather`: `condition` is `clear`, `rain`, `snow` or `storm` written as is, or an expression giving one of those, a description in words (thunder or storm, then snow, sleet, ice, hail or blizzard, then rain, drizzle or shower; anything else is clear: "Light rain shower", "Partly cloudy"), or a weather code. Codes below 100 are WMO (Open-Meteo): 0 to 48 clear (cloud, fog), 51 to 67 and 80 to 82 rain, 71 to 77 and 85, 86 snow, 95 to 99 storm. Codes from 100 are World Weather Online's (wttr.in's `weatherCode`): 113 to 122, 143, 248, 260 clear; 176, 182, 185, 263 to 314, 353 to 359 rain; 179, 227, 230, 317 to 338, 350, 362 to 377 snow; 200, 386 to 395 storm. Default source `weather` (the built-in wttr.in one), condition `.current_condition[0].weatherCode`.
+- `artmesh`: `artwork` gives a picture's file path or an http(s) URL (fetched once and cached, as for `image` widgets); the mesh takes four colours from its quadrants, darkened to keep white text readable. Default source `media`, artwork `.artwork`. When the media source has no `artwork` field, or the picture isn't there yet, the mesh keeps its default colours (`#2a1e4f #6a2f63 #a0504a #b07a4a`, or `colors`).
+- `sky` follows the local clock (a table of colours by hour, darkened for text); it reads no source.
 
 ## Colours
 

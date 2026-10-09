@@ -14,6 +14,8 @@ import VestalCore
 // tick callback queues one frame per display refresh, and `stop()` removes
 // it, so a hidden dashboard draws nothing. Without GL (no EGL, or a context
 // that fails) the area hides itself and the background is the plain blur.
+// A background of the library (BackgroundLibrary.swift) takes the ribbons'
+// place in the same area, drawn at theme.backgroundFPS.
 //
 // With a self-blurred backdrop (`theme.backdrop: "self"`, SelfBlur.swift)
 // the same pass draws, under the ribbons, the output's blurred screenshot
@@ -41,6 +43,20 @@ final class AuroraArea {
     var ribbons = true {
         didSet { if ribbons != oldValue, running { stop(); start() } }
     }
+    /// A background of the library instead of the ribbons.
+    var library: LibrarySettings? {
+        didSet {
+            guard library != oldValue else { return }
+            if running, library?.fps != oldValue?.fps || library?.still != oldValue?.still || (library == nil) != (oldValue == nil) {
+                stop(); start()
+            }
+            gtk_gl_area_queue_render(area)
+        }
+    }
+    private let libraryPass = LibraryPass()
+    /// Whether frames keep coming (the ribbons, or a library background
+    /// that isn't still).
+    var animates: Bool { ribbons || (library.map { !$0.still } ?? false) }
     /// The palette's `bg`, and how much of it covers the backdrop.
     var tint = RGBA.clear {
         didSet { if tint != oldValue { gtk_gl_area_queue_render(area) } }
@@ -85,8 +101,27 @@ final class AuroraArea {
     func start() {
         running = true
         guard !failed else { return }
-        guard ribbons else { return gtk_gl_area_queue_render(area) }
+        guard animates else { return gtk_gl_area_queue_render(area) }
         guard tickId == 0 else { return }
+        if let library {
+            // At most `fps` frames a second: the tick comes with every
+            // display refresh and queues a frame when one is due.
+            let interval = 1_000_000 / max(library.fps, 1)
+            var last = 0
+            let due: () -> Void = { [weak self] in
+                guard let self else { return }
+                let now = g_get_monotonic_time()
+                guard now - last >= interval * 9 / 10 else { return }
+                last = now
+                gtk_gl_area_queue_render(self.area)
+            }
+            let tick: GtkTickCallback = { _, _, data in
+                Box<() -> Void>.from(data)()
+                return 1
+            }
+            tickId = gtk_widget_add_tick_callback(widget, tick, Box(due).retained(), releaseBox)
+            return
+        }
         let tick: GtkTickCallback = { widget, _, _ in
             gtk_gl_area_queue_render(cast(UnsafeMutableRawPointer(widget)))
             return 1 // G_SOURCE_CONTINUE
@@ -152,6 +187,7 @@ final class AuroraArea {
         gtk_gl_area_make_current(area)
         guard gtk_gl_area_get_error(area) == nil else { return }
         blur.destroy()
+        libraryPass.destroy()
         if program != 0 { epoxy_glDeleteProgram!(program); program = 0 }
         if vao != 0 { epoxy_glDeleteVertexArrays!(1, &vao); vao = 0 }
         // A backdrop set while realized is gone with its texture; the next
@@ -165,6 +201,7 @@ final class AuroraArea {
             pendingCapture = nil
             blurBackdrop(capture)
         }
+        if let library, drawLibrary(library) { return }
         epoxy_glClearColor!(0, 0, 0, 0)
         epoxy_glClear!(GLbitfield(GL_COLOR_BUFFER_BIT))
         epoxy_glDisable!(GLenum(GL_BLEND))
@@ -187,6 +224,27 @@ final class AuroraArea {
         epoxy_glBindVertexArray!(0)
         epoxy_glBindTexture!(GLenum(GL_TEXTURE_2D), 0)
         epoxy_glUseProgram!(0)
+    }
+
+    /// A frame of the library background; false when it can't be drawn (the
+    /// shader failed: the ribbons' pass draws instead, with `ribbons` off).
+    private func drawLibrary(_ settings: LibrarySettings) -> Bool {
+        if let error = libraryPass.prepare(header: header, name: settings.name) {
+            uiLog("linux ui: can't draw the \(settings.name) background (\(error.description)); drawing the plain background")
+            library = nil
+            return false
+        }
+        let scale = Double(gtk_widget_get_scale_factor(widget))
+        let backdrop = hasBackdrop && blur.texture != 0
+        epoxy_glBindVertexArray!(vao)
+        let drawn = libraryPass.draw(settings, vao: vao, width: Int(Double(gtk_widget_get_width(widget)) * scale),
+                                     height: Int(Double(gtk_widget_get_height(widget)) * scale),
+                                     backdrop: backdrop ? blur.texture : 0, tint: tint)
+        if !drawn {
+            uiLog("linux ui: can't draw the \(settings.name) background (no render target); drawing the plain background")
+            library = nil
+        }
+        return drawn
     }
 
     private func location(_ name: String) -> GLint { epoxy_glGetUniformLocation!(program, name) }

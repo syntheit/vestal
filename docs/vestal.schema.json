@@ -1,5 +1,107 @@
 {
   "$defs": {
+    "background": {
+      "additionalProperties": false,
+      "description": "A library background with parameters; theme.background takes this or just a name.",
+      "properties": {
+        "artwork": {
+          "description": "artmesh: an expression over the source giving a picture's path or URL, whose colours the mesh takes. Default .artwork. Without a picture the mesh keeps its default colours.",
+          "examples": [
+            ".artwork"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "colors": {
+          "description": "mesh (and artmesh without artwork): up to four colours (hex or palette names); fewer repeat.",
+          "examples": [
+            [
+              "#1e2a62",
+              "purple"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "condition": {
+          "description": "weather: clear, rain, snow or storm written as is, or an expression over the source giving one of those, a description in words, or a WMO or wttr.in weather code. Default .current_condition[0].weatherCode.",
+          "examples": [
+            ".current_condition[0].weatherCode"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "description": "load, weather, artmesh: the source value, condition and artwork read. Default: system, weather, media.",
+          "examples": [
+            "system"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "Which background.",
+          "enum": [
+            "aurora",
+            "blur",
+            "none",
+            "mesh",
+            "topo",
+            "stars",
+            "flow",
+            "rain",
+            "plasma",
+            "grain",
+            "sky",
+            "weather",
+            "load",
+            "artmesh",
+            null
+          ],
+          "examples": [
+            "mesh"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "value": {
+          "description": "load: an expression over the source giving 0 to 100 (shown as 0 to 1). Default .cpu.percent.",
+          "examples": [
+            ".cpu.percent"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "type": "object"
+    },
     "computed": {
       "additionalProperties": false,
       "description": "A value computed at render by a jq expression.",
@@ -7042,23 +7144,70 @@
           "x-vestal-since": "0.4"
         },
         "background": {
+          "anyOf": [
+            {
+              "enum": [
+                "aurora",
+                "blur",
+                "none",
+                "mesh",
+                "topo",
+                "stars",
+                "flow",
+                "rain",
+                "plasma",
+                "grain",
+                "sky",
+                "weather",
+                "load",
+                "artmesh"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/background"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": "aurora",
-          "description": "aurora: the animated aurora over the blurred desktop. blur: the blurred desktop only. none: the palette's solid background.",
-          "enum": [
-            "aurora",
-            "blur",
-            "none",
-            null
-          ],
+          "description": "aurora: the animated aurora over the blurred desktop. blur: the blurred desktop only. none: the palette's solid background. Or a background of the library: mesh, topo, stars, flow, rain, plasma, grain, sky, weather, load, artmesh (`vestal docs styling`), written as a name or as an object with `type` and its parameters.",
           "examples": [
-            "blur"
-          ],
-          "type": [
-            "string",
-            "null"
+            "blur",
+            {
+              "type": "sky"
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
+        },
+        "backgroundFPS": {
+          "default": 30,
+          "description": "Frames a second of a library background (not the aurora, which draws at the display's rate). Lower is cheaper.",
+          "examples": [
+            20
+          ],
+          "maximum": 60,
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "backgroundResolution": {
+          "description": "The share of the screen's pixels a library background renders at, 0.1 to 1; it is scaled up to fit. Default: per background, from 0.25 (mesh, plasma) to 0.9 (grain).",
+          "examples": [
+            0.5
+          ],
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
         },
         "blur": {
           "description": "Linux, backdrop self: the blur's radius in points, 0 to 200. Default 48.",
