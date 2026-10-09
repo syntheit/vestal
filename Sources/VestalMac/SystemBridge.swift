@@ -250,12 +250,20 @@ enum SystemBridge {
 
     // MARK: - Media player (via AppleScript, in-process)
 
+    /// Runs `source`, compiled once: compiling is most of what a short
+    /// script costs. Only on `appleScriptQueue`, which owns the cache.
     static func runAppleScript(_ source: String) -> String? {
-        let script = NSAppleScript(source: source)
         var error: NSDictionary?
-        let result = script?.executeAndReturnError(&error)
-        return result?.stringValue
+        if let script = compiledScripts[source] {
+            return script.executeAndReturnError(&error).stringValue
+        }
+        guard let script = NSAppleScript(source: source) else { return nil }
+        if script.compileAndReturnError(&error), compiledScripts.count < 32 { compiledScripts[source] = script }
+        return script.executeAndReturnError(&error).stringValue
     }
+
+    /// Compiled scripts by their source (a few per player).
+    private static var compiledScripts: [String: NSAppleScript] = [:]
 
     // MARK: - CoreAudio (direct, no AppleScript)
 
