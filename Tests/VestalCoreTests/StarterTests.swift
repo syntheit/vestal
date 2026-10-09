@@ -93,7 +93,7 @@ final class StarterTests: XCTestCase {
         XCTAssertEqual(result.status, 0)
         let lines = result.stdout.split(separator: "\n").map(String.init)
         XCTAssertEqual(lines.count, Self.ids.count)
-        XCTAssertTrue(lines[0].hasPrefix("default  Default"), lines[0])
+        XCTAssertTrue(lines[0].hasPrefix("default  Default "), lines[0])
         XCTAssertTrue(lines.contains { $0.hasPrefix("developer") && $0.contains("Reviews waiting on you") })
     }
 
