@@ -17,11 +17,8 @@ export TZ=UTC VESTAL_LOCALE=en_US@hours=h23 VESTAL_FONT_DIRS=Resources/icons
   --only starter-minimal starter-developer starter-media \
          starter-homelab starter-markets starter-agentops >/dev/null
 
-# Hero: the default starter at screen size. The offscreen renderer cannot
-# draw the aurora (see `vestal docs cli`), so the mesh background stands in.
-sed 's/"background": "aurora"/"background": "mesh"/' \
-  Resources/samples/starter-default/config.json > "$TMP/hero.json"
-"$BIN" screenshot "$TMP/hero-full.png" --config "$TMP/hero.json" \
+# Hero: the default starter at screen size, with its aurora.
+"$BIN" screenshot "$TMP/hero-full.png" --config Resources/samples/starter-default/config.json \
   --data Resources/samples/starter-default/data \
   --at 2026-09-27T17:03:22Z --size 1512x982 --scale 2 >/dev/null
 sips --resampleWidth 2000 "$TMP/hero-full.png" --out "$OUT/hero.png" >/dev/null
