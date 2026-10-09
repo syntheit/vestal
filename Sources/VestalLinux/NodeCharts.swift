@@ -204,7 +204,10 @@ enum TextureFiles {
         if let entry = entries[path], entry.modified == modified { return entry.texture }
         var error: UnsafeMutablePointer<GError>?
         guard let loaded = gdk_texture_new_from_filename(path, &error) else {
-            if let error { g_error_free(error) }
+            if let error {
+                uiLog("linux ui: image \(path): \(String(cString: error.pointee.message))")
+                g_error_free(error)
+            }
             return nil
         }
         let texture: OpaquePointer = loaded
