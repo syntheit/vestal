@@ -71,4 +71,4 @@ Keep the data realistic and generic: no personal names, hosts or places beyond a
 2. `vestal gallery --only <name> --out /tmp/gallery` and look at the PNG: nothing empty, clipped or showing placeholders.
 3. `swift test` (SampleTests): every user-facing preset has a sample, every config checks with no errors, and every render has no diagnostics.
 
-Presets that are only parts of another preset (`claudeItem`, `aiWindow`, `aiPlanService`, `hostDetail`) or a source (`foyer`, `openMeteo`) have no sample of their own; the samples of the presets that use them cover them (`SampleLibrary.helpers`).
+Presets that are only parts of another preset (`claudeItem`, `aiWindow`, `aiPlanService`, `hostDetail`) or a source (`foyer`, `openMeteo`, `github`, the homelab data packs and `hackerNews`, `lobsters`, `rssFeed`, `coingecko`, `yahooQuotes`, `haStates`) have no sample of their own; the samples of the presets that use them cover them (`SampleLibrary.helpers`).

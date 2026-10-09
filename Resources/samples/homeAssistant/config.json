@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "secrets": {
+    "homeAssistant": {
+      "env": "HOME_ASSISTANT_TOKEN"
+    }
+  },
+  "sources": {
+    "ha": {
+      "type": "haStates",
+      "url": "http://homeassistant.local:8123"
+    }
+  },
+  "widgets": {
+    "homeAssistant": {
+      "type": "homeAssistant",
+      "source": "ha",
+      "entities": [
+        {
+          "id": "sensor.living_room_temperature",
+          "label": "Living room",
+          "attribute": "humidity",
+          "attributeUnit": "%",
+          "attributeLabel": "humidity",
+          "precision": 1
+        },
+        {
+          "id": "sensor.solar_power",
+          "label": "Solar",
+          "icon": "lightning",
+          "color": "good",
+          "attribute": "export",
+          "attributeUnit": " kW",
+          "attributeLabel": "exporting"
+        },
+        {
+          "id": "lock.front_door",
+          "label": "Front door",
+          "icon": "shield-check",
+          "since": true
+        },
+        {
+          "id": "sensor.washer_remaining",
+          "label": "Washer",
+          "icon": "drop",
+          "color": "accent",
+          "attribute": "cycle"
+        },
+        {
+          "id": "sensor.lights_on",
+          "label": "Lights on",
+          "icon": "lightbulb",
+          "thresholds": [
+            [
+              0,
+              "text"
+            ],
+            [
+              1,
+              "warn"
+            ]
+          ],
+          "attribute": "rooms"
+        },
+        {
+          "id": "sensor.air_pm25",
+          "label": "Air (PM2.5)",
+          "icon": "wifi-high",
+          "attribute": "quality"
+        }
+      ]
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "homeAssistant"
+      ],
+      "padding": 24
+    }
+  }
+}

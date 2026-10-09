@@ -586,7 +586,7 @@ public enum DefaultPresets {
         guard case .success(let tree) = AnyJSON.parse(Data(expandedJSON.utf8)) else { return .object([:]) }
         // The presets of the other files in this enum.
         var merged = tree.objectValue ?? [:]
-        for extra in [systemTree, timeTree, devTree, labTree] { merged.merge(extra.objectValue ?? [:]) { first, _ in first } }
+        for extra in [systemTree, timeTree, devTree, labTree, feedsTree] { merged.merge(extra.objectValue ?? [:]) { first, _ in first } }
         return .object(merged)
     }()
 }

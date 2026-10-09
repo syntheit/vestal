@@ -327,7 +327,7 @@ This machine, with the same keys on macOS and Linux; a value the machine can't r
 
 ### `media`
 
-One music player: `{player, state, title, artist, album, position, duration, players}`. `state` is `playing`, `paused`, `stopped` or `off` (not running, or nothing loaded). `players` lists the players this machine can see now, which are the values `player` accepts.
+One music player: `{player, state, title, artist, album, artwork, position, duration, players}`. `artwork` is the cover for an `image` widget (a file path or an http(s) URL, or `null`): Spotify's image URL; for Music, a file vestal writes once per track under `artwork/` in its cache directory; on Linux, MPRIS's `mpris:artUrl` (a `file://` URL as a path). `state` is `playing`, `paused`, `stopped` or `off` (not running, or nothing loaded). `players` lists the players this machine can see now, which are the values `player` accepts.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -379,7 +379,7 @@ The inputs a Nix flake has locked, from `nix flake metadata --json <path>` (the 
 
 ### Source templates
 
-A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in ones are the data packs of the [homelab presets](#homelab-presets) (`dockerPs`, `dockerStats`, `tailscaleStatus`, `uptimeKuma`, `healthchecks`, `aria2`), **`openMeteo`** (`{"type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric"}`: an [Open-Meteo](https://open-meteo.com/) forecast, free and keyless, for the `forecast` preset) and **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). **`diskUsage`** reads the size of each of a list of paths with `du -sk`, once a day, for `diskBreakdown`: `{"type": "diskUsage", "paths": [{"label": "Developer", "path": "~/Developer"}]}` (`vestal docs source/diskUsage`; it runs `sh` and `du`). Any other health agent can be mapped the same way with a template of your own. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
+A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in ones are the data packs of the [homelab presets](#homelab-presets) (`dockerPs`, `dockerStats`, `tailscaleStatus`, `uptimeKuma`, `healthchecks`, `aria2`), **`openMeteo`** (`{"type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric"}`: an [Open-Meteo](https://open-meteo.com/) forecast, free and keyless, for the `forecast` preset) and **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). **`diskUsage`** reads the size of each of a list of paths with `du -sk`, once a day, for `diskBreakdown`: `{"type": "diskUsage", "paths": [{"label": "Developer", "path": "~/Developer"}]}` (`vestal docs source/diskUsage`; it runs `sh` and `du`). Any other health agent can be mapped the same way with a template of your own. Six more read free APIs for the feed and market presets (their keys, endpoints and data shapes are in `vestal docs sources`, "Data packs"): `hackerNews` (`count`), `lobsters`, `rssFeed` (`url`, `name`), `coingecko` (`coins`, `currency`), `yahooQuotes` (`symbols`, `interval`) and `haStates` (`url`, `entities`). A template's data parameters are `$name` variables in `url`, `headers`, `body` and `transform`. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
 
 ## Secrets
 
@@ -888,6 +888,60 @@ New in 0.4: `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`. The f
 | `ciStatus` | The latest Actions results per repository and branch: a state icon, the last results as cells, the newest one's duration. One GraphQL request for all repositories. | `repos` (required: `"owner/name"` or `"owner/name@branch"`), `runs` (12), `refresh` (`5m`) |
 | `commitActivity` | Commits per day over `weeks` weeks as a contribution grid, with the total and the current streak. Runs `git log` in each path (`sh -c` with fixed script and arguments). | `paths` (required), `weeks` (30), `author` (each repository's `user.email`), `levels`, `cell`, `gap`, `refresh` (`10m`) |
 | `flakeInputs` | How old each locked flake input is, coloured by age, and with `behind` how many commits each GitHub input has gained since. | `path` (required), `behind` (`false`), `fresh`, `warn`, `bad` (3, 14, 30 days), `sort` (`age`), `limit` (8), `refresh` (`1h`) |
+
+### `headlines`
+
+Numbered top stories with points and comments, source badges and the data's age; a row (or the first free letter of its title) opens its link. New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `source` | source | Hacker News | A source of `[{title, link, published, source, points, comments}]`: `hackerNews`, `lobsters`, `rssFeed`, or a `parse: "feed"` source. |
+| `also` | list of source names | `[]` | More sources, interleaved with it. |
+| `limit` | integer | `5` | Rows. |
+| `keys` | boolean | `true` | A key per row. |
+
+### `cryptoTicker`
+
+Symbol, name, a day's line, price and 24-hour change per coin (CoinGecko, no key). New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `source` | source | `coingecko` pack | A `coingecko` source: `[{id, symbol, name, price, change24h, history}]`. |
+| `limit` | integer | `8` | Rows. |
+| `currency` | string | `"$"` | Written before each price. |
+
+### `watchlist`
+
+Symbol, the session's line, last price and day change per stock, and the market state under them (Yahoo Finance's unofficial chart endpoint, no key). New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `source` | source | `yahooQuotes` pack | A `yahooQuotes` source: `[{symbol, last, change, history, time}]`. |
+| `limit` | integer | `8` | Rows. |
+| `header` | boolean | `true` | The Symbol / Last / Day row. |
+
+### `homeAssistant`
+
+Home Assistant entities as tiles (icon, label, state with unit, a second line), coloured by state or thresholds; the token is the secret named `homeAssistant`. New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `entities` | list | required | `[{id, label, icon, attribute, attributeUnit, attributeLabel, since, precision, unit, thresholds, colors, color}]`, or plain ids. |
+| `url` | string | `"http://homeassistant.local:8123"` | The base URL. |
+| `columns` | integer | `3` | Tiles per row. |
+| `stateColors` | object | `locked`, `closed` good; `on`, `open`, `unlocked` warn; `unavailable`, `unknown` dim | State word to colour. |
+
+### `nowPlaying`
+
+Album art, title, `artist — album`, progress with times, and previous / pause / next on the `media` actions. Hidden while nothing plays. New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `player` | string | `"auto"` | As the `media` source's `player`. |
+| `hideWhenOff` | boolean | `true` | |
+| `artSize` | number | `72` | The cover's side in points. |
+
+`vestal docs presets` has an example of each.
 
 ### Helpers
 

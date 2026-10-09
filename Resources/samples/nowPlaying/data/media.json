@@ -1,0 +1,13 @@
+{
+  "album": "Harbour Lights",
+  "artist": "The Lowlands",
+  "artwork": "Resources/samples/nowPlaying/data/cover.png",
+  "duration": 256.0,
+  "player": "Spotify",
+  "players": [
+    "Spotify"
+  ],
+  "position": 108.0,
+  "state": "playing",
+  "title": "Night Swim"
+}

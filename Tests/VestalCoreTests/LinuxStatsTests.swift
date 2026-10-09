@@ -587,7 +587,7 @@ final class LinuxCommandProviderTests: XCTestCase {
 
     func testPlayerctlAlbumPositionAndLength() {
         XCTAssertEqual(LinuxProc.playerctlFormat,
-                       "{{status}}\u{1F}{{title}}\u{1F}{{artist}}\u{1F}{{album}}\u{1F}{{mpris:length}}\u{1F}{{position}}")
+                       "{{status}}\u{1F}{{title}}\u{1F}{{artist}}\u{1F}{{album}}\u{1F}{{mpris:length}}\u{1F}{{position}}\u{1F}{{mpris:artUrl}}")
         XCTAssertEqual(LinuxProc.playerctlNowPlaying(
             "Playing\u{1F}Windowlicker\u{1F}Aphex Twin\u{1F}Windowlicker EP\u{1F}367000000\u{1F}83200000\n"),
             NowPlaying(title: "Windowlicker", artist: "Aphex Twin", state: "playing",

@@ -495,9 +495,10 @@ public enum LinuxProc {
     public static let playerctlSeparator: Character = "\u{1F}"
 
     /// The `--format` for `playerctl metadata`: status, title, artist,
-    /// album, the track's length and the position (both in microseconds).
+    /// album, the track's length and the position (both in microseconds) and
+    /// the cover (`mpris:artUrl`).
     public static let playerctlFormat =
-        "{{status}}\u{1F}{{title}}\u{1F}{{artist}}\u{1F}{{album}}\u{1F}{{mpris:length}}\u{1F}{{position}}"
+        "{{status}}\u{1F}{{title}}\u{1F}{{artist}}\u{1F}{{album}}\u{1F}{{mpris:length}}\u{1F}{{position}}\u{1F}{{mpris:artUrl}}"
 
     /// `playerctl metadata --format playerctlFormat`, or plain
     /// `playerctl status` ("Playing"), as a now-playing value. As on macOS,
@@ -522,7 +523,21 @@ public enum LinuxProc {
                           state: state,
                           album: part(3).flatMap { $0.isEmpty ? nil : String($0) },
                           position: part(5).flatMap(microseconds),
-                          duration: duration.flatMap { $0 > 0 ? $0 : nil })
+                          duration: duration.flatMap { $0 > 0 ? $0 : nil },
+                          artwork: part(6).flatMap { artworkPath(String($0)) })
+    }
+
+    /// An MPRIS `artUrl` as the `image` widget takes it: a `file://` URL
+    /// becomes the (percent-decoded) path, an http(s) URL stays as it is,
+    /// anything else (empty, `data:`, a relative path) is no cover.
+    public static func artworkPath(_ artUrl: String) -> String? {
+        let url = artUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+        if url.hasPrefix("http://") || url.hasPrefix("https://") { return url }
+        guard url.hasPrefix("file://") else { return nil }
+        var path = String(url.dropFirst("file://".count))
+        if path.hasPrefix("localhost/") { path = String(path.dropFirst("localhost".count)) }
+        guard path.hasPrefix("/") else { return nil }
+        return path.removingPercentEncoding ?? path
     }
 
     /// A playerctl time field (microseconds) in seconds; nil unless it is a

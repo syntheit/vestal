@@ -661,7 +661,7 @@ struct V04Checker {
     /// A source definition's expressions: `transform`, history values, and
     /// the load-time text (only `$secrets`, `$env` and the parameters).
     mutating func sourceFields(_ source: [String: AnyJSON], path: String, params: Set<String>) {
-        expr(source["transform"], path: "\(path).transform", scope: Scope(variables: []), checkVariables: true)
+        expr(source["transform"], path: "\(path).transform", scope: Scope(variables: params.union(["params"])), checkVariables: true)
         if case .object(let histories)? = source["history"] {
             for name in histories.keys.sorted() {
                 expr(histories[name]?.objectValue?["value"], path: "\(path).history.\(name).value", scope: Scope(variables: []))

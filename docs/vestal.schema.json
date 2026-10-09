@@ -1052,6 +1052,9 @@
           "$ref": "#/$defs/source.codex"
         },
         {
+          "$ref": "#/$defs/source.coingecko"
+        },
+        {
           "$ref": "#/$defs/source.command"
         },
         {
@@ -1076,16 +1079,28 @@
           "$ref": "#/$defs/source.github"
         },
         {
+          "$ref": "#/$defs/source.haStates"
+        },
+        {
+          "$ref": "#/$defs/source.hackerNews"
+        },
+        {
           "$ref": "#/$defs/source.healthchecks"
         },
         {
           "$ref": "#/$defs/source.http"
         },
         {
+          "$ref": "#/$defs/source.lobsters"
+        },
+        {
           "$ref": "#/$defs/source.media"
         },
         {
           "$ref": "#/$defs/source.openMeteo"
+        },
+        {
+          "$ref": "#/$defs/source.rssFeed"
         },
         {
           "$ref": "#/$defs/source.system"
@@ -1095,6 +1110,9 @@
         },
         {
           "$ref": "#/$defs/source.uptimeKuma"
+        },
+        {
+          "$ref": "#/$defs/source.yahooQuotes"
         },
         {
           "$ref": "#/$defs/source.override"
@@ -1949,6 +1967,181 @@
         },
         "when": {
           "default": "visible",
+          "description": "always: fetched whether or not the dashboard is shown. visible: only while it is shown and a widget reads it.",
+          "enum": [
+            "always",
+            "visible",
+            null
+          ],
+          "examples": [
+            "visible"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
+    "source.coingecko": {
+      "additionalProperties": false,
+      "description": "Prices, 24-hour change and a day of hourly prices for some coins, from CoinGecko (no key; one request for all coins)",
+      "properties": {
+        "cache": {
+          "description": "false: never written to disk.",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "coins": {
+          "default": [
+            "bitcoin",
+            "ethereum",
+            "solana"
+          ],
+          "description": "CoinGecko coin ids, in the order to show",
+          "examples": [
+            [
+              "bitcoin",
+              "ethereum",
+              "solana"
+            ]
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "currency": {
+          "default": "usd",
+          "description": "The currency parameter (string).",
+          "examples": [
+            "usd"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "history": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/history"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Named number histories for sparklines, kept across restarts.",
+          "examples": [
+            {
+              "price": {
+                "every": "5m",
+                "size": 288,
+                "value": ".usd"
+              }
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxAge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cached data older than this is not shown at startup.",
+          "examples": [
+            "1h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "refresh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How often to fetch.",
+          "examples": [
+            "5m",
+            "4h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The request fails after this long.",
+          "examples": [
+            "5s"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "transform": {
+          "description": "A jq expression applied to the data before widgets see it; the cache keeps the data untransformed.",
+          "examples": [
+            ".items"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The source type.",
+          "enum": [
+            "coingecko"
+          ],
+          "examples": [
+            "coingecko"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
           "description": "always: fetched whether or not the dashboard is shown. visible: only while it is shown and a widget reads it.",
           "enum": [
             "always",
@@ -3353,6 +3546,325 @@
       "type": "object",
       "x-vestal-since": "0.4"
     },
+    "source.haStates": {
+      "additionalProperties": false,
+      "description": "Home Assistant entity states (REST /api/states, long-lived token from the secret named homeAssistant), as an object by entity id",
+      "properties": {
+        "cache": {
+          "description": "false: never written to disk.",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "entities": {
+          "default": [],
+          "description": "Entity ids (or objects with an id) to keep; empty keeps every entity",
+          "examples": [
+            []
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "history": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/history"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Named number histories for sparklines, kept across restarts.",
+          "examples": [
+            {
+              "price": {
+                "every": "5m",
+                "size": 288,
+                "value": ".usd"
+              }
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxAge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cached data older than this is not shown at startup.",
+          "examples": [
+            "1h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "refresh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How often to fetch.",
+          "examples": [
+            "5m",
+            "4h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The request fails after this long.",
+          "examples": [
+            "5s"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "transform": {
+          "description": "A jq expression applied to the data before widgets see it; the cache keeps the data untransformed.",
+          "examples": [
+            ".items"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The source type.",
+          "enum": [
+            "haStates"
+          ],
+          "examples": [
+            "haStates"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "url": {
+          "description": "The base URL, such as http://homeassistant.local:8123",
+          "examples": [
+            "x"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "always: fetched whether or not the dashboard is shown. visible: only while it is shown and a widget reads it.",
+          "enum": [
+            "always",
+            "visible",
+            null
+          ],
+          "examples": [
+            "visible"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
+    "source.hackerNews": {
+      "additionalProperties": false,
+      "description": "Hacker News front page (Algolia API, no key), as headlines with points and comments",
+      "properties": {
+        "cache": {
+          "description": "false: never written to disk.",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "count": {
+          "default": 30,
+          "description": "Stories to keep (at most 100)",
+          "examples": [
+            30
+          ],
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "history": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/history"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Named number histories for sparklines, kept across restarts.",
+          "examples": [
+            {
+              "price": {
+                "every": "5m",
+                "size": 288,
+                "value": ".usd"
+              }
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxAge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cached data older than this is not shown at startup.",
+          "examples": [
+            "1h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "refresh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How often to fetch.",
+          "examples": [
+            "5m",
+            "4h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The request fails after this long.",
+          "examples": [
+            "5s"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "transform": {
+          "description": "A jq expression applied to the data before widgets see it; the cache keeps the data untransformed.",
+          "examples": [
+            ".items"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The source type.",
+          "enum": [
+            "hackerNews"
+          ],
+          "examples": [
+            "hackerNews"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "always: fetched whether or not the dashboard is shown. visible: only while it is shown and a widget reads it.",
+          "enum": [
+            "always",
+            "visible",
+            null
+          ],
+          "examples": [
+            "visible"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
     "source.healthchecks": {
       "additionalProperties": false,
       "description": "Checks of a Healthchecks.io project (/api/v3/checks/), as {notice, window, services: [{name, state, lastPing, nextPing, incident}]}",
@@ -3752,6 +4264,146 @@
       ],
       "type": "object",
       "x-vestal-since": "0.3"
+    },
+    "source.lobsters": {
+      "additionalProperties": false,
+      "description": "Lobsters hottest stories (lobste.rs JSON, no key), as headlines with score and comments",
+      "properties": {
+        "cache": {
+          "description": "false: never written to disk.",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "history": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/history"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Named number histories for sparklines, kept across restarts.",
+          "examples": [
+            {
+              "price": {
+                "every": "5m",
+                "size": 288,
+                "value": ".usd"
+              }
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxAge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cached data older than this is not shown at startup.",
+          "examples": [
+            "1h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "refresh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How often to fetch.",
+          "examples": [
+            "5m",
+            "4h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The request fails after this long.",
+          "examples": [
+            "5s"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "transform": {
+          "description": "A jq expression applied to the data before widgets see it; the cache keeps the data untransformed.",
+          "examples": [
+            ".items"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The source type.",
+          "enum": [
+            "lobsters"
+          ],
+          "examples": [
+            "lobsters"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "always: fetched whether or not the dashboard is shown. visible: only while it is shown and a widget reads it.",
+          "enum": [
+            "always",
+            "visible",
+            null
+          ],
+          "examples": [
+            "visible"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
     },
     "source.media": {
       "additionalProperties": false,
@@ -4205,6 +4857,47 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         },
+        "coins": {
+          "description": "CoinGecko coin ids, in the order to show",
+          "examples": [
+            [
+              "bitcoin",
+              "ethereum",
+              "solana"
+            ]
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "count": {
+          "description": "Stories to keep (at most 100)",
+          "examples": [
+            30
+          ],
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "currency": {
+          "description": "The currency parameter (string).",
+          "examples": [
+            "usd"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "days": {
           "description": "How many days to read, today being the first.",
           "examples": [
@@ -4235,6 +4928,19 @@
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
+        },
+        "entities": {
+          "description": "Entity ids (or objects with an id) to keep; empty keeps every entity",
+          "examples": [
+            []
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
         },
         "env": {
           "additionalProperties": {
@@ -4357,6 +5063,18 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         },
+        "interval": {
+          "description": "The interval parameter (string).",
+          "examples": [
+            "5m"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "key": {
           "description": "The project's API key, from a secret: \"{{ $secrets.healthchecks }}\"",
           "examples": [
@@ -4418,6 +5136,18 @@
           ],
           "examples": [
             "POST"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "name": {
+          "description": "The source badge",
+          "examples": [
+            "Feed"
           ],
           "type": [
             "string",
@@ -4548,6 +5278,25 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "symbols": {
+          "description": "Tickers, in the order to show",
+          "examples": [
+            [
+              "AAPL",
+              "MSFT",
+              "GOOGL",
+              "AMZN",
+              "NVDA"
+            ]
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "thunderbird": {
           "description": "true for Thunderbird's default profile, or a profile directory such as ~/.thunderbird/abcd1234.default: its calendars with Offline support enabled, read from the profile's local databases. Replaces EventKit like ics, and adds to ics and caldav when set.",
           "examples": [
@@ -4648,6 +5397,171 @@
         }
       },
       "type": "object"
+    },
+    "source.rssFeed": {
+      "additionalProperties": false,
+      "description": "Any RSS 2.0, Atom or JSON Feed URL, as headlines",
+      "properties": {
+        "cache": {
+          "description": "false: never written to disk.",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "history": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/history"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Named number histories for sparklines, kept across restarts.",
+          "examples": [
+            {
+              "price": {
+                "every": "5m",
+                "size": 288,
+                "value": ".usd"
+              }
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxAge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cached data older than this is not shown at startup.",
+          "examples": [
+            "1h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "name": {
+          "default": "Feed",
+          "description": "The source badge",
+          "examples": [
+            "Feed"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "refresh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How often to fetch.",
+          "examples": [
+            "5m",
+            "4h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The request fails after this long.",
+          "examples": [
+            "5s"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "transform": {
+          "description": "A jq expression applied to the data before widgets see it; the cache keeps the data untransformed.",
+          "examples": [
+            ".items"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The source type.",
+          "enum": [
+            "rssFeed"
+          ],
+          "examples": [
+            "rssFeed"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "url": {
+          "description": "The url parameter (string).",
+          "examples": [
+            "x"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "always: fetched whether or not the dashboard is shown. visible: only while it is shown and a widget reads it.",
+          "enum": [
+            "always",
+            "visible",
+            null
+          ],
+          "examples": [
+            "visible"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
     },
     "source.system": {
       "additionalProperties": false,
@@ -5116,6 +6030,185 @@
           "type": [
             "string",
             "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "always: fetched whether or not the dashboard is shown. visible: only while it is shown and a widget reads it.",
+          "enum": [
+            "always",
+            "visible",
+            null
+          ],
+          "examples": [
+            "visible"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
+    "source.yahooQuotes": {
+      "additionalProperties": false,
+      "description": "Intraday quotes for some symbols from Yahoo Finance's unofficial chart endpoint (no key; one request for all symbols)",
+      "properties": {
+        "cache": {
+          "description": "false: never written to disk.",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "history": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/history"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Named number histories for sparklines, kept across restarts.",
+          "examples": [
+            {
+              "price": {
+                "every": "5m",
+                "size": 288,
+                "value": ".usd"
+              }
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "interval": {
+          "default": "5m",
+          "description": "The interval parameter (string).",
+          "examples": [
+            "5m"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxAge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cached data older than this is not shown at startup.",
+          "examples": [
+            "1h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "refresh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How often to fetch.",
+          "examples": [
+            "5m",
+            "4h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "symbols": {
+          "default": [
+            "AAPL",
+            "MSFT",
+            "GOOGL",
+            "AMZN",
+            "NVDA"
+          ],
+          "description": "Tickers, in the order to show",
+          "examples": [
+            [
+              "AAPL",
+              "MSFT",
+              "GOOGL",
+              "AMZN",
+              "NVDA"
+            ]
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The request fails after this long.",
+          "examples": [
+            "5s"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "transform": {
+          "description": "A jq expression applied to the data before widgets see it; the cache keeps the data untransformed.",
+          "examples": [
+            ".items"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The source type.",
+          "enum": [
+            "yahooQuotes"
+          ],
+          "examples": [
+            "yahooQuotes"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -6139,6 +7232,9 @@
           "$ref": "#/$defs/widget.cpuCores"
         },
         {
+          "$ref": "#/$defs/widget.cryptoTicker"
+        },
+        {
           "$ref": "#/$defs/widget.diskBreakdown"
         },
         {
@@ -6157,7 +7253,13 @@
           "$ref": "#/$defs/widget.grid"
         },
         {
+          "$ref": "#/$defs/widget.headlines"
+        },
+        {
           "$ref": "#/$defs/widget.heatmap"
+        },
+        {
+          "$ref": "#/$defs/widget.homeAssistant"
         },
         {
           "$ref": "#/$defs/widget.hostDetail"
@@ -6185,6 +7287,9 @@
         },
         {
           "$ref": "#/$defs/widget.networkRates"
+        },
+        {
+          "$ref": "#/$defs/widget.nowPlaying"
         },
         {
           "$ref": "#/$defs/widget.progress"
@@ -6245,6 +7350,9 @@
         },
         {
           "$ref": "#/$defs/widget.uptimeMonitors"
+        },
+        {
+          "$ref": "#/$defs/widget.watchlist"
         },
         {
           "$ref": "#/$defs/widget.weatherCard"
@@ -14088,6 +15196,442 @@
       "type": "object",
       "x-vestal-since": "0.4"
     },
+    "widget.cryptoTicker": {
+      "additionalProperties": false,
+      "description": "Prices with 24-hour change and a day of history for a few coins (CoinGecko, no key)",
+      "properties": {
+        "action": {
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "examples": [
+            {
+              "open": "{{ .url }}"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alignSelf": {
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-axis alignment of this child. Default: the parent's align.",
+          "examples": [
+            "center"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alt": {
+          "description": "Plain-text rendition for text-only UIs and accessibility.",
+          "examples": [
+            "CPU {{ .cpu.percent }}%"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "background": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A colour painted behind the padded frame.",
+          "examples": [
+            "track",
+            "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "description": "Clip children to the frame.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "currency": {
+          "default": "$",
+          "description": "Written before each price",
+          "examples": [
+            "$"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "height": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill or fit.",
+          "examples": [
+            24,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "id": {
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
+          "examples": [
+            "cpu"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "input": {
+          "description": "Re-roots . for this subtree.",
+          "examples": [
+            ".current_condition[0]"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "key": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A key that runs action; auto takes the first free letter of keyHint.",
+          "examples": [
+            "g",
+            "auto"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "keyHint": {
+          "description": "Letters auto tries, in order. Default: the widget's first text.",
+          "examples": [
+            "{{ .name }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "limit": {
+          "default": 8,
+          "description": "The limit parameter (integer).",
+          "examples": [
+            8
+          ],
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "loading": {
+          "default": "hide",
+          "description": "While this widget's own source has never produced data: hide, show (with . = null), or a widget to draw instead.",
+          "examples": [
+            "show"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest width.",
+          "examples": [
+            400
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The least width.",
+          "examples": [
+            40
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "0 to 1.",
+          "examples": [
+            0.6
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "padding": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Inside the frame: a number, or [top, right, bottom, left].",
+          "examples": [
+            8,
+            [
+              2,
+              6,
+              2,
+              6
+            ]
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Corner radius of the background.",
+          "examples": [
+            4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "default": {
+            "type": "coingecko"
+          },
+          "description": "A coingecko source, or any with [{id, symbol, name, price, change24h, history}]. Default: bitcoin, ethereum, solana",
+          "examples": [
+            {
+              "type": "coingecko"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "spaceBefore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Space before this child in a stack or row, instead of the parent's gap. Ignored on the first visible child.",
+          "examples": [
+            24
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "Grid columns this child takes.",
+          "examples": [
+            2
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/style"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style and colour, inherited by everything under it.",
+          "examples": [
+            {
+              "color": "subtle",
+              "size": 12
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "cryptoTicker"
+          ],
+          "examples": [
+            "cryptoTicker"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Binds $name for this subtree; a var may use the others it names.",
+          "examples": [
+            {
+              "b": "find({casa: \"blue\"})"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "Hidden when it yields false or null. A hidden widget takes no space.",
+          "examples": [
+            ".battery != null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "width": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill (the space the parent offers) or fit.",
+          "examples": [
+            60,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
     "widget.diskBreakdown": {
       "additionalProperties": false,
       "description": "The mounted volumes with their use, and for the first one what fills it by category (from a diskUsage source)",
@@ -17008,6 +18552,456 @@
       "type": "object",
       "x-vestal-since": "0.4"
     },
+    "widget.headlines": {
+      "additionalProperties": false,
+      "description": "Top stories: rank, title, points and comments, source badges and the data's age; a row or its key opens the link",
+      "properties": {
+        "action": {
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "examples": [
+            {
+              "open": "{{ .url }}"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alignSelf": {
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-axis alignment of this child. Default: the parent's align.",
+          "examples": [
+            "center"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "also": {
+          "default": [],
+          "description": "Names of more sources to interleave with it: [\"lobsters\"]",
+          "examples": [
+            []
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alt": {
+          "description": "Plain-text rendition for text-only UIs and accessibility.",
+          "examples": [
+            "CPU {{ .cpu.percent }}%"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "background": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A colour painted behind the padded frame.",
+          "examples": [
+            "track",
+            "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "description": "Clip children to the frame.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "height": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill or fit.",
+          "examples": [
+            24,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "id": {
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
+          "examples": [
+            "cpu"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "input": {
+          "description": "Re-roots . for this subtree.",
+          "examples": [
+            ".current_condition[0]"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "key": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A key that runs action; auto takes the first free letter of keyHint.",
+          "examples": [
+            "g",
+            "auto"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "keyHint": {
+          "description": "Letters auto tries, in order. Default: the widget's first text.",
+          "examples": [
+            "{{ .name }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "keys": {
+          "default": true,
+          "description": "Give each row a key that opens its link (the first free letter of its title)",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "limit": {
+          "default": 5,
+          "description": "The limit parameter (integer).",
+          "examples": [
+            5
+          ],
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "loading": {
+          "default": "hide",
+          "description": "While this widget's own source has never produced data: hide, show (with . = null), or a widget to draw instead.",
+          "examples": [
+            "show"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest width.",
+          "examples": [
+            400
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The least width.",
+          "examples": [
+            40
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "0 to 1.",
+          "examples": [
+            0.6
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "padding": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Inside the frame: a number, or [top, right, bottom, left].",
+          "examples": [
+            8,
+            [
+              2,
+              6,
+              2,
+              6
+            ]
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Corner radius of the background.",
+          "examples": [
+            4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "default": {
+            "type": "hackerNews"
+          },
+          "description": "A source of headlines (hackerNews, lobsters, rssFeed, or any parse: feed source). Default: Hacker News",
+          "examples": [
+            {
+              "type": "hackerNews"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "spaceBefore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Space before this child in a stack or row, instead of the parent's gap. Ignored on the first visible child.",
+          "examples": [
+            24
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "Grid columns this child takes.",
+          "examples": [
+            2
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/style"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style and colour, inherited by everything under it.",
+          "examples": [
+            {
+              "color": "subtle",
+              "size": 12
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "headlines"
+          ],
+          "examples": [
+            "headlines"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Binds $name for this subtree; a var may use the others it names.",
+          "examples": [
+            {
+              "b": "find({casa: \"blue\"})"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "Hidden when it yields false or null. A hidden widget takes no space.",
+          "examples": [
+            ".battery != null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "width": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill (the space the parent offers) or fit.",
+          "examples": [
+            60,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
     "widget.heatmap": {
       "additionalProperties": false,
       "description": "A grid of cells coloured by value.",
@@ -17542,6 +19536,488 @@
             "$history.stats.cpu"
           ],
           "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Binds $name for this subtree; a var may use the others it names.",
+          "examples": [
+            {
+              "b": "find({casa: \"blue\"})"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "Hidden when it yields false or null. A hidden widget takes no space.",
+          "examples": [
+            ".battery != null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "width": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill (the space the parent offers) or fit.",
+          "examples": [
+            60,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
+    "widget.homeAssistant": {
+      "additionalProperties": false,
+      "description": "A grid of Home Assistant entities as tiles: icon, label, state with unit, a second line, coloured by state or thresholds",
+      "properties": {
+        "action": {
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "examples": [
+            {
+              "open": "{{ .url }}"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alignSelf": {
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-axis alignment of this child. Default: the parent's align.",
+          "examples": [
+            "center"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alt": {
+          "description": "Plain-text rendition for text-only UIs and accessibility.",
+          "examples": [
+            "CPU {{ .cpu.percent }}%"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "background": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A colour painted behind the padded frame.",
+          "examples": [
+            "track",
+            "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "description": "Clip children to the frame.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "columns": {
+          "default": 3,
+          "description": "The columns parameter (integer).",
+          "examples": [
+            3
+          ],
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "entities": {
+          "description": "[{id, label, icon, attribute, attributeUnit, attributeLabel, since, precision, unit, thresholds, colors, color}]",
+          "examples": [
+            []
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "height": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill or fit.",
+          "examples": [
+            24,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "id": {
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
+          "examples": [
+            "cpu"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "input": {
+          "description": "Re-roots . for this subtree.",
+          "examples": [
+            ".current_condition[0]"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "key": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A key that runs action; auto takes the first free letter of keyHint.",
+          "examples": [
+            "g",
+            "auto"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "keyHint": {
+          "description": "Letters auto tries, in order. Default: the widget's first text.",
+          "examples": [
+            "{{ .name }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "loading": {
+          "default": "hide",
+          "description": "While this widget's own source has never produced data: hide, show (with . = null), or a widget to draw instead.",
+          "examples": [
+            "show"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest width.",
+          "examples": [
+            400
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The least width.",
+          "examples": [
+            40
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "0 to 1.",
+          "examples": [
+            0.6
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "padding": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Inside the frame: a number, or [top, right, bottom, left].",
+          "examples": [
+            8,
+            [
+              2,
+              6,
+              2,
+              6
+            ]
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Corner radius of the background.",
+          "examples": [
+            4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "description": "The data for this subtree: a source name, or a source definition (an inline source). Sets . and $data.",
+          "examples": [
+            "system",
+            {
+              "parse": "lines",
+              "path": "~/notes.md",
+              "type": "file"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "spaceBefore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Space before this child in a stack or row, instead of the parent's gap. Ignored on the first visible child.",
+          "examples": [
+            24
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "Grid columns this child takes.",
+          "examples": [
+            2
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "stateColors": {
+          "default": {
+            "closed": "good",
+            "cool": "cyan",
+            "heat": "orange",
+            "home": "good",
+            "locked": "good",
+            "on": "warn",
+            "open": "warn",
+            "playing": "accent",
+            "unavailable": "dim",
+            "unknown": "dim",
+            "unlocked": "warn"
+          },
+          "description": "State word to colour, for entities without numbers",
+          "examples": [
+            {
+              "closed": "good",
+              "cool": "cyan",
+              "heat": "orange",
+              "home": "good",
+              "locked": "good",
+              "on": "warn",
+              "open": "warn",
+              "playing": "accent",
+              "unavailable": "dim",
+              "unknown": "dim",
+              "unlocked": "warn"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/style"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style and colour, inherited by everything under it.",
+          "examples": [
+            {
+              "color": "subtle",
+              "size": 12
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "homeAssistant"
+          ],
+          "examples": [
+            "homeAssistant"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "url": {
+          "default": "http://homeassistant.local:8123",
+          "description": "Home Assistant's base URL",
+          "examples": [
+            "http://homeassistant.local:8123"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
         "vars": {
@@ -21809,6 +24285,455 @@
       "type": "object",
       "x-vestal-since": "0.4"
     },
+    "widget.nowPlaying": {
+      "additionalProperties": false,
+      "description": "Album art, title, artist and album, progress with times, and previous / pause / next",
+      "properties": {
+        "action": {
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "examples": [
+            {
+              "open": "{{ .url }}"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alignSelf": {
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-axis alignment of this child. Default: the parent's align.",
+          "examples": [
+            "center"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alt": {
+          "description": "Plain-text rendition for text-only UIs and accessibility.",
+          "examples": [
+            "CPU {{ .cpu.percent }}%"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "artSize": {
+          "default": 72,
+          "description": "The artSize parameter (number).",
+          "examples": [
+            72
+          ],
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "background": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A colour painted behind the padded frame.",
+          "examples": [
+            "track",
+            "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "description": "Clip children to the frame.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "height": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill or fit.",
+          "examples": [
+            24,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "hideWhenOff": {
+          "default": true,
+          "description": "The hideWhenOff parameter (boolean).",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "id": {
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
+          "examples": [
+            "cpu"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "input": {
+          "description": "Re-roots . for this subtree.",
+          "examples": [
+            ".current_condition[0]"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "key": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A key that runs action; auto takes the first free letter of keyHint.",
+          "examples": [
+            "g",
+            "auto"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "keyHint": {
+          "description": "Letters auto tries, in order. Default: the widget's first text.",
+          "examples": [
+            "{{ .name }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "loading": {
+          "default": "hide",
+          "description": "While this widget's own source has never produced data: hide, show (with . = null), or a widget to draw instead.",
+          "examples": [
+            "show"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest width.",
+          "examples": [
+            400
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The least width.",
+          "examples": [
+            40
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "0 to 1.",
+          "examples": [
+            0.6
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "padding": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Inside the frame: a number, or [top, right, bottom, left].",
+          "examples": [
+            8,
+            [
+              2,
+              6,
+              2,
+              6
+            ]
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "player": {
+          "default": "auto",
+          "description": "A media source player name; auto: the first one playing (Spotify, then Music; MPRIS on Linux)",
+          "examples": [
+            "auto"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Corner radius of the background.",
+          "examples": [
+            4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "description": "The data for this subtree: a source name, or a source definition (an inline source). Sets . and $data.",
+          "examples": [
+            "system",
+            {
+              "parse": "lines",
+              "path": "~/notes.md",
+              "type": "file"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "spaceBefore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Space before this child in a stack or row, instead of the parent's gap. Ignored on the first visible child.",
+          "examples": [
+            24
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "Grid columns this child takes.",
+          "examples": [
+            2
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/style"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style and colour, inherited by everything under it.",
+          "examples": [
+            {
+              "color": "subtle",
+              "size": 12
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "nowPlaying"
+          ],
+          "examples": [
+            "nowPlaying"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Binds $name for this subtree; a var may use the others it names.",
+          "examples": [
+            {
+              "b": "find({casa: \"blue\"})"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "Hidden when it yields false or null. A hidden widget takes no space.",
+          "examples": [
+            ".battery != null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "width": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill (the space the parent offers) or fit.",
+          "examples": [
+            60,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
     "widget.override": {
       "additionalProperties": false,
       "description": "Changes to a widget of the same name in a lower layer (the built-in defaults): any of its keys, without type.",
@@ -21877,6 +24802,19 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "also": {
+          "description": "Names of more sources to interleave with it: [\"lobsters\"]",
+          "examples": [
+            []
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "alt": {
           "description": "Plain-text rendition for text-only UIs and accessibility.",
           "examples": [
@@ -21887,6 +24825,18 @@
             "null"
           ],
           "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "artSize": {
+          "description": "The artSize parameter (number).",
+          "examples": [
+            72
+          ],
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
         "author": {
@@ -22167,6 +25117,18 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "currency": {
+          "description": "Written before each price",
+          "examples": [
+            "$"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "days": {
           "description": "Days of range bars, today first",
           "examples": [
@@ -22319,6 +25281,19 @@
             "Nothing to review"
           ],
           "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "entities": {
+          "description": "[{id, label, icon, attribute, attributeUnit, attributeLabel, since, precision, unit, thresholds, colors, color}]",
+          "examples": [
+            []
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
         "expectEvery": {
@@ -22766,6 +25741,18 @@
             "null"
           ],
           "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "keys": {
+          "description": "Give each row a key that opens its link (the first free letter of its title)",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
         "label": {
@@ -23653,6 +26640,26 @@
           "x-vestal-kind": "expr",
           "x-vestal-since": "0.4"
         },
+        "stateColors": {
+          "description": "State word to colour, for entities without numbers",
+          "examples": [
+            {
+              "closed": "good",
+              "cool": "cyan",
+              "heat": "orange",
+              "home": "good",
+              "locked": "good",
+              "on": "warn",
+              "open": "warn",
+              "playing": "accent",
+              "unavailable": "dim",
+              "unknown": "dim",
+              "unlocked": "warn"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "stats": {
           "description": "Show CPU and memory (docker stats, which runs only while the dashboard is shown)",
           "examples": [
@@ -23941,6 +26948,18 @@
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
+        },
+        "url": {
+          "description": "Home Assistant's base URL",
+          "examples": [
+            "http://homeassistant.local:8123"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
         },
         "usage": {
           "description": "A diskUsage source (or any source giving [{label, bytes}]) for the first volume's categories; empty: a plain bar",
@@ -31736,13 +34755,16 @@
               "containers",
               "countdowns",
               "cpuCores",
+              "cryptoTicker",
               "diskBreakdown",
               "divider",
               "flakeInputs",
               "forecast",
               "gauge",
               "grid",
+              "headlines",
               "heatmap",
+              "homeAssistant",
               "hostDetail",
               "icon",
               "image",
@@ -31752,6 +34774,7 @@
               "media",
               "memoryBreakdown",
               "networkRates",
+              "nowPlaying",
               "progress",
               "reviewQueue",
               "row",
@@ -31773,6 +34796,7 @@
               "topProcesses",
               "transfers",
               "uptimeMonitors",
+              "watchlist",
               "weatherCard",
               "worldClocks"
             ]
@@ -34236,6 +37260,442 @@
             "null"
           ],
           "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "Hidden when it yields false or null. A hidden widget takes no space.",
+          "examples": [
+            ".battery != null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "width": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill (the space the parent offers) or fit.",
+          "examples": [
+            60,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
+    "widget.watchlist": {
+      "additionalProperties": false,
+      "description": "A short stock list with intraday lines and the day's change; the market state under it (Yahoo Finance, no key)",
+      "properties": {
+        "action": {
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "examples": [
+            {
+              "open": "{{ .url }}"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alignSelf": {
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-axis alignment of this child. Default: the parent's align.",
+          "examples": [
+            "center"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alt": {
+          "description": "Plain-text rendition for text-only UIs and accessibility.",
+          "examples": [
+            "CPU {{ .cpu.percent }}%"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "background": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A colour painted behind the padded frame.",
+          "examples": [
+            "track",
+            "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "description": "Clip children to the frame.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "header": {
+          "default": true,
+          "description": "The Symbol / Last / Day header row",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "height": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill or fit.",
+          "examples": [
+            24,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "id": {
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
+          "examples": [
+            "cpu"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "input": {
+          "description": "Re-roots . for this subtree.",
+          "examples": [
+            ".current_condition[0]"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "key": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A key that runs action; auto takes the first free letter of keyHint.",
+          "examples": [
+            "g",
+            "auto"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "keyHint": {
+          "description": "Letters auto tries, in order. Default: the widget's first text.",
+          "examples": [
+            "{{ .name }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "limit": {
+          "default": 8,
+          "description": "The limit parameter (integer).",
+          "examples": [
+            8
+          ],
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "loading": {
+          "default": "hide",
+          "description": "While this widget's own source has never produced data: hide, show (with . = null), or a widget to draw instead.",
+          "examples": [
+            "show"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest width.",
+          "examples": [
+            400
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The least width.",
+          "examples": [
+            40
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "0 to 1.",
+          "examples": [
+            0.6
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "padding": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Inside the frame: a number, or [top, right, bottom, left].",
+          "examples": [
+            8,
+            [
+              2,
+              6,
+              2,
+              6
+            ]
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Corner radius of the background.",
+          "examples": [
+            4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "default": {
+            "type": "yahooQuotes"
+          },
+          "description": "A yahooQuotes source, or any with [{symbol, last, change, history, time}]. Default: five large caps",
+          "examples": [
+            {
+              "type": "yahooQuotes"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "spaceBefore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Space before this child in a stack or row, instead of the parent's gap. Ignored on the first visible child.",
+          "examples": [
+            24
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "Grid columns this child takes.",
+          "examples": [
+            2
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/style"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style and colour, inherited by everything under it.",
+          "examples": [
+            {
+              "color": "subtle",
+              "size": 12
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "watchlist"
+          ],
+          "examples": [
+            "watchlist"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Binds $name for this subtree; a var may use the others it names.",
+          "examples": [
+            {
+              "b": "find({casa: \"blue\"})"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
           "x-vestal-since": "0.4"
         },
         "when": {

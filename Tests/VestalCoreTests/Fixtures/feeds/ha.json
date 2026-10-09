@@ -1,0 +1,61 @@
+[
+  {
+    "entity_id": "sensor.living_room_temperature",
+    "state": "21.4",
+    "attributes": {
+      "unit_of_measurement": "°",
+      "device_class": "temperature",
+      "friendly_name": "Living room",
+      "humidity": 48
+    },
+    "last_changed": "2026-09-27T16:53:22+00:00"
+  },
+  {
+    "entity_id": "sensor.solar_power",
+    "state": "2.8",
+    "attributes": {
+      "unit_of_measurement": "kW",
+      "device_class": "power",
+      "friendly_name": "Solar",
+      "export": 1.1
+    },
+    "last_changed": "2026-09-27T17:01:22+00:00"
+  },
+  {
+    "entity_id": "lock.front_door",
+    "state": "locked",
+    "attributes": {
+      "friendly_name": "Front door"
+    },
+    "last_changed": "2026-09-26T18:02:22+00:00"
+  },
+  {
+    "entity_id": "sensor.washer_remaining",
+    "state": "12",
+    "attributes": {
+      "unit_of_measurement": "min",
+      "friendly_name": "Washer",
+      "cycle": "rinse"
+    },
+    "last_changed": "2026-09-27T16:58:22+00:00"
+  },
+  {
+    "entity_id": "sensor.lights_on",
+    "state": "3",
+    "attributes": {
+      "friendly_name": "Lights on",
+      "rooms": "kitchen, hall, desk"
+    },
+    "last_changed": "2026-09-27T16:48:22+00:00"
+  },
+  {
+    "entity_id": "sensor.air_pm25",
+    "state": "14",
+    "attributes": {
+      "unit_of_measurement": "µg",
+      "friendly_name": "Air (PM2.5)",
+      "quality": "good"
+    },
+    "last_changed": "2026-09-27T17:02:22+00:00"
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "sources": {
+    "quotes": {
+      "type": "yahooQuotes",
+      "symbols": [
+        "ACME",
+        "GLOBX",
+        "INITECH",
+        "VWRL",
+        "UMBR"
+      ]
+    }
+  },
+  "widgets": {
+    "watchlist": {
+      "type": "watchlist",
+      "source": "quotes"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "watchlist"
+      ],
+      "padding": 24
+    }
+  }
+}

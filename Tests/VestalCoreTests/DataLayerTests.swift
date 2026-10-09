@@ -397,7 +397,7 @@ final class BuiltinShapeTests: XCTestCase {
                                                        album: "Windowlicker", position: 83.24, duration: 367),
                                    players: ["Spotify", "Music"])
         XCTAssertEqual(MediaSource.shape(playing), .object([
-            "player": .string("Spotify"), "state": .string("playing"), "title": .string("Windowlicker"),
+            "player": .string("Spotify"), "state": .string("playing"), "title": .string("Windowlicker"), "artwork": .null,
             "artist": .string("Aphex Twin"), "album": .string("Windowlicker"), "position": .double(83.2),
             "duration": .double(367), "players": .array([.string("Spotify"), .string("Music")]),
         ]))
@@ -407,7 +407,7 @@ final class BuiltinShapeTests: XCTestCase {
         let off = MediaSource.shape(MediaReading(player: nil, playing: .off, players: []))
         XCTAssertEqual(off, .object([
             "player": .null, "state": .string("off"), "title": .string(""), "artist": .string(""),
-            "album": .null, "position": .null, "duration": .null, "players": .array([]),
+            "album": .null, "artwork": .null, "position": .null, "duration": .null, "players": .array([]),
         ]))
         XCTAssertEqual(MediaSource.nowPlaying(off), .off)
     }

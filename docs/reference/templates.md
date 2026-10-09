@@ -91,6 +91,8 @@ A template with a `source` body goes where a source goes: under `sources`, or in
 
 A source template that takes a `url` can also be `systemHealth`'s `provider`.
 
+Data parameters are `$name` variables in the source body's `url`, `path`, `body`, `headers`, `argv` and `env` (evaluated once when the config loads), and in its `transform`, which has them bound in front of it as `(value) as $name | …`, so a template can build a URL and its transform from the same list (`coingecko`, `yahooQuotes`).
+
 ## The v0.3 adapter
 
 Two v0.3 behaviours link separate widgets, so a small adapter applies them before expansion, each reported by check-config as an info note with code `legacy`:

@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Now playing",
+  "description": "Album art, track and position, with previous, pause and next.",
+  "preset": "nowPlaying",
+  "size": [
+    680,
+    140
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "media"
+  ]
+}
