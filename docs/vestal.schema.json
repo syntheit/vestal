@@ -2333,7 +2333,7 @@
     },
     "source.haStates": {
       "additionalProperties": false,
-      "description": "Home Assistant entity states (REST /api/states, long-lived token from a secret), as an object by entity id",
+      "description": "Home Assistant entity states (REST /api/states, long-lived token from the secret named homeAssistant), as an object by entity id",
       "properties": {
         "cache": {
           "description": "false: never written to disk.",
@@ -2421,19 +2421,6 @@
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
-        },
-        "secret": {
-          "default": "homeAssistant",
-          "description": "The name of the secret that holds the long-lived access token",
-          "examples": [
-            "homeAssistant"
-          ],
-          "type": [
-            "string",
-            "null"
-          ],
-          "x-vestal-kind": "literal",
-          "x-vestal-since": "0.4"
         },
         "timeout": {
           "anyOf": [
@@ -3578,18 +3565,6 @@
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
-        },
-        "secret": {
-          "description": "The name of the secret that holds the long-lived access token",
-          "examples": [
-            "homeAssistant"
-          ],
-          "type": [
-            "string",
-            "null"
-          ],
-          "x-vestal-kind": "literal",
-          "x-vestal-since": "0.4"
         },
         "symbols": {
           "description": "Tickers, in the order to show",
@@ -12299,19 +12274,6 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
-        "secret": {
-          "default": "homeAssistant",
-          "description": "The secret that holds the long-lived access token",
-          "examples": [
-            "homeAssistant"
-          ],
-          "type": [
-            "string",
-            "null"
-          ],
-          "x-vestal-kind": "literal",
-          "x-vestal-since": "0.4"
-        },
         "source": {
           "description": "The data for this subtree: a source name, or a source definition (an inline source). Sets . and $data.",
           "examples": [
@@ -17743,18 +17705,6 @@
           },
           "type": [
             "array",
-            "null"
-          ],
-          "x-vestal-kind": "literal",
-          "x-vestal-since": "0.4"
-        },
-        "secret": {
-          "description": "The secret that holds the long-lived access token",
-          "examples": [
-            "homeAssistant"
-          ],
-          "type": [
-            "string",
             "null"
           ],
           "x-vestal-kind": "literal",

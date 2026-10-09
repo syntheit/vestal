@@ -243,7 +243,7 @@ final class FeedsPresetsTests: XCTestCase {
         // The token: the Authorization header names the secret.
         let loaded = ConfigLoader.load(path: try configURL(cfg).path)
         let headers = RenderConfigModel(loaded: loaded).sources["ha"]?.headers ?? [:]
-        XCTAssertEqual(headers["Authorization"]?.contains("$secrets"), true, "\(headers)")
+        XCTAssertEqual(headers["Authorization"], "Bearer {{ $secrets.homeAssistant }}")
         XCTAssertEqual(RenderConfigModel(loaded: loaded).sources["ha"]?.url, "http://homeassistant.local:8123/api/states")
     }
 
@@ -274,13 +274,13 @@ final class FeedsPresetsTests: XCTestCase {
         XCTAssertTrue(out.contains("icon drop"), out)
     }
 
-    func testHomeAssistantDefaultSourceNamesTheSecret() throws {
+    func testHomeAssistantDefaultSourceReadsTheSecret() throws {
         let loaded = ConfigLoader.load(path: try configURL(config(widgets: [
-            "home": ["type": "homeAssistant", "url": "http://ha.local:8123", "secret": "ha", "entities": ["light.hall"]]])).path)
+            "home": ["type": "homeAssistant", "url": "http://ha.local:8123", "entities": ["light.hall"]]])).path)
         XCTAssertFalse(loaded.hasErrors, "\(loaded.warnings)")
         let source = try XCTUnwrap(RenderConfigModel(loaded: loaded).sources.values.first { $0.url?.hasSuffix("/api/states") == true })
         XCTAssertEqual(source.url, "http://ha.local:8123/api/states")
-        XCTAssertEqual(source.headers?["Authorization"]?.contains("$secret"), true, "\(source.headers ?? [:])")
+        XCTAssertEqual(source.headers?["Authorization"], "Bearer {{ $secrets.homeAssistant }}")
     }
 
     // MARK: nowPlaying

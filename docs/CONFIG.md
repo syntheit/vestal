@@ -351,7 +351,7 @@ Codex plan usage, in the same shape as [`claude`](#claude), with `source` `"code
 
 ### Source templates
 
-A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in one is **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). Any other health agent can be mapped the same way with a template of your own. Six more read free APIs for the feed and market presets (their keys, endpoints and data shapes are in `vestal docs sources`, "Data packs"): `hackerNews` (`count`), `lobsters`, `rssFeed` (`url`, `name`), `coingecko` (`coins`, `currency`), `yahooQuotes` (`symbols`, `interval`) and `haStates` (`url`, `secret`, `entities`). A template's data parameters are `$name` variables in `url`, `headers`, `body` and `transform`. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
+A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in one is **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). Any other health agent can be mapped the same way with a template of your own. Six more read free APIs for the feed and market presets (their keys, endpoints and data shapes are in `vestal docs sources`, "Data packs"): `hackerNews` (`count`), `lobsters`, `rssFeed` (`url`, `name`), `coingecko` (`coins`, `currency`), `yahooQuotes` (`symbols`, `interval`) and `haStates` (`url`, `entities`). A template's data parameters are `$name` variables in `url`, `headers`, `body` and `transform`. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
 
 ## Secrets
 
@@ -830,13 +830,12 @@ Symbol, the session's line, last price and day change per stock, and the market 
 
 ### `homeAssistant`
 
-Home Assistant entities as tiles (icon, label, state with unit, a second line), coloured by state or thresholds; the token is a secret. New in 0.4.
+Home Assistant entities as tiles (icon, label, state with unit, a second line), coloured by state or thresholds; the token is the secret named `homeAssistant`. New in 0.4.
 
 | Key | Type | Default | |
 |---|---|---|---|
 | `entities` | list | required | `[{id, label, icon, attribute, attributeUnit, attributeLabel, since, precision, unit, thresholds, colors, color}]`, or plain ids. |
 | `url` | string | `"http://homeassistant.local:8123"` | The base URL. |
-| `secret` | string | `"homeAssistant"` | The secret that holds the long-lived token. |
 | `columns` | integer | `3` | Tiles per row. |
 | `stateColors` | object | `locked`, `closed` good; `on`, `open`, `unlocked` warn; `unavailable`, `unknown` dim | State word to colour. |
 

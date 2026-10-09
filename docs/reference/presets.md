@@ -152,13 +152,12 @@ programs.vestal.settings.widgets.stocks = { type = "watchlist"; source = "quotes
 
 ### `homeAssistant`
 
-A grid of tiles, one per entity: an icon and a label, the state with its unit (numbers rounded to one decimal, `°` and `%` joined to the number, other units after a space) and a second line. The state's colour: `color` of the entity if set; for a number, its `thresholds`; for a word, `stateColors` (`locked` and `closed` `good`; `on`, `open` and `unlocked` `warn`; `unavailable` and `unknown` `dim`; anything else `text`). The icon follows the state's colour (`subtle` for `text`). An entity Home Assistant doesn't know shows `–` in `dim`. Data from the `haStates` pack: the token is the secret named by `secret`.
+A grid of tiles, one per entity: an icon and a label, the state with its unit (numbers rounded to one decimal, `°` and `%` joined to the number, other units after a space) and a second line. The state's colour: `color` of the entity if set; for a number, its `thresholds`; for a word, `stateColors` (`locked` and `closed` `good`; `on`, `open` and `unlocked` `warn`; `unavailable` and `unknown` `dim`; anything else `text`). The icon follows the state's colour (`subtle` for `text`). An entity Home Assistant doesn't know shows `–` in `dim`. Data from the `haStates` pack: the long-lived token is the secret named `homeAssistant`.
 
 | Parameter | Default | |
 |---|---|---|
 | `entities` | required | `[{id, label, icon, attribute, attributeUnit, attributeLabel, since, precision, unit, thresholds, colors, color}]`; a plain string is an id. |
 | `url` | `http://homeassistant.local:8123` | Home Assistant's base URL. |
-| `secret` | `homeAssistant` | The name of the secret that holds the long-lived token. |
 | `columns` | `3` | Tiles per row. |
 | `stateColors` | see above | State word to colour. |
 

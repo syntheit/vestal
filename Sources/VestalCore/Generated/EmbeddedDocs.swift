@@ -1637,13 +1637,12 @@ programs.vestal.settings.widgets.stocks = { type = "watchlist"; source = "quotes
 
 ### `homeAssistant`
 
-A grid of tiles, one per entity: an icon and a label, the state with its unit (numbers rounded to one decimal, `°` and `%` joined to the number, other units after a space) and a second line. The state's colour: `color` of the entity if set; for a number, its `thresholds`; for a word, `stateColors` (`locked` and `closed` `good`; `on`, `open` and `unlocked` `warn`; `unavailable` and `unknown` `dim`; anything else `text`). The icon follows the state's colour (`subtle` for `text`). An entity Home Assistant doesn't know shows `–` in `dim`. Data from the `haStates` pack: the token is the secret named by `secret`.
+A grid of tiles, one per entity: an icon and a label, the state with its unit (numbers rounded to one decimal, `°` and `%` joined to the number, other units after a space) and a second line. The state's colour: `color` of the entity if set; for a number, its `thresholds`; for a word, `stateColors` (`locked` and `closed` `good`; `on`, `open` and `unlocked` `warn`; `unavailable` and `unknown` `dim`; anything else `text`). The icon follows the state's colour (`subtle` for `text`). An entity Home Assistant doesn't know shows `–` in `dim`. Data from the `haStates` pack: the long-lived token is the secret named `homeAssistant`.
 
 | Parameter | Default | |
 |---|---|---|
 | `entities` | required | `[{id, label, icon, attribute, attributeUnit, attributeLabel, since, precision, unit, thresholds, colors, color}]`; a plain string is an id. |
 | `url` | `http://homeassistant.local:8123` | Home Assistant's base URL. |
-| `secret` | `homeAssistant` | The name of the secret that holds the long-lived token. |
 | `columns` | `3` | Tiles per row. |
 | `stateColors` | see above | State word to colour. |
 
@@ -2338,7 +2337,7 @@ Hacker News through Algolia rather than the Firebase API or `hnrss.org`: Firebas
 
 **`yahooQuotes`.** Today's quotes from Yahoo Finance's chart endpoint, `https://query1.finance.yahoo.com/v8/finance/spark`, for all symbols in one request every 5 minutes. Keys: `symbols` (tickers in the order to show, default `["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA"]`; a symbol Yahoo doesn't know is left out) and `interval` (`1m`, `2m`, `5m`, `15m`; default `5m`). Data: `[{symbol, last, previousClose, change, history, time}]`: `last` the latest price, `change` the day's change in percent against the previous close, `history` the session's prices so far, `time` the epoch time of the last one. The endpoint is not an official API (it needs no key or sign-up, and has worked unchanged for years, but Yahoo may change or block it) and quotes can be delayed by up to 15 minutes. Daily-only sources (Stooq) draw no intraday line, and the keyed ones (Finnhub, Alpha Vantage, Twelve Data) need a sign-up and have free tiers of a few calls a minute or a day, one call per symbol: to use one, write a source of your own (`http` with `{{ $secrets.x }}` in the URL, and a `transform` to this shape) and give it to `watchlist` as its `source`.
 
-**`haStates`.** Home Assistant's `GET <url>/api/states` with a long-lived access token, sent as `Authorization: Bearer <token>` from a secret. Keys: `url` (required, the base URL, such as `http://homeassistant.local:8123`), `secret` (the name of the secret that holds the token, default `homeAssistant`) and `entities` (ids, or objects with an `id`, to keep; empty keeps every entity). Refreshes every 30 seconds while shown. Data: an object by entity id of `{state, attributes, lastChanged}` (epoch seconds), such as `.["lock.front_door"].state`. Create the token in Home Assistant under your profile (Security, Long-lived access tokens) and keep it in a file: `"secrets": { "homeAssistant": { "file": "~/.config/vestal/secrets/home-assistant.token" } }`. Read by `homeAssistant`.
+**`haStates`.** Home Assistant's `GET <url>/api/states` with a long-lived access token, sent as `Authorization: Bearer <token>` from the secret named `homeAssistant` (the name is fixed; for another, write an `http` source of your own). Keys: `url` (required, the base URL, such as `http://homeassistant.local:8123`) and `entities` (ids, or objects with an `id`, to keep; empty keeps every entity). Refreshes every 30 seconds while shown. Data: an object by entity id of `{state, attributes, lastChanged}` (epoch seconds), such as `.["lock.front_door"].state`. Create the token in Home Assistant under your profile (Security, Long-lived access tokens) and keep it in a file: `"secrets": { "homeAssistant": { "file": "~/.config/vestal/secrets/home-assistant.token" } }`. Read by `homeAssistant`.
 
 """#,
         "styling": #"""

@@ -92,16 +92,15 @@ extension DefaultPresets {
       },
 
       "haStates": {
-        "description": "Home Assistant entity states (REST /api/states, long-lived token from a secret), as an object by entity id",
+        "description": "Home Assistant entity states (REST /api/states, long-lived token from the secret named homeAssistant), as an object by entity id",
         "params": {
           "url": { "type": "string", "required": true, "description": "The base URL, such as http://homeassistant.local:8123" },
-          "secret": { "type": "string", "default": "homeAssistant", "description": "The name of the secret that holds the long-lived access token" },
           "entities": { "type": "array", "default": [], "description": "Entity ids (or objects with an id) to keep; empty keeps every entity" }
         },
         "source": {
           "type": "http",
           "url": "{{ $url }}/api/states",
-          "headers": { "Authorization": "Bearer {{ $secrets[$secret] }}" },
+          "headers": { "Authorization": "Bearer {{ $secrets.homeAssistant }}" },
           "refresh": "30s",
           "when": "visible",
           "transform": "($entities | map(if type == \"object\" then .id else . end)) as $ids | map(select(($ids | length) == 0 or (.entity_id as $e | $ids | index($e) != null))) | map({ key: .entity_id, value: { state, attributes, lastChanged: (.last_changed | to_epoch) } }) | from_entries"
@@ -240,13 +239,12 @@ extension DefaultPresets {
         "params": {
           "entities": { "type": "array", "required": true, "description": "[{id, label, icon, attribute, attributeUnit, attributeLabel, since, precision, unit, thresholds, colors, color}]" },
           "url": { "type": "string", "default": "http://homeassistant.local:8123", "description": "Home Assistant's base URL" },
-          "secret": { "type": "string", "default": "homeAssistant", "description": "The secret that holds the long-lived access token" },
           "columns": { "type": "integer", "default": 3 },
           "stateColors": { "type": "object", "default": { "on": "warn", "open": "warn", "unlocked": "warn", "locked": "good", "closed": "good", "home": "good", "playing": "accent", "heat": "orange", "cool": "cyan", "unavailable": "dim", "unknown": "dim" }, "description": "State word to colour, for entities without numbers" }
         },
         "widget": {
           "type": "list", "direction": "grid", "columns": { "param": "columns" }, "gap": 10, "width": "fill",
-          "source": { "type": "haStates", "url": { "param": "url" }, "secret": { "param": "secret" }, "entities": { "param": "entities" } },
+          "source": { "type": "haStates", "url": { "param": "url" }, "entities": { "param": "entities" } },
           "items": "$entities | map(if type == \"object\" then . else { id: . } end)",
           "rowId": ".id",
           "row": {
