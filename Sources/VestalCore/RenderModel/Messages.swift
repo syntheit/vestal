@@ -9,7 +9,7 @@ import Foundation
 /// The render model's protocol version.
 public enum RenderProtocol {
     public static let version = 1
-    public static let minor = 0
+    public static let minor = 1
 }
 
 /// JSON coding for the render model: sorted keys, so output is deterministic.
@@ -270,20 +270,23 @@ public struct RenderSnapshot: Equatable, Sendable, Codable {
     public var seq: Int
     public var view: String
     public var views: [RenderViewInfo]
+    /// The pages and the current one, when there are two or more.
+    public var pages: RenderPages?
     public var visible: Bool
     public var theme: RenderTheme
     public var root: RenderNode
     public var popup: RenderPopup?
     public var diagnostics: [RenderDiagnostic]
 
-    public init(seq: Int = 1, view: String = "main", views: [RenderViewInfo] = [], visible: Bool = true,
-                theme: RenderTheme = RenderTheme(), root: RenderNode, popup: RenderPopup? = nil,
+    public init(seq: Int = 1, view: String = "main", views: [RenderViewInfo] = [], pages: RenderPages? = nil,
+                visible: Bool = true, theme: RenderTheme = RenderTheme(), root: RenderNode, popup: RenderPopup? = nil,
                 diagnostics: [RenderDiagnostic] = []) {
         self.protocol = RenderProtocol.version
         self.minor = RenderProtocol.minor
         self.seq = seq
         self.view = view
         self.views = views
+        self.pages = pages
         self.visible = visible
         self.theme = theme
         self.root = root
@@ -292,7 +295,7 @@ public struct RenderSnapshot: Equatable, Sendable, Codable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case type, `protocol`, minor, seq, view, views, visible, theme, root, popup, diagnostics
+        case type, `protocol`, minor, seq, view, views, pages, visible, theme, root, popup, diagnostics
     }
 
     public init(from decoder: Decoder) throws {
@@ -303,6 +306,7 @@ public struct RenderSnapshot: Equatable, Sendable, Codable {
         seq = try c.decodeIfPresent(Int.self, forKey: .seq) ?? 0
         view = try c.decodeIfPresent(String.self, forKey: .view) ?? "main"
         views = try c.decodeIfPresent([RenderViewInfo].self, forKey: .views) ?? []
+        pages = try c.decodeIfPresent(RenderPages.self, forKey: .pages)
         visible = try c.decodeIfPresent(Bool.self, forKey: .visible) ?? true
         theme = try c.decodeIfPresent(RenderTheme.self, forKey: .theme) ?? RenderTheme()
         root = try c.decode(RenderNode.self, forKey: .root)
@@ -319,6 +323,7 @@ public struct RenderSnapshot: Equatable, Sendable, Codable {
         try c.encode(seq, forKey: .seq)
         try c.encode(view, forKey: .view)
         try c.encode(views, forKey: .views)
+        try c.encodeIfPresent(pages, forKey: .pages)
         try c.encode(visible, forKey: .visible)
         try c.encode(theme, forKey: .theme)
         try c.encode(root, forKey: .root)
@@ -487,10 +492,13 @@ public enum RenderInput: Equatable, Sendable, Codable {
     case hide
     /// A UI-provided view switcher.
     case view(name: String)
+    /// Go `step` pages on (+1) or back (-1), as a swipe does; nothing past
+    /// an end unless `pages.wrap`.
+    case page(step: Int)
     /// Resync: the UI wants a fresh snapshot.
     case snapshot
 
-    private enum CodingKeys: String, CodingKey { case cmd, id, key, name }
+    private enum CodingKeys: String, CodingKey { case cmd, id, key, name, step }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -499,6 +507,7 @@ public enum RenderInput: Equatable, Sendable, Codable {
         case "key": self = .key(try c.decode(String.self, forKey: .key))
         case "hide": self = .hide
         case "view": self = .view(name: try c.decode(String.self, forKey: .name))
+        case "page": self = .page(step: try c.decode(Int.self, forKey: .step))
         case "snapshot": self = .snapshot
         case let other:
             throw DecodingError.dataCorruptedError(forKey: .cmd, in: c, debugDescription: "unknown cmd \(other)")
@@ -519,6 +528,9 @@ public enum RenderInput: Equatable, Sendable, Codable {
         case .view(let name):
             try c.encode("view", forKey: .cmd)
             try c.encode(name, forKey: .name)
+        case .page(let step):
+            try c.encode("page", forKey: .cmd)
+            try c.encode(step, forKey: .step)
         case .snapshot:
             try c.encode("snapshot", forKey: .cmd)
         }

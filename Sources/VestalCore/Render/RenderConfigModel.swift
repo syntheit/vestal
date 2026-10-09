@@ -14,6 +14,9 @@ public final class RenderConfigModel: @unchecked Sendable {
     /// View names, sorted (the snapshot's `views` order).
     public let viewNames: [String]
     public let defaultView: String
+    /// `pages`, and the views it pages between, in order.
+    public let pages: PagesConfig
+    public let pageOrder: [String]
     /// Global key bindings, key → action.
     public let keys: [String: AnyJSON]
     public let palette: RenderPalette
@@ -44,13 +47,27 @@ public final class RenderConfigModel: @unchecked Sendable {
         widgets = top["widgets"]?.objectValue ?? [:]
         density = ThemeConfig.density(top["theme"])
         var views: [String: ViewSpec] = [:]
+        var disabled = Set<String>()
         for (name, json) in top["views"]?.objectValue ?? [:] {
-            if let object = json.objectValue { views[name] = ViewSpec(name: name, json: object, density: density) }
+            guard let object = json.objectValue else { continue }
+            // A disabled view does not exist as far as the dashboard goes.
+            if case .bool(false)? = object["enabled"] { disabled.insert(name); continue }
+            views[name] = ViewSpec(name: name, json: object, density: density)
         }
         self.views = views
         viewNames = views.keys.sorted()
+        let pagesConfig = PagesConfig(top["pages"])
+        pages = pagesConfig
+        let order = RenderConfigModel.pageOrder(pages: pagesConfig, views: views)
+        pageOrder = order
         let requested = top["defaultView"]?.stringValue ?? "main"
-        defaultView = views[requested] != nil ? requested : (views["main"] != nil ? "main" : viewNames.first ?? "main")
+        if views[requested] != nil {
+            defaultView = requested
+        } else if disabled.contains(requested), let first = order.first {
+            defaultView = first
+        } else {
+            defaultView = views["main"] != nil ? "main" : viewNames.first ?? "main"
+        }
         keys = top["keys"]?.objectValue ?? [:]
         let themeJSON = top["theme"]
         palette = RenderPalette(theme: themeJSON)
@@ -81,8 +98,21 @@ public final class RenderConfigModel: @unchecked Sendable {
     /// The order `tab` cycles through: views with a key by key, then the
     /// rest by name.
     public var cycleOrder: [String] {
-        let keyed = viewNames.filter { views[$0]?.key != nil }.sorted { (views[$0]!.key!, $0) < (views[$1]!.key!, $1) }
-        return keyed + viewNames.filter { views[$0]?.key == nil }
+        Self.cycleOrder(views: views)
+    }
+
+    private static func cycleOrder(views: [String: ViewSpec]) -> [String] {
+        let names = views.keys.sorted()
+        let keyed = names.filter { views[$0]?.key != nil }.sorted { (views[$0]!.key!, $0) < (views[$1]!.key!, $1) }
+        return keyed + names.filter { views[$0]?.key == nil }
+    }
+
+    /// The pages, in paging order: `pages.order` (known, enabled views
+    /// once each), else the cycle order.
+    private static func pageOrder(pages: PagesConfig, views: [String: ViewSpec]) -> [String] {
+        guard let written = pages.order else { return cycleOrder(views: views) }
+        var seen = Set<String>()
+        return written.filter { views[$0] != nil && seen.insert($0).inserted }
     }
 
     /// The views as the snapshot lists them.
@@ -91,6 +121,17 @@ public final class RenderConfigModel: @unchecked Sendable {
             let spec = views[name]!
             return RenderViewInfo(name: name, title: spec.title, key: spec.key)
         }
+    }
+
+    /// The snapshot's `pages` for `view`: nil with fewer than two pages.
+    func renderPages(view: String, direction: Int?) -> RenderPages? {
+        guard pageOrder.count > 1 else { return nil }
+        let items = pageOrder.map { name -> RenderViewInfo in
+            let spec = views[name]!
+            return RenderViewInfo(name: name, title: spec.title, key: spec.key)
+        }
+        return RenderPages(items: items, index: pageOrder.firstIndex(of: view), direction: direction,
+                           transition: pages.transition, indicator: pages.indicator, swipe: pages.swipe, wrap: pages.wrap)
     }
 
     /// A text field parsed once.

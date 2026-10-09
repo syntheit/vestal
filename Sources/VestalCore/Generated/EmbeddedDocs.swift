@@ -140,7 +140,7 @@ $ vestal fetch prs --config /tmp/vestal-draft.json --allow-commands --shape
 
 ### Step 3: write the config
 
-A complete config is a JSON object with `"version": 1`, merged over the defaults. The parts: `sources` (data), `widgets` (named widgets), `views` (which widgets show, in order), plus `templates`, `functions`, `secrets`, `keys`, `theme`, `platform` when needed. Every recipe in section 5 is a complete file you can start from.
+A complete config is a JSON object with `"version": 1`, merged over the defaults. The parts: `sources` (data), `widgets` (named widgets), `views` (which widgets show, in order), plus `templates`, `functions`, `secrets`, `keys`, `pages` (order, slide or fade, dots and swipe between views; `views.<name>.enabled: false` turns a view off), `theme`, `platform` when needed. Every recipe in section 5 is a complete file you can start from.
 
 The three kinds of field (`vestal docs expressions`):
 
@@ -689,7 +689,7 @@ User: *"Give me a 'focus' screen on key 2 with a big clock, my agenda and my to-
 }
 ```
 
-- `1` and `2` switch views while the dashboard is open, and so does `tab`. From a shell or the compositor: `vestal show focus`, or `vestal toggle focus` (Hyprland: `bind = SHIFT, Home, exec, vestal toggle focus`).
+- `1` and `2` switch views while the dashboard is open, and so do `tab` and the arrow keys (with dots and a swipe; `vestal docs views`). From a shell or the compositor: `vestal show focus`, or `vestal toggle focus` (Hyprland: `bind = SHIFT, Home, exec, vestal toggle focus`).
 - The to-do source is inline (`parse: "lines"`, one string per line); the list keeps the unchecked `- [ ]` items.
 - Check the second view: `vestal render --config /tmp/vestal-draft.json --view focus`, or `--press 2`.
 
@@ -1467,7 +1467,7 @@ Where bindings come from, highest precedence first:
 2. widget `key`s in the current view (the key runs that widget's `action`);
 3. the view's `keys`;
 4. the top-level `keys`, and the views' `key` shorthands;
-5. `tab` and `shift+tab`, which cycle views.
+5. `left` and `right`, which go to the previous and next page, and `tab` and `shift+tab`, which cycle the pages (`vestal docs views`).
 
 `escape` (close the popup, else hide the dashboard) and `alt+i` (the info popup) are reserved: binding them is an error.
 
@@ -1596,18 +1596,18 @@ Any vestal instance serves subscribers, including a Linux `vestal daemon` with n
 ## Subscribing
 
 ```jsonc
-{"cmd": "subscribe", "role": "ui", "protocol": [1], "minor": 0, "client": "my-ui/0.1", "capabilities": ["copy", "notify"], "whileHidden": false, "control": false, "view": null}
+{"cmd": "subscribe", "role": "ui", "protocol": [1], "minor": 1, "client": "my-ui/0.1", "capabilities": ["copy", "notify"], "whileHidden": false, "control": false, "view": null}
 ```
 
 | Field | Default | |
 |---|---|---|
 | `role` | `observer` | `ui` draws the dashboard; `observer` watches (status bars, debuggers); `control` is an observer with `control: true`. |
 | `protocol` | `[1]` | The major versions the client speaks. Without `1`: an `error` message, and the connection closes. |
-| `minor` | `0` | The minor version the client understands; newer node types come as `text` with their `alt`. |
+| `minor` | `1` | The minor version the client understands; newer node types come as `text` with their `alt`. |
 | `client` | none | A name for logs. |
 | `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise vestal's own UI takes it (macOS), or the headless daemon runs `wl-copy`. (`screenshot` delegation is specified but not implemented yet.) |
 | `whileHidden` | `false` | Keep evaluating and sending patches while the dashboard is hidden (debugging). |
-| `control` | `false` | Let an observer's `invoke`, `key`, `hide` and `view` count. |
+| `control` | `false` | Let an observer's `invoke`, `key`, `hide`, `view` and `page` count. |
 | `view` | none | Switch to this view, as a `view` command right after subscribing (primary UI or control only, while shown). |
 
 The connection then stays open. The server writes one JSON message per line; the client writes commands, one per line.
@@ -1616,7 +1616,7 @@ The connection then stays open. The server writes one JSON message per line; the
 
 | Message | |
 |---|---|
-| `{"type": "hello", "protocol": 1, "minor": 0, "server": "0.4.0 (abc1234)", "os": "linux", "role": "observer", "primary": false}` | First, after `subscribe`. `primary` says whether this subscriber is the primary UI. |
+| `{"type": "hello", "protocol": 1, "minor": 1, "server": "0.4.0 (abc1234)", "os": "linux", "role": "observer", "primary": false}` | First, after `subscribe`. `primary` says whether this subscriber is the primary UI. |
 | `snapshot` | The whole model (`vestal docs render-model`), with this connection's `seq` (1 for the first; every later snapshot or patch adds 1). `visible` in it is `false` for a `whileHidden` subscriber while the dashboard is hidden. |
 | `patch` | Changes since `base` (`vestal docs render-model`). At most one per 50 ms per subscriber; a patch bigger than half a snapshot is sent as a snapshot. |
 | `{"type": "visibility", "visible": true, "view": "main"}` | Show or hide the window. The core decides: `vestal toggle`, Escape and actions all go through it. |
@@ -1634,6 +1634,7 @@ While the dashboard is hidden nothing is evaluated and no patches are sent (unle
 | `{"cmd": "key", "key": "h"}` | Every key press the UI doesn't handle itself, in the key grammar (`"shift+tab"`, `"escape"`). The core decides what it means, Escape included. |
 | `{"cmd": "hide"}` | The window went away on its own. |
 | `{"cmd": "view", "name": "focus"}` | A switcher in the UI. |
+| `{"cmd": "page", "step": 1}` | A swipe: go one page on (`1`) or back (`-1`); nothing past an end unless `pages.wrap` (`vestal docs views`). |
 | `{"cmd": "snapshot"}` | Resync: a patch's `base` didn't match. |
 
 ## Roles
@@ -1676,7 +1677,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 ## Versions
 
 - `protocol` is the major version, `1`. A breaking change bumps it.
-- `minor` counts additive changes (new optional fields, new node types); it is `0`.
+- `minor` counts additive changes (new optional fields, new node types); it is `1` (1 added `pages` and the `page` input).
 - Clients must ignore fields they don't know.
 - A subscriber that declares an older `minor` gets newer node types as `text` nodes carrying their `alt`.
 
@@ -1686,7 +1687,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 {
   "type": "snapshot",
   "protocol": 1,
-  "minor": 0,
+  "minor": 1,
   "seq": 1,
   "view": "main",
   "views": [ { "name": "main", "key": "1" }, { "name": "focus", "title": "Focus", "key": "2" } ],
@@ -1707,6 +1708,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 |---|---|
 | `seq` | Increases by one with every message that changes the tree (per subscriber). |
 | `view`, `views` | The current view, and every view sorted by name (JSON objects keep no order), for UIs with a switcher. |
+| `pages` | Present with two or more pages: `items` (the pages in paging order, each `{name, title, key}`), `index` (the current view's place in `items`, absent when it is not a page), `direction` (`1` or `-1`: which way the last change of view went; absent when there was none or it has no direction), and the settings `transition`, `indicator`, `swipe` and `wrap` (`vestal docs views`). A UI draws the transition on a change of `view`, and the dots when `indicator` is `dots`. |
 | `visible` | Whether the dashboard should be on screen. |
 | `theme.colors` | Every palette name a node may use, resolved to `#rrggbbaa`. |
 | `theme.fonts` | A family per role; `null` is the platform default. |
@@ -2315,13 +2317,52 @@ A view is one screen of widgets. The dashboard opens `defaultView` (default `mai
 | `padding` | `48` | Inside `maxWidth`: a number or `[top, right, bottom, left]`. |
 | `maxWidth` | `680` | The root is at most this wide, centred on the screen both ways. |
 | `keys` | `{}` | Key bindings of this view only (`vestal docs keys`). |
+| `enabled` | `true` | `false` turns the view off (see Pages). |
 
 - **Lists replace.** `views.main.children` in your file replaces the default list whole. To add a widget to the default dashboard, write the full list: `vestal print-config` shows the current one.
 - **Spacing.** In a view written with `children`, the first *visible* child gets no space before it. A view written with v0.3's `order` keeps v0.3's rule: only the first *listed* entry gets none.
-- **Switching.** `tab` and `shift+tab` cycle through the views (in key order) when there is more than one and those keys are unbound; a view's `key` jumps to it. From a shell or a compositor: `vestal show <view>` opens the dashboard on that view, and `vestal toggle <view>` hides it when it shows that view and shows that view otherwise. An unknown view exits 4.
+- **Switching.** `left`, `right`, `tab` and `shift+tab` page through the views (in key order, or `pages.order`) when there is more than one and those keys are unbound; a view's `key` jumps to it. A swipe pages too (see Pages). From a shell or a compositor: `vestal show <view>` opens the dashboard on that view, and `vestal toggle <view>` hides it when it shows that view and shows that view otherwise. An unknown view exits 4.
 - **Cost.** A view that isn't shown costs nothing: its `visible` sources aren't fetched and nothing in it is evaluated.
 
 Check one without opening it: `vestal render --view focus`, or `vestal render --press 2` to go through its key.
+
+## Pages
+
+With two or more views the dashboard pages like a phone's home screens: `left` and `right` (and a two-finger swipe) move between the views, the old page slides out and the new one in, and a row of dots shows where you are. One view draws exactly as before, with no dots. The top-level `pages` object (all keys optional):
+
+| Key | Default | |
+|---|---|---|
+| `order` | the views in key order, then by name | The views to page through, in order. A view not listed stays reachable by its `key` and `vestal show`, but is not paged to. A name that isn't an enabled view is a check-config warning and is skipped. |
+| `transition` | `"slide"` | How a change of page is drawn: `"slide"` (the old page leaves sideways while the new one comes in, 250 ms), `"fade"` (a crossfade, 180 ms) or `"none"`. With reduced motion on (macOS "Reduce motion", GTK `gtk-enable-animations` off), `slide` is a short fade. A jump to a view that is not a page also fades. |
+| `indicator` | `"dots"` | `"dots"`: one dot per page near the bottom of the screen, the current one in the accent colour; drawn only with two or more pages. `"none"`. |
+| `swipe` | `true` | A two-finger horizontal swipe on the trackpad pages. The page follows the fingers and goes on past about 12 % of the screen width or with a quick flick, else springs back. |
+| `wrap` | `false` | Whether `right` on the last page goes to the first (and `left` on the first to the last). `tab` and `shift+tab` always cycle round. |
+
+`left` and `right` go to the previous and next page, and `tab` and `shift+tab` keep cycling, unless you bind those keys yourself: your bindings win (see keys). On Linux the swipe assumes natural scrolling.
+
+Set `enabled` to `false` on a view to turn it off, as you would a lock screen: it has no key, is not paged to, `vestal show <view>` exits 4 as for an unknown view, and nothing in it is evaluated. If `defaultView` is disabled, check-config warns and the first enabled page is shown instead.
+
+```json
+{
+  "pages": { "order": ["main", "focus"], "transition": "slide", "indicator": "dots", "swipe": true, "wrap": true },
+  "views": {
+    "main": { "key": "1", "children": ["clock", "systemBar", "agenda"] },
+    "focus": { "key": "2", "children": ["agenda"] },
+    "stats": { "key": "3", "enabled": false, "children": ["systemBar"] }
+  }
+}
+```
+
+Under Home Manager the same settings are Nix, and a page can be toggled like a lock screen:
+
+```nix
+programs.vestal.settings = {
+  pages = { order = [ "main" "focus" ]; transition = "fade"; wrap = true; };
+  views.stats.enabled = false;
+};
+```
+
+`vestal render --press right` renders the next page. The render model carries `pages` (the page list, the current index and the direction of the last change) when there are two or more pages, so a client can draw the dots and the transition (`vestal docs render-model`).
 
 ## Popups
 

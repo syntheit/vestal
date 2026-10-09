@@ -83,7 +83,7 @@ $ vestal fetch prs --config /tmp/vestal-draft.json --allow-commands --shape
 
 ### Step 3: write the config
 
-A complete config is a JSON object with `"version": 1`, merged over the defaults. The parts: `sources` (data), `widgets` (named widgets), `views` (which widgets show, in order), plus `templates`, `functions`, `secrets`, `keys`, `theme`, `platform` when needed. Every recipe in section 5 is a complete file you can start from.
+A complete config is a JSON object with `"version": 1`, merged over the defaults. The parts: `sources` (data), `widgets` (named widgets), `views` (which widgets show, in order), plus `templates`, `functions`, `secrets`, `keys`, `pages` (order, slide or fade, dots and swipe between views; `views.<name>.enabled: false` turns a view off), `theme`, `platform` when needed. Every recipe in section 5 is a complete file you can start from.
 
 The three kinds of field (`vestal docs expressions`):
 
@@ -632,7 +632,7 @@ User: *"Give me a 'focus' screen on key 2 with a big clock, my agenda and my to-
 }
 ```
 
-- `1` and `2` switch views while the dashboard is open, and so does `tab`. From a shell or the compositor: `vestal show focus`, or `vestal toggle focus` (Hyprland: `bind = SHIFT, Home, exec, vestal toggle focus`).
+- `1` and `2` switch views while the dashboard is open, and so do `tab` and the arrow keys (with dots and a swipe; `vestal docs views`). From a shell or the compositor: `vestal show focus`, or `vestal toggle focus` (Hyprland: `bind = SHIFT, Home, exec, vestal toggle focus`).
 - The to-do source is inline (`parse: "lines"`, one string per line); the list keeps the unchecked `- [ ]` items.
 - Check the second view: `vestal render --config /tmp/vestal-draft.json --view focus`, or `--press 2`.
 

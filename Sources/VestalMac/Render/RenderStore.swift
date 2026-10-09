@@ -1,4 +1,5 @@
 #if os(macOS)
+import AppKit
 import SwiftUI
 import VestalCore
 
@@ -90,6 +91,21 @@ public final class RenderStore: ObservableObject {
     @Published private(set) var root: NodeHandle?
     @Published private(set) var popup: PopupState?
     @Published private(set) var style = RenderStyle.default
+    /// The pages and the current one (two or more), for the dots.
+    @Published private(set) var pages: RenderPages?
+    /// A change of page being drawn: the old page leaving while the new one
+    /// comes in. Nil at rest.
+    @Published private(set) var pageChange: PageChange?
+    /// How far the current page is dragged by a swipe, in points.
+    @Published var dragOffset: Double = 0
+    /// The stage's width, for sliding pages by a screen (set by the stage).
+    var stageWidth = 0.0
+    /// 0 when a change of page begins, animated to 1 (`runChange`).
+    @Published private(set) var pageProgress: Double = 1
+    /// Whether changes of view are animated: the app turns it on while the
+    /// dashboard is on screen, so the view a show opens on just appears.
+    var pagesLive = false
+    private var changeSerial = 0
     /// Clicks on `action` nodes (`invoke`), and `escape` for a click on the
     /// popup's scrim. Keys are the host's to send (the key monitor).
     public let send: (RenderInput) -> Void
@@ -112,9 +128,12 @@ public final class RenderStore: ObservableObject {
     /// Draws a whole model: theme, the view's tree and the popup.
     public func apply(_ snapshot: RenderSnapshot) {
         if self.snapshot?.theme != snapshot.theme || self.snapshot == nil { setTheme(snapshot.theme) }
+        let previous = self.snapshot, outgoing = root
         self.snapshot = snapshot
+        if pages != snapshot.pages { pages = snapshot.pages }
         index = [:]
         root = build(snapshot.root)
+        if let previous, let outgoing, previous.view != snapshot.view { beginChange(outgoing: outgoing, to: snapshot) }
         popup = snapshot.popup.map { PopupState(id: $0.id, width: $0.width, handle: build($0.node)) }
     }
 
@@ -130,9 +149,11 @@ public final class RenderStore: ObservableObject {
             switch op {
             case .replace(let id, let node):
                 guard replace(id: id, with: node) else { return false }
-            case .root(let node, _):
+            case .root(let node, let view):
+                let outgoing = root, previousView = snapshot?.view
                 forgetTree(root)
                 root = build(node)
+                if let outgoing, previousView != view { beginChange(outgoing: outgoing, to: model) }
             case .popup(let new):
                 setPopup(new)
             case .theme(let theme):
@@ -144,6 +165,45 @@ public final class RenderStore: ObservableObject {
         model.seq = patch.seq
         snapshot = model
         return true
+    }
+
+    // MARK: Page changes
+
+    /// Starts drawing the move to `snapshot`'s view: from `outgoing`, the
+    /// page that was on screen (still showing the drag offset it was left at).
+    private func beginChange(outgoing: NodeHandle, to snapshot: RenderSnapshot) {
+        let start = dragOffset
+        dragOffset = 0
+        guard pagesLive, let pages = snapshot.pages else { return }
+        let reduce = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let kind = PageMotion.kind(transition: pages.transition, direction: pages.direction, reduceMotion: reduce)
+        guard kind != "none" else { return }
+        changeSerial += 1
+        let change = PageChange(serial: changeSerial, outgoing: outgoing, direction: pages.direction ?? 0, slides: kind == "slide",
+                                startOffset: start, duration: kind == "slide" ? PageMotion.slideDuration : PageMotion.fadeDuration)
+        pageProgress = 0
+        pageChange = change
+        DispatchQueue.main.asyncAfter(deadline: .now() + change.duration + 0.1) { [weak self] in
+            guard let self, self.pageChange?.serial == change.serial else { return }
+            self.pageChange = nil
+            self.pageProgress = 1
+        }
+    }
+
+    /// The stage drew the first frame of change `serial`: animate it.
+    func runChange(_ serial: Int) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let change = self.pageChange, change.serial == serial else { return }
+            withAnimation(.easeOut(duration: change.duration)) { self.pageProgress = 1 }
+        }
+    }
+
+    /// The dashboard is leaving or arriving: nothing animates, and a swipe
+    /// in progress is dropped.
+    func stopPageAnimations() {
+        pageChange = nil
+        pageProgress = 1
+        dragOffset = 0
     }
 
     private func setTheme(_ theme: RenderTheme) {

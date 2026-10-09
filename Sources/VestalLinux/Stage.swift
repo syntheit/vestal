@@ -10,11 +10,34 @@ import VestalCore
 // bottom when taller than the window), and while a popup is open, the scrim
 // and the popup's card.
 
+/// How a change of page is drawn.
+struct PageMotionRequest {
+    /// +1: the new page comes in from the right; -1: from the left.
+    var direction: Int
+    /// A slide; otherwise a crossfade.
+    var slides: Bool
+    var duration: Double
+}
+
 final class StageView: NodeView {
     let aurora: AuroraArea
     private(set) var root: NodeView?
     private(set) var scrim: ScrimView?
     private(set) var card: CardView?
+    /// The page leaving, while a change of page is drawn.
+    private(set) var outgoing: NodeView?
+    /// The pages, for the dots.
+    var pages: RenderPages? {
+        didSet { if pages != oldValue { gtk_widget_queue_draw(widget) } }
+    }
+    /// How far a swipe has dragged the current page, in points.
+    var dragOffset = 0.0 {
+        didSet { gtk_widget_queue_draw(widget) }
+    }
+    private var motion: PageMotionRequest?
+    private var motionStart = 0.0
+    private var motionProgress = 1.0
+    private var animationTick: guint = 0
 
     init(context: RenderContext, aurora: AuroraArea) {
         self.aurora = aurora
@@ -24,8 +47,10 @@ final class StageView: NodeView {
         gtk_widget_set_overflow(widget, GTK_OVERFLOW_HIDDEN)
     }
 
-    /// Replaces the view's tree.
-    func setRoot(_ node: RenderNode?) {
+    /// Replaces the view's tree; with `motion`, the old tree leaves while the
+    /// new one comes in.
+    func setRoot(_ node: RenderNode?, motion: PageMotionRequest? = nil) {
+        endMotion(keepDrag: motion != nil)
         let old = root
         old?.forget()
         if let node {
@@ -36,7 +61,112 @@ final class StageView: NodeView {
         } else {
             root = nil
         }
-        if let old { gtk_widget_unparent(old.widget) }
+        guard let old else {
+            dragOffset = 0
+            return
+        }
+        if let motion, root != nil {
+            outgoing = old
+            gtk_widget_set_can_target(old.widget, 0)
+            self.motion = motion
+            motionStart = dragOffset
+            dragOffset = 0
+            motionProgress = 0
+            animate(duration: motion.duration, step: { [weak self] t in
+                self?.motionProgress = 1 - (1 - t) * (1 - t)
+            }, done: { [weak self] in
+                self?.animationTick = 0
+                self?.endMotion(keepDrag: false)
+            })
+        } else {
+            gtk_widget_unparent(old.widget)
+        }
+    }
+
+    // MARK: Pages
+
+    /// Ends a change of page and any drag at once: the old page goes.
+    func endMotion(keepDrag: Bool) {
+        stopAnimation()
+        if let outgoing { gtk_widget_unparent(outgoing.widget) }
+        outgoing = nil
+        motion = nil
+        motionProgress = 1
+        if !keepDrag { dragOffset = 0 }
+        gtk_widget_queue_draw(widget)
+    }
+
+    /// The dragged page returns to rest.
+    func springBack() {
+        let from = dragOffset
+        animate(duration: 0.22, step: { [weak self] t in
+            self?.dragOffset = from * (1 - (1 - (1 - t) * (1 - t)))
+        }, done: { [weak self] in self?.animationTick = 0 })
+    }
+
+    private final class Animation {
+        var start: gint64 = 0
+        let duration: Double
+        let step: (Double) -> Void
+        let done: () -> Void
+        init(duration: Double, step: @escaping (Double) -> Void, done: @escaping () -> Void) {
+            self.duration = duration; self.step = step; self.done = done
+        }
+    }
+
+    /// Runs `step` with 0...1 on the frame clock for `duration` seconds
+    /// (so it costs nothing once done, and nothing while unmapped).
+    private func animate(duration: Double, step: @escaping (Double) -> Void, done: @escaping () -> Void) {
+        stopAnimation()
+        let state = Animation(duration: duration, step: step, done: done)
+        let tick: GtkTickCallback = { widget, clock, data in
+            let animation = Unmanaged<Animation>.fromOpaque(data!).takeUnretainedValue()
+            let now = gdk_frame_clock_get_frame_time(clock)
+            if animation.start == 0 { animation.start = now }
+            let t = min(1, Double(now - animation.start) / 1_000_000 / animation.duration)
+            animation.step(t)
+            gtk_widget_queue_draw(widget)
+            guard t >= 1 else { return 1 }
+            animation.done()
+            return 0 // removed; the destroy notify releases `animation`
+        }
+        animationTick = gtk_widget_add_tick_callback(widget, tick, Unmanaged.passRetained(state).toOpaque(), releaseBox)
+    }
+
+    private func stopAnimation() {
+        if animationTick != 0 { gtk_widget_remove_tick_callback(widget, animationTick); animationTick = 0 }
+    }
+
+    /// Where a layer is drawn and how opaque: nil at rest.
+    private func layerMotion(_ view: WidgetPtr) -> (offset: Double, opacity: Double)? {
+        let width = Double(gtk_widget_get_width(widget))
+        let p = motionProgress
+        if let motion, let outgoing, view == outgoing.widget {
+            if motion.slides {
+                return (motionStart * (1 - p) - Double(motion.direction) * width * p, 1)
+            }
+            return (0, 1 - p)
+        }
+        if let motion, let root, view == root.widget {
+            if motion.slides { return (Double(motion.direction) * width * (1 - p), 1) }
+            return (0, p)
+        }
+        if let root, view == root.widget, dragOffset != 0 { return (dragOffset, 1) }
+        return nil
+    }
+
+    private func drawDots(_ snapshot: OpaquePointer) {
+        guard let pages, pages.indicator == "dots", pages.items.count > 1 else { return }
+        let size = 7.0, spacing = 10.0, bottom = 28.0
+        let width = Double(gtk_widget_get_width(widget)), height = Double(gtk_widget_get_height(widget))
+        let total = Double(pages.items.count) * size + Double(pages.items.count - 1) * spacing
+        var x = ((width - total) / 2).rounded()
+        let y = (height - bottom - size).rounded()
+        for index in pages.items.indices {
+            let color = context.theme.color(index == pages.index ? "accent" : "dim")
+            fillRounded(snapshot, Rect(x: x, y: y, width: size, height: size), radius: size / 2, color: color)
+            x += size + spacing
+        }
     }
 
     /// Opens, replaces or closes the popup.
@@ -67,7 +197,20 @@ final class StageView: NodeView {
 
     override func allocate(width: Double, height: Double) {
         place(aurora.widget, Rect(x: 0, y: 0, width: width, height: height))
-        if let root {
+        if let outgoing { placeRoot(outgoing, width: width, height: height) }
+        if let root { placeRoot(root, width: width, height: height) }
+        if let scrim { place(scrim.widget, Rect(x: 0, y: 0, width: width, height: height)) }
+        if let card {
+            let w = min(card.popupWidth, width)
+            let h = min(card.fitHeight(forWidth: w).0, height)
+            place(card.widget, Rect(x: (width - w) / 2, y: (height - h) / 2, width: w, height: h))
+        }
+    }
+
+    /// The view's root: `min(maxWidth, width)` wide, centred, top-aligned
+    /// when taller than the window.
+    private func placeRoot(_ root: NodeView, width: Double, height: Double) {
+        do {
             let w: Double
             switch root.node.width {
             case .points(let fixed)?: w = root.clampWidth(fixed)
@@ -84,16 +227,31 @@ final class StageView: NodeView {
             let y = h > height ? 0 : (height - h) / 2
             place(root.widget, Rect(x: (width - w) / 2, y: y, width: w, height: h))
         }
-        if let scrim { place(scrim.widget, Rect(x: 0, y: 0, width: width, height: height)) }
-        if let card {
-            let w = min(card.popupWidth, width)
-            let h = min(card.fitHeight(forWidth: w).0, height)
-            place(card.widget, Rect(x: (width - w) / 2, y: (height - h) / 2, width: w, height: h))
-        }
     }
 
     override func snapshot(_ snapshot: OpaquePointer) {
-        snapshotChildren(snapshot)
+        // Bottom to top; the dots sit over the pages and under a popup.
+        var dotsDrawn = false
+        var child = gtk_widget_get_first_child(widget)
+        while let current = child {
+            if !dotsDrawn, current == scrim?.widget || current == card?.widget {
+                drawDots(snapshot)
+                dotsDrawn = true
+            }
+            if let layer = layerMotion(current) {
+                gtk_snapshot_save(snapshot)
+                var point = graphene_point_t(x: Float(layer.offset), y: 0)
+                gtk_snapshot_translate(snapshot, &point)
+                gtk_snapshot_push_opacity(snapshot, layer.opacity)
+                gtk_widget_snapshot_child(widget, current, snapshot)
+                gtk_snapshot_pop(snapshot)
+                gtk_snapshot_restore(snapshot)
+            } else {
+                gtk_widget_snapshot_child(widget, current, snapshot)
+            }
+            child = gtk_widget_get_next_sibling(current)
+        }
+        if !dotsDrawn { drawDots(snapshot) }
     }
 }
 

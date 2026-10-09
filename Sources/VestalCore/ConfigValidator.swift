@@ -111,6 +111,7 @@ private struct Walker {
             case "views": views(value)
             case "secrets": secrets(value)
             case "defaultView": v04.defaultView(value)
+            case "pages": v04.pages(value)
             case "keys": v04.keys(value, path: "keys")
             case "functions": v04.functions(value)
             case "templates": v04.templates()

@@ -7,7 +7,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 ## Versions
 
 - `protocol` is the major version, `1`. A breaking change bumps it.
-- `minor` counts additive changes (new optional fields, new node types); it is `0`.
+- `minor` counts additive changes (new optional fields, new node types); it is `1` (1 added `pages` and the `page` input).
 - Clients must ignore fields they don't know.
 - A subscriber that declares an older `minor` gets newer node types as `text` nodes carrying their `alt`.
 
@@ -17,7 +17,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 {
   "type": "snapshot",
   "protocol": 1,
-  "minor": 0,
+  "minor": 1,
   "seq": 1,
   "view": "main",
   "views": [ { "name": "main", "key": "1" }, { "name": "focus", "title": "Focus", "key": "2" } ],
@@ -38,6 +38,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 |---|---|
 | `seq` | Increases by one with every message that changes the tree (per subscriber). |
 | `view`, `views` | The current view, and every view sorted by name (JSON objects keep no order), for UIs with a switcher. |
+| `pages` | Present with two or more pages: `items` (the pages in paging order, each `{name, title, key}`), `index` (the current view's place in `items`, absent when it is not a page), `direction` (`1` or `-1`: which way the last change of view went; absent when there was none or it has no direction), and the settings `transition`, `indicator`, `swipe` and `wrap` (`vestal docs views`). A UI draws the transition on a change of `view`, and the dots when `indicator` is `dots`. |
 | `visible` | Whether the dashboard should be on screen. |
 | `theme.colors` | Every palette name a node may use, resolved to `#rrggbbaa`. |
 | `theme.fonts` | A family per role; `null` is the platform default. |

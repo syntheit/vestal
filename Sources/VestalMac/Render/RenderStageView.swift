@@ -20,8 +20,23 @@ public struct RenderStageView: View {
 
     public var body: some View {
         StageLayout {
+            if let change = store.pageChange {
+                // The page leaving, while the new one comes in.
+                let motion = PageLayerMotion.outgoing(change, progress: store.pageProgress, width: store.stageWidth)
+                RenderNodeView(handle: change.outgoing, parentAxis: nil)
+                    .offset(x: motion.offset)
+                    .opacity(motion.opacity)
+                    .allowsHitTesting(false)
+                    .id(change.serial)
+                    .onAppear { store.runChange(change.serial) }
+                    .layoutValue(key: StageRoleKey.self, value: .root)
+            }
             if let root = store.root {
+                let motion = store.pageChange.map { PageLayerMotion.incoming($0, progress: store.pageProgress, width: store.stageWidth) }
+                    ?? PageLayerMotion(offset: store.dragOffset, opacity: 1)
                 RenderNodeView(handle: root, parentAxis: nil)
+                    .offset(x: motion.offset)
+                    .opacity(motion.opacity)
                     .layoutValue(key: StageRoleKey.self, value: .root)
             }
             if let popup = store.popup {
@@ -43,6 +58,18 @@ public struct RenderStageView: View {
             }
         }
         .coordinateSpace(name: FrameCollector.space)
+        .background {
+            // Not part of the layout: the width pages slide by, and the dots
+            // (under the popup's scrim).
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { store.stageWidth = Double(proxy.size.width) }
+                    .onChange(of: proxy.size.width) { _, width in store.stageWidth = Double(width) }
+            }
+            if let pages = store.pages, pages.showsDots {
+                PageDots(pages: pages, style: store.style)
+            }
+        }
         // v0.3's popup animation.
         .animation(.easeInOut(duration: 0.18), value: store.popup?.handle.id)
         .environment(\.renderStyle, store.style)

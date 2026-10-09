@@ -457,6 +457,28 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "pages": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/pages"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Paging between views, like home screens: their order, the transition, the dots and the swipe. left and right (and tab) page when the keys are unbound.",
+          "examples": [
+            {
+              "order": [
+                "main",
+                "focus"
+              ],
+              "transition": "fade"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "secrets": {
           "additionalProperties": {
             "anyOf": [
@@ -725,6 +747,94 @@
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
+        }
+      },
+      "type": "object"
+    },
+    "pages": {
+      "additionalProperties": false,
+      "description": "Paging between views. A page is an enabled view; the dots show when there are two or more.",
+      "properties": {
+        "indicator": {
+          "default": "dots",
+          "description": "dots: one per page near the bottom, drawn only with two or more pages.",
+          "enum": [
+            "dots",
+            "none",
+            null
+          ],
+          "examples": [
+            "none"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "order": {
+          "description": "The views to page through, in order. Default: the views in key order, then by name. A view not listed stays reachable by its key and vestal show, but is not paged to.",
+          "examples": [
+            [
+              "main",
+              "focus"
+            ]
+          ],
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "swipe": {
+          "default": true,
+          "description": "Two-finger horizontal trackpad swipe between pages.",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "transition": {
+          "default": "slide",
+          "description": "How a change of page is drawn. With reduced motion on, slide is a short fade.",
+          "enum": [
+            "slide",
+            "fade",
+            "none",
+            null
+          ],
+          "examples": [
+            "fade"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "wrap": {
+          "default": false,
+          "description": "Whether next on the last page goes to the first (and previous on the first to the last).",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
         }
       },
       "type": "object"
@@ -3654,6 +3764,19 @@
           "minimum": 1,
           "type": [
             "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "enabled": {
+          "default": true,
+          "description": "false: the view does not exist as far as the dashboard goes. No key, no paging, vestal show refuses it, nothing in it is evaluated.",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
             "null"
           ],
           "x-vestal-kind": "literal",
@@ -20144,6 +20267,28 @@
       "type": [
         "object",
         "null"
+      ],
+      "x-vestal-kind": "literal",
+      "x-vestal-since": "0.4"
+    },
+    "pages": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/pages"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Paging between views, like home screens: their order, the transition, the dots and the swipe. left and right (and tab) page when the keys are unbound.",
+      "examples": [
+        {
+          "order": [
+            "main",
+            "focus"
+          ],
+          "transition": "fade"
+        }
       ],
       "x-vestal-kind": "literal",
       "x-vestal-since": "0.4"

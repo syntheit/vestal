@@ -69,6 +69,68 @@ struct V04Checker {
         if !views.contains(name) {
             add(.missingReference, "defaultView", "no view named \"\(name)\"", code: "unknown-view",
                 suggestions: DidYouMean.suggestions(for: name, among: views))
+        } else if disabledViews.contains(name) {
+            add(.invalidValue, "defaultView", "view \"\(name)\" is disabled; the first enabled page is shown instead",
+                code: "disabled-view", severity: .warning)
+        }
+    }
+
+    /// Views with `enabled: false`.
+    var disabledViews: Set<String> {
+        var names = Set<String>()
+        for (name, view) in top["views"]?.objectValue ?? [:] {
+            if case .bool(false)? = view.objectValue?["enabled"] { names.insert(name) }
+        }
+        return names
+    }
+
+    /// Top-level `pages`.
+    mutating func pages(_ value: AnyJSON) {
+        guard value != .null else { return }
+        guard case .object(let pages) = value else {
+            return add(.wrongType, "pages", "expected an object, found \(value.kindDescription)", severity: .warning)
+        }
+        for key in pages.keys.sorted() where !SchemaRegistry.shape("pages").keyNames.contains(key) {
+            let known = SchemaRegistry.shape("pages").keyNames
+            add(.unknownKey, "pages.\(key)", "unknown key for pages (known: \(known.joined(separator: ", ")))",
+                suggestions: DidYouMean.suggestions(for: key, among: known))
+        }
+        for (key, allowed) in [("transition", PagesConfig.transitions), ("indicator", PagesConfig.indicators)] {
+            guard let entry = pages[key], entry != .null else { continue }
+            guard let text = entry.stringValue else {
+                add(.wrongType, "pages.\(key)", "expected a string, found \(entry.kindDescription)", severity: .warning)
+                continue
+            }
+            if !allowed.contains(text) {
+                add(.invalidValue, "pages.\(key)", "unknown value \"\(text)\" (expected \(allowed.joined(separator: ", "))); using \(allowed[0])",
+                    severity: .warning, suggestions: DidYouMean.suggestions(for: text, among: allowed))
+            }
+        }
+        for key in ["swipe", "wrap"] {
+            if let entry = pages[key], entry != .null, case .bool = entry {} else if let entry = pages[key], entry != .null {
+                add(.wrongType, "pages.\(key)", "expected true or false, found \(entry.kindDescription)", severity: .warning)
+            }
+        }
+        guard let order = pages["order"], order != .null else { return }
+        guard case .array(let items) = order else {
+            return add(.wrongType, "pages.order", "expected a list of view names, found \(order.kindDescription)", severity: .warning)
+        }
+        let views = Array(top["views"]?.objectValue?.keys.map { $0 } ?? [])
+        let disabled = disabledViews
+        var seen = Set<String>()
+        for (i, item) in items.enumerated() {
+            guard let name = item.stringValue else {
+                add(.wrongType, "pages.order[\(i)]", "expected a view name, found \(item.kindDescription)", severity: .warning)
+                continue
+            }
+            if !views.contains(name) {
+                add(.missingReference, "pages.order[\(i)]", "no view named \"\(name)\"; it is skipped", code: "unknown-view",
+                    severity: .warning, suggestions: DidYouMean.suggestions(for: name, among: views))
+            } else if disabled.contains(name) {
+                add(.invalidValue, "pages.order[\(i)]", "view \"\(name)\" is disabled; it is skipped", code: "disabled-view", severity: .warning)
+            } else if !seen.insert(name).inserted {
+                add(.invalidValue, "pages.order[\(i)]", "\"\(name)\" is listed twice", severity: .warning)
+            }
         }
     }
 
@@ -148,6 +210,10 @@ struct V04Checker {
                     widget(child, path: childPath, scope: Self.baseScope)
                 }
             }
+        }
+        if let enabled = view["enabled"], enabled != .null, case .bool = enabled {} else if let enabled = view["enabled"], enabled != .null {
+            add(.wrongType, "\(path).enabled", "expected true or false, found \(enabled.kindDescription); the view stays enabled",
+                severity: .warning)
         }
         text(view["title"], path: "\(path).title", scope: Self.baseScope)
         if case .string(let key)? = view["key"] { keyName(key, path: "\(path).key", allowAuto: false) }

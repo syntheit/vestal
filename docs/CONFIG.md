@@ -80,6 +80,7 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 | `widgets` | object | see [defaults](#built-in-defaults) | Named widgets, see [widgets](#widgets). |
 | `views` | object | `main` | Named views, see [views](#views). |
 | `defaultView` | string | `"main"` | The view `vestal show` and `vestal toggle` open when they name none. |
+| `pages` | object | see [pages](#pages) | Paging between views: order, transition, dots, swipe, wrap. |
 | `keys` | object | `{}` | Global key bindings, key → action, see [keys](#keys). |
 | `templates` | object | `{}` | Your own parameterised widgets and sources, see [templates](#templates). |
 | `functions` | object | `{}` | Your own jq functions, see [functions](#functions). |
@@ -530,8 +531,9 @@ Templates are expanded once, when the config loads:
 | `padding` | number or list | 48 | Inside `maxWidth`. |
 | `maxWidth` | number | 680 | The root is at most this wide, centred on screen. |
 | `keys` | object | `{}` | Key bindings of this view, key → action. |
+| `enabled` | boolean | `true` | `false` turns the view off: no key, no paging, `vestal show` exits 4, nothing in it is evaluated. |
 
-`vestal show [view]` shows the dashboard on `view`, or on `defaultView`; `vestal toggle [view]` hides it when it shows that view, and otherwise shows it. A view that isn't in the config exits with status 4. While the dashboard is shown, `tab` and `shift+tab` go through the views (those with a `key` first, by key), unless bound to something else. A view that isn't shown costs nothing.
+`vestal show [view]` shows the dashboard on `view`, or on `defaultView`; `vestal toggle [view]` hides it when it shows that view, and otherwise shows it. A view that isn't in the config exits with status 4. While the dashboard is shown, `left`, `right`, `tab` and `shift+tab` page through the views (those with a `key` first, by key, or `pages.order`), unless bound to something else. A view that isn't shown costs nothing.
 
 ```json
 {
@@ -546,6 +548,31 @@ Templates are expanded once, when the config loads:
 }
 ```
 
+### Pages
+
+With two or more views the dashboard pages like a phone's home screens. The top-level `pages` object, all keys optional:
+
+| Key | Default | |
+|---|---|---|
+| `order` | the views in key order, then by name | The views to page through, in order. A view not listed stays reachable by its `key` and `vestal show`, but is not paged to. A name that isn't an enabled view is a check-config warning and is skipped. |
+| `transition` | `"slide"` | How a change of page is drawn: `"slide"` (the old page leaves sideways while the new one comes in, 250 ms), `"fade"` (a crossfade, 180 ms) or `"none"`. With reduced motion on (macOS "Reduce motion", GTK `gtk-enable-animations` off), `slide` is a short fade. A jump to a view that is not a page also fades. |
+| `indicator` | `"dots"` | `"dots"`: one dot per page near the bottom of the screen, the current one in the accent colour; drawn only with two or more pages. `"none"`. |
+| `swipe` | `true` | A two-finger horizontal swipe on the trackpad pages. The page follows the fingers and goes on past about 12 % of the screen width or with a quick flick, else springs back. |
+| `wrap` | `false` | Whether `right` on the last page goes to the first (and `left` on the first to the last). `tab` and `shift+tab` always cycle round. |
+
+`left` and `right` go to the previous and next page, and `tab` and `shift+tab` keep cycling, unless you bind those keys yourself: your bindings win (see keys). On Linux the swipe assumes natural scrolling.
+
+Set `enabled` to `false` on a view to turn it off, as you would a lock screen: it has no key, is not paged to, `vestal show <view>` exits 4 as for an unknown view, and nothing in it is evaluated. If `defaultView` is disabled, check-config warns and the first enabled page is shown instead.
+
+```json
+{
+  "pages": { "order": ["main", "focus"], "transition": "fade", "wrap": true },
+  "views": { "focus": { "key": "2", "children": ["agenda"] }, "extra": { "enabled": false, "children": ["clock"] } }
+}
+```
+
+Under Home Manager: `programs.vestal.settings.views.extra.enabled = false;`.
+
 ## Keys
 
 A key is written like `hotkey`: `"h"`, `"2"`, `"tab"`, `"shift+tab"`, `"space"`, `"enter"`, `"left"`, `"right"`, `"up"`, `"down"`, `"f5"`, with `cmd`, `ctrl`, `alt` and `shift` joined by `+`. Letters are case-insensitive. Bindings come from, first match wins:
@@ -554,7 +581,7 @@ A key is written like `hotkey`: `"h"`, `"2"`, `"tab"`, `"shift+tab"`, `"space"`,
 2. widget `key`s in the current view (a widget's key runs its `action`);
 3. the view's `keys`;
 4. the top-level `keys`, and the views' `key` shorthands;
-5. `tab` and `shift+tab` view cycling.
+5. `left` and `right` paging, and `tab` and `shift+tab` view cycling.
 
 `escape` (close the popup, else hide) and `alt+i` (the info popup) are reserved. `"key": "auto"` gives a widget the first letter of its `keyHint` that no explicit key took, in tree order, never `i` or `p` (v0.3's host letters). `vestal render --press <key>` shows what a key does to the model, without running commands.
 

@@ -25,7 +25,7 @@ Where bindings come from, highest precedence first:
 2. widget `key`s in the current view (the key runs that widget's `action`);
 3. the view's `keys`;
 4. the top-level `keys`, and the views' `key` shorthands;
-5. `tab` and `shift+tab`, which cycle views.
+5. `left` and `right`, which go to the previous and next page, and `tab` and `shift+tab`, which cycle the pages (`vestal docs views`).
 
 `escape` (close the popup, else hide the dashboard) and `alt+i` (the info popup) are reserved: binding them is an error.
 

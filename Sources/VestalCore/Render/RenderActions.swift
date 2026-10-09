@@ -70,12 +70,34 @@ extension RenderSession {
         if let target = model.viewInfos.first(where: { $0.key.map(RenderKeyMap.normalize) == key })?.name {
             return RenderKeyBinding(level: "view-key", action: .object(["view": .string(target)]))
         }
-        let order = model.cycleOrder
+        let order = model.pageOrder
         if key == "tab" || key == "shift+tab", order.count > 1, let index = order.firstIndex(of: view) {
             let step = key == "tab" ? 1 : order.count - 1
             return RenderKeyBinding(level: "tab", action: .object(["view": .string(order[(index + step) % order.count])]))
         }
+        if key == "left" || key == "right", let target = pageTarget(step: key == "right" ? 1 : -1) {
+            return RenderKeyBinding(level: "page", action: .object(["view": .string(target)]))
+        }
         return nil
+    }
+
+    /// The page `step` away from the current view (wrapping with `pages.wrap`),
+    /// or nil at an end or when the view is not a page.
+    public func pageTarget(step: Int) -> String? {
+        let order = model.pageOrder
+        guard order.count > 1, let index = order.firstIndex(of: view) else { return nil }
+        let target = index + step
+        if order.indices.contains(target) { return order[target] }
+        guard model.pages.wrap else { return nil }
+        return order[((target % order.count) + order.count) % order.count]
+    }
+
+    /// Goes `step` pages on (a swipe). Nothing at an end without `wrap`.
+    public func page(step: Int) -> [RenderActionEffect] {
+        guard let target = pageTarget(step: step) else { return [] }
+        setView(target, direction: step > 0 ? 1 : -1)
+        closePopup()
+        return [.changed]
     }
 
     /// What key `key` does: widget keys (the popup's
@@ -103,8 +125,10 @@ extension RenderSession {
         if let id = resolved.id, let binding = actions[id] {
             return perform(binding, data: data, now: now)
         }
-        if resolved.level == "tab", let target = resolved.action.objectValue?["view"]?.stringValue {
-            setView(target)
+        if resolved.level == "tab" || resolved.level == "page", let target = resolved.action.objectValue?["view"]?.stringValue {
+            // Tab and the arrow keys move through the pages: the direction
+            // is the key's, also when tab wraps round.
+            setView(target, direction: key == "tab" || key == "right" ? 1 : -1)
             closePopup()
             return [.changed]
         }

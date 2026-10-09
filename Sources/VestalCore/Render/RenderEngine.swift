@@ -201,10 +201,16 @@ public final class RenderEngine {
         case .key(let key): self.key(key)
         case .hide: onHide?()
         case .view(let name): show(view: name)
+        case .page(let step): page(step: step)
         case .snapshot:
             fullPending = true
             schedule()
         }
+    }
+
+    /// Goes `step` pages on or back (a swipe).
+    public func page(step: Int) {
+        interact { session, _, _ in session.page(step: step) }
     }
 
     public func invoke(id: String) {

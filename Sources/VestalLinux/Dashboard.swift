@@ -72,6 +72,8 @@ public final class LinuxDashboard {
     /// nothing (as the macOS app does).
     private var fadeGeneration = 0
     private var fadeTick: guint = 0
+    /// A two-finger swipe in progress.
+    private var swipe: PageSwipe?
     /// A screenshot is being taken (see `capture`).
     private var capturing = false
     /// The last `setKeyboard`: the keyboard while shown, and on demand
@@ -133,6 +135,7 @@ public final class LinuxDashboard {
         }
         gtk_widget_set_opacity(stage.widget, 0)
         installKeys()
+        installSwipe()
         installPointerLeave()
         installCloseRequest()
         aurora.tint = context.theme.backdropTint
@@ -155,12 +158,34 @@ public final class LinuxDashboard {
 
     /// Draws a whole model: theme, the view's tree and the popup.
     public func apply(_ snapshot: RenderSnapshot) {
-        let themeChanged = self.snapshot?.theme != snapshot.theme
+        let previous = self.snapshot
+        let themeChanged = previous?.theme != snapshot.theme
         self.snapshot = snapshot
         if themeChanged { setTheme(snapshot.theme) }
         context.nodes = [:]
-        stage.setRoot(snapshot.root)
+        stage.pages = snapshot.pages
+        stage.setRoot(snapshot.root, motion: pageMotion(from: previous, to: snapshot))
         stage.setPopup(snapshot.popup)
+    }
+
+    /// How the move to `snapshot`'s view is drawn: nil for no motion (the
+    /// same view, a show, or `transition: "none"`).
+    private func pageMotion(from previous: RenderSnapshot?, to snapshot: RenderSnapshot) -> PageMotionRequest? {
+        guard let previous, previous.view != snapshot.view, isVisible, let pages = snapshot.pages else { return nil }
+        let kind = PageMotion.kind(transition: pages.transition, direction: pages.direction, reduceMotion: Self.reducedMotion)
+        guard kind != "none" else { return nil }
+        return PageMotionRequest(direction: pages.direction ?? 0, slides: kind == "slide",
+                                 duration: kind == "slide" ? PageMotion.slideDuration : PageMotion.fadeDuration)
+    }
+
+    /// GTK's `gtk-enable-animations` is off.
+    static var reducedMotion: Bool {
+        guard let settings = gtk_settings_get_default() else { return false }
+        var value = GValue()
+        g_value_init(&value, GType(5 << 2)) // G_TYPE_BOOLEAN
+        defer { g_value_unset(&value) }
+        g_object_get_property(UnsafeMutablePointer<GObject>(OpaquePointer(settings)), "gtk-enable-animations", &value)
+        return g_value_get_boolean(&value) == 0
     }
 
     /// Applies a patch's ops in order, replacing only the named subtrees.
@@ -248,6 +273,7 @@ public final class LinuxDashboard {
     }
 
     private func show(animated: Bool) {
+        stage.endMotion(keepDrag: false)
         // `theme.backdrop: "self"`: capture the output first, while nothing
         // of vestal is on it, then map. Not while the window is still mapped
         // (a hide's fade, a hidden screenshot): that show keeps what it has.
@@ -363,6 +389,8 @@ public final class LinuxDashboard {
 
     private func hide(animated: Bool) {
         guard isVisible else { return }
+        stage.endMotion(keepDrag: false)
+        swipe = nil
         fadeGeneration += 1
         let generation = fadeGeneration
         isVisible = false
@@ -431,6 +459,62 @@ public final class LinuxDashboard {
     }
 
     // MARK: Input
+
+    /// Two-finger horizontal swipes between pages (the touchpad's smooth
+    /// scrolling). `PageSwipe` decides what a gesture is.
+    private func installSwipe() {
+        let controller = gtk_event_controller_scroll_new(GTK_EVENT_CONTROLLER_SCROLL_BOTH_AXES)!
+        let begin: @convention(c) (UnsafeMutableRawPointer?, gpointer?) -> Void = { _, data in
+            _ = Box<(Double, Double, PageSwipe.Phase) -> Bool>.from(data)(0, 0, .began)
+        }
+        let scroll: @convention(c) (UnsafeMutableRawPointer?, Double, Double, gpointer?) -> gboolean = { _, dx, dy, data in
+            Box<(Double, Double, PageSwipe.Phase) -> Bool>.from(data)(dx, dy, .changed) ? 1 : 0
+        }
+        let end: @convention(c) (UnsafeMutableRawPointer?, gpointer?) -> Void = { _, data in
+            _ = Box<(Double, Double, PageSwipe.Phase) -> Bool>.from(data)(0, 0, .ended)
+        }
+        let body: (Double, Double, PageSwipe.Phase) -> Bool = { [weak self] dx, dy, phase in
+            self?.swipeEvent(dx: dx, dy: dy, phase: phase) ?? false
+        }
+        connectSignal(UnsafeMutableRawPointer(controller), "scroll-begin", begin, data: Box(body).retained())
+        connectSignal(UnsafeMutableRawPointer(controller), "scroll", scroll, data: Box(body).retained())
+        connectSignal(UnsafeMutableRawPointer(controller), "scroll-end", end, data: Box(body).retained())
+        gtk_widget_add_controller(window, controller)
+    }
+
+    /// One scroll event. GTK's deltas follow the content with natural
+    /// scrolling (fingers moving left give a positive dx), so the finger
+    /// movement is the negation. True: the event was a page swipe's.
+    private func swipeEvent(dx: Double, dy: Double, phase: PageSwipe.Phase) -> Bool {
+        if phase == .began {
+            swipe = nil
+            guard isVisible, let pages = snapshot?.pages, pages.swipe, pages.index != nil else { return false }
+            let width = Double(gtk_widget_get_width(window))
+            guard width > 0 else { return false }
+            swipe = PageSwipe(width: width, canGoPrevious: pages.neighbor(-1) != nil, canGoNext: pages.neighbor(1) != nil)
+        }
+        guard var current = swipe else { return false }
+        let output = current.handle(dx: -dx, dy: -dy, phase: phase, time: Double(g_get_monotonic_time()) / 1_000_000)
+        swipe = phase == .ended || phase == .cancelled ? nil : current
+        switch output {
+        case .passThrough:
+            return false
+        case .drag(let offset):
+            stage.dragOffset = offset
+            return true
+        case .commit(let direction):
+            context.send(.page(step: direction))
+            // Should the core not move (a stale model), the page returns.
+            afterMilliseconds(500) { [weak self] in
+                guard let stage = self?.stage, stage.outgoing == nil, stage.dragOffset != 0 else { return }
+                stage.springBack()
+            }
+            return true
+        case .cancel:
+            stage.springBack()
+            return true
+        }
+    }
 
     private func installKeys() {
         let controller = gtk_event_controller_key_new()!

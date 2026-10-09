@@ -105,8 +105,24 @@ public final class RenderSession {
         self.view = view.flatMap { model.views[$0] != nil ? $0 : nil } ?? model.defaultView
     }
 
-    public func setView(_ name: String) {
+    /// +1 or -1 when the last change of view went to a later or earlier
+    /// page; nil when it had no direction. Reported in the snapshot's
+    /// `pages` so a UI knows which way to slide.
+    public private(set) var pageDirection: Int?
+
+    /// Switches to `name`. The direction of the change is `direction`, else
+    /// taken from where the two views sit in the paging order.
+    public func setView(_ name: String, direction: Int? = nil) {
         guard model.views[name] != nil else { return }
+        if name != view {
+            if let direction {
+                pageDirection = direction
+            } else if let from = model.pageOrder.firstIndex(of: view), let to = model.pageOrder.firstIndex(of: name) {
+                pageDirection = to > from ? 1 : -1
+            } else {
+                pageDirection = nil
+            }
+        }
         view = name
     }
 
@@ -179,8 +195,9 @@ public final class RenderSession {
         let renderedPopup = popup.flatMap { state in
             popupChild?.node.map { RenderPopup(width: state.width, node: $0) }
         }
-        return RenderSnapshot(seq: 1, view: view, views: model.viewInfos, visible: true, theme: model.theme,
-                              root: root, popup: renderedPopup, diagnostics: diagnostics)
+        return RenderSnapshot(seq: 1, view: view, views: model.viewInfos,
+                              pages: model.renderPages(view: view, direction: pageDirection),
+                              visible: true, theme: model.theme, root: root, popup: renderedPopup, diagnostics: diagnostics)
     }
 
     /// Every source any root child or the popup read in the last render.

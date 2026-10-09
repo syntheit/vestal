@@ -105,6 +105,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
     /// The render model as the views observe it; kept across reloads, the
     /// engine sends it a fresh snapshot.
     private var store: RenderStore?
+    /// Two-finger swipes between pages.
+    private var swipes: PageSwipeController?
     /// A show waits for the engine's first snapshot before it fades in, so
     /// the first frame is complete (no rows appearing a moment later).
     private var fadeInPending = false
@@ -268,6 +270,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
     /// pauses).
     func hide() {
         fadeInPending = false
+        store?.pagesLive = false
+        store?.stopPageAnimations()
         guard let window, let hosting, window.isVisible else { return }
         fade += 1
         isHiding = true
@@ -350,6 +354,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
     private func attach(_ engine: RenderEngine) {
         let store = RenderStore { [weak engine] input in engine?.handle(input) }
         self.store = store
+        let swipes = PageSwipeController(store: store)
+        self.swipes = swipes
+        NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            guard let self, event.window === self.window else { return event }
+            return MainActor.assumeIsolated { swipes.handle(event) } ? nil : event
+        }
         engine.observe { [weak self, weak engine] update in
             guard let self else { return }
             switch update {
@@ -366,6 +376,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
                 }
                 if !applied { engine?.handle(.snapshot) }
             case .visibility(let visible, _):
+                // From the first frame on, a change of page is animated.
+                store.pagesLive = visible
                 if visible, self.fadeInPending, let hosting = self.hosting {
                     self.fadeInPending = false
                     // One turn later, so SwiftUI has drawn the snapshot.

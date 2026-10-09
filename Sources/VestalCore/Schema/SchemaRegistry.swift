@@ -171,6 +171,10 @@ public enum SchemaRegistry {
                       "Named secrets, usable in source definitions as {{ $secrets.name }}. Never write a secret's value into the config."),
             SchemaKey("defaultView", .string, default: .string("main"), since: "0.4", examples: [.string("main")],
                       "The view show and toggle open."),
+            SchemaKey("pages", .shape("pages"), since: "0.4",
+                      examples: [.object(["order": .array([.string("main"), .string("focus")]), "transition": .string("fade")])],
+                      "Paging between views, like home screens: their order, the transition, the dots and the swipe. "
+                      + "left and right (and tab) page when the keys are unbound."),
             SchemaKey("keys", .map(.any), default: .object([:]), since: "0.4",
                       examples: [.object(["r": .object(["refresh": .string("*")])])],
                       "Global key bindings: a key (h, 2, tab, shift+tab, cmd+r, ...) → an action or a list of actions. "
@@ -228,6 +232,20 @@ public enum SchemaRegistry {
                       "native: the macOS UI draws the presets' icons as SF Symbols (the default on macOS). phosphor: the bundled "
                       + "Phosphor font everywhere."),
         ]),
+        SchemaShape("pages", "Paging between views. A page is an enabled view; the dots show when there are two or more.", keys: [
+            SchemaKey("order", .list(.string), since: "0.4", examples: [.array([.string("main"), .string("focus")])],
+                      "The views to page through, in order. Default: the views in key order, then by name. A view not "
+                      + "listed stays reachable by its key and vestal show, but is not paged to."),
+            SchemaKey("transition", .oneOf(PagesConfig.transitions), default: .string("slide"), since: "0.4",
+                      examples: [.string("fade")],
+                      "How a change of page is drawn. With reduced motion on, slide is a short fade."),
+            SchemaKey("indicator", .oneOf(PagesConfig.indicators), default: .string("dots"), since: "0.4",
+                      examples: [.string("none")], "dots: one per page near the bottom, drawn only with two or more pages."),
+            SchemaKey("swipe", .boolean, default: .bool(true), since: "0.4", examples: [.bool(false)],
+                      "Two-finger horizontal trackpad swipe between pages."),
+            SchemaKey("wrap", .boolean, default: .bool(false), since: "0.4", examples: [.bool(true)],
+                      "Whether next on the last page goes to the first (and previous on the first to the last)."),
+        ]),
         SchemaShape("view", "A view: the widgets it shows, top to bottom.", keys: [
             SchemaKey("order", .list(.string), default: .array([]),
                       examples: [.array([.string("clock"), .string("systemBar"), .string("agenda")])],
@@ -242,6 +260,9 @@ public enum SchemaRegistry {
                       "Shown by UIs that list views. Default: the name, capitalized."),
             SchemaKey("key", .string, since: "0.4", examples: [.string("2")],
                       "A key that switches to this view (a global binding)."),
+            SchemaKey("enabled", .boolean, default: .bool(true), since: "0.4", examples: [.bool(false)],
+                      "false: the view does not exist as far as the dashboard goes. No key, no paging, vestal show "
+                      + "refuses it, nothing in it is evaluated."),
             SchemaKey("columns", .integer(minimum: 1), default: .int(2), since: "0.4", examples: [.int(3)],
                       "Columns, for layout grid."),
             SchemaKey("gap", .number, default: .int(24), since: "0.4", examples: [.int(32)],
