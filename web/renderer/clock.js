@@ -432,6 +432,9 @@ export class ClockDriver {
 
   /** Looks for faces under the root (after a render). */
   scan() {
+    // The old faces' hands may be the same elements (an unchanged node is
+    // kept): their turns end here, before the new list replaces them.
+    this.stop();
     this.faces = [...this.root.querySelectorAll(".vr-analog")].map((el) => ({
       el, zone: el.dataset.zone || null, mode: el.dataset.mode || "none",
       h: el.querySelector('[data-hand="h"]'), m: el.querySelector('[data-hand="m"]'), s: el.querySelector('[data-hand="s"]'),

@@ -426,14 +426,23 @@ enum RunningApps {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var names: Set<String>?
     nonisolated(unsafe) private static var watching = false
+    /// Bumped when an app launches or quits: a list made meanwhile is not kept.
+    nonisolated(unsafe) private static var generation = 0
 
     static func contains(_ name: String) -> Bool {
         let key = name.lowercased()
         lock.lock()
-        defer { lock.unlock() }
-        if let names { return names.contains(key) }
+        if let names {
+            lock.unlock()
+            return names.contains(key)
+        }
+        let started = generation
+        lock.unlock()
+        // Listed outside the lock, so a launch or quit never waits for it.
         let fresh = scan()
-        if watching { names = fresh }
+        lock.lock()
+        if watching, generation == started { names = fresh }
+        lock.unlock()
         return fresh.contains(key)
     }
 
@@ -450,6 +459,7 @@ enum RunningApps {
             _ = center.addObserver(forName: name, object: nil, queue: nil) { _ in
                 lock.lock()
                 names = nil
+                generation += 1
                 lock.unlock()
             }
         }

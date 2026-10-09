@@ -228,7 +228,16 @@ final class AnalogHandsView: NSView {
 
     override func layout() {
         super.layout()
-        // The face is centered in the node's box, so the pivot is its middle.
+        center()
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        center()
+    }
+
+    /// The face is centered in the node's box, so the pivot is its middle.
+    private func center() {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         pivot.position = CGPoint(x: bounds.midX, y: bounds.midY)
