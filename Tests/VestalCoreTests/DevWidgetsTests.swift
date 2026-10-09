@@ -108,7 +108,7 @@ final class DevWidgetsTests: XCTestCase {
 
     func testFlakeSourceReadsNixOutput() async throws {
         let metadata = Fixture.url("dev/flake-metadata.json").path
-        let fetcher = SourceFetcher(platform: SourcePlatform(), allowNetwork: false)
+        let fetcher = LiveFetcher(platform: SourcePlatform(), allowNetwork: false)
         // `nix` stands in as a program that prints the recorded document; the path is its extra argument.
         let source = SourceConfig(type: "flake", argv: ["sh", "-c", "cat \"$0\"", metadata], path: "~/config", behind: true)
         let result = try await fetcher.fetchResult(source)
@@ -123,7 +123,7 @@ final class DevWidgetsTests: XCTestCase {
     }
 
     func testFlakeSourceNeedsAPathAndFailsWithTheProgram() async throws {
-        let fetcher = SourceFetcher(platform: SourcePlatform())
+        let fetcher = LiveFetcher(platform: SourcePlatform())
         XCTAssertNotNil(fetcher.problem(with: SourceConfig(type: "flake")))
         XCTAssertNil(fetcher.problem(with: SourceConfig(type: "flake", path: "~/config")))
         do {
@@ -132,7 +132,7 @@ final class DevWidgetsTests: XCTestCase {
         } catch let error as SourceError {
             XCTAssertTrue(error.description.contains("exited with status 3: broken"), error.description)
         }
-        let draft = SourceFetcher(platform: SourcePlatform(), allowCommands: false)
+        let draft = LiveFetcher(platform: SourcePlatform(), allowCommands: false)
         do {
             _ = try await draft.fetchResult(SourceConfig(type: "flake", path: "x"))
             XCTFail("a draft config runs nothing")
@@ -179,10 +179,10 @@ final class DevWidgetsTests: XCTestCase {
 
     func testHeadersOfAFlakeWithoutBehindAreNotResolved() async throws {
         let secrets = SecretStore(["github": SecretConfig(command: ["sh", "-c", "exit 1"])], allowCommands: true)
-        let off = SourceConfig(type: "flake", path: "x", headers: ["Authorization": "Bearer {{ $secrets.github }}"], behind: false)
+        let off = SourceConfig(type: "flake", headers: ["Authorization": "Bearer {{ $secrets.github }}"], path: "x", behind: false)
         let resolved = try await secrets.resolve(off)
         XCTAssertNil(resolved.headers, "no token is read for a flake that doesn't ask GitHub")
-        let on = SourceConfig(type: "flake", path: "x", headers: ["Authorization": "Bearer {{ $secrets.github }}"], behind: true)
+        let on = SourceConfig(type: "flake", headers: ["Authorization": "Bearer {{ $secrets.github }}"], path: "x", behind: true)
         do {
             _ = try await secrets.resolve(on)
             XCTFail("the secret's command fails")
