@@ -274,6 +274,8 @@ final class RenderPass {
         case "heatmap": node = heatmap(w, id: id, scope: scope)
         case "timeline": node = timeline(w, id: id, scope: scope)
         case "image": node = image(w, id: id, scope: scope)
+        case "analog": node = analog(w, id: id, scope: scope)
+        case "flip": node = flip(w, id: id, scope: scope)
         default:
             report(id: id, field: "type", severity: "error", code: "unknown-type", message: "unknown widget type \"\(type)\"")
             return nil
@@ -708,14 +710,29 @@ final class RenderPass {
         let centerText = value == nil ? "–" : renderText(w["text"]?.stringValue ?? "{{ $value | round }}", id: id, field: "text", scope: s)
         let center = textNode(id: "\(id)/0/0", text: centerText, style: textStyle, lines: 1, align: .center)
         let size = (number(w["size"], id: id, field: "size", scope: s) ?? 64) * scope.style.scale
-        var ring = RenderNode(id: "\(id)/0", .ring(.init(
+        var ringContent = RenderNode.Ring(
             value: fraction,
             sweep: number(w["sweep"], id: id, field: "sweep", scope: s) ?? 270,
             thickness: number(w["thickness"], id: id, field: "thickness", scope: s) ?? 6,
             color: ringColor,
             trackColor: w["trackColor"].flatMap { color($0, id: id, field: "trackColor", scope: s, value: nil) }
                 ?? model.palette.hexValue(ringColor).map { RenderPalette.withAlpha($0, 0.15) },
-            center: center)))
+            center: center)
+        // A widget of its own in the middle (a time and a line under it).
+        if case .object(let widget)? = w["center"] {
+            ringContent.center = build(widget, id: "\(id)/0/0", scope: scope, axis: .v)
+        }
+        if bool(w["dot"], id: id, field: "dot", scope: s) == true {
+            ringContent.dot = true
+            ringContent.dotColor = w["dotColor"].flatMap { color($0, id: id, field: "dotColor", scope: s, value: s.vars["value"]) }
+        }
+        ringContent.ticks = Swift.max(0, Swift.min(120, Int(number(w["ticks"], id: id, field: "ticks", scope: s) ?? 0)))
+        if case .array(let labels)? = w["labels"] {
+            ringContent.labels = labels.prefix(4).map { label in
+                label.stringValue.map { renderText($0, id: id, field: "labels", scope: s) } ?? ""
+            }
+        }
+        var ring = RenderNode(id: "\(id)/0", .ring(ringContent))
         ring.width = .points(size)
         ring.height = .points(size)
         var children = [ring]

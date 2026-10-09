@@ -76,6 +76,10 @@ struct RenderNodeView: View {
             TimelineDrawing(timeline: timeline, style: style)
         case .image(let image):
             ImageDrawing(image: image, style: style)
+        case .analog(let analog):
+            AnalogDrawing(analog: analog, style: style)
+        case .flip(let flip):
+            FlipDrawing(flip: flip, style: style)
         }
     }
 
@@ -103,6 +107,10 @@ struct RenderNodeView: View {
             return .fixed(width: columns * h.cell + max(0, columns - 1) * h.gap, height: rows * h.cell + max(0, rows - 1) * h.gap)
         case .timeline: return .fixed(width: 120, height: 36)
         case .image: return .fixed(width: 48, height: 48)
+        case .analog(let a): return .fixed(width: a.size, height: a.size)
+        case .flip(let f):
+            let layout = f.layout
+            return .fixed(width: layout.width, height: layout.height)
         }
     }
 }
@@ -305,11 +313,13 @@ struct RingDrawing: View {
             let side = min(size.width, size.height)
             guard side > 0 else { return }
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
-            let radius = max(0, (side - CGFloat(ring.thickness)) / 2)
-            let sweep = min(max(ring.sweep, 0), 360) * .pi / 180
+            let geometry = RingGeometry(side: Double(side), ring: ring)
+            let radius = CGFloat(geometry.radius)
+            let sweep = geometry.sweep
             // Angles grow clockwise on screen (y down); 90° points straight
-            // down, so the gap is centred at the bottom.
-            let start = Double.pi / 2 + (2 * .pi - sweep) / 2
+            // down, so the gap is centered at the bottom (a full circle
+            // starts at the top).
+            let start = geometry.start
             let stroke = StrokeStyle(lineWidth: CGFloat(ring.thickness), lineCap: .round)
             func arc(_ fraction: Double) -> Path {
                 var path = Path()
@@ -320,6 +330,10 @@ struct RingDrawing: View {
             context.stroke(arc(1), with: .color(track), style: stroke)
             let value = min(max(ring.value, 0), 1)
             if value > 0 { context.stroke(arc(value), with: .color(color), style: stroke) }
+            if ring.ticks > 0 || ring.dot || !ring.labels.isEmpty {
+                var marks = context
+                RingMarks.draw(&marks, ring: ring, geometry: geometry, center: center, style: style)
+            }
         }
     }
 }

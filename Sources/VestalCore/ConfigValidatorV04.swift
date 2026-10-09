@@ -341,7 +341,7 @@ struct V04Checker {
                 }
             case "row":
                 widget(value, path: fieldPath, scope: rowScope(scope), inTemplate: inTemplate)
-            case "default":
+            case "default", "center":
                 widget(value, path: fieldPath, scope: scope, inTemplate: inTemplate)
             case "cases":
                 if case .object(let cases) = value {
@@ -370,7 +370,8 @@ struct V04Checker {
                 style(value, path: fieldPath, scope: scope, inTemplate: inTemplate)
             case "from", "to":
                 timelineTime(value, path: fieldPath, scope: scope, inTemplate: inTemplate)
-            case "color", "trackColor", "overlayColor", "iconColor", "fill", "nowColor":
+            case "color", "trackColor", "overlayColor", "iconColor", "fill", "nowColor", "faceColor", "secondsColor", "pivotColor",
+                 "tileColor", "dotColor":
                 color(value, path: fieldPath, scope: scope.adding(["value"]), inTemplate: inTemplate)
             default:
                 switch key.kind {

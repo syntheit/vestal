@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Clock, analog with ticks and sweep",
+  "description": "Sixty ticks, a date window at three and a red seconds hand that sweeps while the dashboard is shown.",
+  "preset": "clock",
+  "size": [
+    680,
+    440
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time"
+  ]
+}

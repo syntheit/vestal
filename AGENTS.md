@@ -275,7 +275,7 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 | Group | Types |
 |---|---|
 | Containers | `stack`, `row`, `grid`, `list`, `table`, `switch` |
-| Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer`, and the charts `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
+| Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer`, the charts `bars`, `stackedBar`, `heatmap`, `timeline`, `image`, and the clocks `analog`, `flip` |
 | Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage`, `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and for developers `reviewQueue`, `ciStatus`, `commitActivity`, `flakeInputs`, and for a home server `containers`, `tailnet`, `uptimeMonitors`, `backups`, `transfers`, and for feeds and markets `headlines`, `cryptoTicker`, `watchlist`, `homeAssistant`, `nowPlaying`, and for the day `dayTimeline`, `nextMeeting`, `focusTimer`, `todoFile`, `habits` (GitHub ones read the `github` secret: `gh auth token` unless defined; `vestal docs presets`) |
 
 Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` (`"fill"`), `spaceBefore`, `action`, `key`.

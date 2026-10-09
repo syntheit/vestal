@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Clock, day ring",
+  "description": "The time inside a ring that fills from midnight to midnight, with the hours around it.",
+  "preset": "clock",
+  "size": [
+    680,
+    420
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time"
+  ]
+}

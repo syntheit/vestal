@@ -40,6 +40,9 @@ public enum ClockFaces {
         Face(name: "condensed", summary: "Narrow tall numerals (Big Shoulders Display) with the seconds beside the minutes.", body: condensed),
         Face(name: "rounded", summary: "Light rounded numerals (Nunito); world clocks as pills with a sun or moon.", body: rounded),
         Face(name: "breathe", summary: "Hours and minutes (Manrope) with a colon that fades in and out.", body: breathe),
+        Face(name: "analog", summary: "A round dial the UI draws and runs (clockAnalog): hands, optional ticks, numerals and a date window; seconds \"step\" or \"sweep\".", body: analog),
+        Face(name: "flip", summary: "Split-flap tiles that fold over when a digit changes (clockFlip), with the date and am or pm under them.", body: flip),
+        Face(name: "ring", summary: "The time inside a ring that fills across the day or the working hours (clockRing).", body: ring),
     ]
 
     public static var names: [String] { registry.map(\.name) }
@@ -316,4 +319,42 @@ public enum ClockFaces {
       ]
     }
     """
+
+    // MARK: Drawn faces
+
+    /// The faces the renderers draw: each names one of the presets in
+    /// DefaultConfigPresetsClockFaces.swift, so the clock's `size`,
+    /// `seconds`, `hour12` and so on reach it as that preset's parameters.
+    /// The world clocks stay a row of text under it.
+    private static func drawn(_ node: String) -> String {
+        """
+        {
+          "type": "stack", "gap": 4, "align": "center", "spaceBefore": 0,
+          "vars": \(vars(seconds: false)),
+          "children": [
+            \(node),
+            \(world(direction: "row", gap: 16, spaceBefore: 10, row: """
+            { "type": "row", "gap": 4, "children": [
+              \(text("{{ .label }}", size: "11", weight: "semibold", color: "dim")),
+              \(zoneTime("{ \"size\": 11, \"font\": \"mono\", \"color\": \"subtle\" }"))
+            ] }
+            """))
+          ]
+        }
+        """
+    }
+
+    static let analog = drawn("""
+    { "type": "clockAnalog", "size": { "param": "size" }, "ticks": { "param": "ticks" }, "dateWindow": { "param": "dateWindow" },
+      "numerals": { "param": "numerals" }, "seconds": { "param": "seconds" } }
+    """)
+
+    static let flip = drawn("""
+    { "type": "clockFlip", "size": { "param": "size" },
+      "seconds": { "expr": "$secs == true or $secs == \\"step\\" or $secs == \\"sweep\\"" }, "hour12": { "expr": "$h12" } }
+    """)
+
+    static let ring = drawn("""
+    { "type": "clockRing", "size": { "param": "size" }, "span": { "param": "span" }, "hour12": { "expr": "$h12" } }
+    """)
 }

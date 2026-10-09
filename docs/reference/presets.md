@@ -280,6 +280,20 @@ The local time (size 56, ultralight, mono), the date, and `worldClocks` under th
 
 The breathing colon steps its opacity once a second (the dashboard redraws each second while a clock shows), which approximates a fade without an animation in the render model. Italic is not part of the render model, so the `serif` face's am and pm are lower-case roman.
 
+`face` picks how the time is drawn (default `mono`, the above). The drawn faces, each with the world clocks under it (not in the compact density, which keeps `mono`):
+
+| `face` | Parameters | |
+|---|---|---|
+| `analog` | `size` (236, or 260 with ticks), `ticks` (`none`; `hours`, `minutes`), `seconds` (`false`; `"step"`, `"sweep"`), `dateWindow` (false), `numerals` (false) | A round dial the UI draws and runs ([`analog`](widgets.md)), with the date under it (in a window at three o'clock with `dateWindow`). Quiet: `{"face": "analog"}`. With a sweeping seconds hand: `{"face": "analog", "size": 260, "ticks": "minutes", "seconds": "sweep", "dateWindow": true}`. |
+| `flip` | `size` (90), `seconds` (false: seconds on small tiles) | Split-flap tiles ([`flip`](widgets.md)) that fold when a digit changes, with the date and, with `hour12`, an AM or PM tag under them. |
+| `ring` | `size` (272), `span` (`"day"`; `"work"` is 09:00 to 18:00, or `["09:00", "18:00"]`) | The time inside a ring that fills across the span, with 24 marks, four hour labels and a dot on the end ([`gauge`](widgets.md)), and under the time the share of the span gone and what is left. |
+
+```json
+{ "type": "clock", "face": "ring", "span": "work", "worldClocks": [{ "label": "NYC", "tz": "America/New_York" }] }
+```
+
+World clocks stay a row of text under every face. Analog sub-dials for them (a small dial per city, light by day and dark by night) are not built yet.
+
 ### `systemBar`
 
 A row of this machine's stats from the `system` source. `show` lists the items left to right: `uptime`, `disk`, `battery`, `claudeUsage`, `codexUsage`, `network`, `privacy` (absent or empty: all but privacy and codexUsage). `privacy` is `{"command": [argv], "stateFile": "path"}`: a microphone and camera toggle drawn at the right end, green while the state file exists, which runs the command on click (and on `p`, in the default view). `claudeSource` and `codexSource` name the sources of the Claude and Codex usage items. `trailing` is a list of extra widgets drawn at the right end after the privacy toggle, such as per-device mic and camera toggles with their own `source`, `action` and `key` (example in CONFIG.md, `systemBar`).
@@ -896,6 +910,10 @@ One of `aiUsage`'s cells: `label`, `window` (an expression such as `.session`) a
 ### `aiPlanService`
 
 One of `aiPlan`'s blocks: `name`, `color`, `plan` and `hour12`, reading the `claude` or `codex` shape of the widget's source.
+
+### `clockAnalog`, `clockFlip`, `clockRing`
+
+The drawn faces of `clock` (above), as widgets of their own: `clockAnalog` (`size`, `ticks`, `seconds`, `dateWindow`, `numerals`, `zone`), `clockFlip` (`size`, `seconds`, `animate`, `hour12`) and `clockRing` (`size`, `span`, `hour12`). `clock` picks one with its `face` param; a size of 0 is the face's own.
 
 ### `hostDetail`
 

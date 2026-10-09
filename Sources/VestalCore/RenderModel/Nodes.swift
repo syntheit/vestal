@@ -142,6 +142,8 @@ public struct RenderNode: Equatable, Sendable, Codable {
         case heatmap(Heatmap)
         case timeline(Timeline)
         case image(Image)
+        case analog(Analog)
+        case flip(Flip)
         /// A type this build doesn't know (a newer `minor`); drawn as `alt`.
         case unknown(type: String)
     }
@@ -185,6 +187,8 @@ public struct RenderNode: Equatable, Sendable, Codable {
         case .heatmap: return "heatmap"
         case .timeline: return "timeline"
         case .image: return "image"
+        case .analog: return "analog"
+        case .flip: return "flip"
         case .unknown(let type): return type
         }
     }
@@ -369,21 +373,37 @@ public struct RenderNode: Equatable, Sendable, Codable {
 
     public struct Ring: Equatable, Sendable {
         public var value: Double = 0
-        /// Degrees of arc; the gap is centred at the bottom.
+        /// Degrees of arc; the gap is centered at the bottom. A full 360 starts
+        /// at the top instead and runs clockwise.
         public var sweep: Double = 270
         public var thickness: Double = 6
         public var color: String?
         public var trackColor: String?
         public var center: RenderNode?
+        /// A dot on the arc's end, `dotColor` (default `text`).
+        public var dot: Bool = false
+        public var dotColor: String?
+        /// Marks around the outside, evenly spaced over the sweep; every
+        /// fourth is longer and brighter. 0: none. The arc moves inwards to
+        /// leave room for them.
+        public var ticks: Int = 0
+        /// Labels inside the arc at the quarters of the sweep, starting at
+        /// the arc's start (up to four).
+        public var labels: [String] = []
 
         public init(value: Double = 0, sweep: Double = 270, thickness: Double = 6,
-                    color: String? = nil, trackColor: String? = nil, center: RenderNode? = nil) {
+                    color: String? = nil, trackColor: String? = nil, center: RenderNode? = nil,
+                    dot: Bool = false, dotColor: String? = nil, ticks: Int = 0, labels: [String] = []) {
             self.value = value
             self.sweep = sweep
             self.thickness = thickness
             self.color = color
             self.trackColor = trackColor
             self.center = center
+            self.dot = dot
+            self.dotColor = dotColor
+            self.ticks = ticks
+            self.labels = labels
         }
     }
 
@@ -588,6 +608,84 @@ public struct RenderNode: Equatable, Sendable, Codable {
         }
     }
 
+    /// A round clock the UI draws and keeps running itself, from the time in
+    /// `zone`: the core sends it once and never again for a tick. The UI moves
+    /// the hands only while the dashboard is shown.
+    public struct Analog: Equatable, Sendable {
+        /// The face's diameter.
+        public var size: Double = 236
+        /// `none`, `hours` (twelve marks) or `minutes` (sixty).
+        public var ticks: String = "hours"
+        /// `none`, `step` (once a second) or `sweep` (every frame).
+        public var seconds: String = "none"
+        /// A window with the day of the month at three o'clock.
+        public var dateWindow: Bool = false
+        /// The numerals 1 to 12.
+        public var numerals: Bool = false
+        /// An IANA zone; nil: the system's.
+        public var zone: String?
+        /// The hands, ticks and numerals.
+        public var color: String = "text"
+        public var faceColor: String?
+        public var secondsColor: String = "bad"
+        public var pivotColor: String = "accent"
+
+        public init(size: Double = 236, ticks: String = "hours", seconds: String = "none", dateWindow: Bool = false,
+                    numerals: Bool = false, zone: String? = nil, color: String = "text", faceColor: String? = nil,
+                    secondsColor: String = "bad", pivotColor: String = "accent") {
+            self.size = size
+            self.ticks = ticks
+            self.seconds = seconds
+            self.dateWindow = dateWindow
+            self.numerals = numerals
+            self.zone = zone
+            self.color = color
+            self.faceColor = faceColor
+            self.secondsColor = secondsColor
+            self.pivotColor = pivotColor
+        }
+
+        public var geometry: AnalogGeometry {
+            AnalogGeometry(size: size, ticks: ticks, seconds: seconds, dateWindow: dateWindow, numerals: numerals)
+        }
+    }
+
+    /// Split-flap tiles: one per character, drawn by the UI, which folds the
+    /// tiles that change between two models.
+    public struct Flip: Equatable, Sendable {
+        /// The big tiles: digits, with `:` drawn as a colon and a space as a gap.
+        public var text: String = ""
+        /// The small tiles after them (seconds).
+        public var small: String = ""
+        /// The big tiles' font size (the tile is 0.89 by 1.27 of it); the
+        /// small tiles' font size.
+        public var size: Double = 90
+        public var smallSize: Double = 40
+        /// The characters.
+        public var color: String = "text"
+        /// A tile's top half and its bottom half.
+        public var tile: String = "#2a2c35ff"
+        public var tileBottom: String = "#1f212aff"
+        /// Fold changing tiles over; false: swap them.
+        public var animate: Bool = true
+
+        public init(text: String = "", small: String = "", size: Double = 90, smallSize: Double = 40, color: String = "text",
+                    tile: String = "#2a2c35ff", tileBottom: String = "#1f212aff", animate: Bool = true) {
+            self.text = text
+            self.small = small
+            self.size = size
+            self.smallSize = smallSize
+            self.color = color
+            self.tile = tile
+            self.tileBottom = tileBottom
+            self.animate = animate
+        }
+
+        public var layout: FlipLayout.Result {
+            FlipLayout.layout(text: text, small: small, size: size, smallSize: smallSize)
+        }
+    }
+
     // MARK: Coding
 
     private struct Key: CodingKey {
@@ -683,7 +781,11 @@ public struct RenderNode: Equatable, Sendable, Codable {
                 thickness: try opt("thickness") ?? 6,
                 color: try opt("color"),
                 trackColor: try opt("trackColor"),
-                center: try opt("center")))
+                center: try opt("center"),
+                dot: try opt("dot") ?? false,
+                dotColor: try opt("dotColor"),
+                ticks: try opt("ticks") ?? 0,
+                labels: try opt("labels") ?? []))
         case "spark":
             content = .spark(Spark(
                 values: try opt("values") ?? [],
@@ -739,6 +841,28 @@ public struct RenderNode: Equatable, Sendable, Codable {
                 fit: lenient("fit", "cover") == "contain" ? "contain" : "cover",
                 radius: try opt("radius") ?? 6))
             radius = 0
+        case "analog":
+            content = .analog(Analog(
+                size: try opt("size") ?? 236,
+                ticks: lenient("ticks", "hours"),
+                seconds: lenient("seconds", "none"),
+                dateWindow: try opt("dateWindow") ?? false,
+                numerals: try opt("numerals") ?? false,
+                zone: try opt("zone"),
+                color: try opt("color") ?? "text",
+                faceColor: try opt("faceColor"),
+                secondsColor: try opt("secondsColor") ?? "bad",
+                pivotColor: try opt("pivotColor") ?? "accent"))
+        case "flip":
+            content = .flip(Flip(
+                text: try opt("text") ?? "",
+                small: try opt("small") ?? "",
+                size: try opt("size") ?? 90,
+                smallSize: try opt("smallSize") ?? 40,
+                color: try opt("color") ?? "text",
+                tile: try opt("tile") ?? "#2a2c35ff",
+                tileBottom: try opt("tileBottom") ?? "#1f212aff",
+                animate: try opt("animate") ?? true))
         default:
             content = .unknown(type: type)
         }
@@ -822,6 +946,10 @@ public struct RenderNode: Equatable, Sendable, Codable {
             try put("color", r.color)
             try put("trackColor", r.trackColor)
             try put("center", r.center)
+            try put("dot", r.dot, default: false)
+            try put("dotColor", r.dotColor)
+            try put("ticks", r.ticks, default: 0)
+            try put("labels", r.labels, default: [])
         case .spark(let s):
             try put("radius", radius, default: 0)
             try put("values", s.values, default: [])
@@ -871,6 +999,28 @@ public struct RenderNode: Equatable, Sendable, Codable {
             try put("path", i.path)
             try put("fit", i.fit, default: "cover")
             try put("radius", i.radius, default: 6)
+        case .analog(let a):
+            try put("radius", radius, default: 0)
+            try put("size", a.size, default: 236)
+            try put("ticks", a.ticks, default: "hours")
+            try put("seconds", a.seconds, default: "none")
+            try put("dateWindow", a.dateWindow, default: false)
+            try put("numerals", a.numerals, default: false)
+            try put("zone", a.zone)
+            try put("color", a.color, default: "text")
+            try put("faceColor", a.faceColor)
+            try put("secondsColor", a.secondsColor, default: "bad")
+            try put("pivotColor", a.pivotColor, default: "accent")
+        case .flip(let f):
+            try put("radius", radius, default: 0)
+            try put("text", f.text, default: "")
+            try put("small", f.small, default: "")
+            try put("size", f.size, default: 90)
+            try put("smallSize", f.smallSize, default: 40)
+            try put("color", f.color, default: "text")
+            try put("tile", f.tile, default: "#2a2c35ff")
+            try put("tileBottom", f.tileBottom, default: "#1f212aff")
+            try put("animate", f.animate, default: true)
         case .unknown:
             try put("radius", radius, default: 0)
         }

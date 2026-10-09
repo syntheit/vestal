@@ -9,7 +9,7 @@ import VestalCore
 //
 //   vestal render-file <model.json> [--patch <patch.json>]... [--interval <s>]
 //                      [--screenshot <out.png>] [--frames <out.json>]
-//                      [--exit-after <s>] [--hidden]
+//                      [--exit-after <s>] [--hidden] [--at <time>]
 //
 // The model is a snapshot message or a bare node (drawn with the default
 // theme). Each `--patch` is applied `--interval` seconds (default 1) after
@@ -25,7 +25,7 @@ import VestalCore
 public enum RenderFileCommand {
     static let usage = """
     usage: vestal render-file <model.json> [--patch <patch.json>]... [--interval <seconds>]
-                              [--screenshot <out.png>] [--frames <out.json>] [--exit-after <seconds>] [--hidden]
+                              [--screenshot <out.png>] [--frames <out.json>] [--exit-after <seconds>] [--hidden] [--at <time>]
     """
 
     struct Options {
@@ -36,6 +36,8 @@ public enum RenderFileCommand {
         var frames: String?
         var exitAfter: Double?
         var hidden = false
+        /// The moment clock faces show (default: now).
+        var at: Date?
     }
 
     static func parse(_ arguments: [String]) -> Options? {
@@ -53,6 +55,7 @@ public enum RenderFileCommand {
             case "--frames": guard let v = value() else { return nil }; o.frames = v
             case "--exit-after": guard let v = seconds(value()) else { return nil }; o.exitAfter = v
             case "--hidden": o.hidden = true
+            case "--at": guard let v = value().flatMap(RenderCommands.parseTime) else { return nil }; o.at = v
             case let arg where arg.hasPrefix("-"): return nil
             case let arg:
                 guard o.model.isEmpty else { return nil }
@@ -101,6 +104,7 @@ public enum RenderFileCommand {
         if !snapshot.root.duplicateIds.isEmpty {
             FileHandle.standardError.write(Data("vestal render-file: duplicate ids \(snapshot.root.duplicateIds)\n".utf8))
         }
+        RenderClock.override = options.at
         do { try LinuxDashboard.initialize() } catch { return fail("\(error)") }
 
         var status: Int32 = 0

@@ -16,6 +16,7 @@ import { fontFaceCSS } from "./typefaces.js";
 import { syncNode } from "./dom.js";
 import { applyPatch } from "./patch.js";
 import { attachBackground } from "./backgrounds.js";
+import { ClockDriver, FLIP_CSS } from "./clock.js";
 import {
   neighbor, transitionKind, showsDots, PageSwipe, layerMotion, keyName, SLIDE_MS, FADE_MS,
 } from "./pages.js";
@@ -46,7 +47,7 @@ const CSS = `
 .vr-card>.vr-cardin{position:absolute;left:0;top:0}
 .vr-dots{position:absolute;left:0;width:100%;display:flex;justify-content:center;gap:10px;pointer-events:none}
 .vr-dot{width:7px;height:7px;border-radius:50%;transition:background-color .2s ease-out}
-`;
+${FLIP_CSS}`;
 
 let cssInjected = false;
 const fontFaces = new Set();
@@ -100,6 +101,9 @@ const clone = (x) => (typeof structuredClone === "function" ? structuredClone(x)
  *               (Resources/fonts) and the *.glsl files.
  *   resolveImage (path) => url | null: where an `image` node's picture is; none: the empty state.
  *   reducedMotion  override for prefers-reduced-motion.
+ *   now         a Date (or ISO string) the analog clock faces show, frozen; default: the present, moving
+ *               while the mount is on screen.
+ *   timeZone    the IANA zone of an analog face that names none (default: the browser's).
  */
 export function mount(element, snapshot, options = {}) {
   return new Mount(element, snapshot, options);
@@ -126,6 +130,7 @@ class Mount {
 
     this.build();
     this.measure();
+    this.clocks = new ClockDriver(this.el, { now: options.now || null, reduced: () => this.reduced });
     this.render();
     this.wire();
   }
@@ -181,9 +186,9 @@ class Mount {
 
     const dpr = globalThis.devicePixelRatio || 1;
     const base = {
-      pal: this.pal, theme, measurer: this.measurer, resolveImage: this.opts.resolveImage,
+      pal: this.pal, theme, measurer: this.measurer, resolveImage: this.opts.resolveImage, reduced: this.reduced,
       drawEnv: {
-        pal: this.pal, theme, px: dpr * this.scale,
+        pal: this.pal, theme, px: dpr * this.scale, now: this.opts.now || null, timeZone: this.opts.timeZone || null,
         textWidth: (n, s) => this.measurer.stringWidth(n, s),
       },
     };
@@ -199,6 +204,7 @@ class Mount {
     this.renderPopup(snap.popup, base);
     this.renderDots();
     this.settleFonts();
+    this.clocks.scan();
   }
 
   /** Text is measured on a canvas, so lay out again once the typefaces it uses have loaded. */
@@ -527,6 +533,7 @@ class Mount {
     for (const [t, type, fn, opts] of this.listeners) t.removeEventListener(type, fn, opts);
     if (this.ro) this.ro.disconnect();
     if (this.bg) this.bg.destroy();
+    this.clocks.destroy();
     this.finishTransition();
     this.el.classList.remove("vr-root");
     this.el.replaceChildren();
