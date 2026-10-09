@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='utf-8'?>
+<multistatus xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><response><href>/test/6f1c2a3e-1111-4a5b-9c0d-aaaaaaaaaaaa/single.ics</href><propstat><prop><getetag>"aa11"</getetag><C:calendar-data>BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Radicale//EN
+BEGIN:VEVENT
+UID:single-1
+DTSTAMP:20261001T000000Z
+DTSTART:20261009T140000Z
+DTEND:20261009T150000Z
+SUMMARY:Dentist
+LOCATION:Main St 4
+END:VEVENT
+END:VCALENDAR
+</C:calendar-data></prop><status>HTTP/1.1 200 OK</status></propstat></response><response><href>/test/6f1c2a3e-1111-4a5b-9c0d-aaaaaaaaaaaa/weekly.ics</href><propstat><prop><getetag>"bb22"</getetag><C:calendar-data>BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Radicale//EN
+X-WR-CALNAME:Something else
+BEGIN:VEVENT
+UID:weekly-1
+DTSTAMP:20261001T000000Z
+DTSTART:20261008T160000Z
+DTEND:20261008T163000Z
+RRULE:FREQ=WEEKLY;COUNT=4
+SUMMARY:Standup
+END:VEVENT
+END:VCALENDAR
+</C:calendar-data></prop><status>HTTP/1.1 200 OK</status></propstat></response><response><href>/test/6f1c2a3e-1111-4a5b-9c0d-aaaaaaaaaaaa/allday.ics</href><propstat><prop><getetag>"cc33"</getetag><C:calendar-data>BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Radicale//EN
+BEGIN:VEVENT
+UID:allday-1
+DTSTAMP:20261001T000000Z
+DTSTART;VALUE=DATE:20261010
+DTEND;VALUE=DATE:20261011
+SUMMARY:Holiday
+END:VEVENT
+END:VCALENDAR
+</C:calendar-data></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>

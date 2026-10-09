@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Secrets and load-time text
 //
 // A source definition's text fields (`url`, `argv[]`, `env.*`, `headers.*`,
-// `path`, `ics[]`) are evaluated once before the source is fetched, with
+// `path`, `ics[]`, `caldav[]`) are evaluated once before the source is fetched, with
 // `$secrets` and `$env` in scope. A secret is
 // read from a file, an environment variable or a command the first time a
 // source asks for it after a (re)load, trimmed of surrounding whitespace, and
@@ -219,6 +219,7 @@ public final class SecretStore: @unchecked Sendable {
         resolved.headers = try await map(source.headers)
         resolved.path = try await text(source.path)
         resolved.ics = try await texts(source.ics)
+        resolved.caldav = try await texts(source.caldav)
         if case .string(let body)? = source.body { resolved.body = .string(try await LoadTimeText.evaluate(body, lookup: lookup)) }
         return resolved
     }

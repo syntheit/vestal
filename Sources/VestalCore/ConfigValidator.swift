@@ -308,6 +308,11 @@ private struct Walker {
             atLeastOne(source["days"], "\(path).days", default: SourceConfig.defaultDays)
             _ = strings(source["calendars"], "\(path).calendars")
             if case .string? = source["ics"] {} else { _ = strings(source["ics"], "\(path).ics") }
+            let davList: [String]?
+            if case .string(let one)? = source["caldav"] { davList = [one] } else { davList = strings(source["caldav"], "\(path).caldav") }
+            for (i, entry) in (davList ?? []).enumerated() where !LoadTimeText.hasHoles(entry) && !ConfigValidator.isHTTPURL(entry) {
+                add(.invalidValue, "\(path).caldav[\(i)]", "not an http(s) URL")
+            }
         case "file":
             if string(source["path"], "\(path).path") == nil, isAbsent(source["path"]) {
                 add(.missingKey, path, "missing \"path\"; the source never reads")

@@ -286,6 +286,9 @@ public struct LiveFetcher: SourceFetcher {
 
     private func readCalendar(_ source: SourceConfig) async throws -> FetchResult {
         let range = Self.calendarRange(days: source.days, now: now())
+        if let caldav = source.caldav, !caldav.isEmpty {
+            return try await readCalDAV(caldav, source: source, range: range)
+        }
         if let ics = source.ics, !ics.isEmpty {
             return try await readICS(ics, source: source, range: range)
         }
@@ -301,7 +304,7 @@ public struct LiveFetcher: SourceFetcher {
     /// in a directory takes the directory's name as its default calendar
     /// name (vdirsyncer keeps one file per event); a file or URL its own
     /// name. X-WR-CALNAME wins over both.
-    private func readICS(_ locations: [String], source: SourceConfig, range: (start: Date, end: Date)) async throws -> FetchResult {
+    func readICS(_ locations: [String], source: SourceConfig, range: (start: Date, end: Date)) async throws -> FetchResult {
         var entries: [CalendarEntry] = []
         var skipped: [String] = []
         for location in locations {
@@ -358,7 +361,7 @@ public struct LiveFetcher: SourceFetcher {
     }
 
     /// Sorted, so an unchanged calendar gives the same bytes.
-    private static func sorted(_ entries: [CalendarEntry]) -> [CalendarEntry] {
+    static func sorted(_ entries: [CalendarEntry]) -> [CalendarEntry] {
         entries.sorted { ($0.start, $0.title) < ($1.start, $1.title) }
     }
 
@@ -411,7 +414,7 @@ public struct LiveFetcher: SourceFetcher {
 /// a preemptive Basic Authorization header, since URLSession's challenge
 /// handling is unreliable on Linux; the password then exists only in that
 /// header. `display` is the form for messages: the password is `***`.
-public struct ICSLocation: Equatable {
+public struct ICSLocation: Equatable, Sendable {
     public var url: URL
     public var authorization: String?
     public var display: String
@@ -492,6 +495,7 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
     private var response: URLResponse?
     private var tooLarge = false
     private var expired = false
+    private var challenged = false
     private var continuation: CheckedContinuation<(Data, URLResponse), Error>?
 
     init(limit: Int) {
@@ -526,6 +530,24 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
         if over { dataTask.cancel() }
     }
 
+    /// Credentials are sent preemptively, so a Basic or Digest challenge means
+    /// they were wrong or missing: end the request at once with a 401 (see
+    /// `didCompleteWithError`) instead of leaving it waiting for an answer
+    /// (Linux). TLS checks keep the default handling.
+    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge,
+                    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        let method = challenge.protectionSpace.authenticationMethod
+        if !challenge.protectionSpace.isProxy(),
+           method == NSURLAuthenticationMethodHTTPBasic || method == NSURLAuthenticationMethodHTTPDigest {
+            lock.lock()
+            challenged = true
+            lock.unlock()
+            completionHandler(.cancelAuthenticationChallenge, nil)
+        } else {
+            completionHandler(.performDefaultHandling, nil)
+        }
+    }
+
     /// The whole request's time is up; the caller cancels the task next.
     func expire() {
         lock.lock()
@@ -542,6 +564,11 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
             result = .failure(SourceError("response larger than \(limit / 1024 / 1024) MiB"))
         } else if expired, error != nil {
             result = .failure(URLError(.timedOut))
+        } else if challenged, error != nil,
+                  let unauthorized = response ?? task.originalRequest?.url.flatMap({
+                      HTTPURLResponse(url: $0, statusCode: 401, httpVersion: nil, headerFields: nil) }) {
+            // The challenge was cancelled, which URLSession reports as an error.
+            result = .success((data, unauthorized))
         } else if let error {
             result = .failure(error)
         } else if let response = response ?? task.response {

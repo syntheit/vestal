@@ -1070,7 +1070,7 @@
     },
     "source.calendar": {
       "additionalProperties": false,
-      "description": "Events: EventKit on macOS, or .ics files, directories and URLs (ics) on both OSes.",
+      "description": "Events: EventKit on macOS, or .ics files, directories and URLs (ics) and CalDAV servers (caldav) on both OSes.",
       "properties": {
         "cache": {
           "default": true,
@@ -1083,6 +1083,16 @@
             "null"
           ],
           "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "caldav": {
+          "description": "A list (or one) of CalDAV URLs: a calendar collection, or a server or principal URL whose calendars are discovered (RFC 4791, /.well-known/caldav). user:password@ in the URL is sent as Basic authentication. Like ics, it replaces the platform's calendar, and the two combine. `calendars` filters by display name.",
+          "examples": [
+            [
+              "https://me:{{ $secrets.dav }}@dav.example.com/"
+            ]
+          ],
+          "x-vestal-kind": "text",
           "x-vestal-since": "0.4"
         },
         "calendars": {
@@ -1200,7 +1210,7 @@
             }
           ],
           "default": "10s",
-          "description": "For ics URLs.",
+          "description": "For ics and caldav URLs.",
           "examples": [
             "5s"
           ],
@@ -2557,6 +2567,16 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "caldav": {
+          "description": "A list (or one) of CalDAV URLs: a calendar collection, or a server or principal URL whose calendars are discovered (RFC 4791, /.well-known/caldav). user:password@ in the URL is sent as Basic authentication. Like ics, it replaces the platform's calendar, and the two combine. `calendars` filters by display name.",
+          "examples": [
+            [
+              "https://me:{{ $secrets.dav }}@dav.example.com/"
+            ]
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
         "calendars": {
           "description": "Only calendars with these names. Default: all.",
           "examples": [
@@ -2817,7 +2837,7 @@
               "type": "null"
             }
           ],
-          "description": "For ics URLs.",
+          "description": "For ics and caldav URLs.",
           "examples": [
             "5s"
           ],
