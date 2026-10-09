@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<multistatus xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav"><response><href>https://p01-caldav.icloud.com:443/1234567890/calendars/home/ABC.ics</href><propstat><prop><getetag>"C=1@U=2"</getetag><C:calendar-data>BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Apple Inc.//iCloud//EN
+BEGIN:VEVENT
+UID:ABC
+DTSTAMP:20261001T000000Z
+DTSTART;TZID=America/Argentina/Buenos_Aires:20261009T100000
+DTEND;TZID=America/Argentina/Buenos_Aires:20261009T110000
+SUMMARY:Dinner
+END:VEVENT
+END:VCALENDAR
+</C:calendar-data></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>

@@ -13,7 +13,7 @@ final class SchemaTests: XCTestCase {
         XCTAssertEqual(SourceConfig.keysByType, [
             "http": common.union(["url", "parse", "method", "headers", "body", "timeout"]),
             "command": common.union(["argv", "timeout", "parse", "env"]),
-            "calendar": common.union(["days", "calendars", "ics", "timeout"]),
+            "calendar": common.union(["days", "calendars", "ics", "caldav", "timeout"]),
             "file": common.union(["path", "parse"]),
             "system": common.union(["disks", "interfaces"]),
             "media": common.union(["player"]),
@@ -56,7 +56,7 @@ final class SchemaTests: XCTestCase {
         }
         let source = SourceConfig(
             type: "command", url: "u", argv: ["a"], env: [:], calendars: [], transform: ".", history: [:], maxAge: "1h",
-            headers: [:], body: .null, path: "p", disks: [], interfaces: [], player: [], ics: [], backend: "auto")
+            headers: [:], body: .null, path: "p", disks: [], interfaces: [], player: [], ics: [], backend: "auto", caldav: [])
         // The v0.3 Claude options are declared (accepted, then ignored) but
         // not decoded; a source's `path` is still the file source's.
         let ignored: Set<String> = ["path", "fiveHourLimit", "weeklyLimit"]

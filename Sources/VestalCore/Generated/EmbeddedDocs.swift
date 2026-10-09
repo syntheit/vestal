@@ -1866,7 +1866,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 | `http` | `30m` | `always` | the network |
 | `command` | `30m` | `always` | a program's output |
 | `file` | `30s` | `always` | a file |
-| `calendar` | `30m` | `always` | EventKit (macOS) or `.ics` (both) |
+| `calendar` | `30m` | `always` | EventKit (macOS), `.ics` or CalDAV (both) |
 | `system` | `3s` | `visible` | this machine |
 | `media` | `3s` | `visible` | a music player |
 | `claude` | `5m` | `visible` | the Claude plan's usage, from the usage endpoint or `claude -p /usage` |
@@ -1876,7 +1876,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 
 **Inline sources.** Wherever a widget takes `source`, it may give a definition instead of a name: `"source": {"type": "file", "path": "~/notes/today.md", "parse": "lines"}`. Identical definitions share one fetch. Its name in `vestal sources` and the cache is `inline:<8 hex digits>`.
 
-**Load-time text.** `url`, `argv`, `env`, `headers`, `path`, `ics` and a text `body` are text fields evaluated once when the config loads, with only `$env` (the environment), `$secrets` and template parameters in scope: `"url": "https://api.example.com/v1?key={{ $secrets.apiKey }}"`. There is no data and no `now` there, so one source can't depend on another's data: to chain fetches, write a `command` source. In `argv` and `path`, a leading `~/` expands to the home directory.
+**Load-time text.** `url`, `argv`, `env`, `headers`, `path`, `ics`, `caldav` and a text `body` are text fields evaluated once when the config loads, with only `$env` (the environment), `$secrets` and template parameters in scope: `"url": "https://api.example.com/v1?key={{ $secrets.apiKey }}"`. There is no data and no `now` there, so one source can't depend on another's data: to chain fetches, write a `command` source. In `argv` and `path`, a leading `~/` expands to the home directory.
 
 **Failures.** A failed fetch keeps the last good data on screen and retries after `refresh` or 60 seconds, whichever is shorter. `$meta` (`vestal docs expressions`) tells a widget whether its data is current: `{{ if $meta.stale then "(old)" else "" end }}`.
 
@@ -1988,9 +1988,10 @@ Events of the next `days` days, today being the first:
 | `days` | `1` | Days to read, today being the first. |
 | `calendars` | all | Only calendars with these names. |
 | `ics` | none | A list (or one) of `.ics` files, directories of them (such as vdirsyncer's), or `http(s)` URLs. When set, it is used on both OSes. A URL may carry `user:password@`; vestal strips it and sends it as a Basic `Authorization` header, and shows the password as `***` in messages. For Radicale, whose collection URL returns the whole calendar: `"ics": ["https://me:{{ $secrets.dav }}@dav.example.com/me/calendar-uuid/"]` (percent-encode `@`, `/`, `:` in the password). The source's `headers` are sent too. |
-| `timeout` | `10s` | For `ics` URLs. |
+| `timeout` | `10s` | For `ics` and `caldav` URLs. |
+| `caldav` | none | A list (or one) of CalDAV URLs, read by vestal itself on both OSes: a calendar collection, or a server or principal URL whose event calendars are discovered (`current-user-principal`, then `calendar-home-set`; `/.well-known/caldav` is tried when the URL names no principal). `user:password@` works as for `ics` and is sent only to the entry's own site. `calendars` filters by display name. The discovered list is cached in memory for a day. Radicale: `"caldav": ["http://me:{{ $secrets.dav }}@127.0.0.1:5232/"]`. Nextcloud: `"https://me:{{ $secrets.dav }}@cloud.example.com/remote.php/dav/"`. Fastmail (app password): `"https://me%40fastmail.com:{{ $secrets.dav }}@caldav.fastmail.com/dav/calendars/user/me@fastmail.com/"`. iCloud (app-specific password): `"https://me%40icloud.com:{{ $secrets.dav }}@caldav.icloud.com/"`. Google's CalDAV needs OAuth and is not supported: use Google's "Secret address in iCal format" with `ics`. |
 
-Without `ics`, macOS reads EventKit (the app asks for calendar access), and Linux yields `[]` with an info note: the default agenda then stays hidden. Recurring events are expanded for `FREQ` `DAILY`, `WEEKLY`, `MONTHLY` and `YEARLY` with `COUNT`, `UNTIL`, `INTERVAL`, `BYDAY`, `EXDATE`, `RDATE`, overridden instances and `VTIMEZONE`/`TZID` zones. An event using another rule (`BYSETPOS`, `BYWEEKNO`, …) is left out rather than guessed, and counted in the source's note. The calendar name comes from `X-WR-CALNAME` or the file name.
+Without `ics` or `caldav`, macOS reads EventKit (the app asks for calendar access); with either, only they are read, and the two combine. Linux yields `[]` with an info note: the default agenda then stays hidden. Recurring events are expanded for `FREQ` `DAILY`, `WEEKLY`, `MONTHLY` and `YEARLY` with `COUNT`, `UNTIL`, `INTERVAL`, `BYDAY`, `EXDATE`, `RDATE`, overridden instances and `VTIMEZONE`/`TZID` zones. An event using another rule (`BYSETPOS`, `BYWEEKNO`, …) is left out rather than guessed, and counted in the source's note. The calendar name comes from `X-WR-CALNAME` or the file name.
 
 ### `system`
 

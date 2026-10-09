@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<multistatus xmlns="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav" xmlns:ICAL="http://apple.com/ns/ical/"><response><href>/test/6f1c2a3e-1111-4a5b-9c0d-aaaaaaaaaaaa/</href><propstat><prop><resourcetype><collection /><C:calendar /></resourcetype><displayname>Personal</displayname><C:supported-calendar-component-set><C:comp name="VEVENT" /></C:supported-calendar-component-set></prop><status>HTTP/1.1 200 OK</status></propstat></response></multistatus>

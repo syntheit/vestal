@@ -194,7 +194,7 @@ public enum ConfigExpansion {
 
     /// Source-definition text fields.
     static let loadTimeFields = ["url", "path", "body"]
-    static let loadTimeLists = ["argv", "ics"]
+    static let loadTimeLists = ["argv", "ics", "caldav"]
     static let loadTimeMaps = ["env", "headers"]
 
     /// `source` with every `{{ }}` hole that reads only template

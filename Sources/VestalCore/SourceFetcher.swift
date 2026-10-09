@@ -286,6 +286,9 @@ public struct LiveFetcher: SourceFetcher {
 
     private func readCalendar(_ source: SourceConfig) async throws -> FetchResult {
         let range = Self.calendarRange(days: source.days, now: now())
+        if let caldav = source.caldav, !caldav.isEmpty {
+            return try await readCalDAV(caldav, source: source, range: range)
+        }
         if let ics = source.ics, !ics.isEmpty {
             return try await readICS(ics, source: source, range: range)
         }
@@ -301,7 +304,7 @@ public struct LiveFetcher: SourceFetcher {
     /// in a directory takes the directory's name as its default calendar
     /// name (vdirsyncer keeps one file per event); a file or URL its own
     /// name. X-WR-CALNAME wins over both.
-    private func readICS(_ locations: [String], source: SourceConfig, range: (start: Date, end: Date)) async throws -> FetchResult {
+    func readICS(_ locations: [String], source: SourceConfig, range: (start: Date, end: Date)) async throws -> FetchResult {
         var entries: [CalendarEntry] = []
         var skipped: [String] = []
         for location in locations {
@@ -358,7 +361,7 @@ public struct LiveFetcher: SourceFetcher {
     }
 
     /// Sorted, so an unchanged calendar gives the same bytes.
-    private static func sorted(_ entries: [CalendarEntry]) -> [CalendarEntry] {
+    static func sorted(_ entries: [CalendarEntry]) -> [CalendarEntry] {
         entries.sorted { ($0.start, $0.title) < ($1.start, $1.title) }
     }
 
@@ -411,7 +414,7 @@ public struct LiveFetcher: SourceFetcher {
 /// a preemptive Basic Authorization header, since URLSession's challenge
 /// handling is unreliable on Linux; the password then exists only in that
 /// header. `display` is the form for messages: the password is `***`.
-public struct ICSLocation: Equatable {
+public struct ICSLocation: Equatable, Sendable {
     public var url: URL
     public var authorization: String?
     public var display: String
