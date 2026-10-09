@@ -1,0 +1,232 @@
+{
+  "Version": "1.80.0",
+  "TUN": true,
+  "BackendState": "Running",
+  "HaveNodeKey": true,
+  "AuthURL": "",
+  "TailscaleIPs": [
+    "100.84.12.3",
+    "fd7a:115c:a1e0::101"
+  ],
+  "Self": {
+    "ID": "n0001CNTRL",
+    "NodeID": 1000000000000001,
+    "PublicKey": "nodekey:0000000000000000000000000000000000000000000000000000000000000001",
+    "HostName": "atlas",
+    "DNSName": "atlas.example-tailnet.ts.net.",
+    "OS": "macOS",
+    "UserID": 1000000000000001,
+    "TailscaleIPs": [
+      "100.84.12.3",
+      "fd7a:115c:a1e0::101"
+    ],
+    "AllowedIPs": [
+      "100.84.12.3/32"
+    ],
+    "Addrs": [
+      "198.51.100.7:41641"
+    ],
+    "CurAddr": "",
+    "Relay": "fra",
+    "RxBytes": 0,
+    "TxBytes": 0,
+    "Created": "2026-04-08T19:39:13.557574419Z",
+    "LastWrite": "0001-01-01T00:00:00Z",
+    "LastSeen": "0001-01-01T00:00:00Z",
+    "LastHandshake": "0001-01-01T00:00:00Z",
+    "Online": true,
+    "ExitNode": false,
+    "ExitNodeOption": false,
+    "Active": true,
+    "PeerAPIURL": null,
+    "InNetworkMap": true,
+    "InMagicSock": false,
+    "InEngine": false,
+    "Capabilities": [
+      "https"
+    ]
+  },
+  "Health": [],
+  "MagicDNSSuffix": "example-tailnet.ts.net",
+  "CurrentTailnet": {
+    "Name": "user@example.com",
+    "MagicDNSSuffix": "example-tailnet.ts.net",
+    "MagicDNSEnabled": true
+  },
+  "CertDomains": null,
+  "Peer": {
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000002": {
+      "ID": "n0002CNTRL",
+      "NodeID": 1000000000000002,
+      "PublicKey": "nodekey:0000000000000000000000000000000000000000000000000000000000000002",
+      "HostName": "nas",
+      "DNSName": "nas.example-tailnet.ts.net.",
+      "OS": "linux",
+      "UserID": 1000000000000001,
+      "TailscaleIPs": [
+        "100.71.40.9",
+        "fd7a:115c:a1e0::102"
+      ],
+      "AllowedIPs": [
+        "100.71.40.9/32",
+        "192.168.1.0/24"
+      ],
+      "Addrs": null,
+      "CurAddr": "",
+      "Relay": "fra",
+      "RxBytes": 0,
+      "TxBytes": 0,
+      "Created": "2026-04-08T19:39:13.557574419Z",
+      "LastWrite": "0001-01-01T00:00:00Z",
+      "LastSeen": "0001-01-01T00:00:00Z",
+      "LastHandshake": "2026-09-27T17:02:41.12345678Z",
+      "Online": true,
+      "ExitNode": false,
+      "ExitNodeOption": false,
+      "Active": true,
+      "PeerAPIURL": null,
+      "InNetworkMap": true,
+      "InMagicSock": false,
+      "InEngine": false,
+      "PrimaryRoutes": [
+        "192.168.1.0/24"
+      ]
+    },
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000003": {
+      "ID": "n0003CNTRL",
+      "NodeID": 1000000000000003,
+      "PublicKey": "nodekey:0000000000000000000000000000000000000000000000000000000000000003",
+      "HostName": "edge",
+      "DNSName": "edge.example-tailnet.ts.net.",
+      "OS": "linux",
+      "UserID": 1000000000000001,
+      "TailscaleIPs": [
+        "100.99.2.17",
+        "fd7a:115c:a1e0::103"
+      ],
+      "AllowedIPs": [
+        "100.99.2.17/32",
+        "0.0.0.0/0",
+        "::/0"
+      ],
+      "Addrs": null,
+      "CurAddr": "",
+      "Relay": "fra",
+      "RxBytes": 0,
+      "TxBytes": 0,
+      "Created": "2026-04-08T19:39:13.557574419Z",
+      "LastWrite": "0001-01-01T00:00:00Z",
+      "LastSeen": "0001-01-01T00:00:00Z",
+      "LastHandshake": "2026-09-27T17:01:55Z",
+      "Online": true,
+      "ExitNode": false,
+      "ExitNodeOption": true,
+      "Active": true,
+      "PeerAPIURL": null,
+      "InNetworkMap": true,
+      "InMagicSock": false,
+      "InEngine": false
+    },
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000004": {
+      "ID": "n0004CNTRL",
+      "NodeID": 1000000000000004,
+      "PublicKey": "nodekey:0000000000000000000000000000000000000000000000000000000000000004",
+      "HostName": "phone",
+      "DNSName": "phone.example-tailnet.ts.net.",
+      "OS": "android",
+      "UserID": 1000000000000001,
+      "TailscaleIPs": [
+        "100.64.8.22",
+        "fd7a:115c:a1e0::104"
+      ],
+      "AllowedIPs": [
+        "100.64.8.22/32"
+      ],
+      "Addrs": null,
+      "CurAddr": "",
+      "Relay": "fra",
+      "RxBytes": 0,
+      "TxBytes": 0,
+      "Created": "2026-04-08T19:39:13.557574419Z",
+      "LastWrite": "0001-01-01T00:00:00Z",
+      "LastSeen": "0001-01-01T00:00:00Z",
+      "LastHandshake": "2026-09-27T16:49:10Z",
+      "Online": true,
+      "ExitNode": false,
+      "ExitNodeOption": false,
+      "Active": false,
+      "PeerAPIURL": null,
+      "InNetworkMap": true,
+      "InMagicSock": false,
+      "InEngine": false
+    },
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000005": {
+      "ID": "n0005CNTRL",
+      "NodeID": 1000000000000005,
+      "PublicKey": "nodekey:0000000000000000000000000000000000000000000000000000000000000005",
+      "HostName": "localhost",
+      "DNSName": "tablet.example-tailnet.ts.net.",
+      "OS": "iOS",
+      "UserID": 1000000000000001,
+      "TailscaleIPs": [
+        "100.88.1.9",
+        "fd7a:115c:a1e0::105"
+      ],
+      "AllowedIPs": [
+        "100.88.1.9/32"
+      ],
+      "Addrs": null,
+      "CurAddr": "",
+      "Relay": "fra",
+      "RxBytes": 0,
+      "TxBytes": 0,
+      "Created": "2026-04-08T19:39:13.557574419Z",
+      "LastWrite": "0001-01-01T00:00:00Z",
+      "LastSeen": "0001-01-01T00:00:00Z",
+      "LastHandshake": "0001-01-01T00:00:00Z",
+      "Online": true,
+      "ExitNode": false,
+      "ExitNodeOption": false,
+      "Active": false,
+      "PeerAPIURL": null,
+      "InNetworkMap": true,
+      "InMagicSock": false,
+      "InEngine": false
+    },
+    "nodekey:0000000000000000000000000000000000000000000000000000000000000006": {
+      "ID": "n0006CNTRL",
+      "NodeID": 1000000000000006,
+      "PublicKey": "nodekey:0000000000000000000000000000000000000000000000000000000000000006",
+      "HostName": "old-laptop",
+      "DNSName": "old-laptop.example-tailnet.ts.net.",
+      "OS": "linux",
+      "UserID": 1000000000000001,
+      "TailscaleIPs": [
+        "100.88.1.4",
+        "fd7a:115c:a1e0::106"
+      ],
+      "AllowedIPs": [
+        "100.88.1.4/32"
+      ],
+      "Addrs": null,
+      "CurAddr": "",
+      "Relay": "fra",
+      "RxBytes": 0,
+      "TxBytes": 0,
+      "Created": "2026-04-08T19:39:13.557574419Z",
+      "LastWrite": "0001-01-01T00:00:00Z",
+      "LastSeen": "2026-09-01T10:15:00.1Z",
+      "LastHandshake": "0001-01-01T00:00:00Z",
+      "Online": false,
+      "ExitNode": false,
+      "ExitNodeOption": false,
+      "Active": false,
+      "PeerAPIURL": null,
+      "InNetworkMap": true,
+      "InMagicSock": false,
+      "InEngine": false,
+      "Expired": true,
+      "KeyExpiry": "2026-08-30T10:15:00Z"
+    }
+  }
+}

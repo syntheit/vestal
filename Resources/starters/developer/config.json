@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "hotkey": "cmd+shift+space",
+  "defaultView": "main",
+  "secrets": {
+    "github": {
+      "command": [
+        "gh",
+        "auth",
+        "token"
+      ]
+    }
+  },
+  "theme": {
+    "background": "topo",
+    "density": "compact"
+  },
+  "pages": {
+    "order": [
+      "main",
+      "reviews",
+      "builds"
+    ]
+  },
+  "widgets": {
+    "clock": {
+      "type": "clock",
+      "worldClocks": [
+        {
+          "label": "SF",
+          "tz": "America/Los_Angeles"
+        },
+        {
+          "label": "LON",
+          "tz": "Europe/London"
+        }
+      ]
+    },
+    "systemBar": {
+      "type": "systemBar",
+      "show": [
+        "uptime",
+        "disk",
+        "network"
+      ]
+    },
+    "ai": {
+      "type": "aiUsage"
+    },
+    "reviews": {
+      "type": "reviewQueue",
+      "limit": 5
+    },
+    "reviewsAll": {
+      "type": "reviewQueue",
+      "limit": 9
+    },
+    "mine": {
+      "type": "reviewQueue",
+      "search": "is:pr is:open author:@me archived:false",
+      "limit": 6
+    },
+    "ci": {
+      "type": "ciStatus",
+      "repos": [
+        "acme/api",
+        "acme/web",
+        "acme/infra@update-flake",
+        "acme/docs"
+      ]
+    },
+    "ciAll": {
+      "type": "ciStatus",
+      "repos": [
+        "acme/api",
+        "acme/web",
+        "acme/infra",
+        "acme/infra@update-flake",
+        "acme/docs",
+        "acme/mobile"
+      ],
+      "runs": 20
+    },
+    "commits": {
+      "type": "commitActivity",
+      "paths": [
+        "~/code/api",
+        "~/code/web"
+      ],
+      "weeks": 30
+    },
+    "flake": {
+      "type": "flakeInputs",
+      "path": "~/config",
+      "behind": true
+    }
+  },
+  "views": {
+    "main": {
+      "key": "1",
+      "title": "Main",
+      "children": [
+        "clock",
+        "systemBar",
+        "ai",
+        {
+          "type": "section",
+          "title": "Review queue",
+          "children": [
+            "reviews"
+          ]
+        },
+        {
+          "type": "section",
+          "title": "CI",
+          "children": [
+            "ci"
+          ]
+        },
+        {
+          "type": "section",
+          "title": "Activity",
+          "children": [
+            "commits"
+          ]
+        }
+      ],
+      "gap": 22
+    },
+    "reviews": {
+      "key": "2",
+      "title": "Reviews",
+      "children": [
+        {
+          "type": "section",
+          "title": "Waiting on you",
+          "children": [
+            "reviewsAll"
+          ]
+        },
+        {
+          "type": "section",
+          "title": "Your open pull requests",
+          "children": [
+            "mine"
+          ]
+        }
+      ]
+    },
+    "builds": {
+      "key": "3",
+      "title": "Builds",
+      "children": [
+        {
+          "type": "section",
+          "title": "CI",
+          "children": [
+            "ciAll"
+          ]
+        },
+        {
+          "type": "section",
+          "title": "Flake inputs",
+          "children": [
+            "flake"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "hotkey": "cmd+shift+space",
+  "defaultView": "main",
+  "theme": {
+    "background": "sky"
+  },
+  "pages": {
+    "order": [
+      "main"
+    ]
+  },
+  "sources": {
+    "calendar": {
+      "type": "calendar",
+      "refresh": "5m",
+      "days": 1
+    }
+  },
+  "widgets": {
+    "clock": {
+      "type": "stack",
+      "gap": 10,
+      "align": "center",
+      "children": [
+        {
+          "type": "text",
+          "text": "{{ now | fmt_time(\"HH:mm\") }}",
+          "style": {
+            "size": 150,
+            "weight": "thin",
+            "font": "mono"
+          }
+        },
+        {
+          "type": "text",
+          "text": "{{ now | fmt_localized(\"EEEEMMMMd\") }}",
+          "style": {
+            "size": 20,
+            "color": "subtle"
+          }
+        }
+      ]
+    },
+    "next": {
+      "type": "row",
+      "gap": 10,
+      "alignSelf": "center",
+      "spaceBefore": 22,
+      "source": "calendar",
+      "vars": {
+        "e": "[.[] | select((.allDay | not) and .end > now)] | first"
+      },
+      "when": "$e != null",
+      "children": [
+        {
+          "type": "text",
+          "text": "{{ $e.start | fmt_time(\"HH:mm\") }}",
+          "style": {
+            "size": 15,
+            "font": "mono",
+            "color": "subtle"
+          }
+        },
+        {
+          "type": "text",
+          "text": "{{ $e.title }}",
+          "style": {
+            "size": 15,
+            "weight": "medium"
+          }
+        },
+        {
+          "type": "text",
+          "text": "{{ if $e.start > now then \"in \\(($e.start - now) | fmt_duration(1))\" else \"now\" end }}",
+          "style": {
+            "size": 15,
+            "weight": "medium",
+            "color": "accent"
+          }
+        }
+      ]
+    }
+  },
+  "views": {
+    "main": {
+      "key": "1",
+      "title": "Main",
+      "children": [
+        "clock",
+        "next"
+      ]
+    }
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "hotkey": "cmd+shift+space",
+  "defaultView": "main",
+  "theme": {
+    "background": "aurora"
+  },
+  "pages": {
+    "order": [
+      "main",
+      "focus"
+    ]
+  },
+  "sources": {
+    "calendar": {
+      "type": "calendar",
+      "refresh": "5m",
+      "days": 1
+    },
+    "weather": {
+      "type": "http",
+      "url": "https://wttr.in/?m&format=j1",
+      "refresh": "30m",
+      "parse": "json"
+    },
+    "rates": {
+      "type": "http",
+      "url": "https://open.er-api.com/v6/latest/USD",
+      "refresh": "4h",
+      "parse": "json"
+    }
+  },
+  "widgets": {
+    "clock": {
+      "type": "clock"
+    },
+    "systemBar": {
+      "type": "systemBar",
+      "show": [
+        "uptime",
+        "disk",
+        "battery",
+        "network"
+      ]
+    },
+    "media": {
+      "type": "media",
+      "hideWhenOff": true
+    },
+    "agenda": {
+      "type": "agendaList",
+      "title": "Today",
+      "source": "calendar",
+      "maxEvents": 5
+    },
+    "systems": {
+      "type": "systemHealth",
+      "title": "Systems",
+      "hosts": [
+        {
+          "source": "local"
+        }
+      ]
+    },
+    "exchange": {
+      "type": "keyValueList",
+      "title": "Currencies",
+      "source": "rates",
+      "items": [
+        {
+          "label": "EUR",
+          "pick": "rates.EUR",
+          "format": "decimal"
+        },
+        {
+          "label": "GBP",
+          "pick": "rates.GBP",
+          "format": "decimal"
+        },
+        {
+          "label": "JPY",
+          "pick": "rates.JPY",
+          "format": "decimal"
+        },
+        {
+          "label": "BRL",
+          "pick": "rates.BRL",
+          "format": "decimal"
+        }
+      ]
+    },
+    "weather": {
+      "type": "weatherCard",
+      "title": "Weather",
+      "source": "weather",
+      "units": "metric",
+      "fields": {
+        "location": ".nearest_area[0].areaName[0].value",
+        "region": ".nearest_area[0].region[0].value",
+        "condition": ".current_condition[0].weatherDesc[0].value",
+        "temp": ".current_condition[0].temp_C",
+        "sunrise": ".weather[0].astronomy[0].sunrise",
+        "sunset": ".weather[0].astronomy[0].sunset"
+      }
+    },
+    "bigClock": {
+      "type": "stack",
+      "gap": 6,
+      "align": "center",
+      "children": [
+        {
+          "type": "text",
+          "text": "{{ now | fmt_time(\"HH:mm\") }}",
+          "style": {
+            "size": 120,
+            "weight": "thin",
+            "font": "mono"
+          }
+        },
+        {
+          "type": "text",
+          "text": "{{ now | fmt_localized(\"EEEEMMMMd\") }}",
+          "style": {
+            "size": 20,
+            "color": "subtle"
+          }
+        }
+      ]
+    },
+    "meeting": {
+      "type": "nextMeeting",
+      "source": "calendar"
+    }
+  },
+  "views": {
+    "main": {
+      "key": "1",
+      "title": "Main",
+      "children": [
+        "clock",
+        "systemBar",
+        "media",
+        "agenda",
+        "systems",
+        "exchange",
+        "weather"
+      ]
+    },
+    "focus": {
+      "key": "2",
+      "title": "Focus",
+      "children": [
+        "bigClock",
+        "meeting",
+        "agenda"
+      ],
+      "gap": 32
+    }
+  }
+}

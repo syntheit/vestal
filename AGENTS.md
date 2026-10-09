@@ -83,6 +83,8 @@ $ vestal fetch prs --config /tmp/vestal-draft.json --allow-commands --shape
 
 ### Step 3: write the config
 
+**Start from a starter, then customise.** For a user with no config yet, `vestal init --list` shows eight complete dashboards (default, minimal, developer, homelab, markets, focus, media, agentops); `vestal init --starter <id>` writes one to the config path (under Nix: `programs.vestal.starter = "<id>";`, with `programs.vestal.settings` merged over it). Read what it needs from the user, then change it with the loop below (`vestal docs starters`).
+
 A complete config is a JSON object with `"version": 1`, merged over the defaults. The parts: `sources` (data), `widgets` (named widgets), `views` (which widgets show, in order), plus `templates`, `functions`, `secrets`, `keys`, `pages` (order, slide or fade, dots and swipe between views; `views.<name>.enabled: false` turns a view off), `theme`, `platform` when needed. Every recipe in section 5 is a complete file you can start from.
 
 The three kinds of field (`vestal docs expressions`):

@@ -1,0 +1,12 @@
+{
+  "state": "running",
+  "phase": "focus",
+  "round": 2,
+  "rounds": 4,
+  "length": 1500,
+  "remaining": null,
+  "endsAt": 1790529706,
+  "completed": 1,
+  "task": "Writing: onboarding copy",
+  "autoStart": false
+}

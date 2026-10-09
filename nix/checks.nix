@@ -48,6 +48,14 @@ in
           vestal check-config --strict typo.json > /dev/null || rc=$?
           [ "$rc" = 3 ]
           vestal check-config --commands ${../examples/full.json} > /dev/null
+          # Every starter is a clean config on both platforms.
+          for dir in ${../Resources/starters}/*/; do
+            for platform in macos linux; do
+              vestal check-config --json --platform $platform "$dir/config.json" | jq -e '.counts.error == 0' > /dev/null
+            done
+          done
+          vestal init --list | grep -q '^default '
+          vestal init --print --starter developer | jq -e '.hotkey == "cmd+shift+space"' > /dev/null
           vestal print-config --origins ${../examples/full.json} | grep -q '^/widgets/claude/type  *"claudeUsage"  *user$'
           # The schema is the committed one, and the docs are built in.
           vestal schema | cmp - ${../docs/vestal.schema.json}
@@ -179,6 +187,7 @@ in
         ../AGENTS.md
         ../Resources/icons
         ../Resources/samples
+        ../Resources/starters
         ../Resources/shaders
       ];
     };

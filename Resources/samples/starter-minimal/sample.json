@@ -1,0 +1,14 @@
+{
+  "kind": "dashboard",
+  "title": "Minimal starter",
+  "description": "The Minimal starter dashboard: A big clock, the date and the next event. Nothing to read twice.",
+  "size": [
+    760,
+    460
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "starter",
+    "minimal"
+  ]
+}

@@ -1,0 +1,274 @@
+{
+  "version": 1,
+  "hotkey": "cmd+shift+space",
+  "defaultView": "ops",
+  "secrets": {
+    "github": {
+      "command": [
+        "gh",
+        "auth",
+        "token"
+      ]
+    }
+  },
+  "theme": {
+    "background": "flow",
+    "density": "compact"
+  },
+  "pages": {
+    "order": [
+      "ops",
+      "main",
+      "reviews"
+    ]
+  },
+  "sources": {
+    "agents": {
+      "type": "file",
+      "path": "~/.local/state/vestal/agents.json",
+      "refresh": "10s"
+    },
+    "calendar": {
+      "type": "calendar",
+      "refresh": "5m",
+      "days": 1
+    },
+    "weather": {
+      "type": "http",
+      "url": "https://wttr.in/?m&format=j1",
+      "refresh": "30m",
+      "parse": "json"
+    }
+  },
+  "widgets": {
+    "clock": {
+      "type": "clock"
+    },
+    "plan": {
+      "type": "aiPlan",
+      "claudePlan": "Max"
+    },
+    "agents": {
+      "type": "list",
+      "source": "agents",
+      "items": ".",
+      "limit": 6,
+      "rowId": ".id",
+      "empty": "No agents running",
+      "gap": 9,
+      "row": {
+        "type": "row",
+        "gap": 10,
+        "children": [
+          {
+            "type": "icon",
+            "size": 12,
+            "width": 14,
+            "name": {
+              "expr": "if .state == \"running\" then \"circle-notch\" elif .state == \"done\" then \"check-circle\" elif .state == \"failed\" then \"x-circle\" else \"warning\" end"
+            },
+            "color": {
+              "expr": "if .state == \"running\" then \"accent\" elif .state == \"done\" then \"good\" elif .state == \"failed\" then \"bad\" else \"warn\" end"
+            }
+          },
+          {
+            "type": "text",
+            "text": "{{ .repo }}",
+            "width": 48,
+            "lines": 1,
+            "style": {
+              "size": 11,
+              "font": "mono",
+              "color": "dim"
+            }
+          },
+          {
+            "type": "text",
+            "text": "{{ .task }}",
+            "width": "fill",
+            "lines": 1,
+            "style": {
+              "weight": "medium"
+            }
+          },
+          {
+            "type": "text",
+            "text": "{{ .note }}",
+            "lines": 1,
+            "style": {
+              "size": 11,
+              "color": {
+                "expr": "if .state == \"input\" then \"warn\" elif .state == \"failed\" then \"bad\" else \"subtle\" end"
+              }
+            }
+          },
+          {
+            "type": "text",
+            "text": "{{ .elapsed }}",
+            "width": 36,
+            "style": {
+              "size": 11,
+              "font": "mono",
+              "color": "dim"
+            },
+            "align": "end"
+          }
+        ]
+      }
+    },
+    "usage": {
+      "type": "row",
+      "gap": 14,
+      "source": "claude",
+      "children": [
+        {
+          "type": "sparkline",
+          "value": ".session.percent",
+          "history": {
+            "size": 96,
+            "every": "5m"
+          },
+          "min": 0,
+          "max": 100,
+          "height": 40,
+          "width": 460,
+          "color": "orange",
+          "fill": "orange@0.15",
+          "dot": true
+        },
+        {
+          "type": "stack",
+          "gap": 2,
+          "children": [
+            {
+              "type": "text",
+              "text": "{{ .session.percent | round }}%",
+              "style": {
+                "size": 16,
+                "font": "mono"
+              }
+            },
+            {
+              "type": "text",
+              "text": "5-hour window",
+              "style": {
+                "size": 11,
+                "color": "dim"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "ci": {
+      "type": "ciStatus",
+      "repos": [
+        "acme/api",
+        "acme/web",
+        "acme/infra@update-flake",
+        "acme/docs"
+      ]
+    },
+    "reviews": {
+      "type": "reviewQueue",
+      "limit": 8
+    },
+    "systemBar": {
+      "type": "systemBar",
+      "show": [
+        "uptime",
+        "disk",
+        "battery",
+        "network"
+      ]
+    },
+    "agenda": {
+      "type": "agendaList",
+      "title": "Today",
+      "source": "calendar",
+      "maxEvents": 5
+    },
+    "weather": {
+      "type": "weatherCard",
+      "title": "Weather",
+      "source": "weather",
+      "units": "metric",
+      "fields": {
+        "location": ".nearest_area[0].areaName[0].value",
+        "region": ".nearest_area[0].region[0].value",
+        "condition": ".current_condition[0].weatherDesc[0].value",
+        "temp": ".current_condition[0].temp_C",
+        "sunrise": ".weather[0].astronomy[0].sunrise",
+        "sunset": ".weather[0].astronomy[0].sunset"
+      }
+    }
+  },
+  "views": {
+    "ops": {
+      "key": "1",
+      "title": "Ops",
+      "children": [
+        "clock",
+        {
+          "type": "section",
+          "title": "Plan usage",
+          "children": [
+            "plan"
+          ]
+        },
+        {
+          "type": "section",
+          "title": "Agents",
+          "children": [
+            "agents"
+          ]
+        },
+        {
+          "type": "section",
+          "title": "5-hour usage",
+          "children": [
+            "usage"
+          ]
+        },
+        {
+          "type": "section",
+          "title": "CI",
+          "children": [
+            "ci"
+          ]
+        }
+      ],
+      "gap": 22
+    },
+    "main": {
+      "key": "2",
+      "title": "Main",
+      "children": [
+        "clock",
+        "systemBar",
+        "agenda",
+        "weather"
+      ]
+    },
+    "reviews": {
+      "key": "3",
+      "title": "Reviews",
+      "children": [
+        {
+          "type": "section",
+          "title": "Waiting on you",
+          "children": [
+            "reviews"
+          ]
+        },
+        {
+          "type": "section",
+          "title": "CI",
+          "children": [
+            "ci"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -25,6 +25,30 @@ let
   cfg = config.programs.vestal;
   opts = options.programs.vestal;
   json = pkgs.formats.json { };
+
+  # The starters (Resources/starters): complete configs a user forks.
+  starterDir = "${self}/Resources/starters";
+  starterIds = lib.attrNames (lib.filterAttrs (_: kind: kind == "directory") (builtins.readDir starterDir));
+  # Vestal's own merge rules: objects merge key by key, lists and scalars
+  # replace, and null stays in the result so vestal removes the key (and any
+  # built-in default of that name) when it reads the file.
+  mergeSettings =
+    base: over:
+    base
+    // lib.mapAttrs (
+      k: v: if builtins.isAttrs v && builtins.isAttrs (base.${k} or null) then mergeSettings base.${k} v else v
+    ) over;
+  starterConfig =
+    if cfg.starter == null then
+      { }
+    else
+      builtins.fromJSON (builtins.readFile "${starterDir}/${cfg.starter}/config.json");
+  # What is written to config.json: the starter, then settings over it.
+  effectiveSettings =
+    if !(builtins.isAttrs cfg.settings) || cfg.starter == null then
+      cfg.settings
+    else
+      mergeSettings starterConfig cfg.settings;
   home = config.home.homeDirectory;
   signing = isDarwin && cfg.signingIdentity != null;
 
@@ -169,7 +193,7 @@ let
   # a `hotkey` key in platform.linux wins (even null), then the top level.
   linuxHotkey =
     let
-      s = if builtins.isAttrs cfg.settings then cfg.settings else { };
+      s = if builtins.isAttrs effectiveSettings then effectiveSettings else { };
       platform = if builtins.isAttrs (s.platform or null) then s.platform else { };
       linux = if builtins.isAttrs (platform.linux or null) then platform.linux else { };
     in
@@ -180,7 +204,7 @@ let
   linuxTheme =
     key:
     let
-      s = if builtins.isAttrs cfg.settings then cfg.settings else { };
+      s = if builtins.isAttrs effectiveSettings then effectiveSettings else { };
       platform = if builtins.isAttrs (s.platform or null) then s.platform else { };
       linux = if builtins.isAttrs (platform.linux or null) then platform.linux else { };
       own = if builtins.isAttrs (linux.theme or null) then linux.theme else { };
@@ -419,6 +443,22 @@ in
       description = "The vestal package to use.";
     };
 
+    starter = mkOption {
+      type = types.nullOr (types.enum starterIds);
+      default = null;
+      example = "developer";
+      description = ''
+        A starter dashboard to begin from (`vestal init --list`, or
+        docs/reference/starters.md): its config becomes the base of
+        {file}`$XDG_CONFIG_HOME/vestal/config.json`, and
+        {option}`programs.vestal.settings` merges over it with vestal's own
+        rules: objects merge key by key, lists and scalars replace, and `null`
+        removes a key. Every starter sets a hotkey (`cmd+shift+space`); set
+        `settings.hotkey` to change or remove it. `null` (the default) starts
+        from nothing: vestal's built-in defaults.
+      '';
+    };
+
     settings = mkOption {
       inherit (json) type;
       default = { };
@@ -593,9 +633,9 @@ in
 
       home.packages = [ cliPackage ];
 
-      xdg.configFile."vestal/config.json" = mkIf (cfg.settings != { }) {
+      xdg.configFile."vestal/config.json" = mkIf (effectiveSettings != { }) {
         source = json.generate "vestal-config.json" (
-          if builtins.isAttrs cfg.settings then { version = 1; } // cfg.settings else cfg.settings
+          if builtins.isAttrs effectiveSettings then { version = 1; } // effectiveSettings else effectiveSettings
         );
       };
 

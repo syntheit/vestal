@@ -1,0 +1,27 @@
+{
+  "id": "focus",
+  "title": "Focus",
+  "pitch": "A timer, the one task, today's list and habits. Tab away to everything else.",
+  "kind": "dashboard",
+  "background": "grain",
+  "pages": [
+    {
+      "name": "focus",
+      "title": "Focus"
+    },
+    {
+      "name": "main",
+      "title": "Main"
+    }
+  ],
+  "needs": [
+    "A markdown checklist at `~/notes/todo.md` with a `## Today` heading (`- [ ] task`); ticking writes that file",
+    "Optional: `~/.local/share/vestal/habits.json` (`vestal docs preset/habits`)",
+    "Calendar access for the next-event line (macOS asks the first time)",
+    "Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)"
+  ],
+  "tags": [
+    "focus",
+    "starter"
+  ]
+}

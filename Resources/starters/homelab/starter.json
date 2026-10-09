@@ -1,0 +1,33 @@
+{
+  "id": "homelab",
+  "title": "Homelab",
+  "pitch": "Hosts, monitors, containers, backups and the tailnet, two columns wide.",
+  "kind": "dashboard",
+  "background": "aurora",
+  "pages": [
+    {
+      "name": "overview",
+      "title": "Overview"
+    },
+    {
+      "name": "nas",
+      "title": "nas"
+    },
+    {
+      "name": "network",
+      "title": "Network"
+    }
+  ],
+  "needs": [
+    "Hosts running foyer (or a source in its shape) for `systems`; replace `nas.example.com`",
+    "An Uptime Kuma status page URL and slug in the `status` source (or switch to `healthchecks`)",
+    "Docker or Podman on the machine or over ssh (`ssh://nas`, key without a prompt)",
+    "Backup status files from your backup wrappers (`vestal docs preset/backups`)",
+    "Tailscale CLI (`tailscale`) on the PATH",
+    "Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)"
+  ],
+  "tags": [
+    "homelab",
+    "starter"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "agentops",
+  "title": "Agent ops",
+  "pitch": "Plan headroom, running agents and what needs you, for a day of delegated work.",
+  "kind": "dashboard",
+  "background": "flow",
+  "pages": [
+    {
+      "name": "ops",
+      "title": "Ops"
+    },
+    {
+      "name": "main",
+      "title": "Main"
+    },
+    {
+      "name": "reviews",
+      "title": "Reviews"
+    }
+  ],
+  "needs": [
+    "Claude Code and/or Codex logged in on this machine (`vestal docs ai-usage`)",
+    "An agents file at `~/.local/state/vestal/agents.json`: a JSON list of {id, state (running, input, done, failed), repo, task, note, elapsed} that your agent hooks write",
+    "GitHub login (`gh auth login`); the `github` secret runs `gh auth token`",
+    "Your repositories: replace `acme/*` in the `ci` widgets",
+    "Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)"
+  ],
+  "tags": [
+    "agents",
+    "developer",
+    "starter"
+  ]
+}

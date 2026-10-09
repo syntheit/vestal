@@ -1,0 +1,215 @@
+{
+  "version": 1,
+  "hotkey": "cmd+shift+space",
+  "defaultView": "markets",
+  "theme": {
+    "background": "mesh",
+    "density": "compact"
+  },
+  "pages": {
+    "order": [
+      "markets",
+      "main"
+    ]
+  },
+  "sources": {
+    "quotes": {
+      "type": "yahooQuotes",
+      "symbols": [
+        "ACME",
+        "GLOBX",
+        "INITECH",
+        "VWRL",
+        "UMBR"
+      ]
+    },
+    "indices": {
+      "type": "yahooQuotes",
+      "symbols": [
+        "^GSPC",
+        "^IXIC",
+        "^VIX"
+      ]
+    },
+    "coins": {
+      "type": "coingecko",
+      "coins": [
+        "bitcoin",
+        "ethereum",
+        "solana"
+      ]
+    },
+    "rates": {
+      "type": "http",
+      "url": "https://open.er-api.com/v6/latest/USD",
+      "refresh": "4h",
+      "parse": "json"
+    },
+    "calendar": {
+      "type": "calendar",
+      "refresh": "5m",
+      "days": 1
+    },
+    "weather": {
+      "type": "http",
+      "url": "https://wttr.in/?m&format=j1",
+      "refresh": "30m",
+      "parse": "json"
+    }
+  },
+  "widgets": {
+    "clock": {
+      "type": "clock",
+      "worldClocks": [
+        {
+          "label": "NYC",
+          "tz": "America/New_York"
+        },
+        {
+          "label": "LON",
+          "tz": "Europe/London"
+        },
+        {
+          "label": "TYO",
+          "tz": "Asia/Tokyo"
+        }
+      ]
+    },
+    "indices": {
+      "type": "row",
+      "gap": 40,
+      "children": [
+        {
+          "type": "stat",
+          "source": "indices",
+          "label": "S&P 500",
+          "value": ".[0].last",
+          "delta": ".[0].change",
+          "trend": "up-good",
+          "size": "lg",
+          "format": "decimal"
+        },
+        {
+          "type": "stat",
+          "source": "indices",
+          "label": "Nasdaq",
+          "value": ".[1].last",
+          "delta": ".[1].change",
+          "trend": "up-good",
+          "size": "lg",
+          "format": "decimal"
+        },
+        {
+          "type": "stat",
+          "source": "indices",
+          "label": "VIX",
+          "value": ".[2].last",
+          "delta": ".[2].change",
+          "trend": "up-bad",
+          "size": "lg",
+          "format": "decimal"
+        }
+      ]
+    },
+    "stocks": {
+      "type": "watchlist",
+      "source": "quotes"
+    },
+    "crypto": {
+      "type": "cryptoTicker",
+      "source": "coins"
+    },
+    "fx": {
+      "type": "keyValueList",
+      "title": "Exchange rates",
+      "source": "rates",
+      "items": [
+        {
+          "label": "EUR",
+          "pick": "rates.EUR",
+          "format": "decimal"
+        },
+        {
+          "label": "GBP",
+          "pick": "rates.GBP",
+          "format": "decimal"
+        },
+        {
+          "label": "JPY",
+          "pick": "rates.JPY",
+          "format": "decimal"
+        },
+        {
+          "label": "BRL",
+          "pick": "rates.BRL",
+          "format": "decimal"
+        }
+      ]
+    },
+    "systemBar": {
+      "type": "systemBar",
+      "show": [
+        "uptime",
+        "disk",
+        "battery",
+        "network"
+      ]
+    },
+    "agenda": {
+      "type": "agendaList",
+      "title": "Today",
+      "source": "calendar",
+      "maxEvents": 5
+    },
+    "weather": {
+      "type": "weatherCard",
+      "title": "Weather",
+      "source": "weather",
+      "units": "metric",
+      "fields": {
+        "location": ".nearest_area[0].areaName[0].value",
+        "region": ".nearest_area[0].region[0].value",
+        "condition": ".current_condition[0].weatherDesc[0].value",
+        "temp": ".current_condition[0].temp_C",
+        "sunrise": ".weather[0].astronomy[0].sunrise",
+        "sunset": ".weather[0].astronomy[0].sunset"
+      }
+    }
+  },
+  "views": {
+    "markets": {
+      "key": "1",
+      "title": "Markets",
+      "children": [
+        "clock",
+        "indices",
+        {
+          "type": "section",
+          "title": "Watchlist",
+          "children": [
+            "stocks"
+          ]
+        },
+        {
+          "type": "section",
+          "title": "Crypto",
+          "children": [
+            "crypto"
+          ]
+        },
+        "fx"
+      ],
+      "gap": 24
+    },
+    "main": {
+      "key": "2",
+      "title": "Main",
+      "children": [
+        "clock",
+        "systemBar",
+        "agenda",
+        "weather"
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "kind": "dashboard",
+  "title": "Focus starter",
+  "description": "The Focus starter dashboard: A timer, the one task, today's list and habits. Tab away to everything else.",
+  "size": [
+    760,
+    800
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "starter",
+    "focus"
+  ]
+}

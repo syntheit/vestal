@@ -1,0 +1,239 @@
+{
+  "version": 1,
+  "hotkey": "cmd+shift+space",
+  "defaultView": "now",
+  "theme": {
+    "background": {
+      "type": "artmesh",
+      "source": "media"
+    }
+  },
+  "pages": {
+    "order": [
+      "now",
+      "main"
+    ]
+  },
+  "sources": {
+    "calendar": {
+      "type": "calendar",
+      "refresh": "5m",
+      "days": 1
+    },
+    "weather": {
+      "type": "http",
+      "url": "https://wttr.in/?m&format=j1",
+      "refresh": "30m",
+      "parse": "json"
+    }
+  },
+  "widgets": {
+    "top": {
+      "type": "row",
+      "width": "fill",
+      "children": [
+        {
+          "type": "text",
+          "text": "{{ now | fmt_time(\"HH:mm\") }}",
+          "style": {
+            "size": 22,
+            "weight": "thin",
+            "font": "mono"
+          }
+        },
+        {
+          "type": "spacer"
+        },
+        {
+          "type": "text",
+          "source": "system",
+          "icon": "speaker-high",
+          "value": ".audio.volume",
+          "format": "percent",
+          "when": ".audio.volume != null",
+          "style": {
+            "size": 12,
+            "font": "mono",
+            "color": "subtle"
+          }
+        }
+      ]
+    },
+    "now": {
+      "type": "stack",
+      "gap": 18,
+      "align": "center",
+      "source": {
+        "type": "media",
+        "player": "auto"
+      },
+      "loading": "show",
+      "vars": {
+        "duration": ".duration // 0",
+        "pos": "(.position // 0) as $p | (if .state == \"playing\" then $p + ([now - ($meta.fetchedAt // now), 10] | min | if . < 0 then 0 else . end) else $p end) | if $duration > 0 and . > $duration then $duration else . end | floor",
+        "posText": "\"\\($pos / 60 | floor):\\($pos % 60 | tostring | if length < 2 then \"0\" + . else . end)\"",
+        "durText": "\"\\($duration / 60 | floor):\\($duration % 60 | floor | tostring | if length < 2 then \"0\" + . else . end)\""
+      },
+      "children": [
+        {
+          "type": "image",
+          "src": "{{ .artwork }}",
+          "width": 300,
+          "height": 300,
+          "radius": 14
+        },
+        {
+          "type": "stack",
+          "gap": 6,
+          "align": "center",
+          "children": [
+            {
+              "type": "text",
+              "text": "{{ if (.state // \"off\") == \"off\" then \"Nothing playing\" else .title end }}",
+              "lines": 1,
+              "style": {
+                "size": 24,
+                "weight": "semibold"
+              }
+            },
+            {
+              "type": "text",
+              "text": "{{ [.artist, .album] | map(select(. != null and . != \"\")) | join(\" \u2014 \") }}",
+              "lines": 1,
+              "style": {
+                "size": 15,
+                "color": "subtle"
+              }
+            }
+          ]
+        },
+        {
+          "type": "row",
+          "gap": 10,
+          "width": 420,
+          "when": "$duration > 0",
+          "children": [
+            {
+              "type": "text",
+              "text": "{{ $posText }}",
+              "style": {
+                "size": 11,
+                "font": "mono",
+                "color": "dim"
+              }
+            },
+            {
+              "type": "progress",
+              "value": "$pos",
+              "max": "$duration",
+              "text": "",
+              "height": 4,
+              "width": "fill",
+              "color": "text@0.8",
+              "trackColor": "text@0.14"
+            },
+            {
+              "type": "text",
+              "text": "{{ $durText }}",
+              "style": {
+                "size": 11,
+                "font": "mono",
+                "color": "dim"
+              }
+            }
+          ]
+        },
+        {
+          "type": "row",
+          "gap": 30,
+          "children": [
+            {
+              "type": "icon",
+              "name": "skip-back",
+              "size": 22,
+              "color": "subtle",
+              "weight": "fill",
+              "action": {
+                "media": "previous"
+              }
+            },
+            {
+              "type": "icon",
+              "name": {
+                "expr": "if .state == \"playing\" then \"pause\" else \"play\" end"
+              },
+              "size": 22,
+              "weight": "fill",
+              "action": {
+                "media": "playPause"
+              }
+            },
+            {
+              "type": "icon",
+              "name": "skip-forward",
+              "size": 22,
+              "color": "subtle",
+              "weight": "fill",
+              "action": {
+                "media": "next"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "clock": {
+      "type": "clock"
+    },
+    "systemBar": {
+      "type": "systemBar",
+      "show": [
+        "uptime",
+        "disk",
+        "battery",
+        "network"
+      ]
+    },
+    "agenda": {
+      "type": "agendaList",
+      "title": "Today",
+      "source": "calendar",
+      "maxEvents": 5
+    },
+    "weather": {
+      "type": "weatherCard",
+      "title": "Weather",
+      "source": "weather",
+      "units": "metric",
+      "fields": {
+        "location": ".nearest_area[0].areaName[0].value",
+        "region": ".nearest_area[0].region[0].value",
+        "condition": ".current_condition[0].weatherDesc[0].value",
+        "temp": ".current_condition[0].temp_C",
+        "sunrise": ".weather[0].astronomy[0].sunrise",
+        "sunset": ".weather[0].astronomy[0].sunset"
+      }
+    }
+  },
+  "views": {
+    "now": {
+      "key": "1",
+      "title": "Now playing",
+      "children": [
+        "top",
+        "now"
+      ],
+      "gap": 28
+    },
+    "main": {
+      "key": "2",
+      "title": "Main",
+      "children": [
+        "clock",
+        "systemBar",
+        "agenda",
+        "weather"
+      ]
+    }
+  }
+}

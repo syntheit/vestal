@@ -1,0 +1,14 @@
+{
+  "kind": "dashboard",
+  "title": "Agent ops starter",
+  "description": "The Agent ops starter dashboard: Plan headroom, running agents and what needs you, for a day of delegated work.",
+  "size": [
+    760,
+    880
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "starter",
+    "agents"
+  ]
+}

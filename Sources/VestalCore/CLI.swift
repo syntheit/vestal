@@ -31,6 +31,7 @@ import Foundation
 //   vestal capabilities     what this machine supports (CapabilitiesCommand)
 //   vestal screenshot       render a view to a PNG (ScreenshotCommand)
 //   vestal gallery          render every sample to a PNG (GalleryCommand)
+//   vestal init             write a starter config (Starters)
 //   vestal login-item       start at login (macOS app bundles; LoginItemCommand)
 //
 // Exit codes: 0 ok, 1 error or not running,
@@ -81,6 +82,8 @@ public enum CLI {
         case screenshot([String])
         /// `vestal gallery ...` (GalleryCommand).
         case gallery([String])
+        /// `vestal init ...` (InitCommand).
+        case initConfig([String])
         /// `vestal login-item on|off|status`: the action is parsed here, carried
         /// out by the macOS app (SMAppService).
         case loginItem(LoginItemCommand.Action)
@@ -124,6 +127,7 @@ public enum CLI {
         case "press": return .command(.press(rest))
         case "screenshot": return .command(.screenshot(rest))
         case "gallery": return .command(.gallery(rest))
+        case "init": return .command(.initConfig(rest))
         case "login-item":
             switch LoginItemCommand.parse(rest) {
             case .success(let action): return .command(.loginItem(action))
@@ -209,6 +213,11 @@ public enum CLI {
                                Render every sample (`docs samples`) to <dir>/<name>.png
                                with index.json and README.md; without a screen, only
                                validate them and write index.json with "image": null
+          init [--starter <id>] [--list] [--print] [--force] [--path <file>]
+                               Write a starter dashboard's config to the config path
+                               (default starter: default); --list shows them, --print
+                               prints one, --force replaces an existing file after
+                               copying it to <file>.bak-<timestamp>
           login-item on|off|status
                                macOS, from the app bundle (DMG or Homebrew): start
                                vestal at login, hidden. Off until you turn it on;

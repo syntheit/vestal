@@ -110,6 +110,12 @@ The same render as `vestal render`, drawn by the dashboard's own renderer. macOS
 
 Draws every sample (`vestal docs samples`) as `vestal screenshot` would, from the sample's own config and data at its time, in UTC: `<dir>/<name>.png` (default `<dir>` is `vestal-gallery`, `--scale` 2), `index.json` (each sample's metadata, image, and counts of config errors, diagnostics, clipped and truncated nodes) and `README.md`. Where nothing can be drawn (Linux without Wayland) the samples are still checked and `index.json` has `"image": null`; exit 0. Exit 1 when a sample has config errors or diagnostics, 4 for an unknown name. See `vestal docs samples`.
 
+## Starting a config
+
+`vestal init [--starter <id>] [--list] [--print] [--force] [--path <file>]`
+
+Writes a starter dashboard's config (`vestal docs starters`) to the config path: `$VESTAL_CONFIG`, else `$XDG_CONFIG_HOME/vestal/config.json`, else `~/.config/vestal/config.json`; `--path` names another file. Without `--starter` it writes `default`. It prints what you must provide (a login, coordinates, a token) and how to edit the result with your agent (`vestal docs agents`). `--list` prints each starter's id, title and pitch; `--print` prints the config and writes nothing. An existing file is not replaced unless `--force`, which first copies it to `<file>.bak-<timestamp>`. A config that is a link into `/nix/store` is never touched: `init` prints `programs.vestal.starter = "<id>";` instead. Exit 4 for an unknown starter (with a did-you-mean), 1 when it refuses or can't write.
+
 ## Documentation
 
 `vestal docs [topic] [--list] [--json] [--search <text>] [--legacy]`

@@ -1,0 +1,14 @@
+{
+  "kind": "dashboard",
+  "title": "Homelab starter",
+  "description": "The Homelab starter dashboard: Hosts, monitors, containers, backups and the tailnet, two columns wide.",
+  "size": [
+    1180,
+    780
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "starter",
+    "homelab"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "minimal",
+  "title": "Minimal",
+  "pitch": "A big clock, the date and the next event. Nothing to read twice.",
+  "kind": "dashboard",
+  "background": "sky",
+  "pages": [
+    {
+      "name": "main",
+      "title": "Main"
+    }
+  ],
+  "needs": [
+    "Calendar access (macOS asks the first time; on Linux set an `ics` or `caldav` calendar source)",
+    "Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)"
+  ],
+  "tags": [
+    "minimal",
+    "starter"
+  ]
+}

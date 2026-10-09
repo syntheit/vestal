@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Home to B2",
+    "tool": "restic",
+    "lastRun": 1790517600,
+    "ok": true,
+    "size": 1330000000000,
+    "next": 1790560800,
+    "_file": "home-b2"
+  },
+  {
+    "name": "Photos to nas",
+    "tool": "borg",
+    "lastRun": 1790434800,
+    "ok": false,
+    "message": "lock held by pid 4410",
+    "next": 1790529480,
+    "_file": "photos-nas"
+  },
+  {
+    "name": "Postgres dump",
+    "tool": "cron",
+    "lastRun": 1790301600,
+    "ok": true,
+    "expectEvery": "1d",
+    "_file": "postgres-dump"
+  },
+  {
+    "name": "Time Machine",
+    "tool": "local",
+    "lastRun": "2026-09-27T16:15:00Z",
+    "ok": true,
+    "size": "640 GB free",
+    "next": "hourly",
+    "_file": "time-machine"
+  }
+]
