@@ -4,13 +4,15 @@ import XCTest
 
 /// `vestal docs`, and the embedded Markdown it prints.
 final class DocsTests: XCTestCase {
-    /// EmbeddedDocs.swift is AGENTS.md and docs/reference/*.md. After editing
-    /// them: `python3 nix/gen-docs.py`.
+    /// EmbeddedDocs.swift is AGENTS.md, docs/reference/*.md and docs/guide/*.md.
+    /// After editing them: `python3 nix/gen-docs.py`.
     func testEmbeddedDocsMatchTheMarkdown() throws {
         var expected = ["agents": try String(contentsOf: Fixture.repository("AGENTS.md"), encoding: .utf8)]
-        let reference = Fixture.repository("docs/reference")
-        for name in try FileManager.default.contentsOfDirectory(atPath: reference.path) where name.hasSuffix(".md") {
-            expected[String(name.dropLast(3))] = try String(contentsOf: reference.appendingPathComponent(name), encoding: .utf8)
+        for folder in ["docs/reference", "docs/guide"] {
+            let directory = Fixture.repository(folder)
+            for name in try FileManager.default.contentsOfDirectory(atPath: directory.path) where name.hasSuffix(".md") {
+                expected[String(name.dropLast(3))] = try String(contentsOf: directory.appendingPathComponent(name), encoding: .utf8)
+            }
         }
         XCTAssertEqual(Set(EmbeddedDocs.topics.keys), Set(expected.keys), "run `python3 nix/gen-docs.py`")
         for (topic, text) in expected {
@@ -22,7 +24,8 @@ final class DocsTests: XCTestCase {
     /// Every documented topic exists.
     func testEveryTopicOfTheSpecExists() {
         for topic in ["agents", "config", "expressions", "functions", "sources", "widgets", "templates", "presets",
-                      "styling", "icons", "views", "keys", "actions", "render-model", "protocol", "cli", "recipes"] {
+                      "styling", "icons", "views", "keys", "actions", "render-model", "protocol", "cli", "recipes",
+                      "first-dashboard", "config-syntax"] {
             XCTAssertEqual(DocsCommand.run([topic]).status, 0, topic)
         }
         XCTAssertFalse(EmbeddedDocs.topics["agents"]!.contains("DRAFT"), "AGENTS.md is final")

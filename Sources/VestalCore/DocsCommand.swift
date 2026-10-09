@@ -4,7 +4,7 @@ import Foundation
 //
 // The documentation built into the binary, so
 // an agent with only `vestal` has everything. Prose topics are the Markdown
-// in AGENTS.md and docs/reference/, compiled into EmbeddedDocs.swift by
+// in AGENTS.md, docs/reference/ and docs/guide/, compiled into EmbeddedDocs.swift by
 // nix/gen-docs.py. Reference parts are generated here at runtime, from the
 // same registries check-config and `vestal schema` use, so they can't drift:
 //
@@ -54,6 +54,8 @@ public enum DocsCommand {
         "recipes": "Complete configs for common requests; each is `recipe/<name>`",
         "ai-usage": "Claude and Codex plan usage: the claude and codex sources, the data, the widgets",
         "install": "Installing vestal: the macOS DMG and Homebrew cask, Nix and Home Manager",
+        "first-dashboard": "A guide for people: install, vestal init, then build a dashboard by hand, step by step",
+        "config-syntax": "A guide for people: the config's shape, sources, widgets and views, {{ }} text, jq, colours, secrets, platform blocks, Nix",
     ]
 
     /// Topic families: `<prefix><name>`, generated.

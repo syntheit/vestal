@@ -183,15 +183,16 @@ final class RecipeTests: XCTestCase {
 
     // MARK: Reference examples
 
-    /// Every ```json block of AGENTS.md and docs/reference/*.md: a whole
+    /// Every ```json block of AGENTS.md, docs/reference/*.md and docs/guide/*.md: a whole
     /// config (it has `version`), a widget (it has `type`: shown alone in
     /// `main`), or a config fragment. All check clean and render with no
     /// diagnostics.
     func testEveryDocumentedExampleChecksClean() throws {
         var documents = ["AGENTS.md"]
-        let reference = Fixture.repository("docs/reference")
-        documents += try FileManager.default.contentsOfDirectory(atPath: reference.path)
-            .filter { $0.hasSuffix(".md") }.sorted().map { "docs/reference/\($0)" }
+        for folder in ["docs/reference", "docs/guide"] {
+            documents += try FileManager.default.contentsOfDirectory(atPath: Fixture.repository(folder).path)
+                .filter { $0.hasSuffix(".md") }.sorted().map { "\(folder)/\($0)" }
+        }
         let data = try fixtures(nil)
         var count = 0
         for document in documents {

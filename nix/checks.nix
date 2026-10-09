@@ -184,6 +184,7 @@ in
         ../docs/CONFIG.md
         ../docs/vestal.schema.json
         ../docs/reference
+        ../docs/guide
         ../AGENTS.md
         ../Resources/icons
         ../Resources/samples
