@@ -378,12 +378,13 @@ public struct CalDAVClient: Sendable {
         request.setValue("application/xml; charset=utf-8", forHTTPHeaderField: "Content-Type")
         // Credentials go to the entry's own host (and, for iCloud, its partition hosts),
         // never to another host a server points at.
-        if let authorization = location.authorization {
+        // The source's own headers may carry a token too, so they follow the same rule.
+        if location.authorization != nil || !headers.isEmpty {
             guard Self.sameSite(url, location.url) else {
                 throw SourceError("caldav \(location.display) : the server points to \(Self.shown(url)); credentials are not sent to another site")
             }
-            request.setValue(authorization, forHTTPHeaderField: "Authorization")
         }
+        if let authorization = location.authorization { request.setValue(authorization, forHTTPHeaderField: "Authorization") }
         for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
         let data: Data, status: Int
         do { (data, status) = try await transport(request) } catch let error as SourceError {

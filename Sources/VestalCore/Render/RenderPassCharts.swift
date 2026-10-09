@@ -60,6 +60,7 @@ extension RenderPass {
 
     /// `23`, `23.5`, `1280`: whole numbers from 100 up, else one decimal.
     static func shortNumber(_ value: Double) -> String {
+        if abs(value) >= 1e15 { return String(format: "%.3g", value) }
         if abs(value) >= 100 || value == value.rounded() { return String(Int(value.rounded())) }
         let text = String(format: "%.1f", value)
         return text.hasSuffix(".0") ? String(text.dropLast(2)) : text
@@ -278,7 +279,7 @@ extension RenderPass {
         if data == nil, let placeholder = placeholderNode(w, id: id, scope: scope) { return placeholder }
         let scale = scope.style.scale
         let values = (data ?? []).prefix(10_000).map { Self.number($0) }
-        let rows = min(max(Int(number(w["rows"], id: id, field: "rows", scope: scope) ?? 7), 1), 366)
+        let rows = Int(min(max(number(w["rows"], id: id, field: "rows", scope: scope) ?? 7, 1), 366))
         let direction = string(w["direction"], id: id, field: "direction", scope: scope) == "rows" ? "rows" : "columns"
         let cell = max(1, number(w["cell"], id: id, field: "cell", scope: scope) ?? 8) * scale
         let gap = max(0, number(w["gap"], id: id, field: "gap", scope: scope) ?? 2) * scale
