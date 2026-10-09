@@ -1148,10 +1148,10 @@
     },
     "source.claude": {
       "additionalProperties": false,
-      "description": "Claude plan usage (session, weekly and per-model windows) from `claude -p /usage`.",
+      "description": "Claude plan usage (session, weekly and per-model windows) from Claude's usage endpoint, or `claude -p /usage`.",
       "properties": {
         "argv": {
-          "description": "The command to run. Default: claude -p --no-session-persistence /usage, claude found on PATH; set it when it isn't.",
+          "description": "The command to run for backend cli (and for auto's fallback). Default: claude -p --no-session-persistence /usage, claude found on PATH; set it when it isn't.",
           "examples": [
             [
               "~/.local/bin/claude",
@@ -1165,6 +1165,25 @@
           },
           "type": [
             "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "backend": {
+          "default": "auto",
+          "description": "api: ask Anthropic's usage endpoint with the Claude Code login's access token (read, never refreshed or written); cli: run the command in argv; auto: the API when a token is found, else, or when the API fails, the CLI.",
+          "enum": [
+            "auto",
+            "api",
+            "cli",
+            null
+          ],
+          "examples": [
+            "cli"
+          ],
+          "type": [
+            "string",
             "null"
           ],
           "x-vestal-kind": "literal",
@@ -2368,7 +2387,7 @@
       },
       "properties": {
         "argv": {
-          "description": "The command to run. Default: claude -p --no-session-persistence /usage, claude found on PATH; set it when it isn't.",
+          "description": "The command to run for backend cli (and for auto's fallback). Default: claude -p --no-session-persistence /usage, claude found on PATH; set it when it isn't.",
           "examples": [
             [
               "~/.local/bin/claude",
@@ -2382,6 +2401,24 @@
           },
           "type": [
             "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "backend": {
+          "description": "api: ask Anthropic's usage endpoint with the Claude Code login's access token (read, never refreshed or written); cli: run the command in argv; auto: the API when a token is found, else, or when the API fails, the CLI.",
+          "enum": [
+            "auto",
+            "api",
+            "cli",
+            null
+          ],
+          "examples": [
+            "cli"
+          ],
+          "type": [
+            "string",
             "null"
           ],
           "x-vestal-kind": "literal",

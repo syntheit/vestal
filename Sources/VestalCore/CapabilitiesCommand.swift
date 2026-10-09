@@ -169,11 +169,23 @@ public enum CapabilitiesCommand {
         }
         sources["audio"] = entry(backend: linux ? "wpctl" : "CoreAudio", audioCheck)
 
-        // claude: `claude -p /usage`; codex: the app server.
+        // claude: the usage endpoint with Claude Code's token, else `claude -p /usage`; codex: the app server.
+        let claudeBackend = loaded.config.sources.values.first { $0.type == "claude" }?.backend ?? "auto"
         let claudeArgv = loaded.config.sources.values.first { $0.type == "claude" && $0.argv != nil }?.argv ?? ClaudeUsage.defaultArgv
         let claude = claudeArgv.first.flatMap { found(CommandRunner.expandTilde($0, home: home)) }
-        sources["claude"] = entry(backend: "claude -p /usage",
-                                  Check(claude != nil, claude ?? "\(claudeArgv.first ?? "claude") not found on PATH"))
+        let cliCheck = Check(claude != nil, claude ?? "\(claudeArgv.first ?? "claude") not found on PATH")
+        let hasToken = claudeBackend != "cli" && SourceCommands.blocking {
+            await ClaudeOAuthUsage.available(home: home, environment: environment, now: Date())
+        }
+        if hasToken {
+            sources["claude"] = entry(backend: "api", Check(true, claudeBackend == "api" ? "Claude Code's login token found"
+                : "Claude Code's login token found; claude -p /usage is the fallback" + (claude == nil ? " (claude not found on PATH)" : "")))
+        } else if claudeBackend == "api" {
+            sources["claude"] = entry(backend: "api", Check(false, "no valid Claude Code login token found: run `claude` to log in"))
+        } else {
+            sources["claude"] = entry(backend: "claude -p /usage", Check(cliCheck.ok, claudeBackend == "auto" && cliCheck.ok
+                ? "no valid login token for the API; " + cliCheck.detail : cliCheck.detail))
+        }
         let codexArgv = loaded.config.sources.values.first { $0.type == "codex" }?.argv ?? CodexRateLimits.defaultArgv
         let codex = codexArgv.first.flatMap { found(CommandRunner.expandTilde($0, home: home)) }
         sources["codex"] = entry(backend: "codex app-server",

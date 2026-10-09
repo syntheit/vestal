@@ -44,7 +44,7 @@ sources:
   media     ok  MPRIS through playerctl: no MPRIS player running
   calendar  no  none: no calendar backend: set `ics` (files, a vdirsyncer directory or URLs) on the calendar source
   audio     no  wpctl: wpctl found, but no default output device
-  claude    ok  claude -p /usage: /etc/profiles/per-user/me/bin/claude
+  claude    ok  api: Claude Code's login token found; claude -p /usage is the fallback
   codex     ok  codex app-server: /etc/profiles/per-user/me/bin/codex
 icons: ok  …/share/vestal/icons/Phosphor.ttf, …/share/vestal/icons/Phosphor-Fill.ttf
 screenshot: no  needs a Wayland session (WAYLAND_DISPLAY is not set); `vestal render` works anywhere
@@ -841,8 +841,8 @@ User: *"Show how much of my Claude and Codex limits I've used."*
 }
 ```
 
-- `aiUsage` draws Claude's and Codex's 5-hour and weekly windows as bars, each followed by when it resets (`in 4h`), on one line; a service with no data yet is left out. The numbers are the services' own: vestal reads no credentials.
-- Claude's come from `claude -p /usage` (the user's Claude Code login, Pro or Max; no model call, no transcript); `vestal fetch claude` checks it. No status line is needed: don't set one up for vestal. If `claude` is somewhere other than `PATH`, the Nix and Homebrew directories or `~/.local/bin`, set `"argv": ["/path/to/claude", "-p", "--no-session-persistence", "/usage"]` on the `claude` source. Per-model weekly limits are in `.extra`.
+- `aiUsage` draws Claude's and Codex's 5-hour and weekly windows as bars, each followed by when it resets (`in 4h`), on one line; a service with no data yet is left out. The numbers are the services' own.
+- Claude's come from Anthropic's usage endpoint with Claude Code's access token (read only; `"backend": "api"`, `"cli"` or `"auto"`), falling back to `claude -p /usage` (the user's Claude Code login, Pro or Max; no model call, no transcript); `vestal fetch claude` checks it. No status line is needed: don't set one up for vestal. If `claude` is somewhere other than `PATH`, the Nix and Homebrew directories or `~/.local/bin`, set `"argv": ["/path/to/claude", "-p", "--no-session-persistence", "/usage"]` on the `claude` source. Per-model weekly limits are in `.extra`.
 - Codex's come from `codex app-server` (the user's `codex login`); `vestal fetch codex` checks it. For the system bar instead: `"show": [..., "claudeUsage", "codexUsage", ...]`. Details: `vestal docs ai-usage`.
 
 ### Recipe `disk-table`: disks as a table

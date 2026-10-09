@@ -127,7 +127,7 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 //   file      path, parse
 //   system    disks, interfaces
 //   media     player
-//   claude    argv (path, fiveHourLimit and weeklyLimit are accepted and ignored)
+//   claude    backend, argv (path, fiveHourLimit and weeklyLimit are accepted and ignored)
 //   codex     argv
 
 public struct SourceConfig: Codable, Equatable, Sendable {
@@ -141,6 +141,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public static let fileParseModes = parseModes + ["exists"]
     public static let whenValues = ["always", "visible"]
     public static let methods = ["GET", "POST"]
+    /// claude: where the numbers come from (`auto`: the API, else the CLI).
+    public static let claudeBackends = ["auto", "api", "cli"]
 
     public static let defaultRefresh = "30m"
     public static let defaultTimeout = "10s"
@@ -199,11 +201,12 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public var interfaces: [String]?        // system: interfaces to sum (nil: all but loopback)
     public var player: [String]?            // media: names in order, or ["auto"] (a string decodes as one)
     public var ics: [String]?               // calendar: .ics files, directories or http(s) URLs
+    public var backend: String?             // claude: see `claudeBackends` (nil: auto)
 
     enum CodingKeys: String, CodingKey {
         case type, url, refresh, parse, argv, timeout, env, days, calendars
         case when, transform, history, maxAge, cache, method, headers, body, path
-        case disks, interfaces, player, ics
+        case disks, interfaces, player, ics, backend
     }
 
     public init(
@@ -228,7 +231,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         disks: [String]? = nil,
         interfaces: [String]? = nil,
         player: [String]? = nil,
-        ics: [String]? = nil
+        ics: [String]? = nil,
+        backend: String? = nil
     ) {
         let type = Self.canonicalType(type)
         self.type = type
@@ -239,7 +243,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         self.transform = transform; self.history = history; self.maxAge = maxAge; self.cache = cache
         self.method = method; self.headers = headers; self.body = body; self.path = path
         self.disks = disks; self.interfaces = interfaces; self.player = player
-        self.ics = ics
+        self.ics = ics; self.backend = backend
         fillDefaults()
     }
 
@@ -274,6 +278,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         interfaces = c.lenient([String].self, .interfaces)
         player    = c.lenient([String].self, .player) ?? c.lenient(String.self, .player).map { [$0] }
         ics       = c.lenient([String].self, .ics) ?? c.lenient(String.self, .ics).map { [$0] }
+        backend   = c.lenient(String.self, .backend).map { $0.lowercased() }.flatMap { Self.claudeBackends.contains($0) ? $0 : nil }
         fillDefaults()
     }
 

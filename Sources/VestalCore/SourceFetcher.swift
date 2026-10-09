@@ -171,9 +171,13 @@ public struct LiveFetcher: SourceFetcher {
         case "claude":
             // A draft may not pick the program; plain `claude -p /usage` is fine.
             if source.argv != nil, !allowCommands { throw SourceError("not loaded (draft: pass --allow-commands)") }
-            return FetchResult(data: try await ClaudeUsage.fetch(argv: source.argv ?? ClaudeUsage.defaultArgv,
-                                                                 directory: SnapshotCache.platformDirectory(home: home),
-                                                                 now: now()).canonicalData())
+            let argv = source.argv ?? ClaudeUsage.defaultArgv
+            let directory = SnapshotCache.platformDirectory(home: home)
+            let moment = now()
+            let data = try await ClaudeOAuthUsage.fetch(
+                backend: source.backend, env: .live(home: home, now: moment), network: allowNetwork,
+                cli: { try await ClaudeUsage.fetch(argv: argv, directory: directory, now: moment) })
+            return FetchResult(data: data.canonicalData())
         case "codex":
             // A draft may not pick the program; plain `codex app-server` is fine.
             if source.argv != nil, !allowCommands { throw SourceError("not loaded (draft: pass --allow-commands)") }

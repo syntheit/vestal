@@ -369,10 +369,14 @@ public enum SchemaRegistry {
                       + "(auto: Spotify, then Music), an MPRIS player through playerctl on Linux (auto: the first playing one)."),
         ] + common("3s", "visible")),
         SchemaEntityType("claude", since: "0.4",
-                         "Claude plan usage (session, weekly and per-model windows) from `claude -p /usage`.", keys: [
+                         "Claude plan usage (session, weekly and per-model windows) from Claude's usage endpoint, or `claude -p /usage`.", keys: [
+            SchemaKey("backend", .oneOf(SourceConfig.claudeBackends), default: .string("auto"), since: "0.4", examples: [.string("cli")],
+                      "api: ask Anthropic's usage endpoint with the Claude Code login's access token (read, never refreshed or "
+                      + "written); cli: run the command in argv; auto: the API when a token is found, else, or when the API "
+                      + "fails, the CLI."),
             SchemaKey("argv", .list(.string), since: "0.4",
                       examples: [.array([.string("~/.local/bin/claude"), .string("-p"), .string(ClaudeUsage.noPersistence), .string("/usage")])],
-                      "The command to run. Default: claude -p --no-session-persistence /usage, claude found on PATH; set it when it isn't."),
+                      "The command to run for backend cli (and for auto's fallback). Default: claude -p --no-session-persistence /usage, claude found on PATH; set it when it isn't."),
         ] + ignoredClaudeKeys + common("5m", "visible")),
         SchemaEntityType("codex", since: "0.4", "Codex plan usage (5-hour and weekly windows) from `codex app-server`.", keys: [
             SchemaKey("argv", .list(.string), since: "0.4", examples: [.array([.string("~/.local/bin/codex"), .string("app-server")])],
