@@ -184,7 +184,7 @@ public final class LinuxDashboard {
         var value = GValue()
         g_value_init(&value, GType(5 << 2)) // G_TYPE_BOOLEAN
         defer { g_value_unset(&value) }
-        g_object_get_property(UnsafeMutablePointer<GObject>(OpaquePointer(settings)), "gtk-enable-animations", &value)
+        g_object_get_property(cast(UnsafeMutableRawPointer(settings)), "gtk-enable-animations", &value)
         return g_value_get_boolean(&value) == 0
     }
 
