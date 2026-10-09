@@ -66,7 +66,7 @@ final class FeedsPresetsTests: XCTestCase {
         let hn = try XCTUnwrap(try sourceData(cfg, "hn").arrayValue)
         XCTAssertEqual(hn.count, 5)
         for item in hn {
-            XCTAssertEqual(Set(item.objectValue?.keys ?? [:].keys), ["title", "link", "published", "source", "points", "comments"])
+            XCTAssertEqual(Set(item.objectValue.map { Array($0.keys) } ?? []), ["title", "link", "published", "source", "points", "comments"])
             XCTAssertEqual(item.objectValue?["source"], .string("HN"))
         }
         // A story without a link points at its discussion.
@@ -389,5 +389,16 @@ final class FeedsPresetsTests: XCTestCase {
         XCTAssertNil(old.artwork)
         XCTAssertEqual(old.duration, 256)
         XCTAssertTrue(LinuxProc.playerctlFormat.hasSuffix("{{mpris:artUrl}}"))
+    }
+}
+
+private extension AnyJSON {
+    /// A number of either kind as a Double.
+    var doubleValue: Double? {
+        switch self {
+        case .int(let i): return Double(i)
+        case .double(let d): return d
+        default: return nil
+        }
     }
 }
