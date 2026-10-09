@@ -26,6 +26,13 @@ public enum AnalogMath {
         public var second: Double
         /// Day of the month.
         public var day: Int
+
+        public init(hour: Int, minute: Int, second: Double, day: Int) {
+            self.hour = hour
+            self.minute = minute
+            self.second = second
+            self.day = day
+        }
     }
 
     /// `date` as the wall clock of `zone` (an IANA name; nil or an unknown
@@ -80,6 +87,10 @@ public struct AnalogGeometry: Equatable, Sendable {
 
     public struct Window: Equatable, Sendable {
         public var x: Double, y: Double, width: Double, height: Double, fontSize: Double
+
+        public init(x: Double, y: Double, width: Double, height: Double, fontSize: Double) {
+            self.x = x; self.y = y; self.width = width; self.height = height; self.fontSize = fontSize
+        }
     }
 
     public var size: Double
