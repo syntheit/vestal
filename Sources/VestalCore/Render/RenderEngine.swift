@@ -428,13 +428,13 @@ public final class RenderEngine {
 
     private func publish(_ fresh: RenderSnapshot, previous: RenderSnapshot?, full: Bool, usesNow: Bool) {
         guard isEvaluating else { return }
-        seq += 1
         var next = fresh
-        next.seq = seq
         next.visible = isVisible
         next.diagnostics += failures
         if full || previous == nil || snapshot != previous {
             // A show, a resync or a view change: the whole model.
+            seq += 1
+            next.seq = seq
             snapshot = next
             send(.snapshot(next))
             if announce {
@@ -442,29 +442,48 @@ public final class RenderEngine {
                 send(.visibility(visible: true, view: next.view))
             }
         } else if let previous {
-            var ops: [RenderPatchOp] = []
-            if previous.view != next.view || previous.root.id != next.root.id {
-                ops.append(.root(node: next.root, view: next.view))
-            } else if let replaced = RenderDiff.ops(from: previous.root, to: next.root) {
-                ops += replaced
-            } else {
-                ops.append(.root(node: next.root, view: next.view))
-            }
-            if previous.popup != next.popup {
-                if let old = previous.popup, let new = next.popup, old.width == new.width,
-                   let replaced = RenderDiff.ops(from: old.node, to: new.node) {
-                    ops += replaced
-                } else {
-                    ops.append(.popup(next.popup))
-                }
-            }
-            // A background that reads data (load, weather, album art).
-            if previous.theme != next.theme { ops.append(.theme(next.theme)) }
-            if previous.diagnostics != next.diagnostics { ops.append(.diagnostics(next.diagnostics)) }
-            snapshot = next
-            if !ops.isEmpty { send(.patch(RenderPatch(seq: seq, base: previous.seq, ops: ops))) }
+            let (model, patch) = Self.patch(from: previous, to: next)
+            seq = model.seq
+            snapshot = model
+            if let patch { send(.patch(patch)) }
         }
         scheduleTick(usesNow)
+    }
+
+    /// `next` as the model after `previous` (same view), and the patch
+    /// from one to the other. Nothing changed: no patch, and `previous`'s
+    /// seq, or the next patch would not follow the last one a UI applied
+    /// (which would then ask for the whole model again).
+    public nonisolated static func patch(from previous: RenderSnapshot, to next: RenderSnapshot) -> (RenderSnapshot, RenderPatch?) {
+        var model = next
+        let ops = patchOps(from: previous, to: next)
+        model.seq = ops.isEmpty ? previous.seq : previous.seq + 1
+        return (model, ops.isEmpty ? nil : RenderPatch(seq: model.seq, base: previous.seq, ops: ops))
+    }
+
+    /// The ops that turn `previous` into `next` (same view): `replace` for
+    /// the subtrees that changed, `root` or `popup` when a diff can't say.
+    public nonisolated static func patchOps(from previous: RenderSnapshot, to next: RenderSnapshot) -> [RenderPatchOp] {
+        var ops: [RenderPatchOp] = []
+        if previous.view != next.view || previous.root.id != next.root.id {
+            ops.append(.root(node: next.root, view: next.view))
+        } else if let replaced = RenderDiff.ops(from: previous.root, to: next.root) {
+            ops += replaced
+        } else {
+            ops.append(.root(node: next.root, view: next.view))
+        }
+        if previous.popup != next.popup {
+            if let old = previous.popup, let new = next.popup, old.width == new.width,
+               let replaced = RenderDiff.ops(from: old.node, to: new.node) {
+                ops += replaced
+            } else {
+                ops.append(.popup(next.popup))
+            }
+        }
+        // A background that reads data (load, weather, album art).
+        if previous.theme != next.theme { ops.append(.theme(next.theme)) }
+        if previous.diagnostics != next.diagnostics { ops.append(.diagnostics(next.diagnostics)) }
+        return ops
     }
 
     /// The 1 s tick, aligned to the wall-clock second, while something
