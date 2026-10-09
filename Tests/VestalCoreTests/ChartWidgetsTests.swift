@@ -285,10 +285,10 @@ final class ChartWidgetsTests: XCTestCase {
         XCTAssertEqual(h.cells.first, "#7aa1f733", "the default scale's low end: accent at 20%")
         XCTAssertEqual(h.cells.last, "#7aa1f7ff")
         // `min` and `max` fix the ends of the scale.
-        let (fixed, _) = render(#"{ "type": "heatmap", "values": [5, 5], "min": 0, "max": 10, "scale": ["#000000", "#ffffff"] }"#)
+        let (fixed, _) = render(##"{ "type": "heatmap", "values": [5, 5], "min": 0, "max": 10, "scale": ["#000000", "#ffffff"] }"##)
         XCTAssertEqual(heatmap(node(fixed)).cells, ["#808080ff", "#808080ff"])
         // All the same: the high end.
-        let (same, _) = render(#"{ "type": "heatmap", "values": [4, 4], "scale": ["#000000", "#ffffff"] }"#)
+        let (same, _) = render(##"{ "type": "heatmap", "values": [4, 4], "scale": ["#000000", "#ffffff"] }"##)
         XCTAssertEqual(heatmap(node(same)).cells, ["#ffffffff", "#ffffffff"])
     }
 
@@ -672,7 +672,7 @@ final class ChartWidgetsTests: XCTestCase {
             #"{"type": "bars", "values": "[1, 2]", "orientation": "horizontal", "labels": false, "barWidth": 4, "color": {"steps": [[0, "good"]]}}"#,
             #"{"type": "bars", "values": [1, {"value": 2}], "barWidth": {"expr": "4"}}"#,
             #"{"type": "stackedBar", "segments": "[{value: 1}]", "total": ".x", "legend": true, "color": "good"}"#,
-            #"{"type": "heatmap", "values": [1, null], "rows": 5, "scale": ["#000", "good"], "direction": "rows"}"#,
+            ##"{"type": "heatmap", "values": [1, null], "rows": 5, "scale": ["#000", "good"], "direction": "rows"}"##,
             #"{"type": "heatmap", "values": "[1]", "steps": [[0, "track"], [5, "good"]]}"#,
             #"{"type": "timeline", "from": "2026-09-27T08:00:00-03:00", "to": 1790528602, "items": "[]", "now": false, "nowColor": "bad"}"#,
             #"{"type": "timeline", "from": "now - 3600", "to": "now + 3600"}"#,
