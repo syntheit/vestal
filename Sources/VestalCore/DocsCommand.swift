@@ -41,7 +41,7 @@ public enum DocsCommand {
         "sources": "Fetching data: common keys, secrets, history, and every source type's data shape",
         "widgets": "Containers and primitives, the fields every widget takes, and layout",
         "templates": "Defining your own parameterised widgets and sources",
-        "presets": "The built-in templates: section, stat, badge, the v0.3 widgets and the homelab widgets",
+        "presets": "The built-in templates: section, stat, badge, the v0.3 widgets and the system, time, developer, homelab, feed and personal widgets",
         "samples": "The sample every preset ships, its format, and `vestal gallery`, which draws them all",
         "styling": "Theme, palettes and colours, text style, fonts",
         "icons": "The bundled Phosphor icons, sf: names on macOS, the font files",
@@ -52,6 +52,7 @@ public enum DocsCommand {
         "protocol": "The subscribe protocol, for writing a UI in any toolkit",
         "recipes": "Complete configs for common requests; each is `recipe/<name>`",
         "ai-usage": "Claude and Codex plan usage: the claude and codex sources, the data, the widgets",
+        "install": "Installing vestal: the macOS DMG and Homebrew cask, Nix and Home Manager",
     ]
 
     /// Topic families: `<prefix><name>`, generated.
