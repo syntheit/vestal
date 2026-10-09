@@ -92,11 +92,11 @@ final class SampleTests: XCTestCase {
                                         })
         XCTAssertEqual(result.status, 0, result.stderr)
         XCTAssertEqual(calls.count, 2)
-        XCTAssertEqual(Array(calls[0].prefix(2)), ["screenshot", out + "/clock.png"])
-        XCTAssertTrue(calls[0].joined(separator: " ").contains("--size 680x230 --scale 1"), calls[0].joined(separator: " "))
+        XCTAssertEqual(Array(calls[0].prefix(2)), ["screenshot", out + "/badge.png"])
+        XCTAssertTrue(calls[0].joined(separator: " ").contains("--size 680x80 --scale 1"), calls[0].joined(separator: " "))
         let index = try XCTUnwrap(AnyJSON.parse(try Data(contentsOf: URL(fileURLWithPath: out + "/index.json"))).successValue)
         let first = try XCTUnwrap(index.objectValue?["samples"]?.arrayValue?.first?.objectValue)
-        XCTAssertEqual(first["image"], .string("clock.png"))
+        XCTAssertEqual(first["image"], .string("badge.png"))
         XCTAssertEqual(first["truncated"], .int(1))
     }
 
