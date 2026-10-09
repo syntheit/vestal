@@ -154,8 +154,25 @@ final class AppleScriptBackend: MediaBackend {
         guard let player = MediaScript.candidates(wanted).first(where: SystemBridge.isRunning) else {
             return MediaReading(player: nil, playing: .off, players: players)
         }
-        let playing = await SystemBridge.track(player: player, script: MediaScript.track(player: player))
+        let directory = player.caseInsensitiveCompare("Music") == .orderedSame ? Self.artworkDirectory() : nil
+        let playing = await SystemBridge.track(player: player, script: MediaScript.track(player: player, artworkDirectory: directory))
         return MediaReading(player: player, playing: playing, players: players)
+    }
+
+    /// Where Music's covers are written (one file per track, `MediaScript.track`):
+    /// `artwork/` of the cache directory, created here, keeping the 40 most
+    /// recent files.
+    static func artworkDirectory() -> String {
+        let directory = SnapshotCache.platformDirectory() + "/artwork"
+        let fm = FileManager.default
+        try? fm.createDirectory(atPath: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        let keys: [URLResourceKey] = [.contentModificationDateKey]
+        if let files = try? fm.contentsOfDirectory(at: URL(fileURLWithPath: directory), includingPropertiesForKeys: keys),
+           files.count > 40 {
+            let dated = files.map { ($0, (try? $0.resourceValues(forKeys: Set(keys)).contentModificationDate) ?? Date.distantPast) }
+            for (file, _) in dated.sorted(by: { $0.1 > $1.1 }).dropFirst(40) { try? fm.removeItem(at: file) }
+        }
+        return directory
     }
 
     func provider(for player: String) -> MediaProvider { AppleScriptMedia(player: player) }

@@ -200,15 +200,20 @@ public struct NowPlaying: Codable, Equatable, Sendable {
     public var position: Double?
     /// The track's length in seconds; nil when unknown.
     public var duration: Double?
+    /// A local file path or an http(s) URL of the cover, for the `image`
+    /// widget; nil when the player has none.
+    public var artwork: String?
 
     public init(title: String, artist: String, state: String,
-                album: String? = nil, position: Double? = nil, duration: Double? = nil) {
+                album: String? = nil, position: Double? = nil, duration: Double? = nil,
+                artwork: String? = nil) {
         self.title = title
         self.artist = artist
         self.state = state
         self.album = album
         self.position = position
         self.duration = duration
+        self.artwork = artwork
     }
 
     /// Player not running, or nothing loaded.

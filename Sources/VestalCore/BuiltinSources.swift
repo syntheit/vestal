@@ -149,7 +149,7 @@ public final class SystemSampler: @unchecked Sendable {
 
 public enum MediaSource {
     /// The `media` shape. `off` (or nothing matched) has empty title and
-    /// artist and null album, position and duration.
+    /// artist and null album, artwork, position and duration.
     public static func shape(_ reading: MediaReading) -> AnyJSON {
         let playing = reading.player == nil ? NowPlaying.off : reading.playing
         let off = playing.state == "off"
@@ -163,6 +163,7 @@ public enum MediaSource {
             "title": .string(off ? "" : playing.title),
             "artist": .string(off ? "" : playing.artist),
             "album": off ? .null : (playing.album.map { .string($0) } ?? .null),
+            "artwork": off ? .null : (playing.artwork.flatMap { $0.isEmpty ? nil : $0 }.map { .string($0) } ?? .null),
             "position": optional(playing.position),
             "duration": optional(playing.duration),
             "players": .array(reading.players.map { .string($0) }),
@@ -181,7 +182,8 @@ public enum MediaSource {
         }
         return NowPlaying(title: object["title"]?.stringValue ?? "", artist: object["artist"]?.stringValue ?? "",
                           state: state, album: object["album"]?.stringValue,
-                          position: number("position"), duration: number("duration"))
+                          position: number("position"), duration: number("duration"),
+                          artwork: object["artwork"]?.stringValue)
     }
 }
 

@@ -62,37 +62,78 @@ public enum MediaScript {
     /// which no title, artist or album contains (unlike "|").
     public static let separator: Character = "\u{1F}"
 
-    /// Like `nowPlaying`, plus the album, the position and the duration, for
-    /// the `media` source. It returns
-    /// "state␟title␟artist␟album␟position␟duration" (␟ = `separator`), or
-    /// "off". The album, position and duration are each read in their own
-    /// `try`, so a stream without them still reports its title.
-    public static func track(player: String) -> String {
+    /// Like `nowPlaying`, plus the album, the position, the duration and the
+    /// cover, for the `media` source. It returns
+    /// "state␟title␟artist␟album␟position␟duration␟artwork" (␟ =
+    /// `separator`), or "off". The album, position, duration and artwork are
+    /// each read in their own `try`, so a stream without them still reports
+    /// its title.
+    ///
+    /// The cover: Spotify gives a URL (`artwork url`). Music has only the
+    /// picture's bytes, so with an `artworkDirectory` the script writes them
+    /// to `<directory>/<persistent ID>.img` once per track and returns that
+    /// path. Without a directory, or for any other player: no cover.
+    public static func track(player: String, artworkDirectory: String? = nil) -> String {
         let app = quoted(player)
-        return """
-            if application \(app) is not running then return "off"
-            tell application \(app)
-                set s to player state as string
-                if s is "playing" or s is "paused" then
-                    set sep to character id 31
-                    set t to current track
-                    set a to ""
-                    set p to ""
-                    set d to ""
-                    try
-                        set a to album of t
-                    end try
-                    try
-                        set p to player position as string
-                    end try
-                    try
-                        set d to duration of t as string
-                    end try
-                    return s & sep & (name of t) & sep & (artist of t) & sep & a & sep & p & sep & d
-                end if
-            end tell
-            return "off"
-            """
+        var cover: [String] = []
+        if player.caseInsensitiveCompare("Spotify") == .orderedSame {
+            cover = [
+                "try",
+                "    set w to artwork url of t",
+                "end try",
+            ]
+        } else if player.caseInsensitiveCompare("Music") == .orderedSame, let directory = artworkDirectory {
+            cover = [
+                "try",
+                "    if (count of artworks of t) > 0 then",
+                "        set f to \(quoted(directory)) & \"/\" & (persistent ID of t) & \".img\"",
+                "        set have to false",
+                "        try",
+                "            set x to (POSIX file f) as alias",
+                "            set have to true",
+                "        end try",
+                "        if not have then",
+                "            set raw to raw data of artwork 1 of t",
+                "            set fh to open for access POSIX file f with write permission",
+                "            try",
+                "                set eof of fh to 0",
+                "                write raw to fh",
+                "                set have to true",
+                "            end try",
+                "            close access fh",
+                "        end if",
+                "        if have then set w to f",
+                "    end if",
+                "end try",
+            ]
+        }
+        let lines = [
+            "if application \(app) is not running then return \"off\"",
+            "tell application \(app)",
+            "    set s to player state as string",
+            "    if s is \"playing\" or s is \"paused\" then",
+            "        set sep to character id 31",
+            "        set t to current track",
+            "        set a to \"\"",
+            "        set p to \"\"",
+            "        set d to \"\"",
+            "        set w to \"\"",
+            "        try",
+            "            set a to album of t",
+            "        end try",
+            "        try",
+            "            set p to player position as string",
+            "        end try",
+            "        try",
+            "            set d to duration of t as string",
+            "        end try",
+        ] + cover.map { "        " + $0 } + [
+            "        return s & sep & (name of t) & sep & (artist of t) & sep & a & sep & p & sep & d & sep & w",
+            "    end if",
+            "end tell",
+            "return \"off\"",
+        ]
+        return lines.joined(separator: "\n")
     }
 
     /// `track`'s answer. Spotify reports the duration in milliseconds, Music
@@ -110,9 +151,11 @@ public enum MediaScript {
         var duration = number(parts[5])
         if player.caseInsensitiveCompare("Spotify") == .orderedSame { duration = duration.map { $0 / 1000 } }
         if duration == 0 { duration = nil }
+        let artwork = parts.count > 6 ? parts[6].trimmingCharacters(in: .whitespacesAndNewlines) : ""
         return NowPlaying(title: parts[1], artist: parts[2], state: parts[0],
                           album: parts[3].isEmpty ? nil : parts[3],
-                          position: number(parts[4]), duration: duration)
+                          position: number(parts[4]), duration: duration,
+                          artwork: artwork.isEmpty ? nil : artwork)
     }
 
     /// The players `auto` tries on macOS, in order.

@@ -256,6 +256,16 @@ public enum ConfigExpansion {
         for field in loadTimeMaps {
             if case .object(let map)? = members[field] { members[field] = .object(map.mapValues(text)) }
         }
+        // `transform` runs on every fetch, long after expansion: the
+        // parameters it reads are bound in front of it as `(value) as $name | …`.
+        if case .string(let transform)? = members["transform"], case .success(let compiled) = environment.compile(transform) {
+            var prefix = ""
+            for name in compiled.references.variableNames.intersection(names).sorted() {
+                let value = name == "params" ? AnyJSON.object(params) : (params[name] ?? .null)
+                prefix += "(\(value.canonicalText())) as $\(name) | "
+            }
+            if !prefix.isEmpty { members["transform"] = .string(prefix + transform) }
+        }
         return .object(members)
     }
 }
