@@ -19,6 +19,9 @@ final class CalDAVTests: XCTestCase {
 
         enum Route { case fixture(String), status(Int), failure(Error), body(String) }
 
+        /// The path of a URL with its trailing slash (Foundation on Linux drops it from `URL.path`).
+        static func path(_ url: String) -> String? { URLComponents(string: url)?.path }
+
         var sent: [Sent] { lock.lock(); defer { lock.unlock() }; return log }
         func count(_ method: String) -> Int { sent.filter { $0.method == method }.count }
 
@@ -31,7 +34,7 @@ final class CalDAVTests: XCTestCase {
                                  contentType: request.value(forHTTPHeaderField: "Content-Type"))
                 lock.lock(); log.append(entry); lock.unlock()
                 onRequest?(entry)
-                let path = request.url?.path ?? ""
+                let path = request.url.flatMap { Server.path($0.absoluteString) } ?? ""
                 let key = "\(entry.method) \(path.isEmpty ? "/" : path) \(entry.depth ?? "-")"
                 switch routes[key] {
                 case .fixture(let name)?: return (try Fixture.data("caldav/\(name).xml"), 207)
@@ -74,7 +77,7 @@ final class CalDAVTests: XCTestCase {
         let server = radicale()
         let result = try await events(try client("http://test:pw@radicale.example:5232/", server))
 
-        XCTAssertEqual(server.sent.map { "\($0.method) \(URL(string: $0.url)?.path ?? "") \($0.depth ?? "-")" }, [
+        XCTAssertEqual(server.sent.map { "\($0.method) \(Server.path($0.url) ?? "") \($0.depth ?? "-")" }, [
             "PROPFIND / 0", "PROPFIND /test/ 0", "PROPFIND /test/ 1",
             "REPORT /test/6f1c2a3e-1111-4a5b-9c0d-aaaaaaaaaaaa/ 1",
         ], "the VTODO-only Tasks calendar is not queried")
@@ -173,7 +176,7 @@ final class CalDAVTests: XCTestCase {
         server.routes["PROPFIND /.well-known/caldav 0"] = .fixture("radicale-root")
         let calendars = try await client("http://test:pw@radicale.example:5232/app/", server).discover()
         XCTAssertEqual(calendars.map(\.name), ["Personal"])
-        XCTAssertTrue(server.sent.contains { URL(string: $0.url)?.path == "/.well-known/caldav" })
+        XCTAssertTrue(server.sent.contains { Server.path($0.url) == "/.well-known/caldav" })
     }
 
     // MARK: Cache
