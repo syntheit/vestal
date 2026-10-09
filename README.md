@@ -2,7 +2,7 @@
 
 A full-screen dashboard on one key. Press it, glance, press it again. One config draws it on macOS and Linux, and your agent writes the config.
 
-<!-- TODO(owner): site link, once a domain is decided: https://vestal.app -->
+Site: <https://vestal.matv.io> · [Docs](https://vestal.matv.io/docs/) · [llms.txt](https://vestal.matv.io/llms.txt)
 
 ![Vestal's default dashboard: a clock, this machine, music, agenda, hosts, rates and weather](docs/images/hero.png)
 
@@ -90,11 +90,11 @@ Nothing else needs a permission.
 
 **By hand.** [Your first dashboard by hand](./docs/guide/first-dashboard.md) takes about fifteen minutes. [Config syntax in 10 minutes](./docs/guide/config-syntax.md) is the grammar. [docs/CONFIG.md](./docs/CONFIG.md) lists every key.
 
-**With an agent.** Point it at [AGENTS.md](./AGENTS.md) (the same text as `vestal docs agents`) and ask for what you want. The loop is: discover, write, `vestal check-config`, `vestal render`, look at a `vestal screenshot`, `vestal reload`. Agents on the web can read `llms.txt` on the project site.
+**With an agent.** Point it at [AGENTS.md](./AGENTS.md) (the same text as `vestal docs agents`) and ask for what you want. The loop is: discover, write, `vestal check-config`, `vestal render`, look at a `vestal screenshot`, `vestal reload`. Agents on the web can read [`llms.txt`](https://vestal.matv.io/llms.txt) on the project site.
 
 ## Widgets
 
-Clock and date, system bar, media, agenda, system health, weather, AI plan usage, pull requests, CI, containers, tailnet, backups, headlines, crypto and watchlists, focus timer, habits and many more. Every one, drawn at its real size with the line that adds it, is on the site (TODO(owner): link once the domain is decided). `vestal gallery` renders them all locally.
+Clock and date, system bar, media, agenda, system health, weather, AI plan usage, pull requests, CI, containers, tailnet, backups, headlines, crypto and watchlists, focus timer, habits and many more. Every one, drawn at its real size with the line that adds it, is on [the site](https://vestal.matv.io/#widgets). `vestal gallery` renders them all locally.
 
 ## Command line
 
