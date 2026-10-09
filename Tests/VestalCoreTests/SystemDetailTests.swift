@@ -261,7 +261,8 @@ final class SystemDetailTests: XCTestCase {
     func testSystemShapeCarriesTheDetailFields() async throws {
         let stats = DetailStats()
         let sampler = SystemSampler(stats: stats, audio: nil, host: "h", os: "macos")
-        let off = try XCTUnwrap(await sampler.read(SourceConfig(type: "system")).objectValue)
+        let offData = await sampler.read(SourceConfig(type: "system"))
+        let off = try XCTUnwrap(offData.objectValue)
         XCTAssertEqual(off["processes"], .array([]))
         XCTAssertEqual(stats.counted.count, 0, "no process is read unless the source asks for processes")
         XCTAssertEqual(off["cpu"]?.objectValue?["perCore"],
@@ -279,7 +280,8 @@ final class SystemDetailTests: XCTestCase {
                        "the first reading has nothing to compare with; the total is kept in memory without a state directory")
         XCTAssertEqual(off["disks"]?.arrayValue?.first?.objectValue?["name"], .string("Macintosh HD"))
 
-        let on = try XCTUnwrap(await sampler.read(SourceConfig(type: "system", processes: 2)).objectValue)
+        let onData = await sampler.read(SourceConfig(type: "system", processes: 2))
+        let on = try XCTUnwrap(onData.objectValue)
         XCTAssertEqual(on["processes"], .array([
             .object(["pid": .int(7), "name": .string("node"), "cpu": .double(41.3), "memory": .int(1000)]),
             .object(["pid": .int(8), "name": .string("ps"), "cpu": .null, "memory": .int(5)]),

@@ -150,7 +150,7 @@ final class SystemPresetsTests: XCTestCase {
         XCTAssertEqual(parts[1], "Blob dir")
         XCTAssertGreaterThanOrEqual(Int(parts[0]) ?? 0, 290)
         let lineList = AnyJSON.array([.string(lines[0])])
-        let transformed = try SourceExpressions.transformed(lineList.canonicalData(), source: source)
+        let transformed = try SourceData.transformed(lineList.canonicalData(), source: source)
         XCTAssertEqual(transformed.arrayValue?.first?.objectValue?["label"], .string("Blob dir"))
     }
 
