@@ -14,9 +14,11 @@
 //   python3 -m http.server -d site/dist 8000
 
 import { execFileSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { basename, dirname, extname, join, relative, resolve } from "node:path";
+import { basename, dirname, extname, join, posix, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { esc as escHTML, render as renderMarkdown } from "./markdown.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
@@ -338,6 +340,70 @@ for (const file of readdirSync(join(here, "snippets")).filter((f) => f.endsWith(
   snippets[file.replace(/\.json$/, "")] = readFileSync(join(here, "snippets", file), "utf8").trimEnd();
 }
 
+// MARK: Guides and recipes
+
+const fixtures = join(root, "Tests", "VestalCoreTests", "Fixtures");
+const FIXTURE_AT = "2026-09-27T17:03:22Z";
+
+// The ```json blocks of a Markdown text, with the line each starts on.
+function jsonBlocks(text) {
+  const lines = text.split("\n"), blocks = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim() !== "```json") continue;
+    const line = i + 1, body = [];
+    for (i++; i < lines.length && lines[i].trim() !== "```"; i++) body.push(lines[i]);
+    blocks.push({ line, text: body.join("\n") });
+  }
+  return blocks;
+}
+
+// Every JSON example in the guides is checked as the tests check the reference's:
+// a whole config, a widget (shown alone) or a fragment merged over the defaults,
+// clean on both systems, and drawn from the test fixtures with no diagnostics.
+console.log("site: checking the guides");
+const guideFiles = readdirSync(join(root, "docs", "guide")).filter((f) => f.endsWith(".md")).sort();
+for (const file of guideFiles) {
+  for (const block of jsonBlocks(readFileSync(join(root, "docs", "guide", file), "utf8"))) {
+    const label = `docs/guide/${file}:${block.line}`;
+    let json;
+    try { json = JSON.parse(block.text); } catch (e) { fail(`${label}: not JSON: ${e.message}`); }
+    const config = json.version != null ? json : json.type != null ? { version: 1, widgets: { example: json }, views: { main: { children: ["example"] } } } : json;
+    const path = join(cache, "guides", `${file}-${block.line}.json`);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, JSON.stringify(config, null, 2));
+    for (const platform of ["macos", "linux"]) {
+      const out = JSON.parse(vestal(["check-config", "--json", "--platform", platform, path], { allowFail: true }).stdout);
+      if (out.counts.error || out.counts.warning) fail(`${label} does not check on ${platform}:\n${JSON.stringify(out.diagnostics, null, 2)}`);
+    }
+    const r = vestal(["render", "--config", path, "--data", join(fixtures, "full"), "--at", FIXTURE_AT, "--strict"], { allowFail: true });
+    if (r.code !== 0) fail(`${label} renders with diagnostics:\n${r.stdout.slice(-600)}${r.stderr}`);
+  }
+}
+
+// Each recipe (examples/showcase/<name>.json) drawn from the fixtures its test uses.
+console.log("site: recipes");
+const recipeRenders = {};
+for (const file of readdirSync(join(root, "examples", "showcase")).filter((f) => f.endsWith(".json")).sort()) {
+  const name = file.replace(/\.json$/, "");
+  const data = join(cache, "recipes", name);
+  rmSync(data, { recursive: true, force: true });
+  mkdirSync(data, { recursive: true });
+  for (const from of [join(fixtures, "full"), join(fixtures, "showcase", name)]) {
+    if (!existsSync(from)) continue;
+    for (const f of readdirSync(from).filter((f) => f !== "README.md")) cpSync(join(from, f), join(data, f), { recursive: true });
+  }
+  const argv = ["--config", join(root, "examples", "showcase", file), "--data", data, "--at", FIXTURE_AT];
+  const first = renderJSON(argv);
+  let views = null;
+  if (first.pages && first.pages.items.length > 1) {
+    views = {};
+    for (const p of first.pages.items) views[p.name] = renderJSON([...argv, "--view", p.name]);
+  }
+  if ((first.diagnostics || []).length) warn(`recipe ${name}: ${first.diagnostics.length} render diagnostics`);
+  const background = typeof first.theme.background === "string" ? first.theme.background : "aurora";
+  recipeRenders[name] = { name, snapshot: first, views, pages: pagesOf(first), background, wall: "blue" };
+}
+
 // MARK: Text from the binary
 
 const docsIndex = vestal(["docs"]).stdout.trimEnd();
@@ -351,7 +417,6 @@ mkdirSync(join(dist, "assets", "icons"), { recursive: true });
 mkdirSync(join(dist, "assets", "shaders"), { recursive: true });
 mkdirSync(join(dist, "renderer"), { recursive: true });
 
-for (const f of readdirSync(join(root, "web", "renderer")).filter((f) => f.endsWith(".js"))) cpSync(join(root, "web", "renderer", f), join(dist, "renderer", f));
 for (const f of readdirSync(join(root, "Resources", "icons")).filter((f) => f.endsWith(".ttf"))) cpSync(join(root, "Resources", "icons", f), join(dist, "assets", "icons", f));
 const shaderFiles = readdirSync(join(root, "Resources", "shaders")).filter((f) => f.endsWith(".glsl"));
 for (const f of shaderFiles) cpSync(join(root, "Resources", "shaders", f), join(dist, "assets", "shaders", f));
@@ -375,11 +440,33 @@ const site = {
   overlay: hero.views ? hero.views[hero.snapshot.view] : hero.snapshot,
 };
 const dataText = JSON.stringify(site);
+const docs = buildDocs();
+
+// Every file a page loads carries a hash of the site in its URL (`?v=`), so a
+// browser never pairs a cached renderer or script with new data.
+const scripts = {
+  ...Object.fromEntries(readdirSync(join(root, "web", "renderer")).filter((f) => f.endsWith(".js") && !f.endsWith(".test.mjs")).map((f) => [`renderer/${f}`, readFileSync(join(root, "web", "renderer", f), "utf8")])),
+  "common.js": readFileSync(join(src, "common.js"), "utf8"),
+  "site.js": readFileSync(join(src, "site.js"), "utf8"),
+  "docs/docs.js": readFileSync(join(src, "docs.js"), "utf8"),
+};
+const styles = { "site.css": readFileSync(join(src, "site.css"), "utf8"), "docs/docs.css": readFileSync(join(src, "docs.css"), "utf8") };
+const hash = createHash("sha256");
+for (const text of [...Object.values(scripts), ...Object.values(styles), dataText, ...Object.values(docs.files)]) hash.update(text);
+const BUILD = hash.digest("hex").slice(0, 10);
+const versioned = (code) => code.replace(/(\bfrom\s+")(\.{1,2}\/[^"?]+\.js)"/g, `$1$2?v=${BUILD}"`);
+if (!scripts["common.js"].includes('const BUILD = "dev";')) fail("common.js no longer declares BUILD; update the cache-busting in site/build.mjs");
+scripts["common.js"] = scripts["common.js"].replace('const BUILD = "dev";', `const BUILD = "${BUILD}";`);
+
+mkdirSync(join(dist, "docs"), { recursive: true });
 writeFileSync(join(dist, "data.json"), dataText);
-cpSync(join(src, "site.css"), join(dist, "site.css"));
-cpSync(join(src, "site.js"), join(dist, "site.js"));
-writeFileSync(join(dist, "index.html"), readFileSync(join(src, "index.html"), "utf8").replace(/\{\{version\}\}/g, version));
+for (const [path, code] of Object.entries(scripts)) writeFileSync(join(dist, path), versioned(code));
+for (const [path, css] of Object.entries(styles)) writeFileSync(join(dist, path), css);
+for (const [path, text] of Object.entries(docs.files)) writeFileSync(join(dist, path), text.replace(/\{\{build\}\}/g, BUILD));
+writeFileSync(join(dist, "index.html"), readFileSync(join(src, "index.html"), "utf8").replace(/\{\{version\}\}/g, version)
+  .replace('href="site.css"', `href="site.css?v=${BUILD}"`).replace('src="site.js"', `src="site.js?v=${BUILD}"`));
 console.log(`site: ${widgets.length} widgets, ${starters.length} starters (${starters.filter((s) => s.real).length} from starter samples), ${backgrounds.length} backgrounds, data.json ${(dataText.length / 1024).toFixed(0)} KB`);
+console.log(`site: ${docs.pages} docs pages, llms.txt and llms-full.txt (${(docs.files["llms-full.txt"].length / 1024).toFixed(0)} KB)`);
 
 // MARK: Preview
 
@@ -485,4 +572,208 @@ function bundle(entry, resolver) {
   };
   visit(entry);
   return out.join("\n");
+}
+
+// MARK: Docs
+
+// The docs area (site/dist/docs/): a page per Markdown file of docs/, each also
+// served as Markdown, a search index of every heading, and llms.txt and
+// llms-full.txt at the root. Returns { files: { distPath: text }, pages }.
+function buildDocs() {
+  console.log("site: docs");
+  const read = (p) => readFileSync(join(root, p), "utf8");
+  const topicSummaries = Object.fromEntries(JSON.parse(vestal(["docs", "--list", "--json"]).stdout).topics.map((t) => [t.topic, t.summary]));
+
+  // The recipes page: the reference's short text, then the recipes of AGENTS.md.
+  const agents = read("AGENTS.md");
+  const recipesStart = agents.indexOf("### Recipe ");
+  const recipesEnd = agents.indexOf("\n## ", recipesStart);
+  if (recipesStart < 0 || recipesEnd < 0) fail("AGENTS.md has no recipes section the docs can take");
+  const recipesText = `${read("docs/reference/recipes.md").trimEnd()}\n\n${agents.slice(recipesStart, recipesEnd).trim()}\n`;
+
+  const page = (slug, srcPath, extra = {}) => ({ slug, src: srcPath, text: extra.text || read(srcPath), ...extra });
+  const reference = ["config", "sources", "widgets", "presets", "starters", "templates", "expressions", "functions", "styling", "icons", "views", "keys", "actions", "cli", "install", "ai-usage", "samples"];
+  const agentTopics = ["render-model", "protocol"];
+  const known = new Set([...reference, ...agentTopics, "recipes"]);
+  for (const f of readdirSync(join(root, "docs", "reference")).filter((f) => f.endsWith(".md"))) {
+    if (!known.has(f.slice(0, -3))) reference.push(f.slice(0, -3)); // a new topic shows up by itself
+  }
+  const groups = [
+    { name: "Guides", pages: [
+      ...guideFiles.map((f) => page(f.slice(0, -3), `docs/guide/${f}`, { topic: f.slice(0, -3) }))
+        .sort((a, b) => (a.slug === "first-dashboard" ? -1 : b.slug === "first-dashboard" ? 1 : a.slug.localeCompare(b.slug))),
+      page("recipes", "docs/reference/recipes.md", { text: recipesText, topic: "recipes", recipes: true }),
+    ] },
+    { name: "Reference", pages: [
+      page("configuration", "docs/CONFIG.md", { label: "Configuration: every key" }),
+      ...reference.map((t) => page(t, `docs/reference/${t}.md`, { topic: t })),
+      page("jq", "docs/EXPRESSIONS.md", { label: "The jq subset" }),
+    ] },
+    { name: "For agents and UIs", pages: [
+      page("agents", "AGENTS.md", { topic: "agents" }),
+      ...agentTopics.map((t) => page(t, `docs/reference/${t}.md`, { topic: t })),
+    ] },
+  ];
+  const pages = groups.flatMap((g) => g.pages);
+  for (const p of pages) {
+    const h1 = p.text.match(/^# (.+)$/m);
+    p.title = h1 ? h1[1].replace(/`/g, "") : p.slug;
+    p.label = p.label || p.title;
+  }
+  const bySource = new Map(pages.map((p) => [p.src, p.slug]));
+
+  // A link in the Markdown: another doc becomes its page, any other file in the repository its GitHub page.
+  const linker = (p) => (href) => {
+    if (/^[a-z]+:/i.test(href) || href.startsWith("#")) return href;
+    const [path, anchor] = href.split("#");
+    for (const from of [posix.dirname(p.src), "."]) {
+      const target = posix.normalize(posix.join(from, path));
+      if (bySource.has(target)) return `${bySource.get(target)}.html${anchor ? `#${anchor}` : ""}`;
+    }
+    return `${content.repo}/blob/main/${posix.normalize(posix.join(posix.dirname(p.src), path))}${anchor ? `#${anchor}` : ""}`;
+  };
+
+  // Live examples after the headings that name a preset, a starter or a recipe.
+  const presetSample = new Map();
+  for (const w of widgets) if (!presetSample.has(w.preset)) presetSample.set(w.preset, w.name);
+  const starterIds = new Set(starters.map((s) => s.id));
+  const liveAfter = (p) => (level, text) => {
+    if (level >= 3 && presetSample.has(text)) {
+      return `<figure class="live" data-widget="${escHTML(presetSample.get(text))}"><div class="stage"></div><figcaption>The <code>${escHTML(text)}</code> sample, drawn by vestal's web renderer.</figcaption></figure>`;
+    }
+    let m;
+    if (p.slug === "starters" && level === 2 && (m = text.match(/^(\w+): /)) && starterIds.has(m[1])) {
+      return `<figure class="live" data-starter="${escHTML(m[1])}"><div class="frame"></div><div class="pager"></div><figcaption>The ${escHTML(m[1])} starter with its sample data. Use the tabs or swipe to see its pages.</figcaption></figure>`;
+    }
+    if (p.recipes && level === 3 && (m = text.match(/^Recipe (\S+): /)) && recipeRenders[m[1]]) {
+      return `<figure class="live" data-recipe="${escHTML(m[1])}"><div class="frame"></div><div class="pager"></div><figcaption>This recipe over the built-in defaults, drawn from the test fixtures.</figcaption></figure>`;
+    }
+    return "";
+  };
+
+  const files = {};
+  const search = [];
+  for (const p of pages) {
+    const out = renderMarkdown(p.text, { link: linker(p), afterHeading: liveAfter(p) });
+    // A JSON example followed by its Nix twin sits beside it.
+    p.html = out.html.replace(/(<div class="codeblock" data-lang="json">(?:(?!<div)[\s\S])*?<\/div>)\n(<div class="codeblock" data-lang="nix">(?:(?!<div)[\s\S])*?<\/div>)/g, '<div class="pair">$1$2</div>');
+    p.headings = out.headings;
+    for (const h of out.headings.filter((h) => h.level <= 3)) {
+      search.push({ t: h.text, p: p.label, u: h.level === 1 ? `${p.slug}.html` : `${p.slug}.html#${h.id}`, l: h.level });
+    }
+    files[`docs/${p.slug}.md`] = p.text;
+  }
+
+  const nav = (current) => groups.map((g) => `<div class="group"><p class="group-h">${escHTML(g.name)}</p><ul>${g.pages.map((p) => {
+    const here = current && p.slug === current.slug;
+    const sub = here ? current.headings.filter((h) => h.level === 2) : [];
+    return `<li><a href="${p.slug}.html"${here ? ' aria-current="page"' : ""}>${escHTML(p.label)}</a>${sub.length ? `<ul class="on-page">${sub.map((h) => `<li><a href="#${h.id}">${escHTML(h.text)}</a></li>`).join("")}</ul>` : ""}</li>`;
+  }).join("")}</ul></div>`).join("");
+
+  const shell = ({ title, description, body, current, foot }) => `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escHTML(title)}</title>
+<meta name="description" content="${escHTML(description)}">
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@100..800&family=Geist+Mono:wght@100..700&display=swap">
+<link rel="stylesheet" href="../site.css?v={{build}}">
+<link rel="stylesheet" href="docs.css?v={{build}}">
+<link rel="alternate" type="text/markdown" href="${current ? `${current.slug}.md` : "../llms.txt"}">
+</head>
+<body class="docs">
+<nav class="nav" aria-label="Sections">
+  <div class="wrap">
+    <a class="brand" href="../">vestal</a>
+    <div class="links">
+      <a href="../#starters">Starters</a>
+      <a href="../#widgets">Widgets</a>
+      <a href="../#backgrounds">Backgrounds</a>
+      <a href="../#agents">For agents</a>
+      <a href="../#install">Install</a>
+      <a href="./" aria-current="true">Docs</a>
+    </div>
+    <a class="gh" href="${content.repo}">GitHub</a>
+  </div>
+</nav>
+<div class="docs-wrap">
+  <aside class="side" aria-label="Documentation">
+    <div class="search" role="search">
+      <input id="doc-search" type="search" placeholder="Search headings" autocomplete="off" spellcheck="false" aria-label="Search every page's headings" aria-controls="doc-results" aria-expanded="false" aria-autocomplete="list">
+      <span class="kbd" aria-hidden="true">/</span>
+      <ul class="results" id="doc-results" role="listbox" hidden></ul>
+    </div>
+    <details class="toc" open>
+      <summary>Contents</summary>
+      <nav class="toc-body" aria-label="Pages">${nav(current)}</nav>
+    </details>
+  </aside>
+  <main class="doc">
+    <article class="md">
+${body}
+    </article>
+    <footer class="doc-foot">${foot}</footer>
+  </main>
+</div>
+<script type="module" src="docs.js?v={{build}}"></script>
+</body>
+</html>
+`;
+
+  for (const p of pages) {
+    const offline = p.topic ? `<span>Offline: <code>vestal docs ${escHTML(p.topic)}</code></span>` : "";
+    const sources = p.recipes ? `<a href="${content.repo}/blob/main/docs/reference/recipes.md">docs/reference/recipes.md</a> and <a href="${content.repo}/blob/main/AGENTS.md">AGENTS.md</a>` : `<a href="${content.repo}/blob/main/${p.src}">${escHTML(p.src)}</a>`;
+    files[`docs/${p.slug}.html`] = shell({
+      title: `${p.label} · vestal docs`,
+      description: (p.topic && topicSummaries[p.topic]) || `vestal documentation: ${p.title}`,
+      body: p.html, current: p,
+      foot: `<span>Source: ${sources}</span><a href="${p.slug}.md">This page as Markdown</a>${offline}<span>${escHTML(version)}</span>`,
+    });
+  }
+
+  // The docs home: what to read first, then everything.
+  const card = (p, text) => `<a class="doc-card" href="${p.slug}.html"><b>${escHTML(p.label)}</b>${escHTML(text || "")}</a>`;
+  const blurb = {
+    "first-dashboard": "Install, write a starter, then build a dashboard step by step with nothing but a text editor.",
+    "config-syntax": "The file's shape, sources, widgets and views, {{ }} text, jq, colours, secrets, per-OS blocks and Nix.",
+    recipes: "Complete configs for common requests: GitHub reviews, prices, Home Assistant, Docker, calendars and more.",
+    configuration: "The contract: every key, its type and default, how layers merge.",
+    jq: "The subset of jq that expressions use.",
+  };
+  const index = `<h1 id="documentation">Documentation</h1>
+<p>vestal is configured with one JSON file. Most people ask their agent to edit it; these pages are for doing it by hand, and for looking things up. The same text ships in the binary: <code>vestal docs</code> lists the topics and works offline.</p>
+${groups.map((g) => `<h2 id="${g.name.toLowerCase().replace(/\s+/g, "-")}">${escHTML(g.name)}</h2>\n<div class="doc-cards">${g.pages.map((p) => card(p, blurb[p.slug] || topicSummaries[p.topic])).join("")}</div>`).join("\n")}
+<p>For agents on the web: <a href="../llms.txt">llms.txt</a> indexes these pages as Markdown, and <a href="../llms-full.txt">llms-full.txt</a> is all of them in one file.</p>`;
+  files["docs/index.html"] = shell({ title: "vestal docs", description: "vestal documentation: guides for configuring by hand, and the full reference.", body: index, current: null,
+    foot: `<span>Every page is generated from the Markdown in <a href="${content.repo}/tree/main/docs">docs/</a>.</span><span>${escHTML(version)}</span>` });
+  files["docs/search.json"] = JSON.stringify(search);
+  files["docs/recipes.json"] = JSON.stringify(recipeRenders);
+
+  // llms.txt (https://llmstxt.org): a title, a summary, then links to the Markdown.
+  const entry = (p) => `- [${p.label}](docs/${p.slug}.md): ${blurb[p.slug] || topicSummaries[p.topic] || p.title}`;
+  files["llms.txt"] = `# vestal
+
+> vestal is a full-screen dashboard on one key, for macOS and Linux. Press the key and it covers the screen with widgets (time, agenda, your machines, reviews, builds, markets, music); press it again and it is gone. One JSON config (\`~/.config/vestal/config.json\`) drives the SwiftUI app on macOS and the GTK 4 layer-shell app on Linux, and the \`vestal\` binary checks, renders and screenshots a config headlessly, so an agent can write and verify it.
+
+Configure vestal by editing that JSON file (under Home Manager: \`programs.vestal.settings\`). Start with the agents guide: it gives the loop (discover, inspect, write, check with \`vestal check-config --json\`, render, look, reload), the rules and complete recipes. Every page below is also built into the binary as \`vestal docs <topic>\`.
+
+${groups.map((g) => `## ${g.name === "For agents and UIs" ? "For agents" : g.name}\n\n${(g.name === "For agents and UIs" ? [...g.pages] : g.pages).map(entry).join("\n")}`).join("\n\n")}
+
+## Optional
+
+- [llms-full.txt](llms-full.txt): AGENTS.md, the configuration reference, every reference topic and the guides in one file
+- [Source](${content.repo}): the repository
+`;
+  const full = [
+    ["AGENTS.md", agents],
+    ["docs/CONFIG.md", read("docs/CONFIG.md")],
+    ...readdirSync(join(root, "docs", "reference")).filter((f) => f.endsWith(".md")).sort().map((f) => [`docs/reference/${f}`, read(`docs/reference/${f}`)]),
+    ...guideFiles.map((f) => [`docs/guide/${f}`, read(`docs/guide/${f}`)]),
+  ];
+  files["llms-full.txt"] = `# vestal: the full documentation\n\n${full.map(([path, text]) => `<!-- ${path} -->\n\n${text.trim()}\n`).join("\n---\n\n")}`;
+  return { files, pages: pages.length + 1 };
 }

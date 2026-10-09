@@ -22,6 +22,7 @@
       <a href="#backgrounds">Backgrounds</a>
       <a href="#agents">For agents</a>
       <a href="#install">Install</a>
+      <a href="docs/">Docs</a>
     </div>
     <a class="gh" href="https://github.com/syntheit/vestal">GitHub</a>
   </div>
@@ -40,10 +41,15 @@
   </div>
   <div class="wrap wide">
     <div class="pager-frame">
+      <button type="button" class="hero-arrow hero-prev" aria-label="Previous page">&#8249;</button>
       <div class="frame hero-frame" id="hero-frame"></div>
+      <button type="button" class="hero-arrow hero-next" aria-label="Next page">&#8250;</button>
     </div>
-    <div class="pager" id="hero-pager"></div>
-    <p class="note">Drawn live by vestal's web renderer from a real config and sample data. Use the arrow keys or swipe to page, as on the real dashboard.</p>
+    <div class="hero-pages">
+      <div class="pager big" id="hero-pager"></div>
+      <p class="hint"><span class="kbd">&larr;</span> <span class="kbd">&rarr;</span> or swipe to page, as on the real dashboard</p>
+    </div>
+    <p class="note">Drawn live by vestal's web renderer from a real config and sample data.</p>
   </div>
 </header>
 
@@ -105,7 +111,7 @@ programs.vestal = {
   <section class="part" id="starters" aria-labelledby="h-starters">
     <div class="wrap">
       <div class="part-h"><h2 id="h-starters">2 · Starters</h2></div>
-      <p class="part-lede">Pick one on the first run, then reshape it by asking your agent. Each frame is a 16:10 screen: the blurred desktop, the background, the dashboard. Click a frame and use the arrow keys, or swipe, to see its pages.</p>
+      <p class="part-lede">Pick one on the first run, then reshape it by asking your agent. Each frame is a 16:10 screen: the blurred desktop, the background, the dashboard. Use the tabs under a frame, or swipe, to see its pages; click a frame to see it full size.</p>
       <div class="dash-grid" id="starter-grid"></div>
     </div>
   </section>
@@ -122,7 +128,7 @@ programs.vestal = {
   <section class="part" id="backgrounds" aria-labelledby="h-backgrounds">
     <div class="wrap">
       <div class="part-h"><h2 id="h-backgrounds">4 · Backgrounds</h2></div>
-      <p class="part-lede">What draws between the blurred desktop and the dashboard: the shaders in <code>Resources/shaders</code>, the same files on macOS, Linux and this page. Turn on the dashboard to judge legibility. None draws while vestal is hidden.</p>
+      <p class="part-lede">What draws between the blurred desktop and the dashboard: the shaders in <code>Resources/shaders</code>, the same files on macOS, Linux and this page. Turn on the dashboard to judge legibility. None draws while vestal is hidden. "Power use" says how hard each one works the machine while the dashboard is up; measured headless on Apple silicon at 30 frames a second, every one here stayed around 1 % of the CPU.</p>
       <div class="bg-grid" id="bg-grid"></div>
     </div>
   </section>
@@ -157,7 +163,8 @@ programs.vestal = {
             <dt><code>vestal screenshot</code></dt><dd>A PNG drawn by the real renderer, offscreen, with clipped and truncated nodes counted.</dd>
             <dt><code>vestal gallery</code></dt><dd>Every preset's sample drawn, so an agent can see a widget before adding it.</dd>
           </dl>
-          <p class="more"><a class="btn" href="https://github.com/syntheit/vestal/blob/main/AGENTS.md">Read AGENTS.md</a></p>
+          <p class="more"><a class="btn" href="https://github.com/syntheit/vestal/blob/main/AGENTS.md">Read AGENTS.md</a> <a class="btn" href="llms.txt">llms.txt</a> <a class="btn" href="llms-full.txt">llms-full.txt</a></p>
+          <p class="desc fine">An agent on the web can start from <a href="llms.txt"><code>llms.txt</code></a>, an index of the docs as Markdown, or read all of them at once in <a href="llms-full.txt"><code>llms-full.txt</code></a>.</p>
         </article>
       </div>
     </div>
@@ -166,30 +173,51 @@ programs.vestal = {
   <section class="part" id="install" aria-labelledby="h-install">
     <div class="wrap">
       <div class="part-h"><h2 id="h-install">6 · Install</h2></div>
+      <p class="part-lede">A Mac app first: macOS 14 or later, Apple silicon and Intel. The same config runs on Linux through Nix.</p>
       <div class="installs">
         <article class="card inst">
-          <h3>Homebrew</h3>
-          <p class="desc">Installs Vestal.app and a <code>vestal</code> command.</p>
+          <div class="inst-h"><h3>Homebrew</h3><span class="tag rec">Recommended</span></div>
+          <p class="desc">Installs Vestal.app and a <code>vestal</code> command. <code>brew upgrade --cask vestal</code> updates it.</p>
           <button class="cmd" type="button" data-copy="brew install --cask syntheit/vestal/vestal"><span class="p">$</span> brew install --cask syntheit/vestal/vestal<span class="copy">Copy</span></button>
         </article>
         <article class="card inst">
-          <h3>DMG</h3>
-          <p class="desc">Signed and notarized. macOS 14 or later, Apple silicon and Intel. Drag Vestal.app to Applications and open it once.</p>
-          <a class="btn" href="https://github.com/syntheit/vestal/releases/latest">GitHub releases</a>
+          <div class="inst-h"><h3>DMG</h3></div>
+          <p class="desc">Signed and notarized. Drag Vestal.app to Applications and open it once; it has no Dock icon and stays resident while hidden.</p>
+          <a class="btn" href="https://github.com/syntheit/vestal/releases/latest">Download from GitHub releases</a>
         </article>
+      </div>
+
+      <article class="card first-steps">
+        <h3>First run</h3>
+        <ol>
+          <li><b>Pick a starter.</b> <code>vestal init</code> writes the default dashboard to <code>~/.config/vestal/config.json</code>; <code>vestal init --list</code> shows all eight and <code>vestal init --starter developer</code> picks one. It prints what that starter needs from you.</li>
+          <li><b>Press the hotkey.</b> Every starter sets <code>"hotkey": "cmd+shift+space"</code>: press it to show the dashboard, again to hide it. Change it in the config (<code>"f3"</code> works too); the file reloads as you save.</li>
+          <li><b>Allow what macOS asks for.</b> Calendar, the first time the agenda reads your events, and Automation, the first time the media widget talks to Music or Spotify. Nothing else needs a permission.</li>
+          <li><b>Start at login</b>, if you like: <code>vestal login-item on</code>.</li>
+        </ol>
+        <p class="desc">Then ask your agent for the rest, or follow <a href="docs/first-dashboard.html">Your first dashboard by hand</a>.</p>
+      </article>
+
+      <div class="installs">
         <article class="card inst">
-          <h3>Nix flake</h3>
-          <p class="desc">macOS or Linux, through Home Manager. Nix users need neither the DMG nor the cask.</p>
+          <div class="inst-h"><h3>Nix and Home Manager</h3><span class="src">macOS or NixOS</span></div>
+          <p class="desc">The flake's Home Manager module writes the config from Nix, starts vestal at login and signs the app on your Mac. Nix users need neither the DMG nor the cask.</p>
 <pre class="code">inputs.vestal.url = <span class="s">"github:syntheit/vestal"</span>;
-programs.vestal.enable = <span class="n">true</span>;</pre>
+
+imports = [ inputs.vestal.homeManagerModules.default ];
+programs.vestal = {
+  enable = <span class="n">true</span>;
+  starter = <span class="s">"developer"</span>;
+  settings.hotkey = <span class="s">"cmd+shift+space"</span>;
+};</pre>
         </article>
         <article class="card inst">
-          <h3>Linux</h3>
-          <p class="desc">NixOS with Hyprland today: a GTK 4 layer-shell window and a systemd user service. Wayland has no global hotkeys, so the module binds <code>vestal toggle</code> for you.</p>
+          <div class="inst-h"><h3>NixOS with Hyprland</h3></div>
+          <p class="desc">On Linux vestal is a GTK 4 layer-shell window and a systemd user service. Wayland has no global hotkeys, so the module binds <code>vestal toggle</code> in Hyprland for you.</p>
 <pre class="code">programs.vestal.hyprland.enable = <span class="n">true</span>;</pre>
         </article>
       </div>
-      <p class="first-run">Then start from a starter, <code>vestal init --starter developer</code>, set <code>"hotkey"</code>, and ask your agent for the rest.</p>
+      <p class="first-run"><b>Other Linux.</b> Works today on NixOS with a layer-shell compositor such as Hyprland; packages for other distros are planned.</p>
     </div>
   </section>
 </main>
