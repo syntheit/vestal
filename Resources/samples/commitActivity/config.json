@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "sources": {
+    "commits": {
+      "type": "file",
+      "path": "~/.cache/commit-days.json"
+    }
+  },
+  "widgets": {
+    "w": {
+      "type": "commitActivity",
+      "paths": [
+        "~/code/api",
+        "~/code/web"
+      ],
+      "source": "commits"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "w"
+      ],
+      "padding": 24
+    }
+  }
+}

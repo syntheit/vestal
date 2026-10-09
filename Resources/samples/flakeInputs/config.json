@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "sources": {
+    "flake": {
+      "type": "flake",
+      "path": "~/config",
+      "behind": true
+    }
+  },
+  "widgets": {
+    "w": {
+      "type": "flakeInputs",
+      "path": "~/config",
+      "behind": true,
+      "source": "flake"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "w"
+      ],
+      "padding": 24
+    }
+  }
+}

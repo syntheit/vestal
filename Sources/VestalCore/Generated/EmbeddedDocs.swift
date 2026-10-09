@@ -331,7 +331,7 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 |---|---|
 | Containers | `stack`, `row`, `grid`, `list`, `table`, `switch` |
 | Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer`, and the charts `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
-| Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` |
+| Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage`, and for developers `reviewQueue`, `ciStatus`, `commitActivity`, `flakeInputs` (GitHub ones read the `github` secret: `gh auth token` unless defined; `vestal docs presets`) |
 
 Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` (`"fill"`), `spaceBefore`, `action`, `key`.
 
@@ -1519,6 +1519,110 @@ A small pill: `text` (size 10, semibold) in `color`, on `color` at 15%, with an 
 { "type": "badge", "text": "HN", "color": "orange" }
 ```
 
+## Developer widgets
+
+Four presets for a developer's day. `reviewQueue`, `ciStatus` and `flakeInputs` with `behind` talk to GitHub through the `github` source template (`vestal docs source/github`) with one token for all of them: the `github` secret, which is `gh auth token` (log in once with `gh auth login`) until your config defines a secret of that name:
+
+```json
+{ "secrets": { "github": { "env": "GITHUB_TOKEN" } } }
+```
+
+They run only while the dashboard is shown, and hide until their first answer arrives or when it fails (`vestal sources` shows why). Each reads one source; give a widget your own `source` (a name) to feed it the data shape described under it. Under Home Manager, add what they run to `programs.vestal.extraPackages` (`pkgs.gh`, `pkgs.git`, `pkgs.nix`); `vestal check-config --commands` lists the programs.
+
+### `reviewQueue`
+
+Pull requests waiting on your review, newest first, one row each: a state icon (`accent` waiting, `warn` changes requested, `good` approved, `dim` a draft), `repo#number`, the title, `+additions` and `−deletions`, `@author` and the age (`2h`, `5d`), then a summary badge (`4 waiting on you`) with the age of the oldest. With none, a green tick and "No reviews waiting on you". A row's key (1 to 9) or a click opens the pull request. One GraphQL request per refresh.
+
+| Parameter | Default | |
+|---|---|---|
+| `search` | `is:pr is:open review-requested:@me archived:false` | A GitHub issue search; every pull request it finds is listed (add `-draft:true` to skip drafts, or `team-review-requested:org/team`). |
+| `limit` | `5` | Rows shown (the summary counts all that were found, up to 30). |
+| `refresh` | `5m` | |
+| `numberKeys` | `true` | Keys `1` to `9` open the rows' pull requests. |
+
+The source's data: a list of `{repo, nameWithOwner, number, title, url, additions, deletions, author, created (epoch seconds), draft, state}` where `state` is `review`, `changes`, `approved` or `draft`.
+
+```json
+{ "type": "reviewQueue", "limit": 6 }
+```
+
+```nix
+programs.vestal.settings.widgets.reviews = { type = "reviewQueue"; limit = 6; };
+programs.vestal.extraPackages = [ pkgs.gh ];
+```
+
+### `ciStatus`
+
+The latest GitHub Actions results per repository and branch: a state icon (`check-circle` green, `x-circle` red, `circle-notch` yellow while running, `minus-circle` for cancelled), the repository, the branch, the last `runs` results as small cells (older ones half as strong, the newest full), and how long the newest took (`4m 12s`, `running 2m`). A row opens the repository's Actions page for that branch.
+
+One GraphQL request per refresh covers every repository: it reads each branch's last 30 commits and the check suites GitHub Actions ran for them. A commit is one cell: running when any of its suites is still running, failed when one failed or timed out, cancelled when one was cancelled, else passed; commits no workflow ran for (skipped suites, path filters) have no cell. So a cell is a commit's result rather than a single workflow run, and the duration spans the commit's suites. Use a `repos` entry per branch you care about.
+
+| Parameter | Default | |
+|---|---|---|
+| `repos` | required | `["owner/name", "owner/name@branch"]`: a repository on its default branch, or on the branch after the `@`. An entry that is not `owner/name` is skipped. |
+| `runs` | `12` | Cells per repository, at most 30. |
+| `refresh` | `5m` | |
+
+The source's data: a list, in `repos` order, of `{repo, nameWithOwner, branch, url, runs (oldest first: success, failure, running, cancelled), state (the newest, or none), started, finished (epoch seconds)}`. A repository GitHub can't find or read is left out.
+
+```json
+{ "type": "ciStatus", "repos": ["acme/api", "acme/web", "acme/infra@update-flake"] }
+```
+
+```nix
+programs.vestal.settings.widgets.ci = { type = "ciStatus"; repos = [ "acme/api" "acme/infra@update-flake" ]; };
+```
+
+### `commitActivity`
+
+Commits per day across your repositories, as GitHub draws its contribution graph: a column per week (the last one the current week), a row per weekday from Sunday, `weeks` columns of cells in five shades of green, then `1,284 commits in 30 weeks`, the current streak (`9d`; a day without a commit yet today does not break it) and a legend.
+
+It runs `git log --branches --since=<weeks>.weeks --format=%cs --author=<email>` in each directory of `paths`, through `sh -c` with the script fixed and the paths, the author and the period passed as arguments (so nothing you configure is ever interpreted as shell). The author is each repository's own `git config user.email` unless you set `author`; a repository with neither, or that is not a repository, adds nothing. One source for all repositories because a template can't loop over a list of sources; the loop is the fixed script's. It needs `sh` and `git` on the daemon's `PATH`. Commits count on any local branch, once each per repository.
+
+| Parameter | Default | |
+|---|---|---|
+| `paths` | required | Repository directories; `~/` expands. |
+| `weeks` | `30` | Columns of the grid. |
+| `author` | none | A `git log --author` pattern (a regular expression: `me@example.com\|me@work.example`), for every repository. |
+| `levels` | `[1, 3, 6, 10]` | Commits in a day from which a cell takes the 1st, 2nd, 3rd and 4th shade; a day with none is empty. |
+| `cell`, `gap` | `10`, `3` | Cell size and spacing, in points. |
+| `refresh` | `10m` | |
+
+The source's data: `{"days": {"<days since 1970-01-01>": commits}}`, from the lines `git log` printed.
+
+```json
+{ "type": "commitActivity", "paths": ["~/code/api", "~/code/web", "~/config"], "weeks": 30 }
+```
+
+```nix
+programs.vestal.settings.widgets.commits = { type = "commitActivity"; paths = [ "~/code/api" "~/config" ]; };
+programs.vestal.extraPackages = [ pkgs.git ];
+```
+
+### `flakeInputs`
+
+How old each locked input of a Nix flake is, oldest first, as a table: the input, the age of its lock (`19d`; green under `fresh` days, then neutral, yellow from `warn`, red from `bad`) and, with `behind: true`, how far its branch has moved on (`412 commits`, `up to date`, a dash for what can't be asked: inputs not on GitHub, or pinned to a revision). Above it: the flake's path, a badge (`3 updates` with `behind`, else `2 old`) and when it was checked.
+
+The locks come from `nix flake metadata --json` (the `flake` source, `vestal docs source/flake`), which reads the lock file and fetches nothing. `behind` adds one GitHub GraphQL request per refresh for all GitHub inputs, comparing each locked revision with the branch the flake follows (or the default branch). It is off by default because it needs the token; without a token the table still shows the lock ages. It uses GraphQL's `compare` field, the same comparison as GitHub's REST compare endpoint, so one request covers every input and the answer is a few bytes instead of a list of commits.
+
+| Parameter | Default | |
+|---|---|---|
+| `path` | required | The flake's directory or reference; `~/` expands. |
+| `behind` | `false` | Also ask GitHub how many commits each GitHub input is behind. |
+| `fresh`, `warn`, `bad` | `3`, `14`, `30` | Days: the lock age colours. |
+| `sort` | `age` | `age` (oldest lock first) or `name`. |
+| `limit` | `8` | Rows shown. |
+| `refresh` | `1h` | |
+
+```json
+{ "type": "flakeInputs", "path": "~/config", "behind": true }
+```
+
+```nix
+programs.vestal.settings.widgets.flake = { type = "flakeInputs"; path = "~/config"; behind = true; };
+programs.vestal.extraPackages = [ pkgs.nix pkgs.gh ];
+```
+
 ## The v0.3 widgets
 
 These keep their v0.3 names, parameters and look, so v0.3 configs work unchanged.
@@ -1578,6 +1682,10 @@ The host popup of `systemHealth`: CPU, RAM, GPU, pools or mounts, network, docke
 ### `foyer`
 
 A source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while shown, and maps the payload to the `system` shape.
+
+### `github`
+
+A source template for GitHub's GraphQL API with the `github` secret's token: `{"type": "github", "query": "{ viewer { login } }"}`. The developer widgets use it; `vestal docs source/github` has its parameters and the token.
 
 """#,
         "protocol": #"""
@@ -1947,7 +2055,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 
 | Key | Default | Meaning |
 |---|---|---|
-| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, `codex`, or a source template such as `foyer`. |
+| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, `codex`, `flake`, or a source template such as `foyer` or `github`. |
 | `refresh` | per type | How often to fetch: `"30s"`, `"5m"`, `"4h"`, `"1d"`. |
 | `when` | per type | `always`: fetched whether or not the dashboard is shown. `visible`: only while it is shown and a widget of the view reads it, with an immediate fetch on show when stale. |
 | `transform` | none | A jq expression applied to the data before widgets see it. The cache keeps the untransformed data, so editing a transform needs no refetch. |
@@ -1965,6 +2073,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 | `media` | `3s` | `visible` | a music player |
 | `claude` | `5m` | `visible` | the Claude plan's usage, from the usage endpoint or `claude -p /usage` |
 | `codex` | `5m` | `visible` | the Codex plan's usage, from `codex app-server` |
+| `flake` | `1h` | `visible` | a Nix flake's locked inputs, from `nix flake metadata`, and optionally GitHub |
 
 **Built-in sources.** The defaults define `system`, `media` (`player: "auto"`), `claude`, `codex`, `calendar` and `weather` (wttr.in). A `visible` source that nothing on screen reads is never fetched, so unused ones cost nothing.
 
@@ -1992,7 +2101,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 }
 ```
 
-A secret is read once when the config loads (a `command` secret has 10 seconds), trimmed, and usable only in source-definition text as `{{ $secrets.<name> }}`. Never write a secret's value into the config: under Nix the config is in the world-readable store. `print-config`, `render`, `status` and the logs never show secret values, and fetch errors are scrubbed of them. check-config warns about a literal-looking token in a URL, header, body, command argv or env.
+A secret is read once when the config loads (a `command` secret has 10 seconds), trimmed, and usable only in source-definition text as `{{ $secrets.<name> }}`. One name has a built-in definition: `github`, the token of the `github` source template and of the GitHub presets (`reviewQueue`, `ciStatus`, `flakeInputs` with `behind`), is `["gh", "auth", "token"]` until the config defines a secret of that name (`"github": {"env": "GITHUB_TOKEN"}`, or a `file`). It is added only when something reads it, so a config without those widgets never runs `gh`, and `vestal check-config --commands` lists it when it applies. Never write a secret's value into the config: under Nix the config is in the world-readable store. `print-config`, `render`, `status` and the logs never show secret values, and fetch errors are scrubbed of them. check-config warns about a literal-looking token in a URL, header, body, command argv or env.
 
 ## History
 
@@ -2161,9 +2270,57 @@ The Codex plan's usage, in the same shape as `claude`, with `source: "codex"`, `
 |---|---|---|
 | `argv` | `["codex", "app-server"]` | The app server, when `codex` isn't on `PATH`. |
 
+### `flake`
+
+The inputs a Nix flake has locked, from `nix flake metadata --json <path>`, and optionally how far behind each GitHub input is. It runs `nix` (the flake's own lock is read; nothing is fetched or built), so `nix` must be on the daemon's `PATH` (`programs.vestal.extraPackages` under Nix); `vestal check-config --commands` lists it. A draft config runs it only with `--allow-commands`.
+
+| Key | Default | |
+|---|---|---|
+| `path` | required | The flake: a directory or a flake reference. A leading `~/` expands. Text. |
+| `behind` | `false` | Also ask GitHub how many commits each GitHub input's branch has gained since its locked revision. One GraphQL request (`https://api.github.com/graphql`) for all inputs, authorised by `headers`. The branch is the one the flake follows (`original.ref`), else the repository's default branch. Inputs that are not on github.com, or are pinned to a revision, are not asked about. If GitHub fails, or there is no token, `behind` is `null` everywhere, the lock data is still delivered, and the source's note says why (`vestal sources`). |
+| `headers` | none | Headers of that request, such as `{"Authorization": "Bearer {{ $secrets.github }}"}`; read only with `behind`. |
+| `argv` | `["nix", "--extra-experimental-features", "nix-command flakes", "flake", "metadata", "--json"]` | The command, before the flake's path. |
+| `timeout` | `10s` | For the `nix` command and the GitHub request. |
+
+```jsonc
+{ "path": "~/config",
+  "inputs": [ { "name": "nixpkgs", "type": "github", "owner": "NixOS", "repo": "nixpkgs", "ref": "nixpkgs-unstable",
+                "rev": "d233902339c02a9c334e7e593de68855ad26c4cb", "lastModified": 1778869304,
+                "url": "https://github.com/NixOS/nixpkgs", "behind": 412 } ] }
+```
+
+`inputs` are the flake's direct inputs, sorted by name; one that follows another input's lock (`inputs.x.follows`) has no lock of its own and is left out. `type` is the locked type (`github`, `gitlab`, `git`, `tarball`, `path`, ...), `owner` and `repo` are `null` where the type has none, `ref` is the branch or tag the flake names (`null`: the default branch), `lastModified` is epoch seconds (when the locked revision was committed or published), and `behind` is a number of commits, `0` when level, `null` when not asked for or not answered. `vestal docs preset/flakeInputs` draws it.
+
 ### `foyer`
 
 A built-in source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while shown, and maps the payload to the `system` shape with `foyer_health`. Any source whose `transform` produces the `system` shape works the same way: write a source template for another health agent (`vestal docs templates`) and name it in `systemHealth`'s `provider`.
+
+### `github`
+
+A built-in source template for GitHub's GraphQL API: `POST https://api.github.com/graphql` with the token of the `github` secret as a Bearer header (`gh auth token` unless the config defines that secret, see Secrets), refreshed every 5 minutes while the dashboard is shown. The GitHub presets use it, and it is meant for your own queries too.
+
+| Parameter | Default | |
+|---|---|---|
+| `query` | none | A GraphQL document. |
+| `variables` | `{}` | Its variables, an object. |
+| `body` | none | A complete request body as JSON text, instead of `query` and `variables`: for a query a preset builds from its own parameters (`ciStatus` writes one repository field per repository). |
+
+The data is GitHub's answer, `{"data": …, "errors": …}`. GraphQL reports many failures as a 200 with `errors`, so a `transform` that needs `data` should fail when it is missing (`if .data == null then error(.errors[0].message) else … end`), which keeps the last good data on screen. The instance takes the common source keys (`refresh`, `when`, `timeout`, `transform`, ...).
+
+```json
+{
+  "version": 1,
+  "sources": {
+    "me": { "type": "github", "query": "{ viewer { login repositories { totalCount } } }" }
+  },
+  "widgets": {
+    "repos": { "type": "text", "source": "me", "text": "{{ .data.viewer.login }}: {{ .data.viewer.repositories.totalCount }} repositories" }
+  },
+  "views": { "main": { "children": ["clock", "repos"] } }
+}
+```
+
+GitHub's GraphQL allows 5,000 points an hour; a query like the presets' costs one point, and a `visible` source asks only while the dashboard is shown.
 
 """#,
         "styling": #"""
@@ -2477,7 +2634,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 | Containers | `stack` (top to bottom), `row` (left to right), `grid` (aligned columns), `list` (an array as rows), `table` (a list with aligned columns), `switch` (one child picked by a value) |
 | Primitives | `text`, `icon`, `progress` (bar), `gauge` (ring), `sparkline`, `keyValue`, `divider`, `spacer` |
 | Charts | `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
-| Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, and `aiUsage` (Claude and Codex plan usage) (`vestal docs presets`) |
+| Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the developer widgets `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs` (`vestal docs presets`) |
 | Your templates | any name under `templates` (`vestal docs templates`) |
 
 ## Fields every widget takes

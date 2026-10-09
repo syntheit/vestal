@@ -583,7 +583,9 @@ public enum DefaultPresets {
 
     /// The templates as JSON.
     public static let tree: AnyJSON = {
-        guard case .success(let tree) = AnyJSON.parse(Data(expandedJSON.utf8)) else { return .object([:]) }
-        return tree
+        guard case .success(.object(var presets)) = AnyJSON.parse(Data(expandedJSON.utf8)) else { return .object([:]) }
+        // Presets that live in their own files (DefaultConfigPresets<Group>.swift).
+        for group in [devTree] { presets.merge(group.objectValue ?? [:]) { _, new in new } }
+        return .object(presets)
     }()
 }

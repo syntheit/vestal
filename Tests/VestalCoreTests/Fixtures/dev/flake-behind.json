@@ -1,0 +1,9 @@
+{
+  "data": {
+    "i0": { "defaultBranchRef": { "name": "main", "compare": { "behindBy": 10, "aheadBy": 0, "status": "BEHIND" } } },
+    "i1": { "ref": { "name": "release-26.05", "compare": { "behindBy": 28, "aheadBy": 0, "status": "BEHIND" } } },
+    "i2": { "ref": { "name": "nixpkgs-unstable", "compare": { "behindBy": 0, "aheadBy": 0, "status": "IDENTICAL" } } },
+    "i4": null
+  },
+  "errors": [{ "type": "NOT_FOUND", "path": ["i4"], "message": "Could not resolve to a Repository with the name 'example/flake-utils-two'." }]
+}

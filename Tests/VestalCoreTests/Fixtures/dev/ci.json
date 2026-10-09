@@ -1,0 +1,411 @@
+{
+  "data": {
+    "r0": {
+      "name": "api",
+      "nameWithOwner": "acme/api",
+      "defaultBranchRef": {
+        "name": "main",
+        "target": {
+          "history": {
+            "nodes": [
+              {
+                "oid": "0000000000000000000000000000000000000064",
+                "committedDate": "2026-09-27T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "createdAt": "2026-09-27T10:00:10Z",
+                      "updatedAt": "2026-09-27T10:04:22Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "0000000000000000000000000000000000000065",
+                "committedDate": "2026-09-26T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "createdAt": "2026-09-26T10:00:10Z",
+                      "updatedAt": "2026-09-26T10:04:20Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "0000000000000000000000000000000000000066",
+                "committedDate": "2026-09-25T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "createdAt": "2026-09-25T10:00:10Z",
+                      "updatedAt": "2026-09-25T10:04:20Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "0000000000000000000000000000000000000067",
+                "committedDate": "2026-09-24T10:00:00Z",
+                "checkSuites": {
+                  "nodes": []
+                }
+              },
+              {
+                "oid": "0000000000000000000000000000000000000068",
+                "committedDate": "2026-09-23T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "createdAt": "2026-09-23T10:00:10Z",
+                      "updatedAt": "2026-09-23T10:04:20Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "0000000000000000000000000000000000000069",
+                "committedDate": "2026-09-22T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "FAILURE",
+                      "createdAt": "2026-09-22T10:00:10Z",
+                      "updatedAt": "2026-09-22T10:02:00Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    },
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "createdAt": "2026-09-22T10:00:10Z",
+                      "updatedAt": "2026-09-22T10:04:20Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "000000000000000000000000000000000000006a",
+                "committedDate": "2026-09-21T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "createdAt": "2026-09-21T10:00:10Z",
+                      "updatedAt": "2026-09-21T10:04:20Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "000000000000000000000000000000000000006b",
+                "committedDate": "2026-09-20T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SKIPPED",
+                      "createdAt": "2026-09-20T10:00:10Z",
+                      "updatedAt": "2026-09-20T10:00:11Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "000000000000000000000000000000000000006c",
+                "committedDate": "2026-09-19T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "createdAt": "2026-09-19T10:00:10Z",
+                      "updatedAt": "2026-09-19T10:04:20Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "000000000000000000000000000000000000006d",
+                "committedDate": "2026-09-18T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "CANCELLED",
+                      "createdAt": "2026-09-18T10:00:10Z",
+                      "updatedAt": "2026-09-18T10:01:00Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "000000000000000000000000000000000000006e",
+                "committedDate": "2026-09-17T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "createdAt": "2026-09-17T10:00:10Z",
+                      "updatedAt": "2026-09-17T10:04:20Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "000000000000000000000000000000000000006f",
+                "committedDate": "2026-09-16T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "createdAt": "2026-09-16T10:00:10Z",
+                      "updatedAt": "2026-09-16T10:04:20Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "0000000000000000000000000000000000000070",
+                "committedDate": "2026-09-15T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "createdAt": "2026-09-15T10:00:10Z",
+                      "updatedAt": "2026-09-15T10:04:20Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "0000000000000000000000000000000000000071",
+                "committedDate": "2026-09-14T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "createdAt": "2026-09-14T10:00:10Z",
+                      "updatedAt": "2026-09-14T10:04:20Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "r1": {
+      "name": "infra",
+      "nameWithOwner": "acme/infra",
+      "ref": {
+        "name": "update-flake",
+        "target": {
+          "history": {
+            "nodes": [
+              {
+                "oid": "00000000000000000000000000000000000000c8",
+                "committedDate": "2026-09-27T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "IN_PROGRESS",
+                      "conclusion": null,
+                      "createdAt": "2026-09-27T16:58:00Z",
+                      "updatedAt": "2026-09-27T17:01:00Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    },
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "createdAt": "2026-09-27T16:58:00Z",
+                      "updatedAt": "2026-09-27T16:59:00Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "00000000000000000000000000000000000000c9",
+                "committedDate": "2026-09-26T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "FAILURE",
+                      "createdAt": "2026-09-26T10:00:00Z",
+                      "updatedAt": "2026-09-26T10:01:03Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "00000000000000000000000000000000000000ca",
+                "committedDate": "2026-09-25T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "TIMED_OUT",
+                      "createdAt": "2026-09-25T10:00:00Z",
+                      "updatedAt": "2026-09-25T10:30:00Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "oid": "00000000000000000000000000000000000000cb",
+                "committedDate": "2026-09-24T10:00:00Z",
+                "checkSuites": {
+                  "nodes": [
+                    {
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "createdAt": "2026-09-24T10:00:00Z",
+                      "updatedAt": "2026-09-24T10:00:38Z",
+                      "workflowRun": {
+                        "url": "https://github.com/acme/api/actions/runs/1",
+                        "workflow": {
+                          "name": "CI"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "r2": null
+  },
+  "errors": [
+    {
+      "type": "NOT_FOUND",
+      "path": [
+        "r2"
+      ],
+      "message": "Could not resolve to a Repository with the name 'acme/missing'."
+    }
+  ]
+}

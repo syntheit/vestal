@@ -1,0 +1,36 @@
+{
+  "description": "A generic flake",
+  "lastModified": 1790500000,
+  "locked": { "lastModified": 1790500000, "path": "/home/user/config", "type": "path" },
+  "locks": {
+    "nodes": {
+      "flake-utils": {
+        "locked": { "lastModified": 1790300000, "narHash": "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", "owner": "example", "repo": "flake-utils", "rev": "1111111111111111111111111111111111111111", "type": "github" },
+        "original": { "owner": "example", "repo": "flake-utils", "type": "github" }
+      },
+      "home-manager": {
+        "inputs": { "nixpkgs": ["nixpkgs"] },
+        "locked": { "lastModified": 1788800000, "narHash": "sha256-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=", "owner": "example", "repo": "home-manager", "rev": "2222222222222222222222222222222222222222", "type": "github" },
+        "original": { "owner": "example", "ref": "release-26.05", "repo": "home-manager", "type": "github" }
+      },
+      "nixpkgs": {
+        "locked": { "lastModified": 1788900000, "narHash": "sha256-CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=", "owner": "example", "repo": "nixpkgs", "rev": "3333333333333333333333333333333333333333", "type": "github" },
+        "original": { "owner": "example", "ref": "nixpkgs-unstable", "repo": "nixpkgs", "type": "github" }
+      },
+      "private-tools": {
+        "locked": { "lastModified": 1786000000, "narHash": "sha256-DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD=", "rev": "4444444444444444444444444444444444444444", "type": "git", "url": "ssh://git@git.example.com/tools.git" },
+        "original": { "type": "git", "url": "ssh://git@git.example.com/tools.git" }
+      },
+      "utils": {
+        "locked": { "lastModified": 1790400000, "narHash": "sha256-EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE=", "owner": "example", "repo": "flake-utils-two", "rev": "5555555555555555555555555555555555555555", "type": "github" },
+        "original": { "type": "indirect", "id": "utils" }
+      },
+      "root": { "inputs": { "flake-utils": "flake-utils", "home-manager": "home-manager", "nixpkgs": "nixpkgs", "private-tools": "private-tools", "systems": ["flake-utils", "systems"], "utils": "utils" } }
+    },
+    "root": "root",
+    "version": 7
+  },
+  "path": "/nix/store/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-source",
+  "resolvedUrl": "path:/home/user/config",
+  "url": "path:/home/user/config"
+}

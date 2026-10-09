@@ -220,7 +220,7 @@ Your own jq functions, with no arguments, callable from every expression:
 
 `sources` maps a name to a source. Widgets refer to sources by name, and every widget reading the same source shares one fetch.
 
-- **When sources run.** An `"always"` source (`http`, `command`, `calendar`, `file` by default) refreshes whether or not the dashboard is shown. A `"visible"` source (`system`, `media`, `claude`, `codex` by default) is fetched only while the dashboard is shown and a widget of the current view reads it, `refresh` after its previous fetch ended; showing the dashboard fetches it at once when it is stale (a `claude` or `codex` source also when its data is a minute old), and hiding the dashboard or reloading the config cancels a fetch in flight. So the built-in `media`, `claude` and `codex` sources cost nothing until a widget uses them.
+- **When sources run.** An `"always"` source (`http`, `command`, `calendar`, `file` by default) refreshes whether or not the dashboard is shown. A `"visible"` source (`system`, `media`, `claude`, `codex`, `flake` by default) is fetched only while the dashboard is shown and a widget of the current view reads it, `refresh` after its previous fetch ended; showing the dashboard fetches it at once when it is stale (a `claude` or `codex` source also when its data is a minute old), and hiding the dashboard or reloading the config cancels a fetch in flight. So the built-in `media`, `claude` and `codex` sources cost nothing until a widget uses them.
 - **The cache.** The last good result of each source is kept on disk: `~/Library/Caches/Vestal/<name>.json` on macOS, `$XDG_CACHE_HOME/vestal/<name>.json` (default `~/.cache/vestal`) on Linux. When vestal starts it shows that result at once (unless it is older than `maxAge`), and fetches again only when it is older than `refresh`, or when the source's definition has changed since. The directory is private (`0700`, files `0600`), holds a hash of each source's definition rather than the definition, and is trimmed to 256 MiB, oldest files first. `"cache": false` keeps a source's data in memory only.
 - **Failures.** A failed fetch keeps the last good result on screen, logs the error, and tries again after `refresh` or 60 seconds, whichever is shorter, give or take 10%. A fetch fails when HTTP answers other than 2xx, when a command exits non-zero, when a `"json"` source's output is not valid JSON, or when an HTTP body, a command's output or a file is larger than 10 MiB. A source vestal cannot run at all (an unknown `type`, an `http` source without a usable `url`, a `command` without `argv`, a `file` without `path`) reports an error and is never fetched. It does not stop vestal.
 - **Inline sources.** A widget's `source` may be a source object instead of a name, such as `"source": { "type": "file", "path": "~/notes.json" }`. It becomes a source named `inline:<8 hex digits>` after its definition, so identical definitions share one fetch.
@@ -230,8 +230,8 @@ Every source takes:
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `type` | string | required | `"http"`, `"command"`, `"calendar"` (`"eventkit"` is an alias), `"file"`, `"system"`, `"media"`, `"claude"`, `"codex"`, or a source template such as `"foyer"`. |
-| `refresh` | duration | per type | How often to fetch: `"30m"` for `http`, `command` and `calendar`; `"5m"` for `claude` and `codex`; `"30s"` for `file`; `"3s"` for `system` and `media`. |
+| `type` | string | required | `"http"`, `"command"`, `"calendar"` (`"eventkit"` is an alias), `"file"`, `"system"`, `"media"`, `"claude"`, `"codex"`, `"flake"`, or a source template such as `"foyer"` or `"github"`. |
+| `refresh` | duration | per type | How often to fetch: `"30m"` for `http`, `command` and `calendar`; `"5m"` for `claude` and `codex`; `"1h"` for `flake`; `"30s"` for `file`; `"3s"` for `system` and `media`. |
 | `when` | string | per type | `"always"` or `"visible"`, see above. |
 | `transform` | expr | none | A jq expression applied to the data before widgets see it. The cache keeps the data untransformed, so editing a transform needs no refetch. |
 | `history` | object | none | Named number histories, see below. |
@@ -349,9 +349,21 @@ Codex plan usage, in the same shape as [`claude`](#claude), with `source` `"code
 |---|---|---|---|
 | `argv` | list of strings | `["codex", "app-server"]` | The app server to run, when `codex` is not on `PATH` (the launch agent's `PATH` includes the Nix profiles and Homebrew). A draft config (`--config`) runs a custom one only with `--allow-commands`. |
 
+### `flake`
+
+The inputs a Nix flake has locked, from `nix flake metadata --json <path>` (the lock file is read; nothing is fetched or built), and optionally how many commits each GitHub input's branch has gained since its locked revision. New in 0.4. `nix` must be on the daemon's `PATH`; `vestal check-config --commands` lists it, and a draft config (`--config`) runs it only with `--allow-commands`. The data is `{"path", "inputs": [{name, type, owner, repo, ref, rev, lastModified, url, behind}]}`: `vestal docs source/flake` has the shape.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `path` | text | required | The flake: a directory or a flake reference. A leading `~/` expands. |
+| `behind` | boolean | `false` | Also ask GitHub (one GraphQL request for every GitHub input) how many commits the followed branch is ahead of the lock. Inputs that are not on github.com or are pinned to a revision stay `null`; so does everything when GitHub fails or no token is sent, and the source's note says why. |
+| `headers` | map of text | none | Headers of that request: `{"Authorization": "Bearer {{ $secrets.github }}"}`. Read only with `behind`. |
+| `argv` | list of strings | `["nix", "--extra-experimental-features", "nix-command flakes", "flake", "metadata", "--json"]` | The command, before the path. |
+| `timeout` | duration | `"10s"` | For the command and the request. |
+
 ### Source templates
 
-A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in one is **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). Any other health agent can be mapped the same way with a template of your own. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
+A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in one is **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). Any other health agent can be mapped the same way with a template of your own. The other is **`github`**, for GitHub's GraphQL API: `{"type": "github", "query": "{ viewer { login } }"}` posts to `https://api.github.com/graphql` with the token of the `github` secret, which is `gh auth token` until you define a secret of that name (see [secrets](#secrets)); `variables` and `body` (a whole request body as JSON text) are its other parameters, and `vestal docs source/github` has the details. The developer widgets (`reviewQueue`, `ciStatus`, and `flakeInputs` with `behind`) use it. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
 
 ## Secrets
 
@@ -376,6 +388,8 @@ A template with a `source` body (see [templates](#templates)) is a source type o
 ```
 
 Give exactly one of `file`, `env` or `command` (an argv, run with a 10 second timeout). `check-config` warns when a URL or header looks like it contains a literal token.
+
+**The `github` secret.** The `github` source template and the GitHub presets send a token named `github`. Until the config defines a secret of that name it is `{"command": ["gh", "auth", "token"]}`, added only when a source reads it (so a config without GitHub widgets never runs `gh`, and `vestal check-config --commands` lists the command when it applies). Define it once to use another token for every GitHub widget: `"secrets": {"github": {"env": "GITHUB_TOKEN"}}`.
 
 ## Widgets
 
@@ -796,6 +810,17 @@ Claude and Codex plan usage in one row: for each, the 5-hour and weekly windows 
 | `show` | list of strings | `["claude", "codex"]` | Which services, in order. |
 | `claudeSource` | source | `"claude"` | What the Claude cells read. |
 | `codexSource` | source | `"codex"` | What the Codex cells read. |
+
+### Developer widgets
+
+New in 0.4: `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`. The first, the second and the third with `behind` ask GitHub's GraphQL API through the `github` source template, with the [`github` secret](#secrets) (`gh auth token` unless you define it). They fetch only while the dashboard is shown. `vestal docs preset/<name>` has each one's parameters and sample, and `vestal docs presets` the setup.
+
+| Preset | Shows | Parameters |
+|---|---|---|
+| `reviewQueue` | Pull requests waiting on your review: `repo#number`, title, `+`/`−` lines, author, age, a summary badge; a row's key (1-9) opens it. | `search` (`is:pr is:open review-requested:@me archived:false`), `limit` (5), `refresh` (`5m`), `numberKeys` (`true`) |
+| `ciStatus` | The latest Actions results per repository and branch: a state icon, the last results as cells, the newest one's duration. One GraphQL request for all repositories. | `repos` (required: `"owner/name"` or `"owner/name@branch"`), `runs` (12), `refresh` (`5m`) |
+| `commitActivity` | Commits per day over `weeks` weeks as a contribution grid, with the total and the current streak. Runs `git log` in each path (`sh -c` with fixed script and arguments). | `paths` (required), `weeks` (30), `author` (each repository's `user.email`), `levels`, `cell`, `gap`, `refresh` (`10m`) |
+| `flakeInputs` | How old each locked flake input is, coloured by age, and with `behind` how many commits each GitHub input has gained since. | `path` (required), `behind` (`false`), `fresh`, `warn`, `bad` (3, 14, 30 days), `sort` (`age`), `limit` (8), `refresh` (`1h`) |
 
 ### Helpers
 

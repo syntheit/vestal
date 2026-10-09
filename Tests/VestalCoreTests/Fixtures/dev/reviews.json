@@ -1,0 +1,15 @@
+{
+  "data": {
+    "search": {
+      "issueCount": 5,
+      "nodes": [
+        { "number": 1479, "title": "Fix flaky retry test", "url": "https://github.com/acme/api/pull/1479", "additions": 21, "deletions": 9, "createdAt": "2026-09-22T09:30:00Z", "isDraft": false, "reviewDecision": "REVIEW_REQUIRED", "author": { "login": "lee" }, "repository": { "name": "api", "nameWithOwner": "acme/api" } },
+        { "number": 311, "title": "Bump nixpkgs to 26.05", "url": "https://github.com/acme/infra/pull/311", "additions": 3, "deletions": 3, "createdAt": "2026-09-24T08:00:00Z", "isDraft": false, "reviewDecision": "APPROVED", "author": { "login": "dependabot[bot]" }, "repository": { "name": "infra", "nameWithOwner": "acme/infra" } },
+        { "number": 977, "title": "Move settings to the new form kit", "url": "https://github.com/acme/web/pull/977", "additions": 412, "deletions": 380, "createdAt": "2026-09-26T11:10:00Z", "isDraft": false, "reviewDecision": "CHANGES_REQUESTED", "author": { "login": "ren" }, "repository": { "name": "web", "nameWithOwner": "acme/web" } },
+        { "number": 1482, "title": "Rate-limit the export endpoint", "url": "https://github.com/acme/api/pull/1482", "additions": 84, "deletions": 12, "createdAt": "2026-09-27T15:03:00Z", "isDraft": false, "reviewDecision": null, "author": { "login": "kim" }, "repository": { "name": "api", "nameWithOwner": "acme/api" } },
+        { "number": 12, "title": "Try the new cache layer", "url": "https://github.com/acme/api/pull/12", "additions": 640, "deletions": 20, "createdAt": "2026-09-27T16:00:00Z", "isDraft": true, "reviewDecision": null, "author": null, "repository": { "name": "api", "nameWithOwner": "acme/api" } },
+        {}
+      ]
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "sources": {
+    "ci": {
+      "type": "http",
+      "url": "https://api.github.com/graphql",
+      "method": "POST"
+    }
+  },
+  "widgets": {
+    "w": {
+      "type": "ciStatus",
+      "repos": [
+        "acme/api",
+        "acme/web",
+        "acme/infra@update-flake",
+        "acme/docs"
+      ],
+      "source": "ci"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "w"
+      ],
+      "padding": 24
+    }
+  }
+}
