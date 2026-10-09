@@ -418,6 +418,7 @@ mkdirSync(join(dist, "assets", "shaders"), { recursive: true });
 mkdirSync(join(dist, "renderer"), { recursive: true });
 
 for (const f of readdirSync(join(root, "Resources", "icons")).filter((f) => f.endsWith(".ttf"))) cpSync(join(root, "Resources", "icons", f), join(dist, "assets", "icons", f));
+cpSync(join(root, "Resources", "fonts"), join(dist, "assets", "fonts"), { recursive: true });
 const shaderFiles = readdirSync(join(root, "Resources", "shaders")).filter((f) => f.endsWith(".glsl"));
 for (const f of shaderFiles) cpSync(join(root, "Resources", "shaders", f), join(dist, "assets", "shaders", f));
 
@@ -515,7 +516,7 @@ globalThis.fetch = (url, init) => {
 };
 globalThis.__VESTAL_SITE = {
   data: JSON.parse(document.getElementById("vestal-data").textContent),
-  assets: { icons: "inline:icons/", shaders: "inline:shaders/" },
+  assets: { icons: "inline:icons/", fonts: "inline:fonts/", shaders: "inline:shaders/" },
   image: (path) => __IMAGES[path] || null,
 };
 `;

@@ -12,6 +12,7 @@
 import { Layout, popupFrame } from "./layout.js";
 import { makePalette } from "./color.js";
 import { createMeasurer } from "./text.js";
+import { fontFaceCSS } from "./typefaces.js";
 import { syncNode } from "./dom.js";
 import { applyPatch } from "./patch.js";
 import { attachBackground } from "./backgrounds.js";
@@ -25,6 +26,7 @@ export { glyphFor } from "./icons.js";
 
 const DEFAULT_ASSETS = {
   icons: new URL("../../Resources/icons/", import.meta.url).href,
+  fonts: new URL("../../Resources/fonts/", import.meta.url).href,
   shaders: new URL("../../Resources/shaders/", import.meta.url).href,
 };
 
@@ -49,13 +51,23 @@ const CSS = `
 let cssInjected = false;
 const fontFaces = new Set();
 
-function injectCSS(iconBase, theme) {
+function injectCSS(iconBase, theme, fontBase) {
   if (!cssInjected && typeof document !== "undefined") {
     const style = document.createElement("style");
     style.dataset.vestal = "renderer";
     style.textContent = CSS;
     document.head.appendChild(style);
     cssInjected = true;
+  }
+  // The typefaces: every bundled family; the browser fetches a file only when text uses it.
+  // (A page that supplies its own font loader, as the single-file preview does, sets a base
+  // starting with "inline:" and goes without.)
+  if (fontBase && !fontBase.startsWith("inline:") && !fontFaces.has(`typefaces|${fontBase}`) && typeof document !== "undefined") {
+    fontFaces.add(`typefaces|${fontBase}`);
+    const style = document.createElement("style");
+    style.dataset.vestal = "typefaces";
+    style.textContent = fontFaceCSS(fontBase);
+    document.head.appendChild(style);
   }
   const fonts = (theme && theme.icons && theme.icons.fonts) || { regular: "Phosphor", fill: "Phosphor-Fill" };
   const faces = [[fonts.regular || "Phosphor", "Phosphor.ttf"], [fonts.fill || "Phosphor-Fill", "Phosphor-Fill.ttf"]];
@@ -84,7 +96,8 @@ const clone = (x) => (typeof structuredClone === "function" ? structuredClone(x)
  *   onInput     (message) => void: { cmd: "invoke", id }, { cmd: "key", key }, { cmd: "page", step },
  *               { cmd: "snapshot" } as in docs/reference/protocol.md.
  *   views       { name: snapshot }: lets the mount page between views on its own (static sites).
- *   assets      { icons, shaders }: base URLs (with trailing slash) of the icon fonts and *.glsl files.
+ *   assets      { icons, fonts, shaders }: base URLs (with trailing slash) of the icon fonts, the typefaces
+ *               (Resources/fonts) and the *.glsl files.
  *   resolveImage (path) => url | null: where an `image` node's picture is; none: the empty state.
  *   reducedMotion  override for prefers-reduced-motion.
  */
@@ -156,7 +169,7 @@ class Mount {
   render() {
     const snap = this.snapshot;
     const theme = snap.theme || {};
-    injectCSS(this.assets.icons, theme);
+    injectCSS(this.assets.icons, theme, this.assets.fonts);
     const key = JSON.stringify([theme.fonts, theme.colors]);
     if (key !== this.themeKey) {
       this.themeKey = key;
@@ -185,6 +198,22 @@ class Mount {
     // The popup: scrim and card.
     this.renderPopup(snap.popup, base);
     this.renderDots();
+    this.settleFonts();
+  }
+
+  /** Text is measured on a canvas, so lay out again once the typefaces it uses have loaded. */
+  settleFonts() {
+    if (this.settling || typeof document === "undefined" || !document.fonts || !document.fonts.ready) return;
+    this.settling = true;
+    document.fonts.ready.then(() => {
+      this.settling = false;
+      if (this.destroyed) return;
+      const loaded = [...document.fonts].filter((f) => f.status === "loaded").length;
+      if (loaded === this.loadedFaces) return;
+      this.loadedFaces = loaded;
+      this.themeKey = null; // a new measurer: widths from the loaded faces
+      this.render();
+    }).catch(() => { this.settling = false; });
   }
 
   makeLayer() {

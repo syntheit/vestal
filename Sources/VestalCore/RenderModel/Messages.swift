@@ -73,11 +73,15 @@ public struct RenderTheme: Equatable, Sendable, Codable {
         public var sans: String?
         public var mono: String?
         public var rounded: String?
+        /// The clock and big-number family. Written only when set: a nil
+        /// `display` is the node's own default (`style.font`).
+        public var display: String?
 
-        public init(sans: String? = nil, mono: String? = nil, rounded: String? = nil) {
+        public init(sans: String? = nil, mono: String? = nil, rounded: String? = nil, display: String? = nil) {
             self.sans = sans
             self.mono = mono
             self.rounded = rounded
+            self.display = display
         }
 
         // Nulls are written out: `{"sans": null, …}` as in the protocol.
@@ -86,6 +90,7 @@ public struct RenderTheme: Equatable, Sendable, Codable {
             try c.encode(sans, forKey: .sans)
             try c.encode(mono, forKey: .mono)
             try c.encode(rounded, forKey: .rounded)
+            try c.encodeIfPresent(display, forKey: .display)
         }
     }
 

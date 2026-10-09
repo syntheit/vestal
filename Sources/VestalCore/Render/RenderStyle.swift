@@ -134,7 +134,28 @@ struct TextStyle: Equatable {
         "ultralight": 100, "thin": 200, "light": 300, "regular": 400, "medium": 500, "semibold": 600,
         "bold": 700, "heavy": 800, "black": 900,
     ]
-    static let fonts: Set<String> = ["sans", "mono", "rounded"]
+    static let fonts: Set<String> = Set(Typefaces.roles)
+
+    /// What a node draws with for `style.font`: a role (`display`, `sans`,
+    /// `mono`, `rounded`) or a family name, or a comma-separated list of them
+    /// of which the first usable one counts. `display` is usable when the
+    /// theme sets that role; a face names its own family after it
+    /// (`"display, Inter Tight"`). Nothing usable: `sans`. Nil for an empty
+    /// value.
+    static func font(_ spec: String, display: String?) -> String? {
+        var sawDisplay = false
+        for part in spec.split(separator: ",") {
+            let name = part.trimmingCharacters(in: .whitespaces)
+            if name.isEmpty { continue }
+            if name == "display" {
+                if display != nil { return "display" }
+                sawDisplay = true
+                continue
+            }
+            return name
+        }
+        return sawDisplay ? "sans" : nil
+    }
 
     static func size(_ value: AnyJSON?) -> Double? {
         switch value {

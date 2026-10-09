@@ -187,6 +187,7 @@ in
         ../docs/guide
         ../AGENTS.md
         ../Resources/icons
+        ../Resources/fonts
         ../Resources/samples
         ../Resources/starters
         ../Resources/shaders

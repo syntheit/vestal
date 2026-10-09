@@ -74,7 +74,6 @@ public final class RenderConfigModel: @unchecked Sendable {
         let themeJSON = top["theme"]
         palette = RenderPalette(theme: themeJSON)
         let themeObject = themeJSON?.objectValue ?? [:]
-        let fonts = themeObject["fonts"]?.objectValue ?? [:]
         var icons = RenderTheme.Icons()
         if let mode = themeObject["icons"]?.stringValue { icons.mode = mode }
         let background = ThemeConfig.backgroundName(themeObject["background"]) ?? "aurora"
@@ -83,8 +82,7 @@ public final class RenderConfigModel: @unchecked Sendable {
         theme = RenderTheme(
             background: background,
             colors: palette.colors,
-            fonts: RenderTheme.Fonts(sans: fonts["sans"]?.stringValue ?? themeObject["font"]?.stringValue,
-                                     mono: fonts["mono"]?.stringValue, rounded: fonts["rounded"]?.stringValue),
+            fonts: Typefaces.fonts(theme: themeObject),
             icons: icons,
             dim: RenderTheme.dim(themeObject["dim"]),
             backdrop: RenderTheme.backdrop(themeObject["backdrop"]),

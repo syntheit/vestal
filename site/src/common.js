@@ -23,7 +23,7 @@ export const ctx = { data: null, assets: null, resolveImage: null, walls: {} };
 export async function boot() {
   ctx.data = S.data || await (await fetch(new URL(`data.json?v=${BUILD}`, base))).json();
   ctx.walls = ctx.data.walls || {};
-  ctx.assets = S.assets || { icons: new URL("assets/icons/", base).href, shaders: new URL("assets/shaders/", base).href };
+  ctx.assets = S.assets || { icons: new URL("assets/icons/", base).href, fonts: new URL("assets/fonts/", base).href, shaders: new URL("assets/shaders/", base).href };
   ctx.resolveImage = S.image || ((p) => (p.startsWith("Resources/samples/") ? new URL(`assets/samples/${p.slice(18)}`, base).href : null));
   await fontsSettled();
   return ctx.data;

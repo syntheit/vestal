@@ -1,12 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { glyphFor, ICONS, ALIASES } from "./icons.js";
 import { makePalette, parseHex } from "./color.js";
 import { neighbor, transitionKind, PageSwipe, keyName, showsDots } from "./pages.js";
 import { fitLabel, visibleTicks, arcPath, sparkPoints, barsSVG, heatmapSVG } from "./draw.js";
 import { cssWeight, fontFamily } from "./text.js";
+import { FONT_FILES, fontFaceCSS } from "./typefaces.js";
 import { fragmentSource, shaderUrl } from "./backgrounds.js";
 
 // MARK: icons
@@ -201,4 +202,21 @@ test("data-driven backgrounds get demo parameters", async () => {
   assert.equal(libraryUniforms("weather").p[0], 1);
   assert.equal(libraryUniforms("artmesh").c.length, 4);
   assert.deepEqual(libraryUniforms("plasma").p, [0, 0, 0, 0]);
+});
+
+// MARK: typefaces
+
+test("display role and family names", () => {
+  assert.match(fontFamily("display", { fonts: { display: "Instrument Serif" } }), /^"Instrument Serif", -apple-system/);
+  assert.match(fontFamily("display", { fonts: { sans: "Inter" } }), /^Inter, -apple-system/); // falls back to sans
+  assert.match(fontFamily("display", {}), /^-apple-system/);
+  assert.match(fontFamily("Inter Tight", { fonts: { sans: "Inter" } }), /^"Inter Tight", Inter, -apple-system/);
+});
+
+test("every bundled font file exists and has a rule", () => {
+  const base = new URL("../../Resources/fonts/", import.meta.url);
+  for (const [family, file] of FONT_FILES) assert.ok(existsSync(fileURLToPath(new URL(file, base))), `${family}: ${file}`);
+  const css = fontFaceCSS("/assets/fonts/");
+  assert.match(css, /font-family:"Inter Tight";src:url\("\/assets\/fonts\/inter-tight\/InterTight-Variable.ttf"\)/);
+  assert.equal(css.split("@font-face").length - 1, FONT_FILES.length);
 });

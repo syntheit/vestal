@@ -134,8 +134,20 @@
     },
     "fonts": {
       "additionalProperties": false,
-      "description": "A font family per role; null means the platform default.",
+      "description": "A font family per role; null means the typeface's family, else the platform default.",
       "properties": {
+        "display": {
+          "description": "The family for clocks and big numbers.",
+          "examples": [
+            "Instrument Serif"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "mono": {
           "description": "The monospaced family.",
           "examples": [
@@ -6767,11 +6779,6 @@
         "font": {
           "anyOf": [
             {
-              "enum": [
-                "sans",
-                "mono",
-                "rounded"
-              ],
               "type": "string"
             },
             {
@@ -6779,7 +6786,7 @@
             }
           ],
           "default": "sans",
-          "description": "The font role.",
+          "description": "A font role (display, sans, mono, rounded) or a family name. A comma-separated list takes the first usable entry: display counts when the theme sets that role, so \"display, Inter Tight\" is the theme's display font, else Inter Tight.",
           "examples": [
             "mono"
           ],
@@ -7292,7 +7299,7 @@
               "type": "null"
             }
           ],
-          "description": "A font family per role; null means the platform default.",
+          "description": "A font family per role (display, sans, mono, rounded); null means the typeface's family, else the platform default. A family that is not bundled or installed draws as the role's default.",
           "examples": [
             {
               "sans": "Inter"
@@ -7368,6 +7375,28 @@
           ],
           "type": [
             "number",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "typeface": {
+          "default": "system",
+          "description": "A named set of fonts filling the roles at once (display, sans, mono, rounded). system: The platform's own fonts: SF Pro and SF Mono on macOS, Geist and Geist Mono on Linux. geist: Geist and Geist Mono: neutral and a little technical. inter: Inter, with Inter Tight for the clock and JetBrains Mono for values. plex: IBM Plex Sans and IBM Plex Mono: squarer and warmer than Inter. instrument: Instrument Serif for the clock, Instrument Sans for the rest, JetBrains Mono for values. fira: Fira Code in every role. The palette is unchanged. The families ship with vestal. theme.fonts entries override the set's roles.",
+          "enum": [
+            "system",
+            "geist",
+            "inter",
+            "plex",
+            "instrument",
+            "fira",
+            null
+          ],
+          "examples": [
+            "inter"
+          ],
+          "type": [
+            "string",
             "null"
           ],
           "x-vestal-kind": "literal",
@@ -13628,6 +13657,45 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "colon": {
+          "default": "auto",
+          "description": "breathe: the colon fades over four seconds (stepping each second); auto: on in the breathe face, off elsewhere",
+          "examples": [
+            "auto"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "date": {
+          "default": "auto",
+          "description": "The date line: full (the locale's), none, or words (\"It is Sunday, the twenty-seventh of September\", the serif face). auto: full",
+          "examples": [
+            "auto"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "face": {
+          "default": "mono",
+          "description": "The look: mono, thin, stacked, serif, condensed, rounded or breathe",
+          "examples": [
+            "mono"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "height": {
           "anyOf": [
             {},
@@ -13649,13 +13717,9 @@
         },
         "hour12": {
           "default": false,
-          "description": "12-hour times with AM/PM (1:46:38 PM, world clocks 1:46 PM) instead of 24-hour (13:46:38, 13:46)",
+          "description": "true: 12-hour times with AM/PM (1:46:38 PM, world clocks 1:46 PM); false: 24-hour (13:46:38, 13:46); \"auto\": whichever the system is set to",
           "examples": [
             false
-          ],
-          "type": [
-            "boolean",
-            "null"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -13761,6 +13825,15 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "minutesColor": {
+          "default": "accent",
+          "description": "stacked: the minutes' color",
+          "examples": [
+            "accent"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "opacity": {
           "anyOf": [
             {
@@ -13821,6 +13894,37 @@
           "description": "Corner radius of the background and the border.",
           "examples": [
             4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "seconds": {
+          "default": null,
+          "description": "Show seconds. Default: the face's own (mono, condensed and rounded show them)",
+          "examples": [
+            null
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "secondsBar": {
+          "default": true,
+          "description": "stacked: a bar of the minute's seconds",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "size": {
+          "default": null,
+          "description": "The time's point size. Default: the face's own",
+          "examples": [
+            null
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -13974,6 +14078,19 @@
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
+        },
+        "worldStyle": {
+          "default": "row",
+          "description": "rounded: world clocks as a row, or as pills with a sun or moon for day and night there",
+          "examples": [
+            "row"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
         }
       },
       "required": [
@@ -27951,6 +28068,18 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "colon": {
+          "description": "breathe: the colon fades over four seconds (stepping each second); auto: on in the breathe face, off elsewhere",
+          "examples": [
+            "auto"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "color": {
           "description": "The color parameter (color).",
           "examples": [
@@ -28024,6 +28153,18 @@
           "description": "Written before each price",
           "examples": [
             "$"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "date": {
+          "description": "The date line: full (the locale's), none, or words (\"It is Sunday, the twenty-seventh of September\", the serif face). auto: full",
+          "examples": [
+            "auto"
           ],
           "type": [
             "string",
@@ -28203,6 +28344,18 @@
           "description": "A job that has not run for longer than this is late (\"26h\", \"1d\", \"7d\"); a file's own expectEvery wins",
           "examples": [
             "1d"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "face": {
+          "description": "The look: mono, thin, stacked, serif, condensed, rounded or breathe",
+          "examples": [
+            "mono"
           ],
           "type": [
             "string",
@@ -28915,6 +29068,14 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "minutesColor": {
+          "description": "stacked: the minutes' color",
+          "examples": [
+            "accent"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "name": {
           "description": "The name parameter (text).",
           "examples": [
@@ -29469,6 +29630,26 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "seconds": {
+          "description": "Show seconds. Default: the face's own (mono, condensed and rounded show them)",
+          "examples": [
+            null
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "secondsBar": {
+          "description": "stacked: a bar of the minute's seconds",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "section": {
           "description": "Only the tasks under this heading (## Today), at any depth. Default: the whole file",
           "examples": [
@@ -29530,20 +29711,9 @@
           "x-vestal-since": "0.4"
         },
         "size": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "$ref": "#/$defs/computed"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Diameter in points.",
+          "description": "The time's point size. Default: the face's own",
           "examples": [
-            48
+            null
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -30212,6 +30382,18 @@
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
+        },
+        "worldStyle": {
+          "description": "rounded: world clocks as a row, or as pills with a sun or moon for day and night there",
+          "examples": [
+            "row"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
         }
       },
       "type": "object"

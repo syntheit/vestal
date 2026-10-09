@@ -619,6 +619,22 @@ struct V04Checker {
             literal(field, path: "\(path).\(key)", scope: scope, inTemplate: inTemplate)
         }
         color(fields["color"], path: "\(path).color", scope: scope.adding(["value"]), inTemplate: inTemplate)
+        if case .string(let spec)? = fields["font"] { fontFamilies(spec, path: "\(path).font") }
+    }
+
+    /// The families in a font value (a role, a family or a comma-separated
+    /// list): a note for each that is neither bundled with vestal nor found
+    /// in the system font directories. Drawing falls back to the role's
+    /// default, so this is information only.
+    mutating func fontFamilies(_ spec: String, path: String) {
+        for part in spec.split(separator: ",") {
+            let family = part.trimmingCharacters(in: .whitespaces)
+            if family.isEmpty || Typefaces.roles.contains(family) || family.contains("{{") { continue }
+            if !Typefaces.isAvailable(family) {
+                add(.invalidValue, path, "font family \"\(family)\" is not bundled with vestal and was not found among the installed "
+                    + "fonts; text uses the role's default instead", code: "unknown-font", severity: .info, found: family)
+            }
+        }
     }
 
     /// A colour: a palette name, hex, `name@alpha`, `{"steps", "of"}`

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "widgets": {
+    "clock": {
+      "type": "clock",
+      "worldClocks": [
+        {
+          "label": "NYC",
+          "tz": "America/New_York"
+        },
+        {
+          "label": "LON",
+          "tz": "Europe/London"
+        },
+        {
+          "label": "TYO",
+          "tz": "Asia/Tokyo"
+        }
+      ],
+      "face": "serif",
+      "date": "words",
+      "hour12": "auto"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "clock"
+      ],
+      "padding": 24
+    }
+  }
+}

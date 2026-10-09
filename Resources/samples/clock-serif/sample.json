@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Clock, serif",
+  "description": "An editorial serif time with the date written out in words and the world cities set like a byline.",
+  "preset": "clock",
+  "size": [
+    680,
+    290
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time",
+    "face"
+  ]
+}

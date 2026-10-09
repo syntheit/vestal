@@ -44,7 +44,7 @@ final class ConfigValidatorTests: XCTestCase {
         let found = pairs("""
         {
           "extra": 1,
-          "theme": {"typeface": "x"},
+          "theme": {"typefce": "x"},
           "sources": {
             "h": {"type": "http", "url": "https://x.example", "cookies": {}},
             "c": {"type": "command", "argv": ["x"], "url": "https://x.example"},
@@ -63,7 +63,7 @@ final class ConfigValidatorTests: XCTestCase {
         """)
         XCTAssertEqual(found, [
             "extra": .unknownKey,
-            "theme.typeface": .unknownKey,
+            "theme.typefce": .unknownKey,
             "sources.h.cookies": .unknownKey,
             "sources.c.url": .unknownKey,
             "sources.k.parse": .unknownKey,

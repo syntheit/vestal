@@ -87,7 +87,7 @@ public final class RenderSession {
     public let model: RenderConfigModel
     public private(set) var view: String
     public var timeZone: TimeZone = .current
-    public var locale: Locale = .current
+    public var locale: Locale = SystemLocale.time()
     public var os: String = RenderPass.currentOS
 
     /// The open popup: its widget (expanded, `{"expr"}` values filled) and width.

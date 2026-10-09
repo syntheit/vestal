@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Clock, condensed",
+  "description": "Narrow tall numerals with the seconds beside the minutes, and the date line with the ISO week in tracked capitals.",
+  "preset": "clock",
+  "size": [
+    680,
+    380
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time",
+    "face"
+  ]
+}

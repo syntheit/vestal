@@ -182,10 +182,11 @@ enum NativeIcons {
 enum IconFonts {
     @MainActor private static var registered = false
 
-    /// Registers the Phosphor fonts for this process, before the first icon
+    /// Registers the Phosphor icon fonts and the typefaces (Resources/fonts, one
+    /// directory per family) for this process, before the first icon or text
     /// draws. Looked up in `$VESTAL_FONT_DIRS` (colon-separated, for dev
     /// builds), the app bundle's `Contents/Resources/Fonts`, and
-    /// `share/vestal/icons` next to the executable (as on Linux).
+    /// `share/vestal/{icons,fonts}` next to the executable (as on Linux).
     @MainActor
     static func register() {
         guard !registered else { return }
@@ -200,6 +201,7 @@ enum IconFonts {
         let exe = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath().deletingLastPathComponent()
         for up in ["..", "../.."] {
             dirs.append(exe.appendingPathComponent(up).appendingPathComponent("share/vestal/icons").standardized)
+            dirs.append(exe.appendingPathComponent(up).appendingPathComponent("share/vestal/fonts").standardized)
         }
         var added = 0
         for dir in dirs {

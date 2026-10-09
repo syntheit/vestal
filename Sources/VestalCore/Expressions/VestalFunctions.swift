@@ -154,6 +154,9 @@ public enum VestalFunctions {
             return .string(try formatDate(t, pattern: try text(args[0], "fmt_localized"), template: true,
                                           zone: try zone(args[1], "fmt_localized", context), locale: locale(context)))
         },
+        f("uses_12h", 0) { _, _, context in
+            .bool(SystemLocale.uses12Hour(locale(context)))
+        },
         f("clock24", 0) { input, _, _ in
             guard let s = try optionalText(input, "clock24") else { return .null }
             return .string(AsyncData.cleanTime(s))

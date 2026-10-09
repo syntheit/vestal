@@ -173,8 +173,21 @@ private struct Walker {
         themeBackground(theme)
         oneOf(theme["backdrop"], "theme.backdrop", ThemeConfig.backdrops)
         oneOf(theme["density"], "theme.density", ThemeConfig.densities)
+        themeFonts(theme)
         themeDim(theme)
         themeBlur(theme)
+    }
+
+    /// `theme.typeface` and `theme.fonts`. A family that is neither bundled
+    /// nor installed draws as its role's default.
+    private mutating func themeFonts(_ theme: [String: AnyJSON]) {
+        oneOf(theme["typeface"], "theme.typeface", Typefaces.names)
+        if let font = theme["font"]?.stringValue { v04.fontFamilies(font, path: "theme.font") }
+        guard let fonts = object(theme["fonts"], "theme.fonts") else { return }
+        checkKeys(fonts, keys("fonts"), "theme.fonts", for: "theme.fonts")
+        for role in Typefaces.roles {
+            if let family = fonts[role]?.stringValue { v04.fontFamilies(family, path: "theme.fonts.\(role)") }
+        }
     }
 
     /// The parameters each library background reads.

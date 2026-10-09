@@ -398,7 +398,10 @@ extension SchemaRegistry {
                 "Points, or xs 10, sm 11, md 12, base 13, lg 14, xl 18, 2xl 24, 3xl 36, display 56."),
             key("weight", .any, default: .string("regular"), .string("semibold"), computed: true,
                 "ultralight, thin, light, regular, medium, semibold, bold, heavy, black, or 100–900."),
-            key("font", .oneOf(["sans", "mono", "rounded"]), default: .string("sans"), .string("mono"), computed: true, "The font role."),
+            key("font", .string, default: .string("sans"), .string("mono"), computed: true,
+                "A font role (display, sans, mono, rounded) or a family name. A comma-separated list takes the first usable "
+                + "entry: display counts when the theme sets that role, so \"display, Inter Tight\" is the theme's display "
+                + "font, else Inter Tight."),
             colorKey("color", "text", "The text colour."),
             key("tracking", .number, default: .int(0), .double(1.5), computed: true, "Letter spacing in points."),
             key("case", .oneOf(["upper", "lower", "none"]), default: .string("none"), .string("upper"), computed: true, "Case transform."),
@@ -437,7 +440,8 @@ extension SchemaRegistry {
             key("extends", .string, default: .string("tokyo-night"), .string("tokyo-night"), "The palette it builds on."),
             key("colors", .map(.string), .object(["accent": .string("#ff9e64")]), "Colours added or overridden."),
         ]),
-        SchemaShape("fonts", "A font family per role; null means the platform default.", keys: [
+        SchemaShape("fonts", "A font family per role; null means the typeface's family, else the platform default.", keys: [
+            key("display", .string, .string("Instrument Serif"), "The family for clocks and big numbers."),
             key("sans", .string, .string("Inter"), "The sans family."),
             key("mono", .string, .string("JetBrains Mono"), "The monospaced family."),
             key("rounded", .string, .string("SF Pro Rounded"), "The rounded family."),

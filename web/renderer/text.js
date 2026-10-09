@@ -7,11 +7,20 @@ export const ROUNDED = 'ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSys
 
 const quote = (f) => (/[\s,"]/.test(f) ? `"${f.replace(/"/g, "")}"` : f);
 
-/** The CSS family list of a font role; `theme.fonts` (a family or null) goes first. */
+/**
+ * The CSS family list of a font role; `theme.fonts` (a family or null) goes first.
+ * `display` is the clock and big-number role (the sans one unless the theme sets it).
+ * A name that is not a role is a family: it goes first, then the sans list.
+ */
 export function fontFamily(role, theme) {
-  const custom = theme && theme.fonts && theme.fonts[role === "mono" || role === "rounded" ? role : "sans"];
-  const base = role === "mono" ? MONO : role === "rounded" ? ROUNDED : SANS;
-  return custom ? `${quote(custom)}, ${base}` : base;
+  const fonts = (theme && theme.fonts) || {};
+  switch (role) {
+    case "mono": return fonts.mono ? `${quote(fonts.mono)}, ${MONO}` : MONO;
+    case "rounded": return fonts.rounded ? `${quote(fonts.rounded)}, ${ROUNDED}` : ROUNDED;
+    case "display": { const f = fonts.display || fonts.sans; return f ? `${quote(f)}, ${SANS}` : SANS; }
+    case "sans": return fonts.sans ? `${quote(fonts.sans)}, ${SANS}` : SANS;
+    default: return `${quote(role)}, ${fontFamily("sans", theme)}`;
+  }
 }
 
 /** Weights are 100...900 in hundreds; other numbers round to the nearest hundred. */

@@ -14,7 +14,7 @@ const view = mount(element, snapshot, {
                                        // or { name, color, wallpaper }
   onInput: (msg) => {},                // { cmd: "invoke", id } | { cmd: "key", key } | { cmd: "page", step } | { cmd: "snapshot" }
   views: { main: snapA, focus: snapB },// optional: lets the mount page between views by itself (static sites)
-  assets: { icons: "/fonts/", shaders: "/shaders/" },
+  assets: { icons: "/fonts/", fonts: "/typefaces/", shaders: "/shaders/" },
   resolveImage: (path) => url,         // `image` nodes; without it they draw the empty state
 });
 
@@ -31,7 +31,8 @@ Input: clicks on `action` nodes send `invoke`; keys (in the key grammar) go as `
 | File | |
 |---|---|
 | `renderer/layout.js` | The normative layout rules, pure (a port of the SwiftUI arithmetic). Text is measured through a callback. |
-| `renderer/text.js` | Font stacks, canvas text measuring, word wrap. |
+| `renderer/text.js` | Font stacks (the `display`, `sans`, `mono` and `rounded` roles, or a family name), canvas text measuring, word wrap. |
+| `renderer/typefaces.js` | `@font-face` rules for the families in `Resources/fonts/`, loaded from `assets.fonts` (default `Resources/fonts/`); the renderer lays out again once they load. |
 | `renderer/dom.js` | Node DOM, reconciled by node id. |
 | `renderer/draw.js` | SVG for `bar`, `ring`, `spark`, `divider`, `bars`, `stackedBar`, `heatmap`, `timeline`. |
 | `renderer/backgrounds.js` | Shared WebGL2 context, aurora, shader loader. |
