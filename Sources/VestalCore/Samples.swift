@@ -47,7 +47,7 @@ public enum SampleLibrary {
     /// presets (`claudeItem`, `aiWindow`), the host popup's body (`hostDetail`)
     /// and a source (`foyer`). They are covered by the samples of the presets
     /// that use them. Every other built-in template needs a sample.
-    public static let helpers: Set<String> = ["claudeItem", "aiWindow", "hostDetail", "foyer"]
+    public static let helpers: Set<String> = ["claudeItem", "aiWindow", "hostDetail", "foyer", "hackerNews", "lobsters", "rssFeed", "coingecko", "yahooQuotes", "haStates"]
 
     /// The built-in templates a user places: each needs a sample.
     public static var userFacingPresets: [String] {
