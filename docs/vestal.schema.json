@@ -1109,6 +1109,9 @@
           "$ref": "#/$defs/source.tailscaleStatus"
         },
         {
+          "$ref": "#/$defs/source.timer"
+        },
+        {
           "$ref": "#/$defs/source.uptimeKuma"
         },
         {
@@ -1531,6 +1534,18 @@
             ]
           ],
           "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "includePast": {
+          "description": "true: read from the start of today instead of from now, so events that already ended are in the data too (the dayTimeline preset dims them). Widgets that list what is coming filter on the end time. Default: false.",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
         "maxAge": {
@@ -2914,13 +2929,14 @@
         },
         "parse": {
           "default": "json",
-          "description": "As for http, plus exists: {exists, modified}, which never fails.",
+          "description": "As for http, plus exists: {exists, modified}, which never fails; and checklist: a markdown file's task list as {path, size, hash, items: [{line, text, done, section}]} (vestal docs source/file).",
           "enum": [
             "json",
             "raw",
             "lines",
             "feed",
             "exists",
+            "checklist",
             null
           ],
           "examples": [
@@ -4775,6 +4791,18 @@
           "x-vestal-kind": "text",
           "x-vestal-since": "0.4"
         },
+        "autoStart": {
+          "description": "true: start the next phase by itself when one ends. Default: false, the timer waits, ready, for the start key.",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "backend": {
           "description": "api: ask Anthropic's usage endpoint with the Claude Code login's access token (read, never refreshed or written); cli: run the command in argv; auto: the API when a token is found, else, or when the API fails, the CLI.",
           "enum": [
@@ -4975,6 +5003,22 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         },
+        "focus": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The length of a focus phase. Default: 25m.",
+          "examples": [
+            "50m"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "headers": {
           "additionalProperties": {
             "type": [
@@ -5046,6 +5090,18 @@
           "x-vestal-kind": "text",
           "x-vestal-since": "0.4"
         },
+        "includePast": {
+          "description": "true: read from the start of today instead of from now, so events that already ended are in the data too (the dayTimeline preset dims them). Widgets that list what is coming filter on the end time. Default: false.",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "interfaces": {
           "description": "Network interfaces to report and sum. Default: all but loopback (on Linux, the physical ones).",
           "examples": [
@@ -5095,6 +5151,22 @@
           "type": [
             "number",
             "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "longBreak": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The break after the last focus round. Default: 15m.",
+          "examples": [
+            "20m"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -5266,6 +5338,35 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         },
+        "rounds": {
+          "description": "Focus rounds before the long break. Default: 4.",
+          "examples": [
+            3
+          ],
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "shortBreak": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The break after a focus phase. Default: 5m.",
+          "examples": [
+            "10m"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "slug": {
           "description": "The status page's slug (the last part of its address)",
           "examples": [
@@ -5292,6 +5393,18 @@
           "items": {},
           "type": [
             "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "task": {
+          "description": "The task label the focusTimer preset shows.",
+          "examples": [
+            "Writing: onboarding copy"
+          ],
+          "type": [
+            "string",
             "null"
           ],
           "x-vestal-kind": "literal",
@@ -5871,6 +5984,218 @@
           "x-vestal-since": "0.4"
         },
         "when": {
+          "description": "always: fetched whether or not the dashboard is shown. visible: only while it is shown and a widget reads it.",
+          "enum": [
+            "always",
+            "visible",
+            null
+          ],
+          "examples": [
+            "visible"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
+    "source.timer": {
+      "additionalProperties": false,
+      "description": "A pomodoro timer that keeps its state in the running vestal: focus and break lengths, rounds, a task label.",
+      "properties": {
+        "autoStart": {
+          "description": "true: start the next phase by itself when one ends. Default: false, the timer waits, ready, for the start key.",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "cache": {
+          "default": false,
+          "description": "false: never written to disk.",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "focus": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The length of a focus phase. Default: 25m.",
+          "examples": [
+            "50m"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "history": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/history"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Named number histories for sparklines, kept across restarts.",
+          "examples": [
+            {
+              "price": {
+                "every": "5m",
+                "size": 288,
+                "value": ".usd"
+              }
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "longBreak": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The break after the last focus round. Default: 15m.",
+          "examples": [
+            "20m"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxAge": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cached data older than this is not shown at startup.",
+          "examples": [
+            "1h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "refresh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "1s",
+          "description": "How often to fetch.",
+          "examples": [
+            "5m",
+            "4h"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.3"
+        },
+        "rounds": {
+          "description": "Focus rounds before the long break. Default: 4.",
+          "examples": [
+            3
+          ],
+          "minimum": 1,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "shortBreak": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/duration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The break after a focus phase. Default: 5m.",
+          "examples": [
+            "10m"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "task": {
+          "description": "The task label the focusTimer preset shows.",
+          "examples": [
+            "Writing: onboarding copy"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "transform": {
+          "description": "A jq expression applied to the data before widgets see it; the cache keeps the data untransformed.",
+          "examples": [
+            ".items"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The source type.",
+          "enum": [
+            "timer"
+          ],
+          "examples": [
+            "timer"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "default": "visible",
           "description": "always: fetched whether or not the dashboard is shown. visible: only while it is shown and a widget reads it.",
           "enum": [
             "always",
@@ -7235,6 +7560,9 @@
           "$ref": "#/$defs/widget.cryptoTicker"
         },
         {
+          "$ref": "#/$defs/widget.dayTimeline"
+        },
+        {
           "$ref": "#/$defs/widget.diskBreakdown"
         },
         {
@@ -7244,6 +7572,9 @@
           "$ref": "#/$defs/widget.flakeInputs"
         },
         {
+          "$ref": "#/$defs/widget.focusTimer"
+        },
+        {
           "$ref": "#/$defs/widget.forecast"
         },
         {
@@ -7251,6 +7582,9 @@
         },
         {
           "$ref": "#/$defs/widget.grid"
+        },
+        {
+          "$ref": "#/$defs/widget.habits"
         },
         {
           "$ref": "#/$defs/widget.headlines"
@@ -7287,6 +7621,9 @@
         },
         {
           "$ref": "#/$defs/widget.networkRates"
+        },
+        {
+          "$ref": "#/$defs/widget.nextMeeting"
         },
         {
           "$ref": "#/$defs/widget.nowPlaying"
@@ -7343,6 +7680,9 @@
           "$ref": "#/$defs/widget.timeline"
         },
         {
+          "$ref": "#/$defs/widget.todoFile"
+        },
+        {
           "$ref": "#/$defs/widget.topProcesses"
         },
         {
@@ -7373,7 +7713,7 @@
       "description": "The next events from a calendar source.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -7433,6 +7773,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -7661,7 +8012,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -7822,7 +8173,7 @@
       "description": "Claude and Codex plan windows as full-width bars with when each resets and an even-pace tick for the weekly ones",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -7882,6 +8233,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -8153,7 +8515,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -8322,7 +8684,7 @@
       "description": "One service's plan windows as full-width bars: percent, when it resets and, for weekly windows, an even-pace tick",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -8382,6 +8744,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -8630,7 +9003,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -8779,7 +9152,7 @@
       "description": "Claude and Codex plan usage in one row: the 5-hour and weekly windows as small bars, with when each resets",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -8839,6 +9212,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -9058,7 +9442,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -9227,7 +9611,7 @@
       "description": "One plan-usage window: a small bar with its percentage, then when it resets",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -9287,6 +9671,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -9509,7 +9904,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -9670,7 +10065,7 @@
       "description": "Last run, result and next run of each backup job, from a directory of small JSON status files; failures say why",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -9730,6 +10125,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -9970,7 +10376,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -10119,7 +10525,7 @@
       "description": "A small pill of text",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -10179,6 +10585,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -10401,7 +10818,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -10563,7 +10980,7 @@
       "description": "A bar chart from an array of numbers or of {value, label, color}.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -10642,6 +11059,17 @@
           "description": "Vertical: a column's width (default: the columns share the width). Horizontal: a bar's thickness (6).",
           "examples": [
             8
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -10993,7 +11421,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -11169,7 +11597,7 @@
       "description": "Charge, time left, power draw over time and the battery's health",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -11229,6 +11657,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -11430,7 +11869,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -11588,7 +12027,7 @@
       "description": "The latest GitHub Actions results per repository and branch: a state icon, the last results as coloured cells and how long the newest took",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -11648,6 +12087,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -11849,7 +12299,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -12041,7 +12491,7 @@
       "description": "An icon and 'session% / weekly%' from a claude or codex source ('–' for a window it doesn't report)",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -12101,6 +12551,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -12315,7 +12776,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -12464,7 +12925,7 @@
       "description": "Claude plan usage, 5-hour and weekly percentages, from the claude source.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -12524,6 +12985,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -12750,7 +13222,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -12912,7 +13384,7 @@
       "description": "The local time and date.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -12972,6 +13444,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -13186,7 +13669,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -13355,7 +13838,7 @@
       "description": "Commits per day across your repositories, as GitHub draws them, with the total and the current streak",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -13428,6 +13911,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -13692,7 +14186,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -13871,7 +14365,7 @@
       "description": "Containers of a Docker or Podman host: how many run and have exited, each one's state, CPU and memory",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -13931,6 +14425,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -14170,7 +14675,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -14345,7 +14850,7 @@
       "description": "Days until the dates you care about, with how much of the wait has passed",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -14405,6 +14910,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -14633,7 +15149,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -14782,7 +15298,7 @@
       "description": "Load per core, performance and efficiency cores apart, with the CPU total, the load average and the core layout",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -14842,6 +15358,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -15043,7 +15570,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -15201,7 +15728,7 @@
       "description": "Prices with 24-hour change and a day of history for a few coins (CoinGecko, no key)",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -15261,6 +15788,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -15488,7 +16026,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -15632,12 +16170,12 @@
       "type": "object",
       "x-vestal-since": "0.4"
     },
-    "widget.diskBreakdown": {
+    "widget.dayTimeline": {
       "additionalProperties": false,
-      "description": "The mounted volumes with their use, and for the first one what fills it by category (from a diskUsage source)",
+      "description": "Today's events on a strip with a now line: overlaps on rows of their own, finished events dimmed, and a summary under it",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -15697,6 +16235,504 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "calendarColors": {
+          "default": {},
+          "description": "A colour per calendar name: {\"Work\": \"accent\"}",
+          "examples": [
+            {}
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "description": "Clip children to the frame.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "height": {
+          "default": 56,
+          "description": "Height of the strip, in points",
+          "examples": [
+            56
+          ],
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "hour12": {
+          "default": false,
+          "description": "Times as 1:46 PM instead of 13:46",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "hours": {
+          "default": 10,
+          "description": "How many hours the strip covers",
+          "examples": [
+            10
+          ],
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "id": {
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
+          "examples": [
+            "cpu"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "input": {
+          "description": "Re-roots . for this subtree.",
+          "examples": [
+            ".current_condition[0]"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "key": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A key that runs action; auto takes the first free letter of keyHint.",
+          "examples": [
+            "g",
+            "auto"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "keyHint": {
+          "description": "Letters auto tries, in order. Default: the widget's first text.",
+          "examples": [
+            "{{ .name }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "lead": {
+          "default": 3,
+          "description": "How many of them are before now (the strip starts earlier late in the day, and never before midnight)",
+          "examples": [
+            3
+          ],
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "loading": {
+          "default": "hide",
+          "description": "While this widget's own source has never produced data: hide, show (with . = null), or a widget to draw instead.",
+          "examples": [
+            "show"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest width.",
+          "examples": [
+            400
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The least width.",
+          "examples": [
+            40
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "0 to 1.",
+          "examples": [
+            0.6
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "padding": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Inside the frame: a number, or [top, right, bottom, left].",
+          "examples": [
+            8,
+            [
+              2,
+              6,
+              2,
+              6
+            ]
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "palette": {
+          "default": [
+            "accent",
+            "cyan",
+            "orange",
+            "purple",
+            "teal",
+            "good"
+          ],
+          "description": "Colours given to calendars, by a hash of their name",
+          "examples": [
+            [
+              "accent",
+              "cyan",
+              "orange",
+              "purple",
+              "teal",
+              "good"
+            ]
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Corner radius of the background and the border.",
+          "examples": [
+            4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "default": "calendar",
+          "description": "A calendar source. Set \"includePast\": true on it to see events that already ended",
+          "examples": [
+            "calendar"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "spaceBefore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Space before this child in a stack or row, instead of the parent's gap. Ignored on the first visible child.",
+          "examples": [
+            24
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "Grid columns this child takes.",
+          "examples": [
+            2
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/style"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style and colour, inherited by everything under it.",
+          "examples": [
+            {
+              "color": "subtle",
+              "size": 12
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "dayTimeline"
+          ],
+          "examples": [
+            "dayTimeline"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Binds $name for this subtree; a var may use the others it names.",
+          "examples": [
+            {
+              "b": "find({casa: \"blue\"})"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "Hidden when it yields false or null. A hidden widget takes no space.",
+          "examples": [
+            ".battery != null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "width": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill (the space the parent offers) or fit.",
+          "examples": [
+            60,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
+    "widget.diskBreakdown": {
+      "additionalProperties": false,
+      "description": "The mounted volumes with their use, and for the first one what fills it by category (from a diskUsage source)",
+      "properties": {
+        "action": {
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
+          "examples": [
+            {
+              "open": "{{ .url }}"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alignSelf": {
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-axis alignment of this child. Default: the parent's align.",
+          "examples": [
+            "center"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alt": {
+          "description": "Plain-text rendition for text-only UIs and accessibility.",
+          "examples": [
+            "CPU {{ .cpu.percent }}%"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "background": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A colour painted behind the padded frame.",
+          "examples": [
+            "track",
+            "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -15898,7 +16934,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -16056,7 +17092,7 @@
       "description": "A rule.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -16140,6 +17176,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -16359,7 +17406,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -16528,7 +17575,7 @@
       "description": "How old each locked input of a Nix flake is, coloured by age, and with behind: true how many commits each GitHub input has gained since",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -16614,6 +17661,17 @@
           "type": [
             "boolean",
             "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -16853,7 +17911,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -17040,12 +18098,12 @@
       "type": "object",
       "x-vestal-since": "0.4"
     },
-    "widget.forecast": {
+    "widget.focusTimer": {
       "additionalProperties": false,
-      "description": "Hourly temperature bars with the rain chance marked, and the coming days as low-to-high range bars (Open-Meteo)",
+      "description": "A pomodoro ring with the round and the task, driven from the keyboard (the timer source keeps the state)",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -17105,6 +18163,508 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "breakColor": {
+          "default": "good",
+          "description": "The ring in a break",
+          "examples": [
+            "good"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "description": "Clip children to the frame.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "focusColor": {
+          "default": "orange",
+          "description": "The ring in a focus phase",
+          "examples": [
+            "orange"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "height": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill or fit.",
+          "examples": [
+            24,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "id": {
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
+          "examples": [
+            "cpu"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "input": {
+          "description": "Re-roots . for this subtree.",
+          "examples": [
+            ".current_condition[0]"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "key": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A key that runs action; auto takes the first free letter of keyHint.",
+          "examples": [
+            "g",
+            "auto"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "keyHint": {
+          "description": "Letters auto tries, in order. Default: the widget's first text.",
+          "examples": [
+            "{{ .name }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "loading": {
+          "default": "hide",
+          "description": "While this widget's own source has never produced data: hide, show (with . = null), or a widget to draw instead.",
+          "examples": [
+            "show"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest width.",
+          "examples": [
+            400
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The least width.",
+          "examples": [
+            40
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "0 to 1.",
+          "examples": [
+            0.6
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "padding": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Inside the frame: a number, or [top, right, bottom, left].",
+          "examples": [
+            8,
+            [
+              2,
+              6,
+              2,
+              6
+            ]
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Corner radius of the background and the border.",
+          "examples": [
+            4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "resetKey": {
+          "default": "r",
+          "description": "Resets the phase; again, the whole cycle",
+          "examples": [
+            "r"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "skipKey": {
+          "default": "n",
+          "description": "Skips to the next phase",
+          "examples": [
+            "n"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "default": {
+            "type": "timer"
+          },
+          "description": "A timer source; the default one has the usual lengths (25m focus, 5m break, 15m long break after 4 rounds)",
+          "examples": [
+            {
+              "type": "timer"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "spaceBefore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Space before this child in a stack or row, instead of the parent's gap. Ignored on the first visible child.",
+          "examples": [
+            24
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "Grid columns this child takes.",
+          "examples": [
+            2
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/style"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style and colour, inherited by everything under it.",
+          "examples": [
+            {
+              "color": "subtle",
+              "size": 12
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "task": {
+          "default": "",
+          "description": "The task shown under the round. Default: the source's task",
+          "examples": [
+            "x"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "toggleKey": {
+          "default": "space",
+          "description": "Starts and pauses",
+          "examples": [
+            "space"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "focusTimer"
+          ],
+          "examples": [
+            "focusTimer"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Binds $name for this subtree; a var may use the others it names.",
+          "examples": [
+            {
+              "b": "find({casa: \"blue\"})"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "Hidden when it yields false or null. A hidden widget takes no space.",
+          "examples": [
+            ".battery != null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "width": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill (the space the parent offers) or fit.",
+          "examples": [
+            60,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
+    "widget.forecast": {
+      "additionalProperties": false,
+      "description": "Hourly temperature bars with the rain chance marked, and the coming days as low-to-high range bars (Open-Meteo)",
+      "properties": {
+        "action": {
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
+          "examples": [
+            {
+              "open": "{{ .url }}"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alignSelf": {
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-axis alignment of this child. Default: the parent's align.",
+          "examples": [
+            "center"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alt": {
+          "description": "Plain-text rendition for text-only UIs and accessibility.",
+          "examples": [
+            "CPU {{ .cpu.percent }}%"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "background": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A colour painted behind the padded frame.",
+          "examples": [
+            "track",
+            "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -17332,7 +18892,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -17477,7 +19037,7 @@
       "description": "A ring with centre text.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -17537,6 +19097,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -17805,7 +19376,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -18071,7 +19642,7 @@
       "description": "Children row by row in aligned columns.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -18131,6 +19702,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -18388,7 +19970,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -18552,12 +20134,513 @@
       "type": "object",
       "x-vestal-since": "0.4"
     },
+    "widget.habits": {
+      "additionalProperties": false,
+      "description": "Weeks of days per habit as a strip, with the current streak; today's cell is outlined until the habit is done",
+      "properties": {
+        "action": {
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
+          "examples": [
+            {
+              "open": "{{ .url }}"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alignSelf": {
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-axis alignment of this child. Default: the parent's align.",
+          "examples": [
+            "center"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alt": {
+          "description": "Plain-text rendition for text-only UIs and accessibility.",
+          "examples": [
+            "CPU {{ .cpu.percent }}%"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "background": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A colour painted behind the padded frame.",
+          "examples": [
+            "track",
+            "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "description": "Clip children to the frame.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "colors": {
+          "default": [
+            "good",
+            "accent",
+            "purple",
+            "orange",
+            "cyan",
+            "teal"
+          ],
+          "description": "Colours for habits without a color of their own, in order",
+          "examples": [
+            [
+              "good",
+              "accent",
+              "purple",
+              "orange",
+              "cyan",
+              "teal"
+            ]
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "height": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill or fit.",
+          "examples": [
+            24,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "id": {
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
+          "examples": [
+            "cpu"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "input": {
+          "description": "Re-roots . for this subtree.",
+          "examples": [
+            ".current_condition[0]"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "key": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A key that runs action; auto takes the first free letter of keyHint.",
+          "examples": [
+            "g",
+            "auto"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "keyHint": {
+          "description": "Letters auto tries, in order. Default: the widget's first text.",
+          "examples": [
+            "{{ .name }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "loading": {
+          "default": "hide",
+          "description": "While this widget's own source has never produced data: hide, show (with . = null), or a widget to draw instead.",
+          "examples": [
+            "show"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest width.",
+          "examples": [
+            400
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The least width.",
+          "examples": [
+            40
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "nameWidth": {
+          "default": 116,
+          "description": "Width of the names column",
+          "examples": [
+            116
+          ],
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "0 to 1.",
+          "examples": [
+            0.6
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "padding": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Inside the frame: a number, or [top, right, bottom, left].",
+          "examples": [
+            8,
+            [
+              2,
+              6,
+              2,
+              6
+            ]
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "path": {
+          "default": "~/.local/share/vestal/habits.json",
+          "description": "A JSON file: {\"habits\": [{\"name\", \"color\", \"days\": [\"2026-10-01\", ...]}]}",
+          "examples": [
+            "~/.local/share/vestal/habits.json"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Corner radius of the background and the border.",
+          "examples": [
+            4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "refresh": {
+          "default": "30s",
+          "description": "How often the file is read while the dashboard is shown",
+          "examples": [
+            "30s"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "description": "The data for this subtree: a source name, or a source definition (an inline source). Sets . and $data.",
+          "examples": [
+            "system",
+            {
+              "parse": "lines",
+              "path": "~/notes.md",
+              "type": "file"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "spaceBefore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Space before this child in a stack or row, instead of the parent's gap. Ignored on the first visible child.",
+          "examples": [
+            24
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "Grid columns this child takes.",
+          "examples": [
+            2
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/style"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style and colour, inherited by everything under it.",
+          "examples": [
+            {
+              "color": "subtle",
+              "size": 12
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "habits"
+          ],
+          "examples": [
+            "habits"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Binds $name for this subtree; a var may use the others it names.",
+          "examples": [
+            {
+              "b": "find({casa: \"blue\"})"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "weeks": {
+          "default": 5,
+          "description": "How many weeks the strip covers, ending today",
+          "examples": [
+            5
+          ],
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "Hidden when it yields false or null. A hidden widget takes no space.",
+          "examples": [
+            ".battery != null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "width": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill (the space the parent offers) or fit.",
+          "examples": [
+            60,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
     "widget.headlines": {
       "additionalProperties": false,
       "description": "Top stories: rank, title, points and comments, source badges and the data's age; a row or its key opens the link",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -18631,6 +20714,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -18858,7 +20952,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -19007,7 +21101,7 @@
       "description": "A grid of cells coloured by value.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -19067,6 +21161,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -19597,7 +21702,7 @@
       "description": "A grid of Home Assistant entities as tiles: icon, label, state with unit, a second line, coloured by state or thresholds",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -19657,6 +21762,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -19884,7 +22000,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -20079,7 +22195,7 @@
       "description": "A host's detail popup: CPU, RAM, GPU, pools or mounts, network and services (v0.3 host popup)",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -20139,6 +22255,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -20361,7 +22488,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -20510,7 +22637,7 @@
       "description": "A glyph from the bundled Phosphor set.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -20570,6 +22697,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -20807,7 +22945,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -21000,7 +23138,7 @@
       "description": "A picture from a file or an http(s) URL.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -21060,6 +23198,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -21446,7 +23595,7 @@
       "description": "Labelled values side by side.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -21531,6 +23680,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -21792,7 +23952,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -21960,7 +24120,7 @@
       "description": "Labelled values picked out of JSON sources, such as exchange rates.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -22020,6 +24180,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -22242,7 +24413,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -22402,7 +24573,7 @@
       "description": "An array as rows, with filter, sort and limit.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -22488,6 +24659,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -22803,7 +24985,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -23015,7 +25197,7 @@
       "description": "What a music player is playing, with play/pause and the output volume.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -23075,6 +25257,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -23302,7 +25495,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -23452,7 +25645,7 @@
       "description": "Where the RAM goes (app, wired, compressed, cached, free) and the memory pressure state",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -23512,6 +25705,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -23713,7 +25917,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -23858,7 +26062,7 @@
       "description": "Download and upload rates with a few minutes of history, and today's totals",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -23918,6 +26122,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -24132,7 +26347,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -24285,12 +26500,481 @@
       "type": "object",
       "x-vestal-since": "0.4"
     },
+    "widget.nextMeeting": {
+      "additionalProperties": false,
+      "description": "The next meeting with a countdown, and keys that open (J) or copy (C) its call link",
+      "properties": {
+        "action": {
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
+          "examples": [
+            {
+              "open": "{{ .url }}"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alignSelf": {
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-axis alignment of this child. Default: the parent's align.",
+          "examples": [
+            "center"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alt": {
+          "description": "Plain-text rendition for text-only UIs and accessibility.",
+          "examples": [
+            "CPU {{ .cpu.percent }}%"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "background": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A colour painted behind the padded frame.",
+          "examples": [
+            "track",
+            "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "description": "Clip children to the frame.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "copyKey": {
+          "default": "c",
+          "description": "Copies the call link",
+          "examples": [
+            "c"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "height": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill or fit.",
+          "examples": [
+            24,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "hour12": {
+          "default": false,
+          "description": "Times as 1:46 PM instead of 13:46",
+          "examples": [
+            false
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "id": {
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
+          "examples": [
+            "cpu"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "input": {
+          "description": "Re-roots . for this subtree.",
+          "examples": [
+            ".current_condition[0]"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "joinKey": {
+          "default": "j",
+          "description": "Opens the call link",
+          "examples": [
+            "j"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "key": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A key that runs action; auto takes the first free letter of keyHint.",
+          "examples": [
+            "g",
+            "auto"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "keyHint": {
+          "description": "Letters auto tries, in order. Default: the widget's first text.",
+          "examples": [
+            "{{ .name }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "loading": {
+          "default": "hide",
+          "description": "While this widget's own source has never produced data: hide, show (with . = null), or a widget to draw instead.",
+          "examples": [
+            "show"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest width.",
+          "examples": [
+            400
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The least width.",
+          "examples": [
+            40
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "0 to 1.",
+          "examples": [
+            0.6
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "padding": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Inside the frame: a number, or [top, right, bottom, left].",
+          "examples": [
+            8,
+            [
+              2,
+              6,
+              2,
+              6
+            ]
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Corner radius of the background and the border.",
+          "examples": [
+            4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "default": "calendar",
+          "description": "A calendar source",
+          "examples": [
+            "calendar"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "spaceBefore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Space before this child in a stack or row, instead of the parent's gap. Ignored on the first visible child.",
+          "examples": [
+            24
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "Grid columns this child takes.",
+          "examples": [
+            2
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/style"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style and colour, inherited by everything under it.",
+          "examples": [
+            {
+              "color": "subtle",
+              "size": 12
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "nextMeeting"
+          ],
+          "examples": [
+            "nextMeeting"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Binds $name for this subtree; a var may use the others it names.",
+          "examples": [
+            {
+              "b": "find({casa: \"blue\"})"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "warn": {
+          "default": 15,
+          "description": "Minutes before the start from which the countdown is in the warning colour",
+          "examples": [
+            15
+          ],
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "Hidden when it yields false or null. A hidden widget takes no space.",
+          "examples": [
+            ".battery != null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "width": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill (the space the parent offers) or fit.",
+          "examples": [
+            60,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
     "widget.nowPlaying": {
       "additionalProperties": false,
       "description": "Album art, title, artist and album, progress with times, and previous / pause / next",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -24363,6 +27047,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -24590,7 +27285,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -24744,7 +27439,7 @@
       },
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -24935,6 +27630,33 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "breakColor": {
+          "description": "The ring in a break",
+          "examples": [
+            "good"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "calendarColors": {
+          "description": "A colour per calendar name: {\"Work\": \"accent\"}",
+          "examples": [
+            {}
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "cases": {
           "additionalProperties": {
             "anyOf": [
@@ -25088,6 +27810,26 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "colors": {
+          "description": "Colours for habits without a color of their own, in order",
+          "examples": [
+            [
+              "good",
+              "accent",
+              "purple",
+              "orange",
+              "cyan",
+              "teal"
+            ]
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "columns": {
           "anyOf": [
             {},
@@ -25101,6 +27843,18 @@
           "description": "A count of equal fill columns, or a list of {width: number | fill | fit, align}.",
           "examples": [
             3
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "copyKey": {
+          "description": "Copies the call link",
+          "examples": [
+            "c"
+          ],
+          "type": [
+            "string",
+            "null"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -25391,6 +28145,14 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
         },
+        "focusColor": {
+          "description": "The ring in a focus phase",
+          "examples": [
+            "orange"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "format": {
           "description": "Horizontal: a text format name for the value text. Default: the number, rounded.",
           "examples": [
@@ -25569,9 +28331,9 @@
           "x-vestal-since": "0.4"
         },
         "hours": {
-          "description": "Hours of bars",
+          "description": "How many hours the strip covers",
           "examples": [
-            12
+            10
           ],
           "type": [
             "integer",
@@ -25683,6 +28445,18 @@
           "items": {},
           "type": [
             "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "joinKey": {
+          "description": "Opens the call link",
+          "examples": [
+            "j"
+          ],
+          "type": [
+            "string",
             "null"
           ],
           "x-vestal-kind": "literal",
@@ -25820,6 +28594,18 @@
           "description": "Draw the labels: under the columns (small, dim), or before the rows. Default: false for vertical, true for horizontal.",
           "examples": [
             true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "lead": {
+          "description": "How many of them are before now (the strip starts earlier late in the day, and never before midnight)",
+          "examples": [
+            3
+          ],
+          "type": [
+            "integer",
+            "null"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -25990,6 +28776,18 @@
             "null"
           ],
           "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "nameWidth": {
+          "description": "Width of the names column",
+          "examples": [
+            116
+          ],
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
         "now": {
@@ -26165,6 +28963,26 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "palette": {
+          "description": "Colours given to calendars, by a hash of their name",
+          "examples": [
+            [
+              "accent",
+              "cyan",
+              "orange",
+              "purple",
+              "teal",
+              "good"
+            ]
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "path": {
           "description": "Ignored (it was Claude Code's log directory).",
           "examples": [
@@ -26307,7 +29125,7 @@
               "type": "null"
             }
           ],
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -26338,6 +29156,18 @@
           "items": {},
           "type": [
             "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "resetKey": {
+          "description": "Resets the phase; again, the whole cycle",
+          "examples": [
+            "r"
+          ],
+          "type": [
+            "string",
             "null"
           ],
           "x-vestal-kind": "literal",
@@ -26490,6 +29320,18 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "section": {
+          "description": "Only the tasks under this heading (## Today), at any depth. Default: the whole file",
+          "examples": [
+            "x"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "segments": {
           "description": "An array of {value, label?, color?}: an expression or a literal array.",
           "examples": [
@@ -26509,6 +29351,18 @@
           "items": {},
           "type": [
             "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "showDone": {
+          "description": "Also list ticked tasks (dimmed, without a key)",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
             "null"
           ],
           "x-vestal-kind": "literal",
@@ -26541,6 +29395,18 @@
           "description": "Diameter in points.",
           "examples": [
             48
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "skipKey": {
+          "description": "Skips to the next phase",
+          "examples": [
+            "n"
+          ],
+          "type": [
+            "string",
+            "null"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -26766,6 +29632,18 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "task": {
+          "description": "The task shown under the round. Default: the source's task",
+          "examples": [
+            "x"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "text": {
           "description": "The text parameter (text).",
           "examples": [
@@ -26878,6 +29756,18 @@
             "now + 86400"
           ],
           "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "toggleKey": {
+          "description": "Starts and pauses",
+          "examples": [
+            "space"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
         "total": {
@@ -27182,7 +30072,7 @@
       "description": "A horizontal bar with an optional label, value text and overlay.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -27242,6 +30132,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -27599,7 +30500,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -27858,7 +30759,7 @@
       "description": "Pull requests waiting on your review, newest first: repository and number, title, size, author and age, with a summary",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -27918,6 +30819,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -28145,7 +31057,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -28324,7 +31236,7 @@
       "description": "Children left to right.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -28411,6 +31323,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -28676,7 +31599,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -28825,7 +31748,7 @@
       "description": "A titled block: upper-case header with a rule, then the children",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -28885,6 +31808,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -29115,7 +32049,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -29277,7 +32211,7 @@
       "description": "Flexible space along the parent's axis (a fixed gap with width or height).",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -29337,6 +32271,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -29558,7 +32503,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -29707,7 +32652,7 @@
       "description": "A line from an array or a history.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -29767,6 +32712,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -30082,7 +33038,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -30275,7 +33231,7 @@
       "description": "Children top to bottom.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -30361,6 +33317,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -30626,7 +33593,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -30775,7 +33742,7 @@
       "description": "One bar split into coloured segments.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -30835,6 +33802,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -31286,7 +34264,7 @@
       "description": "A big value, a label and an optional coloured delta",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -31346,6 +34324,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -31633,7 +34622,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -31833,7 +34822,7 @@
       "description": "The sun's place on today's arc, sunrise and sunset, day length and its daily change, and the moon's phase",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -31893,6 +34882,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -32107,7 +35107,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -32252,7 +35252,7 @@
       "description": "One child picked by a value.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -32312,6 +35312,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -32571,7 +35582,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -32720,7 +35731,7 @@
       "description": "A row of system stats.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -32780,6 +35791,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -33032,7 +36054,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -33233,7 +36255,7 @@
       "description": "CPU, memory, temperature and uptime of hosts.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -33293,6 +36315,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -33530,7 +36563,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -33692,7 +36725,7 @@
       "description": "A list whose columns line up across rows.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -33752,6 +36785,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -34061,7 +37105,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -34284,7 +37328,7 @@
       "description": "Your Tailscale devices: online state, address and roles such as exit node and subnet router",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -34344,6 +37388,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -34571,7 +37626,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -34756,12 +37811,15 @@
               "countdowns",
               "cpuCores",
               "cryptoTicker",
+              "dayTimeline",
               "diskBreakdown",
               "divider",
               "flakeInputs",
+              "focusTimer",
               "forecast",
               "gauge",
               "grid",
+              "habits",
               "headlines",
               "heatmap",
               "homeAssistant",
@@ -34774,6 +37832,7 @@
               "media",
               "memoryBreakdown",
               "networkRates",
+              "nextMeeting",
               "nowPlaying",
               "progress",
               "reviewQueue",
@@ -34793,6 +37852,7 @@
               "tailnet",
               "text",
               "timeline",
+              "todoFile",
               "topProcesses",
               "transfers",
               "uptimeMonitors",
@@ -34816,7 +37876,7 @@
       "description": "Text, with an optional leading icon and a formatted value.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -34901,6 +37961,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -35283,7 +38354,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -35504,7 +38575,7 @@
       "description": "A time axis with items as bars and markers.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -35564,6 +38635,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -35849,7 +38931,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -36001,12 +39083,12 @@
       "type": "object",
       "x-vestal-since": "0.4"
     },
-    "widget.topProcesses": {
+    "widget.todoFile": {
       "additionalProperties": false,
-      "description": "The busiest processes by CPU, with their memory",
+      "description": "The tasks of a markdown checklist, each open one with a key that ticks it off in the file",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -36066,6 +39148,516 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "description": "Clip children to the frame.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "height": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill or fit.",
+          "examples": [
+            24,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "id": {
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
+          "examples": [
+            "cpu"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "input": {
+          "description": "Re-roots . for this subtree.",
+          "examples": [
+            ".current_condition[0]"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "key": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A key that runs action; auto takes the first free letter of keyHint.",
+          "examples": [
+            "g",
+            "auto"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "keyHint": {
+          "description": "Letters auto tries, in order. Default: the widget's first text.",
+          "examples": [
+            "{{ .name }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "keys": {
+          "default": "asdfqwetyuzxvbm",
+          "description": "The letters given to the open tasks, in order",
+          "examples": [
+            "asdfqwetyuzxvbm"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "limit": {
+          "default": 8,
+          "description": "At most this many tasks",
+          "examples": [
+            8
+          ],
+          "type": [
+            "integer",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "loading": {
+          "default": "hide",
+          "description": "While this widget's own source has never produced data: hide, show (with . = null), or a widget to draw instead.",
+          "examples": [
+            "show"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest width.",
+          "examples": [
+            400
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The least width.",
+          "examples": [
+            40
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "0 to 1.",
+          "examples": [
+            0.6
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "padding": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Inside the frame: a number, or [top, right, bottom, left].",
+          "examples": [
+            8,
+            [
+              2,
+              6,
+              2,
+              6
+            ]
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "path": {
+          "default": "~/notes/todo.md",
+          "description": "The markdown file; \"- [ ] task\" lines are the tasks",
+          "examples": [
+            "~/notes/todo.md"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Corner radius of the background and the border.",
+          "examples": [
+            4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "refresh": {
+          "default": "10s",
+          "description": "How often the file is read while the dashboard is shown",
+          "examples": [
+            "10s"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "section": {
+          "default": "",
+          "description": "Only the tasks under this heading (## Today), at any depth. Default: the whole file",
+          "examples": [
+            "x"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "showDone": {
+          "default": true,
+          "description": "Also list ticked tasks (dimmed, without a key)",
+          "examples": [
+            true
+          ],
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "description": "The data for this subtree: a source name, or a source definition (an inline source). Sets . and $data.",
+          "examples": [
+            "system",
+            {
+              "parse": "lines",
+              "path": "~/notes.md",
+              "type": "file"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "spaceBefore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Space before this child in a stack or row, instead of the parent's gap. Ignored on the first visible child.",
+          "examples": [
+            24
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "Grid columns this child takes.",
+          "examples": [
+            2
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/style"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style and colour, inherited by everything under it.",
+          "examples": [
+            {
+              "color": "subtle",
+              "size": 12
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "todoFile"
+          ],
+          "examples": [
+            "todoFile"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Binds $name for this subtree; a var may use the others it names.",
+          "examples": [
+            {
+              "b": "find({casa: \"blue\"})"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "Hidden when it yields false or null. A hidden widget takes no space.",
+          "examples": [
+            ".battery != null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "width": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill (the space the parent offers) or fit.",
+          "examples": [
+            60,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
+    "widget.topProcesses": {
+      "additionalProperties": false,
+      "description": "The busiest processes by CPU, with their memory",
+      "properties": {
+        "action": {
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
+          "examples": [
+            {
+              "open": "{{ .url }}"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alignSelf": {
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-axis alignment of this child. Default: the parent's align.",
+          "examples": [
+            "center"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alt": {
+          "description": "Plain-text rendition for text-only UIs and accessibility.",
+          "examples": [
+            "CPU {{ .cpu.percent }}%"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "background": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A colour painted behind the padded frame.",
+          "examples": [
+            "track",
+            "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -36280,7 +39872,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -36442,7 +40034,7 @@
       "description": "Downloads and long jobs with a bar, speed and time left (an aria2 source, or any list of {name, percent, detail, right})",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -36502,6 +40094,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -36716,7 +40319,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -36865,7 +40468,7 @@
       "description": "Status dots, 45 bars of history, uptime and the latest incident for each monitored service (an uptimeKuma or healthchecks source)",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -36925,6 +40528,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -37139,7 +40753,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -37301,7 +40915,7 @@
       "description": "A short stock list with intraday lines and the day's change; the market state under it (Yahoo Finance, no key)",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -37361,6 +40975,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -37588,7 +41213,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -37737,7 +41362,7 @@
       "description": "Current weather from a JSON source; the fields are paths, so any weather API works.",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -37797,6 +41422,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -38016,7 +41652,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],
@@ -38195,7 +41831,7 @@
       "description": "Cities side by side: local time there, day or night, the offset from here and whether it is working hours",
       "properties": {
         "action": {
-          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, hide.",
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
           "examples": [
             {
               "open": "{{ .url }}"
@@ -38255,6 +41891,17 @@
           "examples": [
             "track",
             "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -38530,7 +42177,7 @@
             }
           ],
           "default": 0,
-          "description": "Corner radius of the background.",
+          "description": "Corner radius of the background and the border.",
           "examples": [
             4
           ],

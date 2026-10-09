@@ -184,7 +184,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     /// Nil: only `refresh` counts.
     public var showRefreshSeconds: TimeInterval? {
         if type == "timer" { return 0 }
-        type == "claude" || type == "codex" || type == "astro" ? min(60, refreshSeconds) : nil
+        return type == "claude" || type == "codex" || type == "astro" ? min(60, refreshSeconds) : nil
     }
 
     public var type: String                 // a key of `keysByType` (aliases resolved)
