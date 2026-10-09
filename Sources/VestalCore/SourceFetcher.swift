@@ -495,6 +495,7 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
     private var response: URLResponse?
     private var tooLarge = false
     private var expired = false
+    private var challenged = false
     private var continuation: CheckedContinuation<(Data, URLResponse), Error>?
 
     init(limit: Int) {
@@ -530,13 +531,17 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
     }
 
     /// Credentials are sent preemptively, so a Basic or Digest challenge means
-    /// they were wrong or missing: let the 401 through at once instead of
-    /// leaving the request waiting for an answer (Linux). TLS checks keep
-    /// the default handling.
+    /// they were wrong or missing: end the request at once with a 401 (see
+    /// `didCompleteWithError`) instead of leaving it waiting for an answer
+    /// (Linux). TLS checks keep the default handling.
     func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge,
                     completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
         let method = challenge.protectionSpace.authenticationMethod
-        if method == NSURLAuthenticationMethodHTTPBasic || method == NSURLAuthenticationMethodHTTPDigest {
+        if !challenge.protectionSpace.isProxy,
+           method == NSURLAuthenticationMethodHTTPBasic || method == NSURLAuthenticationMethodHTTPDigest {
+            lock.lock()
+            challenged = true
+            lock.unlock()
             completionHandler(.cancelAuthenticationChallenge, nil)
         } else {
             completionHandler(.performDefaultHandling, nil)
@@ -559,6 +564,10 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
             result = .failure(SourceError("response larger than \(limit / 1024 / 1024) MiB"))
         } else if expired, error != nil {
             result = .failure(URLError(.timedOut))
+        } else if challenged, response == nil, let url = task.originalRequest?.url,
+                  let unauthorized = HTTPURLResponse(url: url, statusCode: 401, httpVersion: nil, headerFields: nil) {
+            // The challenge was cancelled, which URLSession reports as an error.
+            result = .success((Data(), unauthorized))
         } else if let error {
             result = .failure(error)
         } else if let response = response ?? task.response {
