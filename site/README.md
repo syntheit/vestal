@@ -18,7 +18,7 @@ What it does:
 2. Composes the hero and any starter that has no sample yet from widget samples (below), checks each config and renders each page with that page's own samples' data and time.
 3. Runs the agent exchange for real: `check-config --json` on the draft, `render` and `screenshot --json` on the result, and puts their output on the page.
 4. Reads text from the repository: each widget's JSON from the first example under its heading in `docs/reference/presets.md` (or the sample's widget, whichever `check-config` accepts first), the backgrounds table in `docs/reference/styling.md`, the aurora's comment in `Resources/shaders/aurora.glsl`, and `vestal docs` for the agents section.
-5. Writes `site/dist/`: `index.html`, `site.css`, `site.js`, `data.json` (everything the page draws), `renderer/` (a copy of `web/renderer/`), `assets/icons/` (the Phosphor fonts), `assets/shaders/` and `assets/samples/` (pictures sample data points at).
+5. Writes `site/dist/`: `index.html`, `site.css`, `site.js`, `data.json` (everything the page draws), `renderer/` (a copy of `web/renderer/`), `assets/icons/` (the Phosphor fonts), `assets/fonts/` (the typefaces), `assets/shaders/` and `assets/samples/` (pictures sample data points at).
 6. Writes `site/dist-preview.html`: the same page in one file, for places that allow no other fetches (the renderer and page script bundled into one module, the data, shaders, icon fonts and pictures inline; only Google Fonts is fetched). It has no `<html>`, `<head>` or `<body>`: it starts with `<title>` and `<style>`, for hosts that wrap a fragment.
 
 `site/.cache/`, `site/dist/` and `site/dist-preview.html` are git-ignored.

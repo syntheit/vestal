@@ -13827,7 +13827,7 @@
         },
         "minutesColor": {
           "default": "accent",
-          "description": "stacked: the minutes' colour",
+          "description": "stacked: the minutes' color",
           "examples": [
             "accent"
           ],
@@ -29069,7 +29069,7 @@
           "x-vestal-since": "0.4"
         },
         "minutesColor": {
-          "description": "stacked: the minutes' colour",
+          "description": "stacked: the minutes' color",
           "examples": [
             "accent"
           ],
