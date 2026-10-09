@@ -48,7 +48,8 @@ struct AnalogDrawing: View {
         let time = AnalogMath.time(date, zone: analog.zone)
         let angles = AnalogMath.angles(time, mode: mode)
         let ink = style.color(analog.color)
-        let faceColor = style.color(analog.faceColor, default: "text@0.035")
+        let dayFace = style.color(analog.faceColor, default: "text@0.035")
+        let faceColor = AnalogMath.isDay(hour: time.hour) ? dayFace : (analog.nightFaceColor.map { style.color($0) } ?? dayFace)
         let secondsColor = style.color(analog.secondsColor)
         let pivotColor = style.color(analog.pivotColor)
         let hole = style.color("bg")
@@ -68,6 +69,12 @@ struct AnalogDrawing: View {
             if g.dotRadius > 0 {
                 context.fill(Path(ellipseIn: CGRect(x: c - g.dotRadius, y: g.dotY - g.dotRadius, width: g.dotRadius * 2, height: g.dotRadius * 2)),
                              with: .color(style.color(analog.color + "@0.75")))
+            }
+            for mark in g.dotMarks {
+                let p = point(g.tickDotOrbit, mark.degrees)
+                let r = mark.major ? g.tickDotMajorRadius : g.tickDotRadius
+                context.fill(Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)),
+                             with: .color(style.color(analog.color + "@0.6")))
             }
             for tick in g.ticks {
                 let length = tick.major ? g.hourTickLength : g.minuteTickLength
@@ -277,4 +284,70 @@ enum RingMarks {
         }
     }
 }
+// MARK: - Moon
+
+/// The disc in `trackColor` with the lit part over it, from MoonGeometry's
+/// outline (the same points as the other UIs).
+struct MoonDrawing: View {
+    let moon: RenderNode.Moon
+    let style: RenderStyle
+
+    var body: some View {
+        let lit = style.color(moon.color)
+        let track = moon.trackColor.map { style.color($0) } ?? Color(white: 1, opacity: 0.08)
+        Canvas { context, size in
+            let side = Double(min(size.width, size.height))
+            guard side > 0 else { return }
+            let r = CGFloat(MoonGeometry.radius(size: side)), c = CGFloat(side / 2)
+            context.fill(Path(ellipseIn: CGRect(x: c - r, y: c - r, width: 2 * r, height: 2 * r)), with: .color(track))
+            let points = MoonGeometry.litOutline(phase: moon.phase, size: side)
+            guard let first = points.first else { return }
+            var path = Path()
+            path.move(to: CGPoint(x: first.x, y: first.y))
+            for p in points.dropFirst() { path.addLine(to: CGPoint(x: p.x, y: p.y)) }
+            path.closeSubpath()
+            context.fill(path, with: .color(lit))
+        }
+    }
+}
+
+// MARK: - Matrix
+
+/// Every cell of the panel from MatrixGeometry: the unlit ones in `offColor`
+/// (a faint wash), the lit ones in `color`.
+struct MatrixDrawing: View {
+    let matrix: RenderNode.Matrix
+    let style: RenderStyle
+
+    var body: some View {
+        let lit = style.color(matrix.color)
+        let off = matrix.offColor.map { style.color($0) } ?? Color(white: 1, opacity: 0.065)
+        let layout = matrix.layout
+        Canvas { context, size in
+            context.translateBy(x: (size.width - layout.width) / 2, y: (size.height - layout.height) / 2)
+            for cell in layout.cells {
+                let color = cell.lit ? lit : off
+                switch cell.kind {
+                case .dot:
+                    context.fill(Path(ellipseIn: CGRect(x: cell.x - cell.radius, y: cell.y - cell.radius,
+                                                        width: cell.radius * 2, height: cell.radius * 2)), with: .color(color))
+                case .rect:
+                    context.fill(RoundedRectangle(cornerRadius: cell.radius)
+                        .path(in: CGRect(x: cell.x, y: cell.y, width: cell.width, height: cell.height)), with: .color(color))
+                case .polygon:
+                    var path = Path()
+                    var i = 0
+                    while i + 1 < cell.points.count {
+                        let p = CGPoint(x: cell.points[i], y: cell.points[i + 1])
+                        if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
+                        i += 2
+                    }
+                    path.closeSubpath()
+                    context.fill(path, with: .color(color))
+                }
+            }
+        }
+    }
+}
+
 #endif

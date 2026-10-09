@@ -9,7 +9,8 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 | Containers | `stack` (top to bottom), `row` (left to right), `grid` (aligned columns), `list` (an array as rows), `table` (a list with aligned columns), `switch` (one child picked by a value) |
 | Primitives | `text`, `icon`, `progress` (bar), `gauge` (ring), `sparkline`, `keyValue`, `divider`, `spacer` |
 | Charts | `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
-| Clocks | `analog`, `flip` (the faces of the `clock` preset) |
+| Clocks | `analog`, `flip`, `matrix` (the faces of the `clock` preset) |
+| Sky | `moon` (the moon's phase) |
 | Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the system presets `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and the developer widgets `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`, and the homelab widgets `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers`, and `headlines`, `cryptoTicker`, `watchlist`, `dayTimeline`, `nextMeeting`, `focusTimer`, `todoFile`, `habits`, `homeAssistant` and `nowPlaying` (`vestal docs presets`) |
 | Your templates | any name under `templates` (`vestal docs templates`) |
 
@@ -160,7 +161,7 @@ A glyph from the bundled Phosphor set (`vestal icons <query>`), `regular` or `fi
 
 ### `progress`
 
-A horizontal bar: `(value − min) / (max − min)`, clamped. Optional `label` before it, `text` after it (default `"{{ $value | round }}%"`; `""` for none), and an `overlay`, a second value on the same scale drawn `above` or `below` the fill. `start` (same scale) moves where the fill begins, so the fill covers `start` to `value`: a range bar for a low-to-high span. `tick` (same scale) draws a thin mark, `tickColor` its color (default white at about 55%): where usage would be at an even pace, say. `width` is the bar's own width (default `fill`).
+A horizontal bar: `(value − min) / (max − min)`, clamped. Optional `label` before it, `text` after it (default `"{{ $value | round }}%"`; `""` for none), and an `overlay`, a second value on the same scale drawn `above` or `below` the fill. `start` (same scale) moves where the fill begins, so the fill covers `start` to `value`: a range bar for a low-to-high span. `tick` (same scale) draws a thin mark, `tickColor` its color (default white at about 55%): where usage would be at an even pace, say. `tickOverhang` (default 0) makes the tick reach that many points above and below the bar. `gradient`, a list of two or more colors, fills from the first to the last across the fill itself (a range bar runs from its low to its high color) instead of `color`. `width` is the bar's own width (default `fill`).
 
 ```json
 { "type": "progress", "source": "system", "label": "RAM", "labelWidth": 30, "value": ".memory.percent", "overlay": ".memory.pressure", "width": 120, "textWidth": 34, "color": "purple" }
@@ -181,7 +182,7 @@ A ring with center `text` (default `"{{ $value | round }}"`) and an optional `la
 
 ### `analog`
 
-A round clock the UI draws and runs by itself, from the time in `zone` (default: the system's): the render model carries the options once, and the UI moves the hands, so the core pushes nothing per frame. `size` is its diameter (default 236 without ticks, 260 with); `ticks` is `none` (a hairline ring, a dot at twelve, short hands), `hours` (twelve marks) or `minutes` (sixty, heavier at the hours); `seconds` is `false`, `true` or `"step"` (the red hand moves once a second) or `"sweep"` (every frame, while the dashboard is shown; with reduced motion it steps); `dateWindow` shows the day of the month in a window at three o'clock; `numerals` draws 1 to 12. `color` (hands, ticks, numerals; `text`), `faceColor`, `secondsColor` (`bad`) and `pivotColor` (`accent`, or the seconds color with a seconds hand) are palette colors. A hidden dashboard runs nothing: no frames and no timers.
+A round clock the UI draws and runs by itself, from the time in `zone` (default: the system's): the render model carries the options once, and the UI moves the hands, so the core pushes nothing per frame. `size` is its diameter (default 236 without ticks, 260 with); `ticks` is `none` (a hairline ring, a dot at twelve, short hands), `hours` (twelve marks) or `minutes` (sixty, heavier at the hours) or `dots` (twelve dots and short plain hands, for a dial of about 64); `seconds` is `false`, `true` or `"step"` (the red hand moves once a second) or `"sweep"` (every frame, while the dashboard is shown; with reduced motion it steps); `dateWindow` shows the day of the month in a window at three o'clock; `numerals` draws 1 to 12. `color` (hands, ticks, numerals; `text`), `faceColor`, `nightFaceColor` (the fill while it is night in `zone`, 19:00 to 07:00), `secondsColor` (`bad`) and `pivotColor` (`accent`, or the seconds color with a seconds hand) are palette colors. A hidden dashboard runs nothing: no frames and no timers.
 
 ```json
 { "type": "analog", "size": 260, "ticks": "minutes", "seconds": "sweep", "dateWindow": true, "zone": "Asia/Tokyo" }
@@ -193,6 +194,22 @@ Split-flap tiles: one per character of `text` (digits; `:` is a colon and a spac
 
 ```json
 { "type": "flip", "text": "{{ now | fmt_time(\"HH:mm\") }}", "small": "{{ now | fmt_time(\"ss\") }}" }
+```
+
+### `matrix`
+
+A dot matrix or seven-segment display of `text` (digits and `:`; anything else, a space say, is a blank digit), drawn by the UI so it needs no font. `cells` is `"dots"` (a 5 by 7 grid per digit) or `"segments"` (slanted seven-segment digits); `size` (84) is the height of a dot matrix (a segment digit is 86/84 of it); `color` (`cyan`) lights the cells and `offColor` (`text` at 6.5%) is the unlit ones, which are always drawn, faintly. The text is ordinary text, so a clock's seconds change it once a second as they would any text.
+
+```json
+{ "type": "matrix", "cells": "segments", "color": "orange", "text": "{{ now | fmt_time(\"HH:mm:ss\") }}" }
+```
+
+### `moon`
+
+The moon's phase drawn as the lit part of a disc: `phase` (an expression: 0 new, 0.5 full, 1 new again, like `.moon.phase` of an `astro` source) lights the right side while it waxes and the left while it wanes, as seen from the northern hemisphere. `size` (22) is the square's side, `color` the lit part (`#e8e4d4`), `trackColor` the rest of the disc (`text` at 8%). The `sunMoon` preset uses it.
+
+```json
+{ "type": "moon", "phase": ".moon.phase", "size": 28 }
 ```
 
 ### `sparkline`

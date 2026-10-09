@@ -95,7 +95,7 @@ public enum DefaultPresets {
       "clock": {
         "description": "Local time and date, with world clocks under them. The face parameter picks the look (vestal docs presets); mono is the v0.3 clock",
         "params": {
-          "face": { "type": "string", "default": "mono", "description": "The look: mono, thin, stacked, serif, condensed, rounded, breathe, or a drawn one: analog, flip, ring" },
+          "face": { "type": "string", "default": "mono", "description": "The look: mono, thin, stacked, serif, condensed, rounded, breathe, or a drawn one: analog, flip, ring, matrix" },
           "worldClocks": { "type": "array", "default": [], "description": "[{\"label\": \"NYC\", \"tz\": \"America/New_York\"}]; clocks in the local zone or with an unknown zone are skipped" },
           "hour12": { "type": "any", "default": false, "description": "true: 12-hour times with AM/PM (1:46:38 PM, world clocks 1:46 PM); false: 24-hour (13:46:38, 13:46); \"auto\": whichever the system is set to" },
           "seconds": { "type": "any", "default": null, "description": "Show seconds. Default: the face's own (mono, condensed and rounded show them). analog: false, true or \"step\" (once a second) or \"sweep\" (every frame); flip: true shows small seconds tiles" },
@@ -108,6 +108,9 @@ public enum DefaultPresets {
           "ticks": { "type": "string", "default": "none", "enum": ["none", "hours", "minutes"], "description": "analog: none, hours or minutes" },
           "dateWindow": { "type": "boolean", "default": false, "description": "analog: the day of the month in a window at three o'clock" },
           "numerals": { "type": "boolean", "default": false, "description": "analog: the numerals 1 to 12" },
+          "cells": { "type": "string", "default": "dots", "enum": ["dots", "segments"], "description": "matrix: dots (a 5 by 7 grid per digit) or segments (seven-segment digits)" },
+          "color": { "type": "color", "default": "cyan", "description": "matrix: the lit cells' color" },
+          "subdials": { "type": "string", "default": "none", "enum": ["none", "worldClocks"], "description": "analog: worldClocks puts a small dial under the face for each world clock, filled light by day and dark by night there, with the offset from here and day or night; none: the row of times" },
           "span": { "type": "any", "default": "day", "description": "ring: \"day\", \"work\" or [\"09:00\", \"18:00\"]" }
         }
       },

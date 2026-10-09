@@ -255,7 +255,7 @@ final class ClockFacesTests: XCTestCase {
     }
 
     func testTheMinorVersion() {
-        XCTAssertEqual(RenderProtocol.minor, 2)
+        XCTAssertEqual(RenderProtocol.minor, 3)
         XCTAssertEqual(RenderDowngrade.nodeTypeMinor["analog"], 2)
         XCTAssertEqual(RenderDowngrade.nodeTypeMinor["flip"], 2)
         let s = render(#"{ "type": "stack", "children": [ { "type": "flip", "text": "10:42" }, { "type": "analog" } ] }"#)
@@ -401,6 +401,117 @@ final class ClockFacesTests: XCTestCase {
         XCTAssertNotNil(s.root.node(withId: "main/w/analog/1"))
     }
 
+    func testAnalogSubdialsForTheWorldClocks() {
+        let s = render(#"""
+            { "type": "clock", "face": "analog", "subdials": "worldClocks",
+              "worldClocks": [{ "label": "NYC", "tz": "America/New_York" }, { "label": "TYO", "tz": "Asia/Tokyo" }] }
+            """#)
+        var dials: [RenderNode.Analog] = [], texts: [String] = []
+        s.root.walk { n in
+            if case .analog(let a) = n.content { dials.append(a) }
+            if case .text(let t) = n.content { texts.append(t.text) }
+        }
+        XCTAssertEqual(dials.count, 3, "the local dial and one per world clock")
+        XCTAssertEqual(dials[1].zone, "America/New_York")
+        XCTAssertEqual(dials[2].zone, "Asia/Tokyo")
+        XCTAssertEqual(dials[1].ticks, "dots")
+        XCTAssertEqual(dials[1].size, 64)
+        XCTAssertNotNil(dials[1].nightFaceColor)
+        XCTAssertNil(dials[0].nightFaceColor)
+        // 17:03 UTC: 13:03 in New York (4 hours behind, day), 02:03 in Tokyo (9 ahead, night).
+        XCTAssertTrue(texts.contains("\u{2212}4h \u{00B7} day"), "\(texts)")
+        XCTAssertTrue(texts.contains("+9h \u{00B7} night"), "\(texts)")
+        XCTAssertEqual(s.diagnostics.count, 0, "\(s.diagnostics)")
+        // Without it the row of times stays.
+        var plain = 0
+        render(#"{ "type": "clock", "face": "analog", "worldClocks": [{ "label": "TYO", "tz": "Asia/Tokyo" }] }"#).root.walk {
+            if case .analog = $0.content { plain += 1 }
+        }
+        XCTAssertEqual(plain, 1)
+    }
+
+    func testAnalogDotTicksAndDayNight() throws {
+        let g = AnalogGeometry(size: 64, ticks: "dots", seconds: "none", dateWindow: false, numerals: false)
+        XCTAssertEqual(g.dotMarks.count, 12)
+        XCTAssertEqual(g.dotMarks.filter(\.major).map(\.degrees), [0, 90, 180, 270])
+        XCTAssertEqual(g.ticks.count, 0)
+        XCTAssertEqual(g.hour.length, 15, accuracy: 1e-9)
+        XCTAssertEqual(g.minute.length, 23, accuracy: 1e-9)
+        XCTAssertEqual(g.tickDotOrbit, 27, accuracy: 1e-9)
+        XCTAssertEqual(g.pivotRadius, 2, accuracy: 1e-9)
+        XCTAssertTrue(AnalogGeometry(size: 64, ticks: "hours", seconds: "none", dateWindow: false, numerals: false).dotMarks.isEmpty)
+        XCTAssertFalse(AnalogMath.isDay(hour: 6))
+        XCTAssertTrue(AnalogMath.isDay(hour: 7))
+        XCTAssertTrue(AnalogMath.isDay(hour: 18))
+        XCTAssertFalse(AnalogMath.isDay(hour: 19))
+        let n = analog(node(render(##"{ "type": "analog", "size": 64, "ticks": "dots", "faceColor": "text@0.12", "nightFaceColor": "#00000052" }"##), "main/w"))
+        XCTAssertEqual(n.ticks, "dots")
+        XCTAssertEqual(n.nightFaceColor, "#00000052")
+        let node = RenderNode(id: "a", .analog(n))
+        XCTAssertEqual(try JSONDecoder().decode(RenderNode.self, from: JSONEncoder().encode(node)), node)
+    }
+
+    // MARK: Matrix
+
+    private func matrix(_ n: RenderNode) -> RenderNode.Matrix {
+        guard case .matrix(let m) = n.content else { XCTFail("not matrix: \(n.type)"); return .init() }
+        return m
+    }
+
+    func testMatrixGeometryDotsAndSegments() {
+        let dots = MatrixGeometry.layout(text: "12:34", segments: false, size: 84)
+        XCTAssertEqual(dots.cells.count, 4 * 35 + 2)
+        XCTAssertEqual(dots.width, 4 * 72 + 24 - 12)
+        XCTAssertEqual(dots.height, 84)
+        let eight = MatrixGeometry.layout(text: "8", segments: false, size: 84)
+        XCTAssertEqual(eight.cells.filter(\.lit).count, 17)
+        XCTAssertEqual(eight.cells.count, 35, "the unlit dots are there too")
+        XCTAssertEqual(eight.cells[0].x, 6)
+        XCTAssertEqual(eight.cells[0].radius, 4.3, accuracy: 1e-9)
+        let segs = MatrixGeometry.layout(text: "1 8:", segments: true, size: 84)
+        XCTAssertEqual(segs.cells.count, 7 * 3 + 2)
+        XCTAssertEqual(segs.cells.prefix(7).filter(\.lit).count, 2, "a one lights two segments")
+        XCTAssertEqual(segs.cells[7..<14].filter(\.lit).count, 0, "a blank digit is all unlit")
+        XCTAssertEqual(segs.height, 86)
+        XCTAssertEqual(segs.width, 56 * 3 + 22 - 10)
+        // The size scales everything.
+        XCTAssertEqual(MatrixGeometry.layout(text: "12:34", segments: false, size: 42).width, dots.width / 2, accuracy: 1e-9)
+        XCTAssertEqual(MatrixGeometry.layout(text: "", segments: false, size: 84).width, 0)
+    }
+
+    func testMatrixFaceFollowsTheClock() {
+        let s = clock(#""face": "matrix", "color": "orange", "seconds": true,"#)
+        let m = matrix(node(s, "main/w/matrix/0"))
+        XCTAssertEqual(m.text, "17:03:22")
+        XCTAssertEqual(m.cells, "dots")
+        XCTAssertEqual(m.color, "orange")
+        XCTAssertEqual(m.size, 84)
+        XCTAssertNotNil(m.offColor)
+        XCTAssertNotNil(s.root.node(withId: "main/w/2"), "world clocks stay under it")
+        XCTAssertEqual(s.diagnostics.count, 0, "\(s.diagnostics)")
+        // Seconds are on by default; false drops them.
+        XCTAssertEqual(matrix(node(clock(#""face": "matrix","#), "main/w/matrix/0")).text, "17:03:22")
+        XCTAssertEqual(matrix(node(clock(#""face": "matrix", "seconds": false,"#), "main/w/matrix/0")).text, "17:03")
+        // 12-hour time pads the hour with a blank, so the digits don't move.
+        let early = Date(timeIntervalSince1970: 1_790_528_602 - 12 * 3600)
+        let twelve = render(#"{ "type": "clock", "face": "matrix", "cells": "segments", "hour12": true }"#, now: early)
+        let t = matrix(node(twelve, "main/w/matrix/0"))
+        XCTAssertEqual(t.text, " 5:03:22")
+        XCTAssertEqual(t.cells, "segments")
+        XCTAssertEqual(node(twelve, "main/w/matrix/0").width, .points(t.layout.width))
+    }
+
+    func testMatrixNodeCodingAndDowngrade() throws {
+        let node = RenderNode(id: "m", .matrix(.init(text: "12:30", cells: "segments", size: 60, color: "#ff0000ff", offColor: "#ffffff10")))
+        XCTAssertEqual(try JSONDecoder().decode(RenderNode.self, from: JSONEncoder().encode(node)), node)
+        XCTAssertEqual(String(decoding: try RenderJSON.encoder.encode(RenderNode(id: "m", .matrix(.init(text: "1")))), as: UTF8.self),
+                       #"{"id":"m","text":"1","type":"matrix"}"#)
+        XCTAssertEqual(RenderDowngrade.nodeTypeMinor["matrix"], 3)
+        var n = RenderNode(id: "m", .matrix(.init(text: "12:30")))
+        n.alt = "12:30"
+        if case .text(let t) = RenderDowngrade.node(n, toMinor: 2).content { XCTAssertEqual(t.text, "12:30") } else { XCTFail("not text") }
+    }
+
     func testFlipFace() {
         let s = clock(#""face": "flip", "seconds": true,"#)
         let f = flip(node(s, "main/w/flip/0"))
@@ -474,7 +585,7 @@ final class ClockFacesTests: XCTestCase {
     }
 
     func testFaceHelpersAreNotUserFacingPresets() {
-        for name in ["clockAnalog", "clockFlip", "clockRing"] {
+        for name in ["clockAnalog", "clockFlip", "clockMatrix", "clockRing"] {
             XCTAssertTrue(SampleLibrary.helpers.contains(name), name)
             XCTAssertNotNil(TemplateRegistry.standard.builtins[name], name)
         }

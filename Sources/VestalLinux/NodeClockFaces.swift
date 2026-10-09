@@ -98,6 +98,60 @@ extension NodeView {
 
     // MARK: Analog
 
+    // MARK: Matrix
+
+    func drawMatrix(_ snapshot: OpaquePointer, _ matrix: RenderNode.Matrix, _ box: Rect) {
+        guard box.width > 0, box.height > 0 else { return }
+        let theme = context.theme
+        let layout = matrix.layout
+        let lit = theme.color(matrix.color)
+        let off = matrix.offColor.map { theme.color($0) } ?? RGBA(r: 1, g: 1, b: 1, a: 0.065)
+        var rect = box.graphene
+        let cr = gtk_snapshot_append_cairo(snapshot, &rect)
+        defer { cairo_destroy(cr) }
+        cairo_translate(cr, box.x + (box.width - layout.width) / 2, box.y + (box.height - layout.height) / 2)
+        for cell in layout.cells {
+            switch cell.kind {
+            case .dot:
+                cairo_arc(cr, cell.x, cell.y, cell.radius, 0, 2 * .pi)
+            case .rect:
+                roundedPath(cr, Rect(x: cell.x, y: cell.y, width: cell.width, height: cell.height), radius: cell.radius)
+            case .polygon:
+                var i = 0
+                while i + 1 < cell.points.count {
+                    if i == 0 { cairo_move_to(cr, cell.points[i], cell.points[i + 1]) } else { cairo_line_to(cr, cell.points[i], cell.points[i + 1]) }
+                    i += 2
+                }
+                cairo_close_path(cr)
+            }
+            setSource(cr, cell.lit ? lit : off)
+            cairo_fill(cr)
+        }
+    }
+
+    // MARK: Moon
+
+    func drawMoon(_ snapshot: OpaquePointer, _ moon: RenderNode.Moon, _ box: Rect) {
+        let side = min(box.width, box.height)
+        guard side > 0 else { return }
+        let theme = context.theme
+        var rect = box.graphene
+        let cr = gtk_snapshot_append_cairo(snapshot, &rect)
+        defer { cairo_destroy(cr) }
+        let x = box.x + (box.width - side) / 2, y = box.y + (box.height - side) / 2
+        let r = MoonGeometry.radius(size: side)
+        cairo_arc(cr, x + side / 2, y + side / 2, r, 0, 2 * .pi)
+        setSource(cr, moon.trackColor.map { theme.color($0) } ?? RGBA(r: 1, g: 1, b: 1, a: 0.08))
+        cairo_fill(cr)
+        let points = MoonGeometry.litOutline(phase: moon.phase, size: side)
+        guard let first = points.first else { return }
+        cairo_move_to(cr, x + first.x, y + first.y)
+        for p in points.dropFirst() { cairo_line_to(cr, x + p.x, y + p.y) }
+        cairo_close_path(cr)
+        setSource(cr, theme.color(moon.color))
+        cairo_fill(cr)
+    }
+
     func drawAnalog(_ snapshot: OpaquePointer, _ analog: RenderNode.Analog, _ box: Rect) {
         guard box.width > 0, box.height > 0 else { return }
         let theme = context.theme
@@ -117,7 +171,8 @@ extension NodeView {
         let ink = theme.color(analog.color)
 
         cairo_arc(cr, c, c, g.faceRadius, 0, 2 * .pi)
-        setSource(cr, theme.color(analog.faceColor, default: "text@0.035"))
+        let dayFace = theme.color(analog.faceColor, default: "text@0.035")
+        setSource(cr, AnalogMath.isDay(hour: time.hour) ? dayFace : (analog.nightFaceColor.map { theme.color($0) } ?? dayFace))
         cairo_fill_preserve(cr)
         setSource(cr, theme.color(analog.color + (quiet ? "@0.18" : "@0.2")))
         cairo_set_line_width(cr, 1)
@@ -126,6 +181,12 @@ extension NodeView {
         if g.dotRadius > 0 {
             cairo_arc(cr, c, g.dotY, g.dotRadius, 0, 2 * .pi)
             setSource(cr, ink.withAlpha(0.75))
+            cairo_fill(cr)
+        }
+        for mark in g.dotMarks {
+            let p = point(g.tickDotOrbit, mark.degrees)
+            cairo_arc(cr, p.x, p.y, mark.major ? g.tickDotMajorRadius : g.tickDotRadius, 0, 2 * .pi)
+            setSource(cr, ink.withAlpha(0.6))
             cairo_fill(cr)
         }
         cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND)

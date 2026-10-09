@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Clock, analog with world dials",
+  "description": "The local dial plus a small dial per world clock, filled light by day and dark by night there, with the offset from here.",
+  "preset": "clock",
+  "size": [
+    680,
+    420
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time"
+  ]
+}

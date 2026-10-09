@@ -10,7 +10,7 @@
 import { heatmapPosition } from "./layout.js";
 import { cssColor, withAlpha } from "./color.js";
 import { fontShorthand } from "./text.js";
-import { analogSVG, ringGeometry, ringMarksSVG } from "./clock.js";
+import { analogSVG, matrixLayout, ringGeometry, ringMarksSVG } from "./clock.js";
 
 const f = (n) => Math.round(n * 1000) / 1000;
 const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
@@ -29,15 +29,79 @@ export function barSVG(n, w, h, env) {
   const track = n.trackColor ? pal.css(n.trackColor) : cssColor(withAlpha(pal.rgba(n.color, "accent"), 0.15));
   const overlay = n.overlayColor ? pal.css(n.overlayColor) : "rgba(255,255,255,0.2)";
   const radius = Math.min(n.radius ?? 2, h / 2);
-  const seg = (fraction, c) => {
+  const seg = (fraction, c, from = 0) => {
     const v = clamp(fraction, 0, 1);
-    return v > 0 ? rect(0, 0, Math.round(w * v * px) / px, h, radius, c) : "";
+    if (!(v > from)) return "";
+    const x = from > 0 ? Math.round(w * from * px) / px : 0;
+    return rect(x, 0, Math.round(w * v * px) / px - x, h, radius, c);
   };
-  let out = seg(1, track);
+  // The fill's colors run left to right across the fill itself.
+  let fill = color, defs = "";
+  const stops = Array.isArray(n.gradient) && n.gradient.length >= 2 ? n.gradient : null;
+  if (stops) {
+    const id = `vg${++clipSerial}`;
+    const x0 = (n.start ?? 0) > 0 ? Math.round(w * n.start * px) / px : 0;
+    const x1 = Math.round(w * clamp(n.value ?? 0, 0, 1) * px) / px;
+    defs = `<defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${f(x0)}" y1="0" x2="${f(Math.max(x1, x0 + 0.001))}" y2="0">`
+      + stops.map((c, i) => `<stop offset="${f(i / (stops.length - 1))}" stop-color="${pal.css(c)}"/>`).join("") + "</linearGradient></defs>";
+    fill = `url(#${id})`;
+  }
+  let out = defs + seg(1, track);
   if (n.overlay != null && n.overlayPosition === "below") out += seg(n.overlay, overlay);
-  out += seg(n.value ?? 0, color);
+  out += seg(n.value ?? 0, fill, n.start ?? 0);
   if (n.overlay != null && n.overlayPosition !== "below") out += seg(n.overlay, overlay);
+  if (n.tick != null) {
+    const width = 1.5, over = Math.max(n.tickOverhang ?? 0, 0);
+    const x = clamp(w * clamp(n.tick, 0, 1) - width / 2, 0, Math.max(w - width, 0));
+    out += rect(x, -over, width, h + 2 * over, 0, n.tickColor ? pal.css(n.tickColor) : "rgba(255,255,255,0.55)");
+  }
   return out;
+}
+
+// MARK: - moon
+
+/** The lit part of the disc as points in a `size` square, as MoonGeometry.litOutline. */
+export function moonOutline(phase, size, segments = 48) {
+  const p = phase - Math.floor(phase);
+  const r = size / 2 - 1, c = size / 2;
+  const dir = p <= 0.5 ? 1 : -1, bulge = Math.cos(2 * Math.PI * p);
+  const pts = [];
+  for (let i = 0; i <= segments; i++) {
+    const a = Math.PI * i / segments;
+    pts.push([c + dir * r * Math.sin(a), c - r * Math.cos(a)]);
+  }
+  for (let i = 0; i <= segments; i++) {
+    const a = Math.PI * (segments - i) / segments;
+    pts.push([c + dir * r * bulge * Math.sin(a), c - r * Math.cos(a)]);
+  }
+  return pts;
+}
+
+export function moonSVG(n, w, h, env) {
+  const { pal } = env;
+  const side = Math.min(w, h);
+  if (side <= 0) return "";
+  const c = side / 2, r = side / 2 - 1;
+  const track = n.trackColor ? pal.css(n.trackColor) : "rgba(255,255,255,0.08)";
+  const d = moonOutline(n.phase ?? 0, side).map(([x, y], i) => `${i ? "L" : "M"}${f(x)} ${f(y)}`).join("") + "Z";
+  return `<circle cx="${f(c)}" cy="${f(c)}" r="${f(r)}" fill="${track}"/><path d="${d}" fill="${pal.css(n.color || "#e8e4d4ff")}"/>`;
+}
+
+// MARK: - matrix
+
+/** Every cell of the panel: unlit ones faint, lit ones in `color`. */
+export function matrixSVG(n, w, h, env) {
+  const { pal } = env;
+  const layout = matrixLayout(n.text, n.cells === "segments", n.size ?? 84);
+  const lit = pal.css(n.color, "cyan"), off = n.offColor ? pal.css(n.offColor) : "rgba(255,255,255,0.065)";
+  let out = `<g transform="translate(${f((w - layout.width) / 2)} ${f((h - layout.height) / 2)})">`;
+  for (const cell of layout.cells) {
+    const fill = cell.lit ? lit : off;
+    if (cell.kind === "dot") out += `<circle cx="${f(cell.x)}" cy="${f(cell.y)}" r="${f(cell.radius)}" fill="${fill}"/>`;
+    else if (cell.kind === "rect") out += rect(cell.x, cell.y, cell.width, cell.height, cell.radius, fill);
+    else out += `<polygon points="${cell.points.map(f).join(" ")}" fill="${fill}"/>`;
+  }
+  return out + "</g>";
 }
 
 // MARK: - ring
@@ -253,5 +317,5 @@ export function timelineSVG(n, w, h, env) {
 
 export const DRAWERS = {
   bar: barSVG, ring: ringSVG, spark: sparkSVG, divider: dividerSVG, bars: barsSVG,
-  stackedBar: stackedBarSVG, heatmap: heatmapSVG, timeline: timelineSVG, analog: analogSVG,
+  stackedBar: stackedBarSVG, heatmap: heatmapSVG, timeline: timelineSVG, analog: analogSVG, moon: moonSVG, matrix: matrixSVG,
 };

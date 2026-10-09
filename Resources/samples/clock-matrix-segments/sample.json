@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Clock, seven-segment",
+  "description": "Slanted seven-segment digits with the unlit segments faintly visible, in 12-hour time with an AM or PM tag.",
+  "preset": "clock",
+  "size": [
+    680,
+    420
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time"
+  ]
+}

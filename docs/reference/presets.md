@@ -280,13 +280,14 @@ The local time (size 56, ultralight, mono), the date, and `worldClocks` under th
 
 The breathing colon steps its opacity once a second (the dashboard redraws each second while a clock shows), which approximates a fade without an animation in the render model. Italic is not part of the render model, so the `serif` face's am and pm are lower-case roman.
 
-The drawn faces (`analog`, `flip`, `ring`) are the same `face` parameter, registered like the others but drawn by the UIs from the `clockAnalog`, `clockFlip` and `clockRing` widgets below; `seconds` takes `true` or `false` on the text faces and `flip`, and `false`, `"step"` or `"sweep"` on `analog`, `hour12` takes `"auto"` on all. The drawn faces, each with the world clocks under it:
+The drawn faces (`analog`, `flip`, `ring`, `matrix`) are the same `face` parameter, registered like the others but drawn by the UIs from the `clockAnalog`, `clockFlip`, `clockRing` and `clockMatrix` widgets below; `seconds` takes `true` or `false` on the text faces and `flip`, and `false`, `"step"` or `"sweep"` on `analog`, `hour12` takes `"auto"` on all. The drawn faces, each with the world clocks under it:
 
 | `face` | Parameters | |
 |---|---|---|
-| `analog` | `size` (236, or 260 with ticks), `ticks` (`none`; `hours`, `minutes`), `seconds` (`false`; `"step"`, `"sweep"`), `dateWindow` (false), `numerals` (false) | A round dial the UI draws and runs ([`analog`](widgets.md)), with the date under it (in a window at three o'clock with `dateWindow`). Quiet: `{"face": "analog"}`. With a sweeping seconds hand: `{"face": "analog", "size": 260, "ticks": "minutes", "seconds": "sweep", "dateWindow": true}`. |
+| `analog` | `size` (236, or 260 with ticks), `ticks` (`none`; `hours`, `minutes`), `seconds` (`false`; `"step"`, `"sweep"`), `dateWindow` (false), `numerals` (false), `subdials` (`"none"`; `"worldClocks"`) | A round dial the UI draws and runs ([`analog`](widgets.md)), with the date under it (in a window at three o'clock with `dateWindow`). `subdials: "worldClocks"` replaces the row of world times with a small dial per world clock (64 points, twelve dots), filled light by day and dark by night there, with the city, its time and the offset from here (`+9h · night`): `{"face": "analog", "subdials": "worldClocks", "worldClocks": [{"label": "NYC", "tz": "America/New_York"}, {"label": "TYO", "tz": "Asia/Tokyo"}]}`. Quiet: `{"face": "analog"}`. With a sweeping seconds hand: `{"face": "analog", "size": 260, "ticks": "minutes", "seconds": "sweep", "dateWindow": true}`. |
 | `flip` | `size` (90), `seconds` (false: seconds on small tiles) | Split-flap tiles ([`flip`](widgets.md)) that fold when a digit changes, with the date and, with `hour12`, an AM or PM tag under them. |
 | `ring` | `size` (272), `span` (`"day"`; `"work"` is 09:00 to 18:00, or `["09:00", "18:00"]`) | The time inside a ring that fills across the span, with 24 marks, four hour labels and a dot on the end ([`gauge`](widgets.md)), and under the time the share of the span gone and what is left. |
+| `matrix` | `cells` (`"dots"`; `"segments"`), `color` (`cyan`), `size` (84, the height of a dot matrix), `seconds` (true), `hour12`, `date` | A 5 by 7 dot grid per digit, or slanted seven-segment digits, drawn by the UI ([`matrix`](widgets.md)) with every unlit cell faintly visible like a real panel; the date in spaced mono capitals under it, with an AM or PM tag in `color` for `hour12`. It needs no font. `{"face": "matrix", "cells": "dots", "color": "cyan"}`. |
 
 ```json
 { "type": "clock", "face": "ring", "span": "work", "worldClocks": [{ "label": "NYC", "tz": "America/New_York" }] }
@@ -345,7 +346,7 @@ Under Home Manager: `programs.vestal.settings.widgets.world = { type = "worldClo
 
 ### `sunMoon`
 
-The sun's place on today's arc (a line from sunrise to sunset, a dot where the sun is now, drawn only while it is up), sunrise and sunset under it, `sets in 1h 22m` (or `rises in`), the day's length with its change from yesterday (`day 11h 57m · −2m 30s/day`), and the moon: an icon for its phase, its name, how much is lit and `full in 4d` (`new in` while it wanes). All of it is computed offline by the [`astro` source](sources.md) from a latitude and a longitude, so it needs no network. In polar day or night the arc and the times are left out. The moon's icon is a circle, a crescent (`moon`) or a half circle by illumination: Phosphor has no phases, so waxing and waning look alike.
+The sun's place on today's arc (a line from sunrise to sunset, a dot where the sun is now, drawn only while it is up), sunrise and sunset under it, `sets in 1h 22m` (or `rises in`), the day's length with its change from yesterday (`day 11h 57m · −2m 30s/day`), and the moon: a drawn disc lit on the side its phase says, its name, how much is lit and `full in 4d` (`new in` while it wanes). All of it is computed offline by the [`astro` source](sources.md) from a latitude and a longitude, so it needs no network. In polar day or night the arc and the times are left out. The moon's icon is a circle, a crescent (`moon`) or a half circle by illumination: Phosphor has no phases, so waxing and waning look alike.
 
 | Parameter | Default | |
 |---|---|---|
@@ -911,9 +912,9 @@ One of `aiUsage`'s cells: `label`, `window` (an expression such as `.session`) a
 
 One of `aiPlan`'s blocks: `name`, `color`, `plan` and `hour12`, reading the `claude` or `codex` shape of the widget's source.
 
-### `clockAnalog`, `clockFlip`, `clockRing`
+### `clockAnalog`, `clockFlip`, `clockMatrix`, `clockRing`
 
-The drawn faces of `clock` (above), as widgets of their own: `clockAnalog` (`size`, `ticks`, `seconds`, `dateWindow`, `numerals`, `zone`, `date`), `clockFlip` (`size`, `seconds`, `animate`, `hour12`, `date`) and `clockRing` (`size`, `span`, `hour12`); `hour12` takes `true`, `false` or `"auto"`, and `date: "none"` hides the date line (the clock's `date` parameter reaches them). `clock` picks one with its `face` param; a size of 0 is the face's own.
+The drawn faces of `clock` (above), as widgets of their own: `clockAnalog` (`size`, `ticks`, `seconds`, `dateWindow`, `numerals`, `zone`, `date`), `clockFlip` (`size`, `seconds`, `animate`, `hour12`, `date`), `clockMatrix` (`size`, `cells`, `color`, `seconds`, `hour12`, `date`) and `clockRing` (`size`, `span`, `hour12`); `hour12` takes `true`, `false` or `"auto"`, and `date: "none"` hides the date line (the clock's `date` parameter reaches them). `clock` picks one with its `face` param; a size of 0 is the face's own.
 
 ### `hostDetail`
 

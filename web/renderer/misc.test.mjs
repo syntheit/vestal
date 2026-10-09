@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { glyphFor, ICONS, ALIASES } from "./icons.js";
 import { makePalette, parseHex } from "./color.js";
 import { neighbor, transitionKind, PageSwipe, keyName, showsDots } from "./pages.js";
-import { fitLabel, visibleTicks, arcPath, sparkPoints, barsSVG, heatmapSVG } from "./draw.js";
+import { fitLabel, visibleTicks, arcPath, sparkPoints, barSVG, barsSVG, heatmapSVG, moonOutline, moonSVG } from "./draw.js";
 import { cssWeight, fontFamily } from "./text.js";
 import { FONT_FILES, fontFaceCSS } from "./typefaces.js";
 import { fragmentSource, shaderUrl } from "./backgrounds.js";
@@ -149,6 +149,43 @@ test("bars and heatmap markup", () => {
   assert.match(bars, /height="20"/); // clamped
   const heat = heatmapSVG({ cells: ["#ff0000ff", null], rows: 7 }, 8, 60, env);
   assert.equal((heat.match(/<rect/g) || []).length, 2);
+});
+
+test("bar: range fill, tick overhang and gradient", () => {
+  const env = { pal: makePalette({ colors: { cyan: "#00ffffff", orange: "#ff8800ff" } }), px: 1 };
+  const plain = barSVG({ value: 0.5, color: "cyan" }, 100, 8, env);
+  assert.equal((plain.match(/<rect/g) || []).length, 2);
+  assert.doesNotMatch(plain, /gradient/i);
+  const tick = barSVG({ value: 0.5, tick: 0.25, tickOverhang: 3 }, 100, 8, env);
+  assert.match(tick, /<rect x="24.25" y="-3" width="1.5" height="14"/);
+  assert.match(barSVG({ value: 0.5, tick: 0.25 }, 100, 8, env), /<rect x="24.25" y="0" width="1.5" height="8"/);
+  const range = barSVG({ start: 0.2, value: 0.6, gradient: ["cyan", "orange"] }, 100, 5, env);
+  assert.match(range, /<linearGradient[^>]*x1="20"[^>]*x2="60"/);
+  assert.match(range, /stop-color="rgba\(0,255,255,1\)"/);
+  assert.match(range, /stop-color="rgba\(255,136,0,1\)"/);
+  assert.match(range, /<rect x="20" y="0" width="40" height="5"[^>]*fill="url\(#vg\d+\)"/);
+});
+
+test("moon: the lit side follows the phase and the terminator bulges the right way", () => {
+  const xs = (pts) => pts.map(([x]) => x);
+  // Waxing crescent (0.1): lit on the right, nothing left of the middle.
+  assert.ok(Math.min(...xs(moonOutline(0.1, 28))) >= 14 - 1e-9);
+  // Waning crescent (0.9): lit on the left.
+  assert.ok(Math.max(...xs(moonOutline(0.9, 28))) <= 14 + 1e-9);
+  // Waxing gibbous (0.38): the lit part reaches past the middle to the left.
+  const gibbous = moonOutline(0.38, 28);
+  assert.ok(Math.min(...xs(gibbous)) < 14 && Math.max(...xs(gibbous)) > 26.9);
+  // Waning gibbous (0.62) mirrors it.
+  const waning = moonOutline(0.62, 28);
+  assert.ok(Math.max(...xs(waning)) > 14 && Math.min(...xs(waning)) < 1.1);
+  // Full: the whole disc; new: no area.
+  const full = moonOutline(0.5, 28);
+  assert.ok(Math.min(...xs(full)) < 1.01 && Math.max(...xs(full)) > 26.99);
+  const area = (pts) => Math.abs(pts.reduce((s, [x, y], i) => { const [x2, y2] = pts[(i + 1) % pts.length]; return s + x * y2 - x2 * y; }, 0) / 2);
+  assert.ok(area(moonOutline(0, 28)) < 1e-6);
+  assert.ok(Math.abs(area(full) - Math.PI * 13 * 13) < 6);
+  const env = { pal: makePalette({ colors: {} }) };
+  assert.match(moonSVG({ phase: 0.38, size: 22 }, 22, 22, env), /<circle[^>]*r="10"[\s\S]*<path d="M/);
 });
 
 // MARK: text and shaders

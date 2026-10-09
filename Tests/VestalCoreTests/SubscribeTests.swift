@@ -184,7 +184,7 @@ final class SubscribeTests: XCTestCase {
         XCTAssertEqual(RenderDowngrade.node(tree, toMinor: RenderProtocol.minor), tree)
         XCTAssertEqual(Set(RenderDowngrade.nodeTypeMinor.keys),
                        ["stack", "grid", "text", "icon", "bar", "ring", "spark", "divider", "spacer",
-                        "bars", "stackedBar", "heatmap", "timeline", "image", "analog", "flip"])
+                        "bars", "stackedBar", "heatmap", "timeline", "image", "analog", "flip", "moon", "matrix"])
     }
 
     // MARK: The protocol against a live engine

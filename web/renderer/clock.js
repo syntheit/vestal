@@ -56,21 +56,32 @@ export function analogGeometry(size, ticks, seconds, dateWindow, numerals) {
   const k = size / (quiet ? 236 : 260);
   const tickEvery = ticks === "minutes" ? 1 : ticks === "hours" ? 5 : 0;
   const hand = (length, tail, width) => ({ length: length * k, tail: tail * k, width: width * k });
+  // The small world dials are drawn at 64.
+  const u = size / 64, dots = ticks === "dots";
   return {
+    dotTicks: dots, tickDotOrbit: c - 5 * u, tickDotRadius: 0.8 * u, tickDotMajorRadius: 1.4 * u,
     size, center: c, faceRadius: c - 1,
     tickOuter: c - 7 * k, tickEvery,
     hourTickLength: (tickEvery === 1 ? 15 : 10) * k, minuteTickLength: 6 * k,
     hourTickWidth: 2.5 * k, minuteTickWidth: 1 * k,
     dotY: quiet ? 14 * k : 0, dotRadius: quiet ? 2.5 * k : 0,
-    hour: quiet ? hand(58, 0, 5) : hand(66, 14, 6),
-    minute: quiet ? hand(92, 0, 3) : hand(102, 16, 4),
+    hour: dots ? { length: 15 * u, tail: 0, width: 2.5 * u } : quiet ? hand(58, 0, 5) : hand(66, 14, 6),
+    minute: dots ? { length: 23 * u, tail: 0, width: 1.5 * u } : quiet ? hand(92, 0, 3) : hand(102, 16, 4),
     second: seconds === "none" ? null : hand(114, 26, 1.6),
     secondDotOffset: 22 * k, secondDotRadius: 3.5 * k,
-    pivotRadius: (seconds === "none" ? 5 : 4.5) * k, pivotHole: seconds === "none" ? 0 : 1.6 * k,
+    pivotRadius: dots ? 2 * u : (seconds === "none" ? 5 : 4.5) * k, pivotHole: seconds === "none" || dots ? 0 : 1.6 * k,
     window: dateWindow ? { x: c + 58 * k, y: c - 11 * k, width: 32 * k, height: 22 * k, fontSize: 13 * k } : null,
     numeralRadius: numerals ? c - (tickEvery === 0 ? 28 : 42) * k : 0,
     numeralSize: numerals ? 20 * k : 0,
   };
+}
+
+/** Whether it is day in a zone at `hour`: 07:00 to 19:00. */
+export const isDay = (hour) => hour >= 7 && hour < 19;
+
+/** The twelve dots of `ticks: "dots"` as { degrees, major }. */
+export function analogDots(g) {
+  return g.dotTicks ? Array.from({ length: 12 }, (_, i) => ({ degrees: i * 30, major: i % 3 === 0 })) : [];
 }
 
 /** The tick marks as { degrees, major }. */
@@ -102,7 +113,14 @@ export function analogSVG(n, w, h, env) {
   const angles = handAngles(time, seconds);
   const sans = fontFamily("sans", theme), mono = fontFamily("mono", theme);
   let out = `<g class="vr-analog" transform="translate(${f((w - size) / 2)} ${f((h - size) / 2)})" data-zone="${zone || ""}" data-mode="${seconds}" data-window="${g.window ? 1 : 0}" data-size="${f(size)}">`;
-  out += `<circle cx="${f(c)}" cy="${f(c)}" r="${f(g.faceRadius)}" fill="${pal.css(n.faceColor, quiet ? "text@0.035" : "bg@0.32")}" stroke="${ink(quiet ? 0.18 : 0.2)}" stroke-width="1"/>`;
+  const dayFace = pal.css(n.faceColor, quiet ? "text@0.035" : "bg@0.32");
+  const face = n.nightFaceColor && !isDay(time.hour) ? pal.css(n.nightFaceColor) : dayFace;
+  // The fill the driver swaps at 07:00 and 19:00 in the zone.
+  out += `<circle data-face="1" data-dayfill="${esc(dayFace)}" data-nightfill="${n.nightFaceColor ? esc(pal.css(n.nightFaceColor)) : ""}" cx="${f(c)}" cy="${f(c)}" r="${f(g.faceRadius)}" fill="${face}" stroke="${ink(quiet ? 0.18 : 0.2)}" stroke-width="1"/>`;
+  for (const d of analogDots(g)) {
+    const [x, y] = polar(c, c, g.tickDotOrbit, d.degrees);
+    out += `<circle cx="${f(x)}" cy="${f(y)}" r="${f(d.major ? g.tickDotMajorRadius : g.tickDotRadius)}" fill="${ink(0.6)}"/>`;
+  }
   if (g.dotRadius > 0) out += `<circle cx="${f(c)}" cy="${f(g.dotY)}" r="${f(g.dotRadius)}" fill="${ink(0.75)}"/>`;
   for (const t of analogTicks(g)) {
     const len = t.major ? g.hourTickLength : g.minuteTickLength;
@@ -135,6 +153,65 @@ export function analogSVG(n, w, h, env) {
 
 function esc(s) {
   return String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+}
+
+// MARK: - Matrix
+
+const MATRIX_GLYPHS = {
+  0: ["01110", "10001", "10011", "10101", "11001", "10001", "01110"], 1: ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+  2: ["01110", "10001", "00001", "00010", "00100", "01000", "11111"], 3: ["11111", "00010", "00100", "00010", "00001", "10001", "01110"],
+  4: ["00010", "00110", "01010", "10010", "11111", "00010", "00010"], 5: ["11111", "10000", "11110", "00001", "00001", "10001", "01110"],
+  6: ["00110", "01000", "10000", "11110", "10001", "10001", "01110"], 7: ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
+  8: ["01110", "10001", "10001", "01110", "10001", "10001", "01110"], 9: ["01110", "10001", "10001", "01111", "00001", "00010", "01100"],
+};
+const MATRIX_SEGMENTS = { 0: "abcdef", 1: "bc", 2: "abdeg", 3: "abcdg", 4: "bcfg", 5: "acdfg", 6: "acdefg", 7: "abc", 8: "abcdefg", 9: "abcdfg" };
+
+/** The segment polygons (flat x, y lists) of a `w` by `h` digit with stroke `t`. */
+export function segmentPolygons(w, h, t) {
+  const g = 1.6, l = t / 2, r = w - t / 2, top = t / 2, mid = h / 2, bottom = h - t / 2;
+  const horizontal = (y) => [l + g, y, l + g + t / 2, y - t / 2, r - g - t / 2, y - t / 2, r - g, y, r - g - t / 2, y + t / 2, l + g + t / 2, y + t / 2];
+  const vertical = (x, y0, y1) => [x, y0 + g, x + t / 2, y0 + g + t / 2, x + t / 2, y1 - g - t / 2, x, y1 - g, x - t / 2, y1 - g - t / 2, x - t / 2, y0 + g + t / 2];
+  return { a: horizontal(top), g: horizontal(mid), d: horizontal(bottom), f: vertical(l, top, mid), b: vertical(r, top, mid), e: vertical(l, mid, bottom), c: vertical(r, mid, bottom) };
+}
+
+/** The cells of a `matrix` node: { cells: [{ kind, lit, x, y, width, height, radius, points }], width, height }, as MatrixGeometry.layout. */
+export function matrixLayout(text, segments, size) {
+  const s = size / 84, tilt = Math.tan((-6 * Math.PI) / 180);
+  const polygons = segmentPolygons(46, 86, 9);
+  const cells = [];
+  let x = 0;
+  const chars = [...(text || "")];
+  for (const ch of chars) {
+    if (ch === ":") {
+      if (segments) {
+        cells.push({ kind: "rect", lit: true, x: x + 2 * s, y: 24 * s, width: 9 * s, height: 9 * s, radius: 1.5 * s });
+        cells.push({ kind: "rect", lit: true, x, y: 54 * s, width: 9 * s, height: 9 * s, radius: 1.5 * s });
+        x += 22 * s;
+      } else {
+        for (const y of [30, 54]) cells.push({ kind: "dot", lit: true, x: x + 6 * s, y: y * s, radius: 4.3 * s });
+        x += 24 * s;
+      }
+      continue;
+    }
+    if (segments) {
+      const on = MATRIX_SEGMENTS[ch] || "";
+      for (const name of "abcdefg") {
+        const p = polygons[name], points = [];
+        for (let i = 0; i < p.length; i += 2) points.push(x + 6 * s + p[i] * s + tilt * p[i + 1] * s, p[i + 1] * s);
+        cells.push({ kind: "polygon", lit: on.includes(name), points });
+      }
+      x += 56 * s;
+    } else {
+      const rows = MATRIX_GLYPHS[ch];
+      for (let row = 0; row < 7; row++) {
+        for (let col = 0; col < 5; col++) {
+          cells.push({ kind: "dot", lit: !!rows && rows[row][col] === "1", x: x + (col * 12 + 6) * s, y: (row * 12 + 6) * s, radius: 4.3 * s });
+        }
+      }
+      x += 72 * s;
+    }
+  }
+  return { cells, width: chars.length ? Math.max(0, x - (segments ? 10 : 12) * s) : 0, height: (segments ? 86 : 84) * s };
 }
 
 // MARK: - Ring marks
@@ -353,7 +430,7 @@ export class ClockDriver {
     this.faces = [...this.root.querySelectorAll(".vr-analog")].map((el) => ({
       el, zone: el.dataset.zone || null, mode: el.dataset.mode || "none",
       h: el.querySelector('[data-hand="h"]'), m: el.querySelector('[data-hand="m"]'), s: el.querySelector('[data-hand="s"]'),
-      day: el.querySelector("[data-day]"), c: Number(el.dataset.size) / 2,
+      day: el.querySelector("[data-day]"), c: Number(el.dataset.size) / 2, fill: el.querySelector("[data-face]"),
     }));
     this.update();
   }
@@ -387,6 +464,10 @@ export class ClockDriver {
       const a = handAngles(time, face.mode === "sweep" && this.reduced() ? "step" : face.mode);
       const set = (el, deg) => el && el.setAttribute("transform", rotate(deg, face.c));
       set(face.h, a.hour); set(face.m, a.minute); set(face.s, a.second);
+      if (face.fill && face.fill.dataset.nightfill) {
+        const fill = isDay(time.hour) ? face.fill.dataset.dayfill : face.fill.dataset.nightfill;
+        if (face.fill.getAttribute("fill") !== fill) face.fill.setAttribute("fill", fill);
+      }
       if (face.day && face.day.textContent !== String(time.day)) face.day.textContent = String(time.day);
     }
   }

@@ -120,10 +120,7 @@ extension DefaultPresets {
                 "text": "day {{ .dayLength | fmt_duration }} · {{ if .dayLengthChange < 0 then \"−\" else \"+\" end }}{{ .dayLengthChange | fabs | fmt_duration(2) }}/day",
                 "style": { "size": 11, "font": "mono", "color": "dim" } },
               { "type": "row", "gap": 8, "input": ".moon", "children": [
-                { "type": "icon", "size": 22,
-                  "name": { "expr": ".illumination | step([[0, \"circle\"], [8, \"moon\"], [35, \"circle-half\"], [92, \"circle\"]])" },
-                  "weight": { "expr": "if .illumination >= 92 or (.illumination >= 35 and .illumination < 92) then \"fill\" else \"regular\" end" },
-                  "color": { "expr": "color_mix(\"dim\"; \"text\"; .illumination / 100)" } },
+                { "type": "moon", "phase": ".phase", "size": 22 },
                 { "type": "stack", "gap": 2, "children": [
                   { "type": "text", "text": "{{ .name }}", "style": { "size": 12 } },
                   { "type": "text", "style": { "size": 10.5, "font": "mono", "color": "dim" },
@@ -193,7 +190,7 @@ extension DefaultPresets {
                   "color": { "expr": "if .code <= 1 then \"warn\" else \"subtle\" end" } },
                 { "type": "text", "text": "{{ .min | round }}°", "width": 26, "align": "end", "style": { "size": 11, "font": "mono", "color": "subtle" } },
                 { "type": "progress", "start": ".min", "value": ".max", "min": "$lo", "max": "$hi", "height": 5, "text": "", "trackColor": "track", "radius": 2.5,
-                  "color": { "expr": "(((.min + .max) / 2 - $lo) / ([$hi - $lo, 1] | max)) | step([[0, \"cyan\"], [0.45, \"warn\"], [0.75, \"orange\"]])" } },
+                  "color": "cyan", "gradient": ["cyan", "orange"] },
                 { "type": "text", "text": "{{ .max | round }}°", "width": 26, "style": { "size": 11, "font": "mono" } }
               ] } }
           ]
@@ -227,7 +224,7 @@ extension DefaultPresets {
                 },
                 "children": [
                   { "type": "text", "text": "{{ .label }}", "width": 62, "lines": 1, "style": { "size": 11, "color": "subtle" } },
-                  { "type": "progress", "value": "$p", "tick": "$even", "height": 8, "text": "", "radius": 3,
+                  { "type": "progress", "value": "$p", "tick": "$even", "tickOverhang": 3, "height": 8, "text": "", "radius": 3,
                     "color": { "expr": "if $p >= 90 then \"bad\" else $color end" },
                     "trackColor": { "expr": "$color | alpha(0.2)" } },
                   { "type": "text", "text": "{{ $p }}%", "width": 36, "align": "end", "style": { "size": 11, "font": "mono" } },

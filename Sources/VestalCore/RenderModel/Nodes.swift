@@ -144,6 +144,8 @@ public struct RenderNode: Equatable, Sendable, Codable {
         case image(Image)
         case analog(Analog)
         case flip(Flip)
+        case moon(Moon)
+        case matrix(Matrix)
         /// A type this build doesn't know (a newer `minor`); drawn as `alt`.
         case unknown(type: String)
     }
@@ -189,6 +191,8 @@ public struct RenderNode: Equatable, Sendable, Codable {
         case .image: return "image"
         case .analog: return "analog"
         case .flip: return "flip"
+        case .moon: return "moon"
+        case .matrix: return "matrix"
         case .unknown(let type): return type
         }
     }
@@ -354,13 +358,21 @@ public struct RenderNode: Equatable, Sendable, Codable {
         /// A thin vertical mark at this position, 0…1.
         public var tick: Double?
         public var tickColor: String?
+        /// How far the mark reaches above and below the bar, in points.
+        public var tickOverhang: Double = 0
+        /// Two or more colors the fill runs through, left to right across the
+        /// fill itself; nil: `color`.
+        public var gradient: [String]?
 
         public init(value: Double = 0, overlay: Double? = nil, overlayPosition: String = "above",
                     color: String? = nil, trackColor: String? = nil, overlayColor: String? = nil,
-                    radius: Double = 2, start: Double = 0, tick: Double? = nil, tickColor: String? = nil) {
+                    radius: Double = 2, start: Double = 0, tick: Double? = nil, tickColor: String? = nil,
+                    tickOverhang: Double = 0, gradient: [String]? = nil) {
             self.start = start
             self.tick = tick
             self.tickColor = tickColor
+            self.tickOverhang = tickOverhang
+            self.gradient = gradient
             self.value = value
             self.overlay = overlay
             self.overlayPosition = overlayPosition
@@ -614,7 +626,7 @@ public struct RenderNode: Equatable, Sendable, Codable {
     public struct Analog: Equatable, Sendable {
         /// The face's diameter.
         public var size: Double = 236
-        /// `none`, `hours` (twelve marks) or `minutes` (sixty).
+        /// `none`, `hours` (twelve marks), `minutes` (sixty) or `dots` (twelve dots, for a small dial).
         public var ticks: String = "hours"
         /// `none`, `step` (once a second) or `sweep` (every frame).
         public var seconds: String = "none"
@@ -627,12 +639,16 @@ public struct RenderNode: Equatable, Sendable, Codable {
         /// The hands, ticks and numerals.
         public var color: String = "text"
         public var faceColor: String?
+        /// The face's fill while it is night in `zone` (19:00 to 07:00); nil:
+        /// `faceColor` always. The UI picks it from the zone's time of day.
+        public var nightFaceColor: String?
         public var secondsColor: String = "bad"
         public var pivotColor: String = "accent"
 
         public init(size: Double = 236, ticks: String = "hours", seconds: String = "none", dateWindow: Bool = false,
                     numerals: Bool = false, zone: String? = nil, color: String = "text", faceColor: String? = nil,
-                    secondsColor: String = "bad", pivotColor: String = "accent") {
+                    nightFaceColor: String? = nil, secondsColor: String = "bad", pivotColor: String = "accent") {
+            self.nightFaceColor = nightFaceColor
             self.size = size
             self.ticks = ticks
             self.seconds = seconds
@@ -683,6 +699,51 @@ public struct RenderNode: Equatable, Sendable, Codable {
 
         public var layout: FlipLayout.Result {
             FlipLayout.layout(text: text, small: small, size: size, smallSize: smallSize)
+        }
+    }
+
+    /// The moon's phase: a dark disc with the lit part drawn on the side the
+    /// phase says (MoonGeometry).
+    public struct Moon: Equatable, Sendable {
+        /// 0 (new) through 0.5 (full) to 1: waxing is the right side lit.
+        public var phase: Double = 0
+        /// The square's side.
+        public var size: Double = 22
+        /// The lit part, and the rest of the disc.
+        public var color: String = "#e8e4d4ff"
+        public var trackColor: String?
+
+        public init(phase: Double = 0, size: Double = 22, color: String = "#e8e4d4ff", trackColor: String? = nil) {
+            self.phase = phase
+            self.size = size
+            self.color = color
+            self.trackColor = trackColor
+        }
+    }
+
+    /// A dot matrix or seven-segment display of `text`, drawn by the UI from
+    /// MatrixGeometry: every cell of the panel is there, the unlit ones faint.
+    public struct Matrix: Equatable, Sendable {
+        /// Digits and `:`; anything else is a blank digit.
+        public var text: String = ""
+        /// `dots` (5 by 7 per digit) or `segments` (seven-segment).
+        public var cells: String = "dots"
+        /// The height of a dot matrix; a segment digit is 86/84 of it.
+        public var size: Double = 84
+        /// Lit cells, and unlit ones.
+        public var color: String = "cyan"
+        public var offColor: String?
+
+        public init(text: String = "", cells: String = "dots", size: Double = 84, color: String = "cyan", offColor: String? = nil) {
+            self.text = text
+            self.cells = cells
+            self.size = size
+            self.color = color
+            self.offColor = offColor
+        }
+
+        public var layout: MatrixGeometry.Result {
+            MatrixGeometry.layout(text: text, segments: cells == "segments", size: size)
         }
     }
 
@@ -770,7 +831,9 @@ public struct RenderNode: Equatable, Sendable, Codable {
                 radius: try opt("radius") ?? 2,
                 start: try opt("start") ?? 0,
                 tick: try opt("tick"),
-                tickColor: try opt("tickColor")))
+                tickColor: try opt("tickColor"),
+                tickOverhang: try opt("tickOverhang") ?? 0,
+                gradient: try opt("gradient")))
             // `radius` is also a common field (the box's corner); for a bar it
             // is the bar's own corner, default 2, and the box has none.
             radius = 0
@@ -851,6 +914,7 @@ public struct RenderNode: Equatable, Sendable, Codable {
                 zone: try opt("zone"),
                 color: try opt("color") ?? "text",
                 faceColor: try opt("faceColor"),
+                nightFaceColor: try opt("nightFaceColor"),
                 secondsColor: try opt("secondsColor") ?? "bad",
                 pivotColor: try opt("pivotColor") ?? "accent"))
         case "flip":
@@ -863,6 +927,19 @@ public struct RenderNode: Equatable, Sendable, Codable {
                 tile: try opt("tile") ?? "#2a2c35ff",
                 tileBottom: try opt("tileBottom") ?? "#1f212aff",
                 animate: try opt("animate") ?? true))
+        case "matrix":
+            content = .matrix(Matrix(
+                text: try opt("text") ?? "",
+                cells: lenient("cells", "dots"),
+                size: try opt("size") ?? 84,
+                color: try opt("color") ?? "cyan",
+                offColor: try opt("offColor")))
+        case "moon":
+            content = .moon(Moon(
+                phase: try opt("phase") ?? 0,
+                size: try opt("size") ?? 22,
+                color: try opt("color") ?? "#e8e4d4ff",
+                trackColor: try opt("trackColor")))
         default:
             content = .unknown(type: type)
         }
@@ -938,6 +1015,8 @@ public struct RenderNode: Equatable, Sendable, Codable {
             try put("start", b.start, default: 0)
             try put("tick", b.tick)
             try put("tickColor", b.tickColor)
+            try put("tickOverhang", b.tickOverhang, default: 0)
+            try put("gradient", b.gradient)
         case .ring(let r):
             try put("radius", radius, default: 0)
             try put("value", r.value, default: 0)
@@ -1009,6 +1088,7 @@ public struct RenderNode: Equatable, Sendable, Codable {
             try put("zone", a.zone)
             try put("color", a.color, default: "text")
             try put("faceColor", a.faceColor)
+            try put("nightFaceColor", a.nightFaceColor)
             try put("secondsColor", a.secondsColor, default: "bad")
             try put("pivotColor", a.pivotColor, default: "accent")
         case .flip(let f):
@@ -1021,6 +1101,19 @@ public struct RenderNode: Equatable, Sendable, Codable {
             try put("tile", f.tile, default: "#2a2c35ff")
             try put("tileBottom", f.tileBottom, default: "#1f212aff")
             try put("animate", f.animate, default: true)
+        case .matrix(let m):
+            try put("radius", radius, default: 0)
+            try put("text", m.text, default: "")
+            try put("cells", m.cells, default: "dots")
+            try put("size", m.size, default: 84)
+            try put("color", m.color, default: "cyan")
+            try put("offColor", m.offColor)
+        case .moon(let m):
+            try put("radius", radius, default: 0)
+            try put("phase", m.phase, default: 0)
+            try put("size", m.size, default: 22)
+            try put("color", m.color, default: "#e8e4d4ff")
+            try put("trackColor", m.trackColor)
         case .unknown:
             try put("radius", radius, default: 0)
         }

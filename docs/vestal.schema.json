@@ -7732,6 +7732,9 @@
           "$ref": "#/$defs/widget.clockFlip"
         },
         {
+          "$ref": "#/$defs/widget.clockMatrix"
+        },
+        {
           "$ref": "#/$defs/widget.clockRing"
         },
         {
@@ -7807,10 +7810,16 @@
           "$ref": "#/$defs/widget.list"
         },
         {
+          "$ref": "#/$defs/widget.matrix"
+        },
+        {
           "$ref": "#/$defs/widget.media"
         },
         {
           "$ref": "#/$defs/widget.memoryBreakdown"
+        },
+        {
+          "$ref": "#/$defs/widget.moon"
         },
         {
           "$ref": "#/$defs/widget.networkRates"
@@ -10528,6 +10537,23 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "nightFaceColor": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The face's fill while it is night in zone (19:00 to 07:00). Default: faceColor always.",
+          "examples": [
+            "accent"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "numerals": {
           "anyOf": [
             {
@@ -10762,7 +10788,8 @@
               "enum": [
                 "none",
                 "hours",
-                "minutes"
+                "minutes",
+                "dots"
               ],
               "type": "string"
             },
@@ -10774,7 +10801,7 @@
             }
           ],
           "default": "hours",
-          "description": "none: a hairline ring and a dot at twelve, short hands. hours: twelve marks. minutes: sixty, heavier at the hours.",
+          "description": "none: a hairline ring and a dot at twelve, short hands. hours: twelve marks. minutes: sixty, heavier at the hours. dots: twelve dots and short plain hands, for a dial of about 64.",
           "examples": [
             "minutes"
           ],
@@ -14257,6 +14284,19 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "cells": {
+          "default": "dots",
+          "description": "matrix: dots (a 5 by 7 grid per digit) or segments (seven-segment digits)",
+          "examples": [
+            "dots"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "clip": {
           "anyOf": [
             {
@@ -14290,6 +14330,15 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "color": {
+          "default": "cyan",
+          "description": "matrix: the lit cells' color",
+          "examples": [
+            "cyan"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "date": {
           "default": "auto",
           "description": "The date line: full (the locale's), none, or words (\"It is Sunday, the twenty-seventh of September\", the serif face). auto: full",
@@ -14318,7 +14367,7 @@
         },
         "face": {
           "default": "mono",
-          "description": "The look: mono, thin, stacked, serif, condensed, rounded, breathe, or a drawn one: analog, flip, ring",
+          "description": "The look: mono, thin, stacked, serif, condensed, rounded, breathe, or a drawn one: analog, flip, ring, matrix",
           "examples": [
             "mono"
           ],
@@ -14631,6 +14680,19 @@
               "color": "subtle",
               "size": 12
             }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "subdials": {
+          "default": "none",
+          "description": "analog: worldClocks puts a small dial under the face for each world clock, filled light by day and dark by night there, with the offset from here and day or night; none: the row of times",
+          "examples": [
+            "none"
+          ],
+          "type": [
+            "string",
+            "null"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -15674,6 +15736,493 @@
           ],
           "examples": [
             "clockFlip"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Binds $name for this subtree; a var may use the others it names.",
+          "examples": [
+            {
+              "b": "find({casa: \"blue\"})"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "Hidden when it yields false or null. A hidden widget takes no space.",
+          "examples": [
+            ".battery != null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "width": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill (the space the parent offers) or fit.",
+          "examples": [
+            60,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
+    "widget.clockMatrix": {
+      "additionalProperties": false,
+      "description": "The clock's dot-matrix face: a 5 by 7 dot grid or seven-segment digits the UI draws, unlit cells faintly visible, with the date under them",
+      "properties": {
+        "action": {
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
+          "examples": [
+            {
+              "open": "{{ .url }}"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alignSelf": {
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-axis alignment of this child. Default: the parent's align.",
+          "examples": [
+            "center"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alt": {
+          "description": "Plain-text rendition for text-only UIs and accessibility.",
+          "examples": [
+            "CPU {{ .cpu.percent }}%"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "background": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A color painted behind the padded frame.",
+          "examples": [
+            "track",
+            "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "cells": {
+          "default": "dots",
+          "description": "dots: a 5 by 7 grid per digit; segments: seven-segment digits",
+          "examples": [
+            "dots"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "description": "Clip children to the frame.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "color": {
+          "default": "cyan",
+          "description": "The lit cells",
+          "examples": [
+            "cyan"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "date": {
+          "default": "auto",
+          "description": "The date line under the digits: none hides it",
+          "examples": [
+            "auto"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "height": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill or fit.",
+          "examples": [
+            24,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "hour12": {
+          "default": false,
+          "description": "true, false or \"auto\" (the system's)",
+          "examples": [
+            false
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "id": {
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
+          "examples": [
+            "cpu"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "input": {
+          "description": "Re-roots . for this subtree.",
+          "examples": [
+            ".current_condition[0]"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "key": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A key that runs action; auto takes the first free letter of keyHint.",
+          "examples": [
+            "g",
+            "auto"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "keyHint": {
+          "description": "Letters auto tries, in order. Default: the widget's first text.",
+          "examples": [
+            "{{ .name }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "loading": {
+          "default": "hide",
+          "description": "While this widget's own source has never produced data: hide, show (with . = null), or a widget to draw instead.",
+          "examples": [
+            "show"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest width.",
+          "examples": [
+            400
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The least width.",
+          "examples": [
+            40
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "0 to 1.",
+          "examples": [
+            0.6
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "padding": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Inside the frame: a number, or [top, right, bottom, left].",
+          "examples": [
+            8,
+            [
+              2,
+              6,
+              2,
+              6
+            ]
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Corner radius of the background and the border.",
+          "examples": [
+            4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "seconds": {
+          "default": true,
+          "description": "Show seconds (the default); false hides them",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "size": {
+          "default": 0,
+          "description": "The height of a dot matrix; 0 is 84",
+          "examples": [
+            0
+          ],
+          "type": [
+            "number",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "description": "The data for this subtree: a source name, or a source definition (an inline source). Sets . and $data.",
+          "examples": [
+            "system",
+            {
+              "parse": "lines",
+              "path": "~/notes.md",
+              "type": "file"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "spaceBefore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Space before this child in a stack or row, instead of the parent's gap. Ignored on the first visible child.",
+          "examples": [
+            24
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "Grid columns this child takes.",
+          "examples": [
+            2
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/style"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style and color, inherited by everything under it.",
+          "examples": [
+            {
+              "color": "subtle",
+              "size": 12
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "clockMatrix"
+          ],
+          "examples": [
+            "clockMatrix"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -28160,6 +28709,518 @@
       "type": "object",
       "x-vestal-since": "0.4"
     },
+    "widget.matrix": {
+      "additionalProperties": false,
+      "description": "A dot matrix or seven-segment display the UI draws, unlit cells faintly visible.",
+      "properties": {
+        "action": {
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
+          "examples": [
+            {
+              "open": "{{ .url }}"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alignSelf": {
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-axis alignment of this child. Default: the parent's align.",
+          "examples": [
+            "center"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alt": {
+          "description": "Plain-text rendition for text-only UIs and accessibility.",
+          "examples": [
+            "CPU {{ .cpu.percent }}%"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "background": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A color painted behind the padded frame.",
+          "examples": [
+            "track",
+            "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "cells": {
+          "anyOf": [
+            {
+              "enum": [
+                "dots",
+                "segments"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "dots",
+          "description": "dots: a 5 by 7 grid per digit. segments: seven-segment digits.",
+          "examples": [
+            "segments"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "description": "Clip children to the frame.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "color": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "cyan",
+          "description": "The lit cells.",
+          "examples": [
+            "accent"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "height": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill or fit.",
+          "examples": [
+            24,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "id": {
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
+          "examples": [
+            "cpu"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "input": {
+          "description": "Re-roots . for this subtree.",
+          "examples": [
+            ".current_condition[0]"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "key": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A key that runs action; auto takes the first free letter of keyHint.",
+          "examples": [
+            "g",
+            "auto"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "keyHint": {
+          "description": "Letters auto tries, in order. Default: the widget's first text.",
+          "examples": [
+            "{{ .name }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "loading": {
+          "default": "hide",
+          "description": "While this widget's own source has never produced data: hide, show (with . = null), or a widget to draw instead.",
+          "examples": [
+            "show"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest width.",
+          "examples": [
+            400
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The least width.",
+          "examples": [
+            40
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "offColor": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The unlit cells. Default: text at 6.5%.",
+          "examples": [
+            "accent"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "0 to 1.",
+          "examples": [
+            0.6
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "padding": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Inside the frame: a number, or [top, right, bottom, left].",
+          "examples": [
+            8,
+            [
+              2,
+              6,
+              2,
+              6
+            ]
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Corner radius of the background and the border.",
+          "examples": [
+            4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "size": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 84,
+          "description": "The height of a dot matrix in points (a segment digit is 86/84 of it).",
+          "examples": [
+            60
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "description": "The data for this subtree: a source name, or a source definition (an inline source). Sets . and $data.",
+          "examples": [
+            "system",
+            {
+              "parse": "lines",
+              "path": "~/notes.md",
+              "type": "file"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "spaceBefore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Space before this child in a stack or row, instead of the parent's gap. Ignored on the first visible child.",
+          "examples": [
+            24
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "Grid columns this child takes.",
+          "examples": [
+            2
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/style"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style and color, inherited by everything under it.",
+          "examples": [
+            {
+              "color": "subtle",
+              "size": 12
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "text": {
+          "description": "Digits and :; anything else is a blank digit.",
+          "examples": [
+            "{{ now | fmt_time(\"HH:mm:ss\") }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "matrix"
+          ],
+          "examples": [
+            "matrix"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Binds $name for this subtree; a var may use the others it names.",
+          "examples": [
+            {
+              "b": "find({casa: \"blue\"})"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "Hidden when it yields false or null. A hidden widget takes no space.",
+          "examples": [
+            ".battery != null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "width": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill (the space the parent offers) or fit.",
+          "examples": [
+            60,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
     "widget.media": {
       "additionalProperties": false,
       "description": "What a music player is playing, with play/pause and the output volume.",
@@ -28967,6 +30028,490 @@
           ],
           "examples": [
             "memoryBreakdown"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "vars": {
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Binds $name for this subtree; a var may use the others it names.",
+          "examples": [
+            {
+              "b": "find({casa: \"blue\"})"
+            }
+          ],
+          "type": [
+            "object",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "when": {
+          "description": "Hidden when it yields false or null. A hidden widget takes no space.",
+          "examples": [
+            ".battery != null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "width": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill (the space the parent offers) or fit.",
+          "examples": [
+            60,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object",
+      "x-vestal-since": "0.4"
+    },
+    "widget.moon": {
+      "additionalProperties": false,
+      "description": "The moon's phase drawn as the lit part of a disc, on the side the phase says.",
+      "properties": {
+        "action": {
+          "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
+          "examples": [
+            {
+              "open": "{{ .url }}"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alignSelf": {
+          "anyOf": [
+            {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ],
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-axis alignment of this child. Default: the parent's align.",
+          "examples": [
+            "center"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "alt": {
+          "description": "Plain-text rendition for text-only UIs and accessibility.",
+          "examples": [
+            "CPU {{ .cpu.percent }}%"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "background": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A color painted behind the padded frame.",
+          "examples": [
+            "track",
+            "accent@0.15"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "border": {
+          "description": "An outline around the padded frame, following the radius: {color (default dim), width (default 1)}.",
+          "examples": [
+            {
+              "color": "accent@0.6",
+              "width": 1
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "clip": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "description": "Clip children to the frame.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "color": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "#e8e4d4ff",
+          "description": "The lit part.",
+          "examples": [
+            "accent"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "height": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "fit",
+          "description": "Points, fill or fit.",
+          "examples": [
+            24,
+            "fill"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "id": {
+          "description": "A stable id segment for the node. Default: the widget key or its index.",
+          "examples": [
+            "cpu"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "input": {
+          "description": "Re-roots . for this subtree.",
+          "examples": [
+            ".current_condition[0]"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "key": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A key that runs action; auto takes the first free letter of keyHint.",
+          "examples": [
+            "g",
+            "auto"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "keyHint": {
+          "description": "Letters auto tries, in order. Default: the widget's first text.",
+          "examples": [
+            "{{ .name }}"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
+        },
+        "loading": {
+          "default": "hide",
+          "description": "While this widget's own source has never produced data: hide, show (with . = null), or a widget to draw instead.",
+          "examples": [
+            "show"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "maxWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The largest width.",
+          "examples": [
+            400
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "minWidth": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The least width.",
+          "examples": [
+            40
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "0 to 1.",
+          "examples": [
+            0.6
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "padding": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Inside the frame: a number, or [top, right, bottom, left].",
+          "examples": [
+            8,
+            [
+              2,
+              6,
+              2,
+              6
+            ]
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "phase": {
+          "description": "0 (new) to 1; 0.5 is full. Below 0.5 the right side is lit.",
+          "examples": [
+            ".moon.phase"
+          ],
+          "x-vestal-kind": "expr",
+          "x-vestal-since": "0.4"
+        },
+        "radius": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "Corner radius of the background and the border.",
+          "examples": [
+            4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "size": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 22,
+          "description": "The square's side.",
+          "examples": [
+            28
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "source": {
+          "description": "The data for this subtree: a source name, or a source definition (an inline source). Sets . and $data.",
+          "examples": [
+            "system",
+            {
+              "parse": "lines",
+              "path": "~/notes.md",
+              "type": "file"
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "spaceBefore": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Space before this child in a stack or row, instead of the parent's gap. Ignored on the first visible child.",
+          "examples": [
+            24
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "span": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1,
+          "description": "Grid columns this child takes.",
+          "examples": [
+            2
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/style"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style and color, inherited by everything under it.",
+          "examples": [
+            {
+              "color": "subtle",
+              "size": 12
+            }
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "trackColor": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The rest of the disc. Default: text at 8%.",
+          "examples": [
+            "accent"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "type": {
+          "description": "The widget type.",
+          "enum": [
+            "moon"
+          ],
+          "examples": [
+            "moon"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -30676,6 +32221,18 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "cells": {
+          "description": "matrix: dots (a 5 by 7 grid per digit) or segments (seven-segment digits)",
+          "examples": [
+            "dots"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "center": {
           "anyOf": [
             {
@@ -31105,7 +32662,7 @@
           "x-vestal-since": "0.4"
         },
         "face": {
-          "description": "The look: mono, thin, stacked, serif, condensed, rounded, breathe, or a drawn one: analog, flip, ring",
+          "description": "The look: mono, thin, stacked, serif, condensed, rounded, breathe, or a drawn one: analog, flip, ring, matrix",
           "examples": [
             "mono"
           ],
@@ -31271,6 +32828,22 @@
           "description": "Between columns (3) or rows (6).",
           "examples": [
             4
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "gradient": {
+          "description": "Two or more colors the fill runs through, left to right across the fill (a range bar's low to high). Default: color.",
+          "examples": [
+            [
+              "cyan",
+              "orange"
+            ]
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -31869,6 +33442,23 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "nightFaceColor": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The face's fill while it is night in zone (19:00 to 07:00). Default: faceColor always.",
+          "examples": [
+            "accent"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "now": {
           "anyOf": [
             {
@@ -31932,6 +33522,23 @@
           "description": "The numerals 1 to 12.",
           "examples": [
             true
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "offColor": {
+          "anyOf": [
+            {},
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The unlit cells. Default: text at 6.5%.",
+          "examples": [
+            "accent"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -32104,6 +33711,14 @@
             "null"
           ],
           "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "phase": {
+          "description": "0 (new) to 1; 0.5 is full. Below 0.5 the right side is lit.",
+          "examples": [
+            ".moon.phase"
+          ],
+          "x-vestal-kind": "expr",
           "x-vestal-since": "0.4"
         },
         "pivotColor": {
@@ -32793,6 +34408,18 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "subdials": {
+          "description": "analog: worldClocks puts a small dial under the face for each world clock, filled light by day and dark by night there, with the offset from here and day or night; none: the row of times",
+          "examples": [
+            "none"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "suffix": {
           "description": "The suffix parameter (text).",
           "examples": [
@@ -32930,13 +34557,33 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "tickOverhang": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How far the tick reaches above and below the bar, in points.",
+          "examples": [
+            3
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "ticks": {
           "anyOf": [
             {
               "enum": [
                 "none",
                 "hours",
-                "minutes"
+                "minutes",
+                "dots"
               ],
               "type": "string"
             },
@@ -32947,7 +34594,7 @@
               "type": "null"
             }
           ],
-          "description": "none: a hairline ring and a dot at twelve, short hands. hours: twelve marks. minutes: sixty, heavier at the hours.",
+          "description": "none: a hairline ring and a dot at twelve, short hands. hours: twelve marks. minutes: sixty, heavier at the hours. dots: twelve dots and short plain hands, for a dial of about 64.",
           "examples": [
             "minutes"
           ],
@@ -33462,6 +35109,22 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "gradient": {
+          "description": "Two or more colors the fill runs through, left to right across the fill (a range bar's low to high). Default: color.",
+          "examples": [
+            [
+              "cyan",
+              "orange"
+            ]
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "height": {
           "anyOf": [
             {},
@@ -33917,6 +35580,26 @@
           "description": "The mark's color.",
           "examples": [
             "accent"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "tickOverhang": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "How far the tick reaches above and below the bar, in points.",
+          "examples": [
+            3
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -41066,6 +42749,7 @@
               "clock",
               "clockAnalog",
               "clockFlip",
+              "clockMatrix",
               "clockRing",
               "commitActivity",
               "containers",
@@ -41091,8 +42775,10 @@
               "keyValue",
               "keyValueList",
               "list",
+              "matrix",
               "media",
               "memoryBreakdown",
+              "moon",
               "networkRates",
               "nextMeeting",
               "nowPlaying",

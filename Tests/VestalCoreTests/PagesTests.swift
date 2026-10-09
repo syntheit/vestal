@@ -215,7 +215,7 @@ final class PagesTests: XCTestCase {
         XCTAssertEqual(try RenderJSON.encoder.encode(RenderInput.page(step: 1)), Data(#"{"cmd":"page","step":1}"#.utf8))
         let decoded = try RenderJSON.decoder.decode(RenderInput.self, from: Data(#"{"cmd":"page","step":-1}"#.utf8))
         XCTAssertEqual(decoded, .page(step: -1))
-        XCTAssertEqual(RenderProtocol.minor, 2)
+        XCTAssertEqual(RenderProtocol.minor, 3)
     }
 
     func testRenderPressRightSwitchesPage() throws {

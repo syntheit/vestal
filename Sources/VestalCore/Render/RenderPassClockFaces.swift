@@ -13,7 +13,7 @@ extension RenderPass {
 
     func analog(_ w: [String: AnyJSON], id: String, scope: Scope) -> RenderNode {
         let scale = scope.style.scale
-        let ticks = choice(w["ticks"], id: id, field: "ticks", scope: scope, allowed: ["none", "hours", "minutes"]) ?? "hours"
+        let ticks = choice(w["ticks"], id: id, field: "ticks", scope: scope, allowed: ["none", "hours", "minutes", "dots"]) ?? "hours"
         let seconds = secondsMode(w["seconds"], id: id, scope: scope)
         let quiet = ticks == "none"
         var analog = RenderNode.Analog()
@@ -28,6 +28,7 @@ extension RenderPass {
         analog.color = colorField(w["color"], id: id, field: "color", scope: scope) ?? "text"
         analog.faceColor = colorField(w["faceColor"], id: id, field: "faceColor", scope: scope)
             ?? model.palette.resolve(quiet ? "text@0.035" : "bg@0.32")
+        analog.nightFaceColor = colorField(w["nightFaceColor"], id: id, field: "nightFaceColor", scope: scope)
         analog.secondsColor = colorField(w["secondsColor"], id: id, field: "secondsColor", scope: scope) ?? "bad"
         analog.pivotColor = colorField(w["pivotColor"], id: id, field: "pivotColor", scope: scope)
             ?? (seconds == "none" ? "accent" : analog.secondsColor)
@@ -53,7 +54,8 @@ extension RenderPass {
 
     /// An IANA zone, nil for the system's (an unknown name is reported).
     private func zone(_ value: AnyJSON?, id: String, scope: Scope) -> String? {
-        guard let name = string(value, id: id, field: "zone", scope: scope), !name.isEmpty else { return nil }
+        let name = fieldText(value, id: id, field: "zone", scope: scope)
+        guard !name.isEmpty else { return nil }
         guard TimeZone(identifier: name) != nil else {
             report(id: id, field: "zone", severity: "warning", code: "invalid-value", message: "unknown time zone \"\(name)\"")
             return nil
@@ -73,6 +75,43 @@ extension RenderPass {
 
     private func colorField(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> String? {
         value.flatMap { color($0, id: id, field: field, scope: scope, value: nil) }
+    }
+
+    // MARK: matrix
+
+    func matrix(_ w: [String: AnyJSON], id: String, scope: Scope) -> RenderNode {
+        let scale = scope.style.scale
+        var matrix = RenderNode.Matrix()
+        matrix.text = fieldText(w["text"], id: id, field: "text", scope: scope)
+        matrix.cells = choice(w["cells"], id: id, field: "cells", scope: scope, allowed: ["dots", "segments"]) ?? "dots"
+        // A size of 0 (a preset's unset param) is the display's own.
+        let given = number(w["size"], id: id, field: "size", scope: scope).flatMap { $0 > 0 ? $0 : nil }
+        matrix.size = max(8, given ?? 84) * scale
+        matrix.color = colorField(w["color"], id: id, field: "color", scope: scope) ?? "cyan"
+        matrix.offColor = colorField(w["offColor"], id: id, field: "offColor", scope: scope) ?? model.palette.resolve("text@0.065")
+        var node = RenderNode(id: id, .matrix(matrix))
+        let layout = matrix.layout
+        node.width = .points(layout.width)
+        node.height = .points(layout.height)
+        node.alt = matrix.text
+        return node
+    }
+
+    // MARK: moon
+
+    func moon(_ w: [String: AnyJSON], id: String, scope: Scope) -> RenderNode {
+        let scale = scope.style.scale
+        var moon = RenderNode.Moon()
+        moon.phase = min(max(numeric(w["phase"], id: id, field: "phase", scope: scope) ?? 0, 0), 1)
+        moon.size = max(6, number(w["size"], id: id, field: "size", scope: scope) ?? 22) * scale
+        moon.color = colorField(w["color"], id: id, field: "color", scope: scope) ?? "#e8e4d4ff"
+        moon.trackColor = colorField(w["trackColor"], id: id, field: "trackColor", scope: scope)
+            ?? model.palette.resolve("text@0.08")
+        var node = RenderNode(id: id, .moon(moon))
+        node.width = .points(moon.size)
+        node.height = .points(moon.size)
+        node.alt = MoonGeometry.name(phase: moon.phase)
+        return node
     }
 
     // MARK: flip

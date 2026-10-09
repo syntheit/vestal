@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Drawn clock faces
 //
-// `clockAnalog`, `clockFlip` and `clockRing`: the clock preset's drawn
+// `clockAnalog`, `clockFlip`, `clockMatrix` and `clockRing`: the clock preset's drawn
 // faces, picked by its `face` param. Each is a widget of its own so the
 // clock preset only names them. Merged into DefaultPresets.tree.
 
@@ -51,6 +51,36 @@ extension DefaultPresets {
               { "type": "text", "when": "$date != \"none\"", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}", "style": { "size": 14, "weight": "medium", "color": "subtle" } },
               { "type": "text", "when": "$h12", "text": "{{ now | fmt_time(\"a\") }}", "background": "text@0.1", "radius": 4,
                 "padding": [3, 6, 3, 6], "style": { "size": 11, "weight": "bold", "tracking": 1.1, "case": "upper" } }
+            ] }
+          ]
+        }
+      },
+
+      "clockMatrix": {
+        "description": "The clock's dot-matrix face: a 5 by 7 dot grid or seven-segment digits the UI draws, unlit cells faintly visible, with the date under them",
+        "params": {
+          "size": { "type": "number", "default": 0, "description": "The height of a dot matrix; 0 is 84" },
+          "cells": { "type": "string", "default": "dots", "enum": ["dots", "segments"], "description": "dots: a 5 by 7 grid per digit; segments: seven-segment digits" },
+          "color": { "type": "color", "default": "cyan", "description": "The lit cells" },
+          "seconds": { "type": "any", "default": true, "description": "Show seconds (the default); false hides them" },
+          "hour12": { "type": "any", "default": false, "description": "true, false or \"auto\" (the system's)" },
+          "date": { "type": "string", "default": "auto", "enum": ["auto", "full", "words", "none"], "description": "The date line under the digits: none hides it" }
+        },
+        "widget": {
+          "type": "stack", "gap": 18, "align": "center",
+          "vars": {
+            "h12": "$hour12 == true or ($hour12 == \"auto\" and uses_12h)",
+            "secs": "$seconds != false",
+            "hh": "now | fmt_time(if ($hour12 == true or ($hour12 == \"auto\" and uses_12h)) then \"h\" else \"HH\" end) | if length < 2 then \" \" + . else . end"
+          },
+          "children": [
+            { "type": "matrix", "size": { "expr": "if $size > 0 then $size else 84 end" }, "cells": { "param": "cells" }, "color": { "param": "color" },
+              "text": "{{ $hh }}:{{ now | fmt_time(if $secs then \"mm:ss\" else \"mm\" end) }}" },
+            { "type": "row", "gap": 14, "align": "baseline", "children": [
+              { "type": "text", "when": "$date != \"none\"", "text": "{{ now | fmt_localized(\"EEEMMMd\") }}",
+                "style": { "size": 13, "weight": "medium", "font": "mono", "color": "subtle", "tracking": 2.3, "case": "upper" } },
+              { "type": "text", "when": "$h12", "text": "{{ now | fmt_time(\"a\") }}",
+                "style": { "size": 13, "weight": "medium", "font": "mono", "color": { "param": "color" }, "tracking": 2.3, "case": "upper" } }
             ] }
           ]
         }

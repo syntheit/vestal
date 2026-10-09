@@ -80,6 +80,10 @@ struct RenderNodeView: View {
             AnalogDrawing(analog: analog, style: style)
         case .flip(let flip):
             FlipDrawing(flip: flip, style: style)
+        case .moon(let moon):
+            MoonDrawing(moon: moon, style: style)
+        case .matrix(let matrix):
+            MatrixDrawing(matrix: matrix, style: style)
         }
     }
 
@@ -110,6 +114,10 @@ struct RenderNodeView: View {
         case .analog(let a): return .fixed(width: a.size, height: a.size)
         case .flip(let f):
             let layout = f.layout
+            return .fixed(width: layout.width, height: layout.height)
+        case .moon(let m): return .fixed(width: m.size, height: m.size)
+        case .matrix(let m):
+            let layout = m.layout
             return .fixed(width: layout.width, height: layout.height)
         }
     }
@@ -274,27 +282,40 @@ struct BarDrawing: View {
         let color = style.color(bar.color, default: "accent")
         let track = bar.trackColor.map { style.color($0) } ?? style.rgba(bar.color, default: "accent").withAlpha(0.15).color
         let overlay = bar.overlayColor.map { style.color($0) } ?? Color(white: 1, opacity: 0.2)
-        Canvas { context, size in
+        // The tick overhangs the bar above and below: the canvas grows by that
+        // much on both sides (negative padding keeps the layout box), and the
+        // bar is drawn between.
+        let overhang = CGFloat(max(bar.tickOverhang, 0))
+        Canvas { context, canvas in
+            let size = CGSize(width: canvas.width, height: canvas.height - 2 * overhang)
             let radius = min(CGFloat(bar.radius), size.height / 2)
-            func segment(_ fraction: Double, _ c: Color, from: Double = 0) {
+            func segment(_ fraction: Double, _ c: Color, from: Double = 0, gradient: [Color]? = nil) {
                 let f = min(max(fraction, 0), 1)
                 guard f > from else { return }
                 let scale = max(displayScale, 1)
                 let x = from > 0 ? (size.width * CGFloat(from) * scale).rounded() / scale : 0
-                let rect = CGRect(x: x, y: 0, width: (size.width * CGFloat(f) * scale).rounded() / scale - x, height: size.height)
-                context.fill(RoundedRectangle(cornerRadius: radius).path(in: rect), with: .color(c))
+                let rect = CGRect(x: x, y: overhang, width: (size.width * CGFloat(f) * scale).rounded() / scale - x, height: size.height)
+                let path = RoundedRectangle(cornerRadius: radius).path(in: rect)
+                if let gradient, gradient.count >= 2 {
+                    context.fill(path, with: .linearGradient(Gradient(colors: gradient),
+                                                             startPoint: CGPoint(x: rect.minX, y: rect.midY),
+                                                             endPoint: CGPoint(x: rect.maxX, y: rect.midY)))
+                } else {
+                    context.fill(path, with: .color(c))
+                }
             }
             segment(1, track)
             if let o = bar.overlay, bar.overlayPosition == "below" { segment(o, overlay) }
-            segment(bar.value, color, from: bar.start)
+            segment(bar.value, color, from: bar.start, gradient: bar.gradient?.map { style.color($0) })
             if let o = bar.overlay, bar.overlayPosition != "below" { segment(o, overlay) }
             if let tick = bar.tick {
                 let x = size.width * CGFloat(min(max(tick, 0), 1))
                 let width: CGFloat = 1.5
-                let rect = CGRect(x: min(max(x - width / 2, 0), size.width - width), y: 0, width: width, height: size.height)
+                let rect = CGRect(x: min(max(x - width / 2, 0), size.width - width), y: 0, width: width, height: canvas.height)
                 context.fill(Path(rect), with: .color(bar.tickColor.map { style.color($0) } ?? Color(white: 1, opacity: 0.55)))
             }
         }
+        .padding(.vertical, -overhang)
     }
 }
 

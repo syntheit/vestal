@@ -43,6 +43,7 @@ public enum ClockFaces {
         Face(name: "analog", summary: "A round dial the UI draws and runs (clockAnalog): hands, optional ticks, numerals and a date window; seconds \"step\" or \"sweep\".", body: analog),
         Face(name: "flip", summary: "Split-flap tiles that fold over when a digit changes (clockFlip), with the date and am or pm under them.", body: flip),
         Face(name: "ring", summary: "The time inside a ring that fills across the day or the working hours (clockRing).", body: ring),
+        Face(name: "matrix", summary: "A 5 by 7 dot grid or seven-segment digits the UI draws, unlit cells faintly visible (clockMatrix); cells \"dots\" or \"segments\", color for the lit cells.", body: matrix),
     ]
 
     public static var names: [String] { registry.map(\.name) }
@@ -123,10 +124,11 @@ public enum ClockFaces {
         + "if $th < 1 then (($th + days($y - 1)) / 7 | ceil) elif $th > days($y) then 1 else ($th / 7 | ceil) end"
 
     /// The world clocks as a list; `row` is one item's widget.
-    static func world(direction: String, gap: Int, spaceBefore: Int, id: String? = nil, row: String) -> String {
+    static func world(direction: String, gap: Int, spaceBefore: Int, id: String? = nil, when: String? = nil, row: String) -> String {
         let ident = id.map { "\"id\": \"\($0)\", " } ?? ""
+        let condition = when.map { "\"when\": \"\($0)\", " } ?? ""
         return """
-        { "type": "list", \(ident)"spaceBefore": \(spaceBefore), "direction": "\(direction)", "gap": \(gap),
+        { "type": "list", \(ident)\(condition)"spaceBefore": \(spaceBefore), "direction": "\(direction)", "gap": \(gap),
           "items": "$clocks", "rowId": ".label",
           "empty": { "type": "spacer", "height": 0 },
           "row": \(row) }
@@ -346,10 +348,40 @@ public enum ClockFaces {
         """
     }
 
-    static let analog = drawn("analog", """
-    { "type": "clockAnalog", "size": { "param": "size" }, "ticks": { "param": "ticks" }, "dateWindow": { "param": "dateWindow" },
-      "numerals": { "param": "numerals" }, "seconds": { "param": "seconds" }, "date": { "param": "date" } }
-    """)
+    /// The analog face; `subdials: "worldClocks"` puts a small dial per world
+    /// clock under it instead of the row of times.
+    static let analog = """
+    {
+      "type": "stack", "gap": 4, "align": "center", "spaceBefore": 0,
+      "vars": \(vars(seconds: false)),
+      "children": [
+        { "id": "analog", "type": "clockAnalog", "size": { "param": "size" }, "ticks": { "param": "ticks" }, "dateWindow": { "param": "dateWindow" },
+          "numerals": { "param": "numerals" }, "seconds": { "param": "seconds" }, "date": { "param": "date" } },
+        \(world(direction: "row", gap: 16, spaceBefore: 10, id: "2", when: "$subdials != \\\"worldClocks\\\"", row: """
+          { "type": "row", "gap": 4, "children": [
+            \(text("{{ .label }}", size: "11", weight: "semibold", color: "dim")),
+            \(zoneTime("{ \"size\": 11, \"font\": \"mono\", \"color\": \"subtle\" }"))
+          ] }
+          """)),
+        \(world(direction: "row", gap: 22, spaceBefore: 14, id: "3", when: "$subdials == \\\"worldClocks\\\"", row: """
+          { "type": "row", "gap": 10, "align": "center",
+            "vars": {
+              "day": "(now | fmt_time(\\"H\\"; $item.tz) | tonumber) as $h | $h >= 7 and $h < 19",
+              "delta": "((now | tz_offset($item.tz)) - (now | tz_offset(null))) / 3600"
+            },
+            "children": [
+              { "type": "analog", "size": 64, "ticks": "dots", "zone": "{{ $item.tz }}", "faceColor": "text@0.12", "nightFaceColor": "#00000052" },
+              { "type": "stack", "gap": 2, "align": "start", "children": [
+                \(text("{{ .label }}", size: "12", weight: "semibold", font: "sans")),
+                \(zoneTime("{ \"size\": 12, \"font\": \"mono\", \"color\": \"subtle\" }")),
+                \(text("{{ if $delta == 0 then \\\"local\\\" else (if $delta > 0 then \\\"+\\\" else \\\"−\\\" end) + ($delta | fabs | tostring) + \\\"h\\\" end }} · {{ if $day then \\\"day\\\" else \\\"night\\\" end }}",
+                       size: "10", font: "mono", color: "dim"))
+              ] }
+            ] }
+          """))
+      ]
+    }
+    """
 
     static let flip = drawn("flip", """
     { "type": "clockFlip", "size": { "param": "size" },
@@ -358,5 +390,10 @@ public enum ClockFaces {
 
     static let ring = drawn("ring", """
     { "type": "clockRing", "size": { "param": "size" }, "span": { "param": "span" }, "hour12": { "param": "hour12" } }
+    """)
+
+    static let matrix = drawn("matrix", """
+    { "type": "clockMatrix", "size": { "param": "size" }, "cells": { "param": "cells" }, "color": { "param": "color" },
+      "seconds": { "param": "seconds" }, "hour12": { "param": "hour12" }, "date": { "param": "date" } }
     """)
 }
