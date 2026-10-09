@@ -436,6 +436,27 @@ final class HomelabTests: XCTestCase {
         }
     }
 
+    func testAMissingProgramIsListedByCapabilitiesAndTheWidgetStaysHidden() throws {
+        let config = #"{"version":1,"widgets":{"c":{"type":"containers","program":"vestal-no-such-docker"}},"views":{"main":{"children":["c"]}}}"#
+        let path = try makeTemporaryDirectory().appendingPathComponent("caps.json")
+        try Data(config.utf8).write(to: path)
+        let host = CapabilitiesCommand.Host(os: "linux", ui: nil, screenshot: .init(false, "no"), hotkey: .init(false, "no"),
+                                            platform: SourcePlatform())
+        let output = CapabilitiesCommand.run(["--json", "--config", path.path], host: host, environment: ["PATH": "/usr/bin:/bin"],
+                                             home: "/nonexistent-home", client: { _, _ in throw IPCError.notRunning(path: "/x") })
+        XCTAssertEqual(output.status, 0, output.stderr)
+        let report = try XCTUnwrap(AnyJSON.parse(Data(output.stdout.utf8)).successOrNil?.objectValue)
+        XCTAssertEqual(report["missing"], .array([.string("vestal-no-such-docker")]))
+        let program = try XCTUnwrap(report["programs"]?.arrayValue?.first?.objectValue)
+        XCTAssertEqual(program["usedBy"], .array([.string("widget \"c\"")]), "the widget, not the source's hash")
+        // And with nothing fetched, nothing is drawn.
+        let directory = try makeTemporaryDirectory()
+        let picture = RenderCommands.render(["--config", path.path, "--data", directory.path, "--format", "text"],
+                                            platform: SourcePlatform(), client: { _, _ in throw IPCError.notRunning(path: "") },
+                                            cache: SnapshotCache(directory: try makeTemporaryDirectory().path))
+        XCTAssertEqual(picture.stdout.trimmingCharacters(in: .whitespacesAndNewlines), "")
+    }
+
     func testTheProgramsAreListedForCapabilities() throws {
         let config = #"{"version":1,"widgets":{"c":{"type":"containers","program":"podman"},"t":{"type":"tailnet"}},"views":{"main":{"children":["c","t"]}}}"#
         let output = ConfigCommands.checkConfig(["-", "--commands", "--json"], stdin: { Data(config.utf8) })
