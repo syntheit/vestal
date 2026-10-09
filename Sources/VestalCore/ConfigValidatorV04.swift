@@ -269,7 +269,7 @@ struct V04Checker {
                 if !(inTemplate && containsParameter(source)) {
                     inlineSources.append((source, "\(path).source"))
                 }
-                sourceFields(definition, path: "\(path).source", params: [])
+                sourceFields(definition, path: "\(path).source", params: inTemplate ? scope.variables : [])
             default:
                 break
             }
@@ -298,6 +298,14 @@ struct V04Checker {
             literal(w[field], path: "\(path).\(field)", scope: scope, inTemplate: inTemplate)
         }
         color(w["background"], path: "\(path).background", scope: scope, inTemplate: inTemplate)
+        if case .object(let border)? = w["border"], !(inTemplate && Expander.parameterReference(.object(border)) != nil) {
+            for key in border.keys.sorted() where !["color", "width"].contains(key) {
+                add(.unknownKey, "\(path).border.\(key)", "unknown border key (known: color, width)", severity: .warning,
+                    suggestions: DidYouMean.suggestions(for: key, among: ["color", "width"]))
+            }
+            color(border["color"], path: "\(path).border.color", scope: scope, inTemplate: inTemplate)
+            literal(border["width"], path: "\(path).border.width", scope: scope, inTemplate: inTemplate)
+        }
         if let action = w["action"] { self.action(action, path: "\(path).action", scope: scope, inTemplate: inTemplate) }
         switch w["key"] {
         case .string(let key)?: keyName(key, path: "\(path).key", allowAuto: true)
@@ -507,8 +515,9 @@ struct V04Checker {
 
     // MARK: Actions
 
-    static let actionKeys = ["run", "open", "copy", "refresh", "view", "popup", "close", "media", "audio", "hide"]
-    static let actionSiblings: Set<String> = ["timeout", "env", "optimistic", "refreshAfter", "width", "source", "hide"]
+    static let actionKeys = ["run", "open", "copy", "refresh", "view", "popup", "close", "media", "audio", "timer", "toggleTodo", "hide"]
+    static let actionSiblings: Set<String> = ["timeout", "env", "optimistic", "refreshAfter", "width", "source", "hide",
+                                              "line", "match", "hash"]
 
     mutating func action(_ value: AnyJSON, path: String, scope: Scope, inTemplate: Bool = false) {
         switch value {
@@ -536,7 +545,13 @@ struct V04Checker {
                 add(.wrongType, "\(path).run", "expected the program and its arguments as a non-empty list of text, e.g. [\"playerctl\", \"next\"]",
                     severity: .error, expected: "array", found: run.jsonTypeName)
             }
-            for key in ["open", "copy", "view"] { text(members[key], path: "\(path).\(key)", scope: scope, inTemplate: inTemplate) }
+            for key in ["open", "copy", "view", "toggleTodo", "match", "hash"] {
+                text(members[key], path: "\(path).\(key)", scope: scope, inTemplate: inTemplate)
+            }
+            if case .string(let command)? = members["timer"], !LoadTimeText.hasHoles(command), !TimerStore.commands.contains(command) {
+                add(.invalidValue, "\(path).timer", "unknown timer command \"\(command)\" (use \(TimerStore.commands.joined(separator: ", ")))",
+                    severity: .error, found: command)
+            }
             if case .object(let env)? = members["env"] {
                 for name in env.keys.sorted() { text(env[name], path: "\(path).env.\(name)", scope: scope, inTemplate: inTemplate) }
             }

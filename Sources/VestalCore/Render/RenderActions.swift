@@ -6,7 +6,8 @@ import Foundation
 // the scope the widget was written in (so `.` is the row's item). The
 // session carries out what only changes the model (`popup`, `close`,
 // `view`); everything else comes back as effects for the host to run
-// (`run`, `open`, `copy`, `refresh`, `media`, `audio`, `hide`). `vestal
+// (`run`, `open`, `copy`, `refresh`, `media`, `audio`, `timer`, `toggleTodo`,
+// `hide`). `vestal
 // render --press` runs only the model's part: rendering never runs a
 // command.
 
@@ -25,6 +26,12 @@ public enum RenderActionEffect: Equatable, Sendable {
     /// `toggleMute`, `volumeUp` or `volumeDown`; `source` is the widget's
     /// (the `system` source whose `audio` it shows), for the optimistic flip.
     case audio(String, source: String?)
+    /// `start`, `pause`, `toggle`, `reset` or `skip` on the process's timer;
+    /// `source` is the `timer` source whose settings apply.
+    case timer(String, source: String?)
+    /// Ticks one open item off a markdown checklist (`TodoChecklist.toggle`);
+    /// `source` is refreshed afterwards.
+    case toggleTodo(path: String, line: Int, match: String, hash: String, source: String?)
     case hide
     /// The popup opened, closed, or the view changed: re-render.
     case changed
@@ -250,6 +257,12 @@ extension RenderSession {
             effects.append(.media(command, source: members["source"]?.stringValue ?? scope.source))
         } else if let command = members["audio"]?.stringValue {
             effects.append(.audio(command, source: members["source"]?.stringValue ?? scope.source))
+        } else if let command = members["timer"]?.stringValue {
+            effects.append(.timer(command, source: members["source"]?.stringValue ?? scope.source))
+        } else if let path = text(members["toggleTodo"]) {
+            let line = text(members["line"]).flatMap { Int($0.trimmingCharacters(in: .whitespaces)) } ?? 0
+            effects.append(.toggleTodo(path: path, line: line, match: text(members["match"]) ?? "",
+                                       hash: text(members["hash"]) ?? "", source: scope.source))
         } else if members["hide"] == .bool(true) && members.count == 1 {
             return [.hide]
         }

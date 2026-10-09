@@ -127,6 +127,8 @@ public enum PressCommand {
         case .refresh(let names): return "refresh \(names.isEmpty ? "nothing (no source)" : names.joined(separator: ", "))"
         case .media(let command, let source): return "media \(command)" + (source.map { " on \($0)" } ?? "")
         case .audio(let command, _): return "audio \(command)"
+        case .timer(let command, _): return "timer \(command)"
+        case .toggleTodo(let path, let line, _, _, _): return "tick off line \(line) of \(path)"
         case .hide: return "hide the dashboard"
         case .changed:
             if let popup = session.popup {
