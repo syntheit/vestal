@@ -125,6 +125,11 @@ if CommandLine.arguments.count > 1, CommandLine.arguments[1] == "render-file" {
 if CommandLine.arguments.count > 1, CommandLine.arguments[1] == "bench-background" {
     exit(BackgroundBench.run(Array(CommandLine.arguments.dropFirst(2))))
 }
+// Hidden: headless CPU benchmark of a shown dashboard's second
+// (VestalMac/Render/RenderBench.swift).
+if CommandLine.arguments.count > 1, CommandLine.arguments[1] == "bench-render" {
+    exit(RenderBench.run(Array(CommandLine.arguments.dropFirst(2))))
+}
 #endif
 
 switch CLI.parse(Array(CommandLine.arguments.dropFirst())) {

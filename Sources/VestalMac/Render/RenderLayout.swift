@@ -83,6 +83,16 @@ struct NodeSpecKey: LayoutValueKey {
     static let defaultValue = NodeSpec()
 }
 
+/// How often the layouts were asked, for `vestal bench-render` (main
+/// thread only).
+enum LayoutCounters {
+    static var sizes = 0
+    static var places = 0
+    static var alignments = 0
+
+    static func reset() { sizes = 0; places = 0; alignments = 0 }
+}
+
 /// A finite proposal, or nil (unspecified or infinite).
 func finite(_ value: CGFloat?) -> Double? {
     guard let value, value.isFinite else { return nil }
@@ -117,6 +127,51 @@ extension LayoutSubview {
     func baseline(forWidth width: Double) -> Double? {
         guard spec.hasBaseline else { return nil }
         return Double(dimensions(in: ProposedViewSize(width: CGFloat(width), height: nil))[.firstTextBaseline])
+    }
+}
+
+/// A container's measurements of its children, kept from one layout call to
+/// the next: each child's spec, its natural width, and the arrangement at
+/// each size asked. SwiftUI makes a new one (`makeCache`, through the
+/// default `updateCache`) whenever the container or any of its subviews
+/// changes, so nothing in it outlives what it measured; between changes,
+/// sizing, placing and the baseline share one measurement of each child
+/// instead of measuring the subtree three times.
+struct ChildCache {
+    let specs: [NodeSpec]
+    private var fitWidths: [Double?]
+    /// The parent's own natural width (no proposal).
+    var natural: Double?
+    var arrangements: [ArrangementKey: StackLayout.Arrangement] = [:]
+
+    struct ArrangementKey: Hashable {
+        var width: Double
+        var height: Double?
+    }
+
+    init(_ subviews: LayoutSubviews) {
+        specs = subviews.map(\.spec)
+        fitWidths = Array(repeating: nil, count: subviews.count)
+    }
+
+    /// `LayoutSubview.fitWidth`, once per child.
+    mutating func fitWidth(_ i: Int, _ subviews: LayoutSubviews) -> Double {
+        if let known = fitWidths[i] { return known }
+        let width = subviews[i].fitWidth
+        fitWidths[i] = width
+        return width
+    }
+
+    /// `LayoutSubview.offeredWidth`.
+    mutating func offeredWidth(_ i: Int, _ offer: Double, _ subviews: LayoutSubviews) -> Double {
+        if case .points? = specs[i].width { return fitWidth(i, subviews) }
+        return min(fitWidth(i, subviews), offer)
+    }
+
+    /// `LayoutSubview.baseline(forWidth:)`.
+    func baseline(_ i: Int, forWidth width: Double, _ subviews: LayoutSubviews) -> Double? {
+        guard specs[i].hasBaseline else { return nil }
+        return Double(subviews[i].dimensions(in: ProposedViewSize(width: CGFloat(width), height: nil))[.firstTextBaseline])
     }
 }
 
@@ -158,12 +213,14 @@ struct NodeBoxLayout: Layout {
     static var layoutProperties: LayoutProperties { LayoutProperties() }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        LayoutCounters.sizes += 1
         let w = width(proposed: finite(proposal.width), subviews)
         let h = height(proposed: finite(proposal.height), width: w, subviews)
         return CGSize(width: w, height: h)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        LayoutCounters.places += 1
         guard let content = subviews.first else { return }
         let inner = innerRect(bounds)
         content.place(at: inner.origin, anchor: .topLeading, proposal: ProposedViewSize(inner.size))
@@ -171,6 +228,7 @@ struct NodeBoxLayout: Layout {
 
     func explicitAlignment(of guide: VerticalAlignment, in bounds: CGRect, proposal: ProposedViewSize,
                            subviews: Subviews, cache: inout ()) -> CGFloat? {
+        LayoutCounters.alignments += 1
         guard guide == .firstTextBaseline, spec.hasBaseline, let content = subviews.first else { return nil }
         let inner = innerRect(bounds)
         return inner.minY + content.dimensions(in: ProposedViewSize(inner.size))[.firstTextBaseline]
@@ -231,60 +289,75 @@ struct StackLayout: Layout {
         var baseline: Double?
     }
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let w = finite(proposal.width) ?? naturalWidth(subviews)
-        let h = finite(proposal.height) ?? arrange(subviews, width: w, height: nil).height
+    func makeCache(subviews: Subviews) -> ChildCache {
+        ChildCache(subviews)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ChildCache) -> CGSize {
+        LayoutCounters.sizes += 1
+        let w = finite(proposal.width) ?? naturalWidth(subviews, &cache)
+        let h = finite(proposal.height) ?? arrange(subviews, width: w, height: nil, &cache).height
         return CGSize(width: w, height: h)
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let layout = arrange(subviews, width: Double(bounds.width), height: Double(bounds.height))
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ChildCache) {
+        LayoutCounters.places += 1
+        let layout = arrange(subviews, width: Double(bounds.width), height: Double(bounds.height), &cache)
         for (child, frame) in zip(subviews, layout.frames) { child.place(frame, from: bounds.origin) }
     }
 
     func explicitAlignment(of guide: VerticalAlignment, in bounds: CGRect, proposal: ProposedViewSize,
-                           subviews: Subviews, cache: inout ()) -> CGFloat? {
+                           subviews: Subviews, cache: inout ChildCache) -> CGFloat? {
+        LayoutCounters.alignments += 1
         guard guide == .firstTextBaseline else { return nil }
-        let layout = arrange(subviews, width: Double(bounds.width), height: Double(bounds.height))
+        let layout = arrange(subviews, width: Double(bounds.width), height: Double(bounds.height), &cache)
         return layout.baseline.map { bounds.minY + CGFloat($0) }
     }
 
-    private func gapBefore(_ index: Int, _ subviews: Subviews) -> Double {
-        index == 0 ? 0 : (subviews[index].spec.spaceBefore ?? stack.gap)
+    private func gapBefore(_ index: Int, _ specs: [NodeSpec]) -> Double {
+        index == 0 ? 0 : (specs[index].spaceBefore ?? stack.gap)
     }
 
-    private func alignment(_ child: LayoutSubview) -> RenderAlign {
-        child.spec.alignSelf ?? stack.align
+    private func alignment(_ spec: NodeSpec) -> RenderAlign {
+        spec.alignSelf ?? stack.align
     }
 
-    func naturalWidth(_ subviews: Subviews) -> Double {
+    func naturalWidth(_ subviews: Subviews, _ cache: inout ChildCache) -> Double {
+        if let known = cache.natural { return known }
+        var natural = 0.0
         if stack.axis == .h {
-            var total = 0.0
-            for (i, child) in subviews.enumerated() { total += gapBefore(i, subviews) + child.fitWidth }
-            return total
+            for i in subviews.indices { natural += gapBefore(i, cache.specs) + cache.fitWidth(i, subviews) }
+        } else {
+            natural = subviews.indices.map { cache.fitWidth($0, subviews) }.max() ?? 0
         }
-        return subviews.map(\.fitWidth).max() ?? 0
+        cache.natural = natural
+        return natural
     }
 
     /// Frames of the children in a content box `width` wide and, when
     /// placing, `height` tall (nil while measuring).
-    func arrange(_ subviews: Subviews, width: Double, height: Double?) -> Arrangement {
-        stack.axis == .h ? arrangeRow(subviews, width: width, height: height)
-            : arrangeColumn(subviews, width: width, height: height)
+    func arrange(_ subviews: Subviews, width: Double, height: Double?, _ cache: inout ChildCache) -> Arrangement {
+        let key = ChildCache.ArrangementKey(width: width, height: height)
+        if let known = cache.arrangements[key] { return known }
+        let arrangement = stack.axis == .h ? arrangeRow(subviews, width: width, height: height, &cache)
+            : arrangeColumn(subviews, width: width, height: height, &cache)
+        cache.arrangements[key] = arrangement
+        return arrangement
     }
 
-    private func arrangeRow(_ subviews: Subviews, width: Double, height: Double?) -> Arrangement {
+    private func arrangeRow(_ subviews: Subviews, width: Double, height: Double?, _ cache: inout ChildCache) -> Arrangement {
         let n = subviews.count
         guard n > 0 else { return Arrangement(frames: [], height: 0, baseline: nil) }
+        let specs = cache.specs
         var widths = [Double](repeating: 0, count: n)
         var fills: [Int] = []
         var used = 0.0
-        for (i, child) in subviews.enumerated() {
-            used += gapBefore(i, subviews)
-            if child.spec.fillsWidth {
+        for i in 0..<n {
+            used += gapBefore(i, specs)
+            if specs[i].fillsWidth {
                 fills.append(i)
             } else {
-                widths[i] = child.offeredWidth(width)
+                widths[i] = cache.offeredWidth(i, width, subviews)
                 used += widths[i]
             }
         }
@@ -292,14 +365,14 @@ struct StackLayout: Layout {
         if !fills.isEmpty {
             let share = max(0, remaining) / Double(fills.count)
             for i in fills {
-                widths[i] = subviews[i].spec.clampWidth(share)
+                widths[i] = specs[i].clampWidth(share)
                 remaining -= widths[i]
             }
         } else if remaining < 0 {
             // Overflow: texts with a line limit give way, down to their
             // minimum, in proportion to what each can give.
-            let shrinkable = subviews.indices.filter { subviews[$0].spec.truncates && subviews[$0].spec.width == nil }
-            let capacity = shrinkable.map { max(0, widths[$0] - subviews[$0].spec.minimumWidth) }
+            let shrinkable = specs.indices.filter { specs[$0].truncates && specs[$0].width == nil }
+            let capacity = shrinkable.map { max(0, widths[$0] - specs[$0].minimumWidth) }
             let total = capacity.reduce(0, +)
             if total > 0 {
                 let deficit = min(-remaining, total)
@@ -313,18 +386,18 @@ struct StackLayout: Layout {
         // Heights and baselines at those widths.
         var heights = [Double](repeating: 0, count: n)
         var baselines = [Double?](repeating: nil, count: n)
-        for (i, child) in subviews.enumerated() {
-            heights[i] = child.fitHeight(forWidth: widths[i])
-            baselines[i] = child.baseline(forWidth: widths[i])
+        for i in 0..<n {
+            heights[i] = subviews[i].fitHeight(forWidth: widths[i])
+            baselines[i] = cache.baseline(i, forWidth: widths[i], subviews)
         }
         let stretches: (Int) -> Bool = { i in
-            subviews[i].spec.fillsHeight || self.alignment(subviews[i]) == .stretch
+            specs[i].fillsHeight || self.alignment(specs[i]) == .stretch
         }
         // The row's own height: its offer, or its tallest child (baseline
         // children counted as ascent plus descent).
         var ascent = 0.0, descent = 0.0, tallest = 0.0
         for i in 0..<n {
-            if alignment(subviews[i]) == .baseline, let b = baselines[i] {
+            if alignment(specs[i]) == .baseline, let b = baselines[i] {
                 ascent = max(ascent, b)
                 descent = max(descent, heights[i] - b)
             } else {
@@ -346,12 +419,12 @@ struct StackLayout: Layout {
             }
         }
         var baseline: Double?
-        for (i, child) in subviews.enumerated() {
-            if i > 0 { x += gapBefore(i, subviews) + extraGap }
+        for i in 0..<n {
+            if i > 0 { x += gapBefore(i, specs) + extraGap }
             var h = heights[i]
-            if stretches(i) { h = child.spec.clampHeight(rowHeight) }
+            if stretches(i) { h = specs[i].clampHeight(rowHeight) }
             let y: Double
-            switch alignment(child) {
+            switch alignment(specs[i]) {
             case .start, .stretch: y = 0
             case .center: y = (rowHeight - h) / 2
             case .end: y = rowHeight - h
@@ -365,24 +438,25 @@ struct StackLayout: Layout {
         return Arrangement(frames: frames, height: natural, baseline: baseline)
     }
 
-    private func arrangeColumn(_ subviews: Subviews, width: Double, height: Double?) -> Arrangement {
+    private func arrangeColumn(_ subviews: Subviews, width: Double, height: Double?, _ cache: inout ChildCache) -> Arrangement {
         let n = subviews.count
         guard n > 0 else { return Arrangement(frames: [], height: 0, baseline: nil) }
+        let specs = cache.specs
         var widths = [Double](repeating: 0, count: n)
         var heights = [Double](repeating: 0, count: n)
         var fills: [Int] = []
         var used = 0.0
-        for (i, child) in subviews.enumerated() {
-            used += gapBefore(i, subviews)
-            if child.spec.fillsWidth || alignment(child) == .stretch {
-                widths[i] = child.spec.clampWidth(width)
+        for i in 0..<n {
+            used += gapBefore(i, specs)
+            if specs[i].fillsWidth || alignment(specs[i]) == .stretch {
+                widths[i] = specs[i].clampWidth(width)
             } else {
-                widths[i] = child.offeredWidth(width)
+                widths[i] = cache.offeredWidth(i, width, subviews)
             }
-            if child.spec.fillsHeight, height != nil {
+            if specs[i].fillsHeight, height != nil {
                 fills.append(i)
             } else {
-                heights[i] = child.fitHeight(forWidth: widths[i])
+                heights[i] = subviews[i].fitHeight(forWidth: widths[i])
                 used += heights[i]
             }
         }
@@ -390,7 +464,7 @@ struct StackLayout: Layout {
         if !fills.isEmpty {
             let share = max(0, remaining) / Double(fills.count)
             for i in fills {
-                heights[i] = subviews[i].spec.clampHeight(share)
+                heights[i] = specs[i].clampHeight(share)
                 remaining -= heights[i]
             }
         }
@@ -406,15 +480,15 @@ struct StackLayout: Layout {
         }
         var frames: [NodeFrame] = []
         var baseline: Double?
-        for (i, child) in subviews.enumerated() {
-            if i > 0 { y += gapBefore(i, subviews) + extraGap }
+        for i in 0..<n {
+            if i > 0 { y += gapBefore(i, specs) + extraGap }
             let x: Double
-            switch alignment(child) {
+            switch alignment(specs[i]) {
             case .start, .stretch, .baseline: x = 0
             case .center: x = (width - widths[i]) / 2
             case .end: x = width - widths[i]
             }
-            if baseline == nil, let b = child.baseline(forWidth: widths[i]) { baseline = y + b }
+            if baseline == nil, let b = cache.baseline(i, forWidth: widths[i], subviews) { baseline = y + b }
             frames.append(NodeFrame(x: x, y: y, width: widths[i], height: heights[i]))
             y += heights[i]
         }
@@ -433,31 +507,44 @@ struct GridLayout: Layout {
         grid.columns.isEmpty ? [RenderNode.Grid.Column()] : grid.columns
     }
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let w = finite(proposal.width)
-            ?? columnWidths(subviews, width: nil).reduce(0, +) + grid.gap * Double(max(0, columns.count - 1))
-        let h = finite(proposal.height) ?? arrange(subviews, width: w).height
+    func makeCache(subviews: Subviews) -> ChildCache {
+        ChildCache(subviews)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ChildCache) -> CGSize {
+        LayoutCounters.sizes += 1
+        let w = finite(proposal.width) ?? naturalWidth(subviews, &cache)
+        let h = finite(proposal.height) ?? arrange(subviews, width: w, &cache).height
         return CGSize(width: w, height: h)
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let layout = arrange(subviews, width: Double(bounds.width))
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ChildCache) {
+        LayoutCounters.places += 1
+        let layout = arrange(subviews, width: Double(bounds.width), &cache)
         for (child, frame) in zip(subviews, layout.frames) { child.place(frame, from: bounds.origin) }
     }
 
     func explicitAlignment(of guide: VerticalAlignment, in bounds: CGRect, proposal: ProposedViewSize,
-                           subviews: Subviews, cache: inout ()) -> CGFloat? {
+                           subviews: Subviews, cache: inout ChildCache) -> CGFloat? {
+        LayoutCounters.alignments += 1
         guard guide == .firstTextBaseline else { return nil }
-        return arrange(subviews, width: Double(bounds.width)).baseline.map { bounds.minY + CGFloat($0) }
+        return arrange(subviews, width: Double(bounds.width), &cache).baseline.map { bounds.minY + CGFloat($0) }
+    }
+
+    private func naturalWidth(_ subviews: Subviews, _ cache: inout ChildCache) -> Double {
+        if let known = cache.natural { return known }
+        let natural = columnWidths(subviews, width: nil, &cache).reduce(0, +) + grid.gap * Double(max(0, columns.count - 1))
+        cache.natural = natural
+        return natural
     }
 
     /// Row and first column of each child, honoring `span`.
-    private func cells(_ subviews: Subviews) -> [(row: Int, column: Int, span: Int)] {
+    private func cells(_ specs: [NodeSpec]) -> [(row: Int, column: Int, span: Int)] {
         let count = columns.count
         var cells: [(Int, Int, Int)] = []
         var row = 0, column = 0
-        for child in subviews {
-            let span = min(max(1, child.spec.span), count)
+        for spec in specs {
+            let span = min(max(1, spec.span), count)
             if column + span > count { row += 1; column = 0 }
             cells.append((row, column, span))
             column += span
@@ -468,11 +555,11 @@ struct GridLayout: Layout {
 
     /// Column widths for a content width (nil: natural widths). A cell with
     /// `span` > 1 doesn't count towards a fit column (rule 8).
-    private func columnWidths(_ subviews: Subviews, width: Double?) -> [Double] {
+    private func columnWidths(_ subviews: Subviews, width: Double?, _ cache: inout ChildCache) -> [Double] {
         let columns = self.columns
         var widest = [Double](repeating: 0, count: columns.count)
-        for (child, cell) in zip(subviews, cells(subviews)) where cell.span == 1 {
-            widest[cell.column] = max(widest[cell.column], child.fitWidth)
+        for (i, cell) in cells(cache.specs).enumerated() where cell.span == 1 {
+            widest[cell.column] = max(widest[cell.column], cache.fitWidth(i, subviews))
         }
         var widths = [Double](repeating: 0, count: columns.count)
         var fills: [Int] = []
@@ -492,10 +579,13 @@ struct GridLayout: Layout {
         return widths
     }
 
-    func arrange(_ subviews: Subviews, width: Double) -> StackLayout.Arrangement {
+    func arrange(_ subviews: Subviews, width: Double, _ cache: inout ChildCache) -> StackLayout.Arrangement {
+        let key = ChildCache.ArrangementKey(width: width, height: nil)
+        if let known = cache.arrangements[key] { return known }
         let columns = self.columns
-        let widths = columnWidths(subviews, width: width)
-        let cells = self.cells(subviews)
+        let widths = columnWidths(subviews, width: width, &cache)
+        let specs = cache.specs
+        let cells = self.cells(specs)
         var xs: [Double] = []
         var x = 0.0
         for w in widths { xs.append(x); x += w + grid.gap }
@@ -505,16 +595,17 @@ struct GridLayout: Layout {
         var rowHeights: [Int: Double] = [:]
         var cellHeights = [Double](repeating: 0, count: n)
         var baselines = [Double?](repeating: nil, count: n)
-        for (i, (child, cell)) in zip(subviews, cells).enumerated() {
+        for (i, cell) in cells.enumerated() {
+            let spec = specs[i]
             let cellWidth = widths[cell.column..<(cell.column + cell.span)].reduce(0, +) + grid.gap * Double(cell.span - 1)
-            let w = child.spec.fillsWidth || child.spec.alignSelf == .stretch
-                ? child.spec.clampWidth(cellWidth) : child.offeredWidth(cellWidth)
-            let h = child.fitHeight(forWidth: w)
+            let w = spec.fillsWidth || spec.alignSelf == .stretch
+                ? spec.clampWidth(cellWidth) : cache.offeredWidth(i, cellWidth, subviews)
+            let h = subviews[i].fitHeight(forWidth: w)
             cellHeights[i] = h
-            baselines[i] = child.baseline(forWidth: w)
-            if !child.spec.fillsHeight { rowHeights[cell.row] = max(rowHeights[cell.row] ?? 0, h) }
+            baselines[i] = cache.baseline(i, forWidth: w, subviews)
+            if !spec.fillsHeight { rowHeights[cell.row] = max(rowHeights[cell.row] ?? 0, h) }
             let align: RenderTextAlign
-            switch child.spec.alignSelf {
+            switch spec.alignSelf {
             case .center?: align = .center
             case .end?: align = .end
             case .start?, .stretch?, .baseline?: align = .start
@@ -530,8 +621,8 @@ struct GridLayout: Layout {
         }
         // A row holding only fill-height cells is as tall as the tallest of
         // their natural heights.
-        for (i, (child, cell)) in zip(subviews, cells).enumerated()
-        where child.spec.fillsHeight && rowHeights[cell.row] == nil {
+        for (i, cell) in cells.enumerated()
+        where specs[i].fillsHeight && rowHeights[cell.row] == nil {
             rowHeights[cell.row] = cells.indices
                 .filter { cells[$0].row == cell.row }
                 .map { cellHeights[$0] }
@@ -545,13 +636,15 @@ struct GridLayout: Layout {
             y += (rowHeights[row] ?? 0) + (row < rows - 1 ? grid.rowGap : 0)
         }
         var baseline: Double?
-        for (i, (child, cell)) in zip(subviews, cells).enumerated() {
+        for (i, cell) in cells.enumerated() {
             let rowHeight = rowHeights[cell.row] ?? cellHeights[i]
-            if child.spec.fillsHeight { frames[i].height = child.spec.clampHeight(rowHeight) }
+            if specs[i].fillsHeight { frames[i].height = specs[i].clampHeight(rowHeight) }
             frames[i].y = ys[cell.row] + (rowHeight - frames[i].height) / 2
             if baseline == nil, let b = baselines[i] { baseline = frames[i].y + b }
         }
-        return StackLayout.Arrangement(frames: frames, height: y, baseline: baseline)
+        let arrangement = StackLayout.Arrangement(frames: frames, height: y, baseline: baseline)
+        cache.arrangements[key] = arrangement
+        return arrangement
     }
 }
 
@@ -563,11 +656,13 @@ struct RingLayout: Layout {
     static var layoutProperties: LayoutProperties { LayoutProperties() }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        LayoutCounters.sizes += 1
         // The box always proposes a size; 40 is the ring's natural one.
-        proposal.replacingUnspecifiedDimensions(by: CGSize(width: 40, height: 40))
+        return proposal.replacingUnspecifiedDimensions(by: CGSize(width: 40, height: 40))
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        LayoutCounters.places += 1
         guard let drawing = subviews.first else { return }
         drawing.place(at: bounds.origin, anchor: .topLeading, proposal: ProposedViewSize(bounds.size))
         guard subviews.count > 1 else { return }
@@ -600,10 +695,12 @@ struct StageLayout: Layout {
     static var layoutProperties: LayoutProperties { LayoutProperties() }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        proposal.replacingUnspecifiedDimensions(by: CGSize(width: 1512, height: 982))
+        LayoutCounters.sizes += 1
+        return proposal.replacingUnspecifiedDimensions(by: CGSize(width: 1512, height: 982))
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        LayoutCounters.places += 1
         let width = Double(bounds.width), height = Double(bounds.height)
         for child in subviews {
             switch child[StageRoleKey.self] {
@@ -617,6 +714,19 @@ struct StageLayout: Layout {
                 child.place(NodeFrame(x: (width - w) / 2, y: (height - h) / 2, width: w, height: h), from: bounds.origin)
             }
         }
+    }
+
+    /// No guides of its own. Without these, SwiftUI would merge the
+    /// children's, placing them all once more for the window's ZStack on
+    /// every change; none of them has an explicit guide to merge.
+    func explicitAlignment(of guide: HorizontalAlignment, in bounds: CGRect, proposal: ProposedViewSize,
+                           subviews: Subviews, cache: inout ()) -> CGFloat? {
+        nil
+    }
+
+    func explicitAlignment(of guide: VerticalAlignment, in bounds: CGRect, proposal: ProposedViewSize,
+                           subviews: Subviews, cache: inout ()) -> CGFloat? {
+        nil
     }
 
     static func rootFrame(_ root: LayoutSubview, width: Double, height: Double) -> NodeFrame {

@@ -146,6 +146,20 @@ struct RenderStyle {
         }
     }
 
+    /// Whether the font of a text node in `role` at `weight` has one width
+    /// for every glyph (SF Mono, a mono family), checked once per family
+    /// and weight.
+    @MainActor func isFixedPitch(role: String, weight: Int) -> Bool {
+        let family = Self.family(role: role, fonts: theme.fonts).0
+        let key = "\(role)|\(family ?? "")|\(Self.fallback(role: role, fonts: theme.fonts) ?? "")|\(weight)"
+        if let known = Self.fixedPitch[key] { return known }
+        let fixed = FrameCollector.nsFont(role: role, size: 12, weight: weight, style: self).isFixedPitch
+        Self.fixedPitch[key] = fixed
+        return fixed
+    }
+
+    @MainActor private static var fixedPitch: [String: Bool] = [:]
+
     /// Families checked once each; a missing one falls back to the role's
     /// default and is logged once.
     @MainActor private static var families: [String: Bool] = [:]

@@ -187,16 +187,49 @@ private struct SubtreeOpacity: ViewModifier {
 /// One run of text: font role, size and weight, color, tracking, a line
 /// limit truncating at the tail, and its alignment in the node's box
 /// (vertically centered, like a GtkLabel).
+///
+/// In a fixed-pitch font (a clock's `mono` digits) the text's size doesn't
+/// depend on which digits it shows, so the layout measures a stand-in with
+/// every digit a zero and the text is drawn over it: a clock's tick changes
+/// only the drawing, and SwiftUI lays nothing out again.
 struct RenderText: View {
     let text: RenderNode.Text
     let style: RenderStyle
 
     var body: some View {
+        let font = style.font(role: text.font, size: text.size, weight: text.weight)
+        let color = style.color(text.color)
+        if style.isFixedPitch(role: text.font, weight: text.weight) {
+            TextRun(text: text, string: Self.zeroingDigits(text.text), font: font, color: .clear)
+                .equatable()
+                .hidden()
+                .overlay { TextRun(text: text, string: text.text, font: font, color: color) }
+        } else {
+            TextRun(text: text, string: text.text, font: font, color: color)
+        }
+    }
+
+    /// `string` with each ASCII digit a zero.
+    static func zeroingDigits(_ string: String) -> String {
+        guard string.utf8.contains(where: { $0 >= 0x31 && $0 <= 0x39 }) else { return string }
+        return String(String.UnicodeScalarView(string.unicodeScalars.map { $0.value >= 0x31 && $0.value <= 0x39 ? "0" : $0 }))
+    }
+}
+
+/// The text view itself. Equatable, so the layout's stand-in is compared by
+/// value and an unchanged one is left alone.
+private struct TextRun: View, Equatable {
+    let text: RenderNode.Text
+    let string: String
+    let font: Font
+    let color: Color
+
+    var body: some View {
         let lines = text.lines.map { max(1, $0) }
-        Text(text.text)
-            .font(style.font(role: text.font, size: text.size, weight: text.weight))
+        Text(string)
+            .font(font)
             .tracking(CGFloat(text.tracking))
-            .foregroundStyle(style.color(text.color))
+            .foregroundStyle(color)
             .lineLimit(lines)
             .truncationMode(.tail)
             // One line is placed by the frame's alignment, which SwiftUI
@@ -204,6 +237,11 @@ struct RenderText: View {
             // did; a multiline alignment would place it unsnapped.
             .multilineTextAlignment(lines == 1 ? .leading : multiline)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: frameAlignment)
+    }
+
+    static func == (a: TextRun, b: TextRun) -> Bool {
+        a.string == b.string && a.font == b.font && a.color == b.color && a.text.tracking == b.text.tracking
+            && a.text.lines == b.text.lines && a.text.textAlign == b.text.textAlign
     }
 
     private var multiline: TextAlignment {

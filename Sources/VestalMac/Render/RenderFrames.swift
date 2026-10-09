@@ -77,7 +77,8 @@ final class FrameCollector: @unchecked Sendable {
         return NSFont(name: family, size: CGFloat(size))
     }
 
-    private static func nsFont(role: String, size: Double, weight: Int, style: RenderStyle) -> NSFont {
+    /// The AppKit font SwiftUI resolves a text node's font to.
+    static func nsFont(role: String, size: Double, weight: Int, style: RenderStyle) -> NSFont {
         let w: NSFont.Weight
         switch (min(900, max(100, weight)) + 50) / 100 {
         case 1: w = .ultraLight
