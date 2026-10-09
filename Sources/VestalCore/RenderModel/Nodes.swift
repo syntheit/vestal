@@ -345,10 +345,18 @@ public struct RenderNode: Equatable, Sendable, Codable {
         public var trackColor: String?
         public var overlayColor: String?
         public var radius: Double = 2
+        /// Where the fill begins, 0…1: a range bar fills `start`…`value`.
+        public var start: Double = 0
+        /// A thin vertical mark at this position, 0…1.
+        public var tick: Double?
+        public var tickColor: String?
 
         public init(value: Double = 0, overlay: Double? = nil, overlayPosition: String = "above",
                     color: String? = nil, trackColor: String? = nil, overlayColor: String? = nil,
-                    radius: Double = 2) {
+                    radius: Double = 2, start: Double = 0, tick: Double? = nil, tickColor: String? = nil) {
+            self.start = start
+            self.tick = tick
+            self.tickColor = tickColor
             self.value = value
             self.overlay = overlay
             self.overlayPosition = overlayPosition
@@ -387,9 +395,16 @@ public struct RenderNode: Equatable, Sendable, Codable {
         public var fill: String?
         public var strokeWidth: Double = 1.5
         public var dot: Bool = false
+        /// A dot on the line at this fraction of its width, 0…1 (instead of
+        /// the last point); nil: none.
+        public var dotAt: Double?
+        public var dotColor: String?
 
         public init(values: [Double] = [], min: Double? = nil, max: Double? = nil, color: String? = nil,
-                    fill: String? = nil, strokeWidth: Double = 1.5, dot: Bool = false) {
+                    fill: String? = nil, strokeWidth: Double = 1.5, dot: Bool = false,
+                    dotAt: Double? = nil, dotColor: String? = nil) {
+            self.dotAt = dotAt
+            self.dotColor = dotColor
             self.values = values
             self.min = min
             self.max = max
@@ -654,7 +669,10 @@ public struct RenderNode: Equatable, Sendable, Codable {
                 color: try opt("color"),
                 trackColor: try opt("trackColor"),
                 overlayColor: try opt("overlayColor"),
-                radius: try opt("radius") ?? 2))
+                radius: try opt("radius") ?? 2,
+                start: try opt("start") ?? 0,
+                tick: try opt("tick"),
+                tickColor: try opt("tickColor")))
             // `radius` is also a common field (the box's corner); for a bar it
             // is the bar's own corner, default 2, and the box has none.
             radius = 0
@@ -674,7 +692,9 @@ public struct RenderNode: Equatable, Sendable, Codable {
                 color: try opt("color"),
                 fill: try opt("fill"),
                 strokeWidth: try opt("strokeWidth") ?? 1.5,
-                dot: try opt("dot") ?? false))
+                dot: try opt("dot") ?? false,
+                dotAt: try opt("dotAt"),
+                dotColor: try opt("dotColor")))
         case "divider":
             content = .divider(Divider(
                 axis: lenient("axis", RenderAxis.h),
@@ -791,6 +811,9 @@ public struct RenderNode: Equatable, Sendable, Codable {
             try put("trackColor", b.trackColor)
             try put("overlayColor", b.overlayColor)
             try put("radius", b.radius, default: 2)
+            try put("start", b.start, default: 0)
+            try put("tick", b.tick)
+            try put("tickColor", b.tickColor)
         case .ring(let r):
             try put("radius", radius, default: 0)
             try put("value", r.value, default: 0)
@@ -808,6 +831,8 @@ public struct RenderNode: Equatable, Sendable, Codable {
             try put("fill", s.fill)
             try put("strokeWidth", s.strokeWidth, default: 1.5)
             try put("dot", s.dot, default: false)
+            try put("dotAt", s.dotAt)
+            try put("dotColor", s.dotColor)
         case .divider(let d):
             try put("radius", radius, default: 0)
             try put("axis", d.axis, default: .h)

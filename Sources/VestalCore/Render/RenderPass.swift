@@ -648,6 +648,11 @@ final class RenderPass {
         if let position = string(w["overlayPosition"], id: id, field: "overlayPosition", scope: s), position == "below" {
             bar.overlayPosition = "below"
         }
+        if let start = fraction(numeric(w["start"], id: id, field: "start", scope: s)), start > 0 { bar.start = start }
+        if let tick = fraction(numeric(w["tick"], id: id, field: "tick", scope: s)) {
+            bar.tick = tick
+            bar.tickColor = w["tickColor"].flatMap { color($0, id: id, field: "tickColor", scope: s, value: nil) } ?? "#ffffff8c"
+        }
         bar.color = barColor
         bar.trackColor = w["trackColor"].flatMap { color($0, id: id, field: "trackColor", scope: s, value: nil) }
             ?? model.palette.hexValue(barColor).map { RenderPalette.withAlpha($0, 0.15) }
@@ -742,6 +747,10 @@ final class RenderPass {
         spark.fill = w["fill"].flatMap { color($0, id: id, field: "fill", scope: s, value: s.vars["value"]) }
         spark.strokeWidth = number(w["strokeWidth"], id: id, field: "strokeWidth", scope: s) ?? 1.5
         spark.dot = bool(w["dot"], id: id, field: "dot", scope: s) ?? false
+        if let at = numeric(w["dotAt"], id: id, field: "dotAt", scope: s) {
+            spark.dotAt = Swift.min(Swift.max(at, 0), 1)
+            spark.dotColor = w["dotColor"].flatMap { color($0, id: id, field: "dotColor", scope: s, value: s.vars["value"]) }
+        }
         var node = RenderNode(id: id, .spark(spark))
         node.width = .fill
         node.height = .points(24 * scope.style.scale)
