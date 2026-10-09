@@ -95,7 +95,7 @@ final class TypefaceTests: XCTestCase {
         let unknown = try check(#"{ "version": 1, "theme": { "typeface": "inter", "fonts": { "mono": "Nonexistent Sans 9000" } } }"#)
         XCTAssertTrue(unknown.contains("unknown-font"), unknown)
         XCTAssertFalse(try check(#"{ "version": 1, "theme": { "typeface": "inter", "fonts": { "mono": "Fira Code" } } }"#).contains("unknown-font"))
-        XCTAssertTrue(try check(#"{ "version": 1, "theme": { "typeface": "nope" } }"#).contains("theme.typeface"))
+        XCTAssertTrue(try check(#"{ "version": 1, "theme": { "typeface": "nope" } }"#).contains("/theme/typeface"))
     }
 
     // MARK: Clock faces
