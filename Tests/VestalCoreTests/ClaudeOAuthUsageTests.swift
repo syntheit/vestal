@@ -219,11 +219,13 @@ final class ClaudeOAuthUsageTests: XCTestCase {
 
     func testForcedBackends() async throws {
         let cli = Calls()
-        XCTAssertEqual(source(try await run(backend: "cli", calls: cli)), "cli")
+        let cliData = try await run(backend: "cli", calls: cli)
+        XCTAssertEqual(source(cliData), "cli")
         XCTAssertEqual(cli.api, 0)
 
         let api = Calls()
-        XCTAssertEqual(source(try await run(backend: "api", calls: api)), "api")
+        let apiData = try await run(backend: "api", calls: api)
+        XCTAssertEqual(source(apiData), "api")
 
         for (token, reply) in [(false, nil), (true, ClaudeOAuthUsage.Response(status: 401, body: Data()))] as [(Bool, ClaudeOAuthUsage.Response?)] {
             let calls = Calls()
@@ -237,7 +239,8 @@ final class ClaudeOAuthUsageTests: XCTestCase {
 
     func testNoNetwork() async throws {
         let auto = Calls()
-        XCTAssertEqual(source(try await run(backend: "auto", network: false, calls: auto)), "cli")
+        let autoData = try await run(backend: "auto", network: false, calls: auto)
+        XCTAssertEqual(source(autoData), "cli")
         XCTAssertEqual(auto.api, 0)
         let api = Calls()
         do {

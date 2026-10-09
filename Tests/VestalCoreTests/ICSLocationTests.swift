@@ -49,10 +49,9 @@ final class ICSLocationTests: XCTestCase {
     }
 
     func testAConnectionErrorDoesNotMentionThePassword() async throws {
-        let location = try XCTUnwrap(ICSLocation("http://daniel:hunter22@127.0.0.1:9/c/"))
-        let source = SourceConfig(type: "calendar", ics: ["x"])
+        let fetcher = LiveFetcher(platform: SourcePlatform())
         do {
-            _ = try await LiveFetcher.download(location.url, source: source, authorization: location.authorization)
+            _ = try await fetcher.fetch(SourceConfig(type: "calendar", ics: ["http://daniel:hunter22@127.0.0.1:9/c/"]))
             XCTFail("nothing listens on port 9")
         } catch {
             XCTAssertFalse("\(error)".contains("hunter22"), "\(error)")
