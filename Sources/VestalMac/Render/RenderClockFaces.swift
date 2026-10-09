@@ -277,4 +277,31 @@ enum RingMarks {
         }
     }
 }
+// MARK: - Moon
+
+/// The disc in `trackColor` with the lit part over it, from MoonGeometry's
+/// outline (the same points as the other UIs).
+struct MoonDrawing: View {
+    let moon: RenderNode.Moon
+    let style: RenderStyle
+
+    var body: some View {
+        let lit = style.color(moon.color)
+        let track = moon.trackColor.map { style.color($0) } ?? Color(white: 1, opacity: 0.08)
+        Canvas { context, size in
+            let side = Double(min(size.width, size.height))
+            guard side > 0 else { return }
+            let r = CGFloat(MoonGeometry.radius(size: side)), c = CGFloat(side / 2)
+            context.fill(Path(ellipseIn: CGRect(x: c - r, y: c - r, width: 2 * r, height: 2 * r)), with: .color(track))
+            let points = MoonGeometry.litOutline(phase: moon.phase, size: side)
+            guard let first = points.first else { return }
+            var path = Path()
+            path.move(to: CGPoint(x: first.x, y: first.y))
+            for p in points.dropFirst() { path.addLine(to: CGPoint(x: p.x, y: p.y)) }
+            path.closeSubpath()
+            context.fill(path, with: .color(lit))
+        }
+    }
+}
+
 #endif

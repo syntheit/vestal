@@ -98,6 +98,29 @@ extension NodeView {
 
     // MARK: Analog
 
+    // MARK: Moon
+
+    func drawMoon(_ snapshot: OpaquePointer, _ moon: RenderNode.Moon, _ box: Rect) {
+        let side = min(box.width, box.height)
+        guard side > 0 else { return }
+        let theme = context.theme
+        var rect = box.graphene
+        let cr = gtk_snapshot_append_cairo(snapshot, &rect)
+        defer { cairo_destroy(cr) }
+        let x = box.x + (box.width - side) / 2, y = box.y + (box.height - side) / 2
+        let r = MoonGeometry.radius(size: side)
+        cairo_arc(cr, x + side / 2, y + side / 2, r, 0, 2 * .pi)
+        setSource(cr, moon.trackColor.map { theme.color($0) } ?? RGBA(r: 1, g: 1, b: 1, a: 0.08))
+        cairo_fill(cr)
+        let points = MoonGeometry.litOutline(phase: moon.phase, size: side)
+        guard let first = points.first else { return }
+        cairo_move_to(cr, x + first.x, y + first.y)
+        for p in points.dropFirst() { cairo_line_to(cr, x + p.x, y + p.y) }
+        cairo_close_path(cr)
+        setSource(cr, theme.color(moon.color))
+        cairo_fill(cr)
+    }
+
     func drawAnalog(_ snapshot: OpaquePointer, _ analog: RenderNode.Analog, _ box: Rect) {
         guard box.width > 0, box.height > 0 else { return }
         let theme = context.theme

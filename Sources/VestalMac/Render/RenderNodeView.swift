@@ -80,6 +80,8 @@ struct RenderNodeView: View {
             AnalogDrawing(analog: analog, style: style)
         case .flip(let flip):
             FlipDrawing(flip: flip, style: style)
+        case .moon(let moon):
+            MoonDrawing(moon: moon, style: style)
         }
     }
 
@@ -111,6 +113,7 @@ struct RenderNodeView: View {
         case .flip(let f):
             let layout = f.layout
             return .fixed(width: layout.width, height: layout.height)
+        case .moon(let m): return .fixed(width: m.size, height: m.size)
         }
     }
 }

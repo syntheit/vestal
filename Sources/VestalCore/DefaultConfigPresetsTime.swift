@@ -120,10 +120,7 @@ extension DefaultPresets {
                 "text": "day {{ .dayLength | fmt_duration }} · {{ if .dayLengthChange < 0 then \"−\" else \"+\" end }}{{ .dayLengthChange | fabs | fmt_duration(2) }}/day",
                 "style": { "size": 11, "font": "mono", "color": "dim" } },
               { "type": "row", "gap": 8, "input": ".moon", "children": [
-                { "type": "icon", "size": 22,
-                  "name": { "expr": ".illumination | step([[0, \"circle\"], [8, \"moon\"], [35, \"circle-half\"], [92, \"circle\"]])" },
-                  "weight": { "expr": "if .illumination >= 92 or (.illumination >= 35 and .illumination < 92) then \"fill\" else \"regular\" end" },
-                  "color": { "expr": "color_mix(\"dim\"; \"text\"; .illumination / 100)" } },
+                { "type": "moon", "phase": ".phase", "size": 22 },
                 { "type": "stack", "gap": 2, "children": [
                   { "type": "text", "text": "{{ .name }}", "style": { "size": 12 } },
                   { "type": "text", "style": { "size": 10.5, "font": "mono", "color": "dim" },

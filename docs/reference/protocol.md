@@ -26,7 +26,7 @@ Any vestal instance serves subscribers, including a Linux `vestal daemon` with n
 |---|---|---|
 | `role` | `observer` | `ui` draws the dashboard; `observer` watches (status bars, debuggers); `control` is an observer with `control: true`. |
 | `protocol` | `[1]` | The major versions the client speaks. Without `1`: an `error` message, and the connection closes. |
-| `minor` | `1` | The minor version the client understands (the current one is `3`); newer node types come as `text` with their `alt`. A client that draws `bars`, `stackedBar`, `heatmap`, `timeline` and `image` asks for `1`; one that also draws `analog` and `flip` asks for `2`; `3` adds the `bar` fields `tickOverhang` and `gradient` (an older client draws the bar without them). |
+| `minor` | `1` | The minor version the client understands (the current one is `3`); newer node types come as `text` with their `alt`. A client that draws `bars`, `stackedBar`, `heatmap`, `timeline` and `image` asks for `1`; one that also draws `analog` and `flip` asks for `2`; `3` adds the node type `moon` (older clients get its `alt`, the phase name) and the `bar` fields `tickOverhang` and `gradient` (an older client draws the bar without them). |
 | `client` | none | A name for logs. |
 | `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise vestal's own UI takes it (macOS), or the headless daemon runs `wl-copy`. (`screenshot` delegation is specified but not implemented yet.) |
 | `whileHidden` | `false` | Keep evaluating and sending patches while the dashboard is hidden (debugging). |

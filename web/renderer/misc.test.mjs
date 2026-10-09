@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { glyphFor, ICONS, ALIASES } from "./icons.js";
 import { makePalette, parseHex } from "./color.js";
 import { neighbor, transitionKind, PageSwipe, keyName, showsDots } from "./pages.js";
-import { fitLabel, visibleTicks, arcPath, sparkPoints, barSVG, barsSVG, heatmapSVG } from "./draw.js";
+import { fitLabel, visibleTicks, arcPath, sparkPoints, barSVG, barsSVG, heatmapSVG, moonOutline, moonSVG } from "./draw.js";
 import { cssWeight, fontFamily } from "./text.js";
 import { FONT_FILES, fontFaceCSS } from "./typefaces.js";
 import { fragmentSource, shaderUrl } from "./backgrounds.js";
@@ -164,6 +164,28 @@ test("bar: range fill, tick overhang and gradient", () => {
   assert.match(range, /stop-color="rgba\(0,255,255,1\)"/);
   assert.match(range, /stop-color="rgba\(255,136,0,1\)"/);
   assert.match(range, /<rect x="20" y="0" width="40" height="5"[^>]*fill="url\(#vg\d+\)"/);
+});
+
+test("moon: the lit side follows the phase and the terminator bulges the right way", () => {
+  const xs = (pts) => pts.map(([x]) => x);
+  // Waxing crescent (0.1): lit on the right, nothing left of the middle.
+  assert.ok(Math.min(...xs(moonOutline(0.1, 28))) >= 14 - 1e-9);
+  // Waning crescent (0.9): lit on the left.
+  assert.ok(Math.max(...xs(moonOutline(0.9, 28))) <= 14 + 1e-9);
+  // Waxing gibbous (0.38): the lit part reaches past the middle to the left.
+  const gibbous = moonOutline(0.38, 28);
+  assert.ok(Math.min(...xs(gibbous)) < 14 && Math.max(...xs(gibbous)) > 26.9);
+  // Waning gibbous (0.62) mirrors it.
+  const waning = moonOutline(0.62, 28);
+  assert.ok(Math.max(...xs(waning)) > 14 && Math.min(...xs(waning)) < 1.1);
+  // Full: the whole disc; new: no area.
+  const full = moonOutline(0.5, 28);
+  assert.ok(Math.min(...xs(full)) < 1.01 && Math.max(...xs(full)) > 26.99);
+  const area = (pts) => Math.abs(pts.reduce((s, [x, y], i) => { const [x2, y2] = pts[(i + 1) % pts.length]; return s + x * y2 - x2 * y; }, 0) / 2);
+  assert.ok(area(moonOutline(0, 28)) < 1e-6);
+  assert.ok(Math.abs(area(full) - Math.PI * 13 * 13) < 6);
+  const env = { pal: makePalette({ colors: {} }) };
+  assert.match(moonSVG({ phase: 0.38, size: 22 }, 22, 22, env), /<circle[^>]*r="10"[\s\S]*<path d="M/);
 });
 
 // MARK: text and shaders

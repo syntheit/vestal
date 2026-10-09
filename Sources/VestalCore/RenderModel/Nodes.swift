@@ -144,6 +144,7 @@ public struct RenderNode: Equatable, Sendable, Codable {
         case image(Image)
         case analog(Analog)
         case flip(Flip)
+        case moon(Moon)
         /// A type this build doesn't know (a newer `minor`); drawn as `alt`.
         case unknown(type: String)
     }
@@ -189,6 +190,7 @@ public struct RenderNode: Equatable, Sendable, Codable {
         case .image: return "image"
         case .analog: return "analog"
         case .flip: return "flip"
+        case .moon: return "moon"
         case .unknown(let type): return type
         }
     }
@@ -694,6 +696,25 @@ public struct RenderNode: Equatable, Sendable, Codable {
         }
     }
 
+    /// The moon's phase: a dark disc with the lit part drawn on the side the
+    /// phase says (MoonGeometry).
+    public struct Moon: Equatable, Sendable {
+        /// 0 (new) through 0.5 (full) to 1: waxing is the right side lit.
+        public var phase: Double = 0
+        /// The square's side.
+        public var size: Double = 22
+        /// The lit part, and the rest of the disc.
+        public var color: String = "#e8e4d4ff"
+        public var trackColor: String?
+
+        public init(phase: Double = 0, size: Double = 22, color: String = "#e8e4d4ff", trackColor: String? = nil) {
+            self.phase = phase
+            self.size = size
+            self.color = color
+            self.trackColor = trackColor
+        }
+    }
+
     // MARK: Coding
 
     private struct Key: CodingKey {
@@ -873,6 +894,12 @@ public struct RenderNode: Equatable, Sendable, Codable {
                 tile: try opt("tile") ?? "#2a2c35ff",
                 tileBottom: try opt("tileBottom") ?? "#1f212aff",
                 animate: try opt("animate") ?? true))
+        case "moon":
+            content = .moon(Moon(
+                phase: try opt("phase") ?? 0,
+                size: try opt("size") ?? 22,
+                color: try opt("color") ?? "#e8e4d4ff",
+                trackColor: try opt("trackColor")))
         default:
             content = .unknown(type: type)
         }
@@ -1033,6 +1060,12 @@ public struct RenderNode: Equatable, Sendable, Codable {
             try put("tile", f.tile, default: "#2a2c35ff")
             try put("tileBottom", f.tileBottom, default: "#1f212aff")
             try put("animate", f.animate, default: true)
+        case .moon(let m):
+            try put("radius", radius, default: 0)
+            try put("phase", m.phase, default: 0)
+            try put("size", m.size, default: 22)
+            try put("color", m.color, default: "#e8e4d4ff")
+            try put("trackColor", m.trackColor)
         case .unknown:
             try put("radius", radius, default: 0)
         }

@@ -104,6 +104,8 @@ public enum RenderText {
             if a.dateWindow { parts.append("dateWindow") }
             if a.numerals { parts.append("numerals") }
             if let zone = a.zone { parts.append("zone=\(zone)") }
+        case .moon(let m):
+            parts = ["moon", "phase=\(number(m.phase))", "size=\(number(m.size))"]
         case .flip(let f):
             parts = ["flip", quoted(f.text)]
             if !f.small.isEmpty { parts.append("small=\(quoted(f.small))") }
@@ -175,6 +177,7 @@ public enum RenderText {
             let time = AnalogMath.time(RenderClock.now(), zone: a.zone)
             return "◷" + String(format: "%02d:%02d", time.hour, time.minute)
         case .flip(let f): return f.small.isEmpty ? f.text : f.text + " " + f.small
+        case .moon(let m): return "\u{263D}" + MoonGeometry.name(phase: m.phase)
         case .divider(let d): return d.axis == .h ? "────" : "│"
         case .spacer: return " "
         case .stack(let s):

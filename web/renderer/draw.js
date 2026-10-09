@@ -58,6 +58,35 @@ export function barSVG(n, w, h, env) {
   return out;
 }
 
+// MARK: - moon
+
+/** The lit part of the disc as points in a `size` square, as MoonGeometry.litOutline. */
+export function moonOutline(phase, size, segments = 48) {
+  const p = phase - Math.floor(phase);
+  const r = size / 2 - 1, c = size / 2;
+  const dir = p <= 0.5 ? 1 : -1, bulge = Math.cos(2 * Math.PI * p);
+  const pts = [];
+  for (let i = 0; i <= segments; i++) {
+    const a = Math.PI * i / segments;
+    pts.push([c + dir * r * Math.sin(a), c - r * Math.cos(a)]);
+  }
+  for (let i = 0; i <= segments; i++) {
+    const a = Math.PI * (segments - i) / segments;
+    pts.push([c + dir * r * bulge * Math.sin(a), c - r * Math.cos(a)]);
+  }
+  return pts;
+}
+
+export function moonSVG(n, w, h, env) {
+  const { pal } = env;
+  const side = Math.min(w, h);
+  if (side <= 0) return "";
+  const c = side / 2, r = side / 2 - 1;
+  const track = n.trackColor ? pal.css(n.trackColor) : "rgba(255,255,255,0.08)";
+  const d = moonOutline(n.phase ?? 0, side).map(([x, y], i) => `${i ? "L" : "M"}${f(x)} ${f(y)}`).join("") + "Z";
+  return `<circle cx="${f(c)}" cy="${f(c)}" r="${f(r)}" fill="${track}"/><path d="${d}" fill="${pal.css(n.color || "#e8e4d4ff")}"/>`;
+}
+
 // MARK: - ring
 
 /** Points of an arc `from`...`to` radians (clockwise on screen) as an SVG path. */
@@ -271,5 +300,5 @@ export function timelineSVG(n, w, h, env) {
 
 export const DRAWERS = {
   bar: barSVG, ring: ringSVG, spark: sparkSVG, divider: dividerSVG, bars: barsSVG,
-  stackedBar: stackedBarSVG, heatmap: heatmapSVG, timeline: timelineSVG, analog: analogSVG,
+  stackedBar: stackedBarSVG, heatmap: heatmapSVG, timeline: timelineSVG, analog: analogSVG, moon: moonSVG,
 };

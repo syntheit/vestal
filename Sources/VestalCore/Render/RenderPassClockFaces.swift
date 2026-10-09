@@ -75,6 +75,23 @@ extension RenderPass {
         value.flatMap { color($0, id: id, field: field, scope: scope, value: nil) }
     }
 
+    // MARK: moon
+
+    func moon(_ w: [String: AnyJSON], id: String, scope: Scope) -> RenderNode {
+        let scale = scope.style.scale
+        var moon = RenderNode.Moon()
+        moon.phase = min(max(numeric(w["phase"], id: id, field: "phase", scope: scope) ?? 0, 0), 1)
+        moon.size = max(6, number(w["size"], id: id, field: "size", scope: scope) ?? 22) * scale
+        moon.color = colorField(w["color"], id: id, field: "color", scope: scope) ?? "#e8e4d4ff"
+        moon.trackColor = colorField(w["trackColor"], id: id, field: "trackColor", scope: scope)
+            ?? model.palette.resolve("text@0.08")
+        var node = RenderNode(id: id, .moon(moon))
+        node.width = .points(moon.size)
+        node.height = .points(moon.size)
+        node.alt = MoonGeometry.name(phase: moon.phase)
+        return node
+    }
+
     // MARK: flip
 
     func flip(_ w: [String: AnyJSON], id: String, scope: Scope) -> RenderNode {

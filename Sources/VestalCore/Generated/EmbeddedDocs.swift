@@ -353,7 +353,7 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 | Group | Types |
 |---|---|
 | Containers | `stack`, `row`, `grid`, `list`, `table`, `switch` |
-| Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer`, the charts `bars`, `stackedBar`, `heatmap`, `timeline`, `image`, and the clocks `analog`, `flip` |
+| Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer`, the charts `bars`, `stackedBar`, `heatmap`, `timeline`, `image`, the clocks `analog`, `flip` and the moon's phase `moon` |
 | Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage`, `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and for developers `reviewQueue`, `ciStatus`, `commitActivity`, `flakeInputs`, and for a home server `containers`, `tailnet`, `uptimeMonitors`, `backups`, `transfers`, and for feeds and markets `headlines`, `cryptoTicker`, `watchlist`, `homeAssistant`, `nowPlaying`, and for the day `dayTimeline`, `nextMeeting`, `focusTimer`, `todoFile`, `habits` (GitHub ones read the `github` secret: `gh auth token` unless defined; `vestal docs presets`) |
 
 Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` (`"fill"`), `spaceBefore`, `action`, `key`.
@@ -2393,7 +2393,7 @@ Under Home Manager: `programs.vestal.settings.widgets.world = { type = "worldClo
 
 ### `sunMoon`
 
-The sun's place on today's arc (a line from sunrise to sunset, a dot where the sun is now, drawn only while it is up), sunrise and sunset under it, `sets in 1h 22m` (or `rises in`), the day's length with its change from yesterday (`day 11h 57m · −2m 30s/day`), and the moon: an icon for its phase, its name, how much is lit and `full in 4d` (`new in` while it wanes). All of it is computed offline by the [`astro` source](sources.md) from a latitude and a longitude, so it needs no network. In polar day or night the arc and the times are left out. The moon's icon is a circle, a crescent (`moon`) or a half circle by illumination: Phosphor has no phases, so waxing and waning look alike.
+The sun's place on today's arc (a line from sunrise to sunset, a dot where the sun is now, drawn only while it is up), sunrise and sunset under it, `sets in 1h 22m` (or `rises in`), the day's length with its change from yesterday (`day 11h 57m · −2m 30s/day`), and the moon: a drawn disc lit on the side its phase says, its name, how much is lit and `full in 4d` (`new in` while it wanes). All of it is computed offline by the [`astro` source](sources.md) from a latitude and a longitude, so it needs no network. In polar day or night the arc and the times are left out. The moon's icon is a circle, a crescent (`moon`) or a half circle by illumination: Phosphor has no phases, so waxing and waning look alike.
 
 | Parameter | Default | |
 |---|---|---|
@@ -3055,7 +3055,7 @@ Any vestal instance serves subscribers, including a Linux `vestal daemon` with n
 |---|---|---|
 | `role` | `observer` | `ui` draws the dashboard; `observer` watches (status bars, debuggers); `control` is an observer with `control: true`. |
 | `protocol` | `[1]` | The major versions the client speaks. Without `1`: an `error` message, and the connection closes. |
-| `minor` | `1` | The minor version the client understands (the current one is `3`); newer node types come as `text` with their `alt`. A client that draws `bars`, `stackedBar`, `heatmap`, `timeline` and `image` asks for `1`; one that also draws `analog` and `flip` asks for `2`; `3` adds the `bar` fields `tickOverhang` and `gradient` (an older client draws the bar without them). |
+| `minor` | `1` | The minor version the client understands (the current one is `3`); newer node types come as `text` with their `alt`. A client that draws `bars`, `stackedBar`, `heatmap`, `timeline` and `image` asks for `1`; one that also draws `analog` and `flip` asks for `2`; `3` adds the node type `moon` (older clients get its `alt`, the phase name) and the `bar` fields `tickOverhang` and `gradient` (an older client draws the bar without them). |
 | `client` | none | A name for logs. |
 | `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise vestal's own UI takes it (macOS), or the headless daemon runs `wl-copy`. (`screenshot` delegation is specified but not implemented yet.) |
 | `whileHidden` | `false` | Keep evaluating and sending patches while the dashboard is hidden (debugging). |
@@ -3129,7 +3129,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 ## Versions
 
 - `protocol` is the major version, `1`. A breaking change bumps it.
-- `minor` counts additive changes (new optional fields, new node types); it is `3`. Minor 1 added `pages` and the `page` input, and the node types `bars`, `stackedBar`, `heatmap`, `timeline` and `image`. Minor 2 added the node types `analog` and `flip`, the `display` role in `theme.fonts` (a client that predates it uses the role's family from `sans`), and the `ring` fields `dot`, `dotColor`, `ticks` and `labels` (a client that predates them draws a plain ring). Minor 3 added the `bar` fields `tickOverhang` and `gradient` (a client that predates them draws a plain bar).
+- `minor` counts additive changes (new optional fields, new node types); it is `3`. Minor 1 added `pages` and the `page` input, and the node types `bars`, `stackedBar`, `heatmap`, `timeline` and `image`. Minor 2 added the node types `analog` and `flip`, the `display` role in `theme.fonts` (a client that predates it uses the role's family from `sans`), and the `ring` fields `dot`, `dotColor`, `ticks` and `labels` (a client that predates them draws a plain ring). Minor 3 added the node type `moon` and the `bar` fields `tickOverhang` and `gradient` (a client that predates the fields draws a plain bar).
 - Clients must ignore fields they don't know.
 - A subscriber that declares an older `minor` gets newer node types as `text` nodes carrying their `alt`.
 
@@ -3215,6 +3215,7 @@ Keys are sorted and defaults are left out, so output is deterministic.
 | `timeline` | `items` (`[{ "start", "end", "label", "color", "lane" }]`), `ticks` (`[{ "at", "label" }]`), `lanes` (1), `now`, `nowColor` (`accent`) | A time axis, everything as fractions 0…1 of the width (`end` absent: a point marker). The bottom 12 points are tick labels (dim, 9); above them a faint line at each tick, the items on `lanes` equal rows 2 apart (a bar at least 3 wide, corners 3; a point is a dot at most 8 across), then a 1.5 wide `nowColor` line at `now`. An item's `label` is drawn inside its bar (10, medium, in `bg`) only when it fits with 4 either side and the lane is 12 or taller; a tick label only when it clears the previous one by 4. |
 | `analog` | `size` (236), `ticks` (`hours`; `none`, `minutes`), `seconds` (`none`; `step`, `sweep`), `dateWindow` (false), `numerals` (false), `zone` (the system's), `color` (`text`), `faceColor`, `secondsColor` (`bad`), `pivotColor` (`accent`) | A round clock the UI draws and runs by itself: the core sends it once and never again for a tick. The UI reads the time in `zone` and moves the hands: the hour and minute hands continuously, the seconds hand once a second (`step`) or every frame (`sweep`), and only while the dashboard is shown (nothing runs, and no timer, while it is hidden). Reduced motion turns `sweep` into `step`. `size` is its width and height. The face is a circle (`faceColor`, stroked in `color` at 20%); with `ticks` `none` it has a dot at twelve, short hands and no tails, otherwise sixty marks (`minutes`) or twelve (`hours`), heavier at the hours, and hands with tails. `dateWindow` is a box with the day of the month right of the pivot; `numerals` draw 1 to 12. The seconds hand has a counterweight dot. Proportions are fixed by the face's size (`AnalogGeometry` in VestalCore). |
 | `flip` | `text`, `small` (`""`), `size` (90), `smallSize` (40), `color` (`text`), `tile`, `tileBottom`, `animate` (true) | Split-flap tiles in a row with their bottoms on one line: one tile per character of `text` (80 × 114 at `size` 90, scaling with it), then the characters of `small` on smaller tiles (36 × 52 at `smallSize` 40, 14 apart from the big ones). `:` is two small squares in a colon cell, a space a gap. Each tile is two halves, `tile` above and `tileBottom` below, with a seam. The UI keeps the characters it last drew: when a later model changes a tile's character it folds over (the top half falls to the seam over 170 ms, then the new bottom half rises over 170 ms) and the other tiles stay; a node that is new, or whose number of tiles changed, appears without a fold, as does everything with `animate` false or under reduced motion. Its size follows from the text (`FlipLayout` in VestalCore). |
+| `moon` | `phase` (0…1), `size` (22), `color` (`#e8e4d4ff`), `trackColor` | A disc in `trackColor` with the lit part over it: the right side while `phase` is at most 0.5 (waxing), the left after. The terminator is a half ellipse as wide as `\|cos(2π phase)\|` of the radius (the radius is `size / 2 - 1`), bulging into the lit side for a crescent and the dark side for a gibbous moon. Its size is `size`. |
 | `image` | `path`, `fit` (`cover`), `radius` (6) | The picture in the file at `path`, scaled to `cover` the frame (cropped) or to be `contained` in it, clipped to a rounded rectangle. No `path`, or a file that can't be read: an empty rounded rectangle in `track`. |
 
 Config types map onto these: `row` → `stack` h; `list` and `table` → `stack` or `grid`; `progress` → a `stack` h of `text`, `bar`, `text`; `gauge` → a `stack` v of `ring` and `text`; `sparkline` → `spark`; `switch` → the chosen case; `bars` (vertical) → `bars`, or a `stack` v of `bars` and a `stack` h of `text` labels; `bars` (horizontal) → a `grid` of `text`, `bar`, `text` rows; `stackedBar` → `stackedBar`, or a `stack` v of it and a `stack` h of dot (`bar`) and `text` entries; `heatmap`, `timeline` and `image` → themselves; `analog` and `flip` → themselves, and `gauge` also takes `dot`, `dotColor`, `ticks`, `labels` and a `center` widget. Templates disappear.
@@ -4430,6 +4431,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 | Primitives | `text`, `icon`, `progress` (bar), `gauge` (ring), `sparkline`, `keyValue`, `divider`, `spacer` |
 | Charts | `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
 | Clocks | `analog`, `flip` (the faces of the `clock` preset) |
+| Sky | `moon` (the moon's phase) |
 | Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the system presets `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and the developer widgets `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`, and the homelab widgets `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers`, and `headlines`, `cryptoTicker`, `watchlist`, `dayTimeline`, `nextMeeting`, `focusTimer`, `todoFile`, `habits`, `homeAssistant` and `nowPlaying` (`vestal docs presets`) |
 | Your templates | any name under `templates` (`vestal docs templates`) |
 
@@ -4613,6 +4615,14 @@ Split-flap tiles: one per character of `text` (digits; `:` is a colon and a spac
 
 ```json
 { "type": "flip", "text": "{{ now | fmt_time(\"HH:mm\") }}", "small": "{{ now | fmt_time(\"ss\") }}" }
+```
+
+### `moon`
+
+The moon's phase drawn as the lit part of a disc: `phase` (an expression: 0 new, 0.5 full, 1 new again, like `.moon.phase` of an `astro` source) lights the right side while it waxes and the left while it wanes, as seen from the northern hemisphere. `size` (22) is the square's side, `color` the lit part (`#e8e4d4`), `trackColor` the rest of the disc (`text` at 8%). The `sunMoon` preset uses it.
+
+```json
+{ "type": "moon", "phase": ".moon.phase", "size": 28 }
 ```
 
 ### `sparkline`

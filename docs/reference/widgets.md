@@ -10,6 +10,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 | Primitives | `text`, `icon`, `progress` (bar), `gauge` (ring), `sparkline`, `keyValue`, `divider`, `spacer` |
 | Charts | `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
 | Clocks | `analog`, `flip` (the faces of the `clock` preset) |
+| Sky | `moon` (the moon's phase) |
 | Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the system presets `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and the developer widgets `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`, and the homelab widgets `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers`, and `headlines`, `cryptoTicker`, `watchlist`, `dayTimeline`, `nextMeeting`, `focusTimer`, `todoFile`, `habits`, `homeAssistant` and `nowPlaying` (`vestal docs presets`) |
 | Your templates | any name under `templates` (`vestal docs templates`) |
 
@@ -193,6 +194,14 @@ Split-flap tiles: one per character of `text` (digits; `:` is a colon and a spac
 
 ```json
 { "type": "flip", "text": "{{ now | fmt_time(\"HH:mm\") }}", "small": "{{ now | fmt_time(\"ss\") }}" }
+```
+
+### `moon`
+
+The moon's phase drawn as the lit part of a disc: `phase` (an expression: 0 new, 0.5 full, 1 new again, like `.moon.phase` of an `astro` source) lights the right side while it waxes and the left while it wanes, as seen from the northern hemisphere. `size` (22) is the square's side, `color` the lit part (`#e8e4d4`), `trackColor` the rest of the disc (`text` at 8%). The `sunMoon` preset uses it.
+
+```json
+{ "type": "moon", "phase": ".moon.phase", "size": 28 }
 ```
 
 ### `sparkline`

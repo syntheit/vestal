@@ -243,6 +243,38 @@ final class TimePresetsTests: XCTestCase {
         XCTAssertTrue(b.contains { $0.contains("new in ") }, "\(b)")
     }
 
+    func testSunMoonDrawsTheMoonNodeWithThePhase() throws {
+        let waxing = Date(timeIntervalSince1970: 1_704_974_220 + 7.4 * 86400)
+        var phases: [Double] = []
+        render(#"{ "type": "sunMoon" }"#, sources: ["astro": sky(latitude: 51.5, longitude: 0, at: waxing)], now: waxing).root.walk { node in
+            if case .moon(let m) = node.content { phases.append(m.phase); XCTAssertEqual(m.size, 22); XCTAssertEqual(node.alt, "First quarter") }
+        }
+        XCTAssertEqual(phases.count, 1)
+        XCTAssertEqual(phases[0], 0.25, accuracy: 0.03)
+    }
+
+    func testMoonNodeCodingAndGeometry() throws {
+        let node = RenderNode(id: "m", .moon(.init(phase: 0.38, size: 28, color: "#ffffffff", trackColor: "#00000080")))
+        XCTAssertEqual(try JSONDecoder().decode(RenderNode.self, from: JSONEncoder().encode(node)), node)
+        XCTAssertEqual(String(decoding: try RenderJSON.encoder.encode(RenderNode(id: "m", .moon(.init()))), as: UTF8.self),
+                       #"{"id":"m","type":"moon"}"#)
+        XCTAssertEqual(RenderDowngrade.nodeTypeMinor["moon"], 3)
+        func xs(_ phase: Double) -> (min: Double, max: Double) {
+            let x = MoonGeometry.litOutline(phase: phase, size: 28).map(\.x)
+            return (x.min()!, x.max()!)
+        }
+        XCTAssertGreaterThanOrEqual(xs(0.1).min, 14 - 1e-9, "a waxing crescent is on the right")
+        XCTAssertLessThanOrEqual(xs(0.9).max, 14 + 1e-9, "a waning crescent is on the left")
+        XCTAssertLessThan(xs(0.38).min, 14, "a waxing gibbous reaches past the middle")
+        XCTAssertGreaterThan(xs(0.38).max, 26.9)
+        XCTAssertGreaterThan(xs(0.62).max, 14)
+        XCTAssertLessThan(xs(0.62).min, 1.1)
+        let new = MoonGeometry.litOutline(phase: 0, size: 28)
+        let half = new.count / 2
+        for i in 0..<half { XCTAssertEqual(new[i].x, new[new.count - 1 - i].x, accuracy: 1e-9, "new: the terminator is the rim, no area") }
+        XCTAssertEqual(MoonGeometry.name(phase: 0.38), "Waxing gibbous")
+    }
+
     // MARK: forecast
 
     /// The `openMeteo` source's shape: 24 hours from 17:00 UTC, three days.

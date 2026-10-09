@@ -106,7 +106,7 @@ export class Layout {
 
   isKnown(node) {
     return ["stack", "grid", "text", "icon", "bar", "ring", "spark", "divider", "spacer", "bars",
-      "stackedBar", "heatmap", "timeline", "image", "analog", "flip"].includes(node.type);
+      "stackedBar", "heatmap", "timeline", "image", "analog", "flip", "moon"].includes(node.type);
   }
 
   // MARK: Box (one node's frame around its content)
@@ -129,6 +129,7 @@ export class Layout {
       case "timeline": return DEFAULTS.timelineSize;
       case "image": return DEFAULTS.imageSize;
       case "analog": return [node.size ?? 236, node.size ?? 236];
+      case "moon": return [node.size ?? 22, node.size ?? 22];
       case "flip": {
         const layout = flipLayout(node.text, node.small, node.size ?? 90, node.smallSize ?? 40);
         return [layout.width, layout.height];

@@ -320,6 +320,12 @@ extension SchemaRegistry {
             colorKey("secondsColor", "bad", "The seconds hand."),
             colorKey("pivotColor", nil, "The pivot. Default: accent, or the seconds hand's color with one."),
         ]),
+        SchemaEntityType("moon", since: "0.4", "The moon's phase drawn as the lit part of a disc, on the side the phase says.", keys: [
+            key("phase", .any, kind: .expr, required: true, .string(".moon.phase"), "0 (new) to 1; 0.5 is full. Below 0.5 the right side is lit."),
+            key("size", .number, default: .int(22), .int(28), computed: true, "The square's side."),
+            colorKey("color", "#e8e4d4ff", "The lit part."),
+            colorKey("trackColor", nil, "The rest of the disc. Default: text at 8%."),
+        ]),
         SchemaEntityType("flip", since: "0.4", "Split-flap tiles: one per character, changed ones fold over.", keys: [
             key("text", .string, kind: .text, required: true, .string("{{ now | fmt_time(\"HH:mm\") }}"),
                 "The big tiles: digits, : as a colon, a space as a gap."),

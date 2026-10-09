@@ -508,6 +508,7 @@ The tables below give each type's main fields. `vestal docs config` lists every 
 | `image` | `src` (text: a path or http(s) URL), `width` (48), `height` (48), `fit` (`cover`; `contain`), `radius` (6) | A picture; a URL is fetched once into the cache. Missing: an empty rounded rectangle. |
 | `analog` | `size` (236), `ticks` (`hours`; `none`, `minutes`), `seconds` (`false`; `"step"`, `"sweep"`), `dateWindow` (false), `numerals` (false), `zone` (the system's), `color`, `faceColor`, `secondsColor` (`bad`), `pivotColor` (`accent`) | A round clock the UI draws and runs itself, only while shown. |
 | `flip` | `text`, `small`, `size` (90), `smallSize` (40), `color`, `tileColor`, `animate` (true) | Split-flap tiles; a changed character folds over. |
+| `moon` | `phase` (0 new, 0.5 full, 1 new; an expression), `size` (22), `color` (`#e8e4d4`), `trackColor` (`text` at 8%) | The moon's phase: the lit part of a disc, right side while waxing, left while waning. |
 
 **Formats** (`format` on `text`, `stat`, `keyValue` items and table columns) are shorthands for the vestal functions: `int`, `number`, `fixed:N`, `percent`, `percent:N`, `thousands`, `thousands:N`, `compact`, `bytes`, `rate`, `duration`, `duration:N`, `uptime`, `relative`, `startsIn`, `time:<ICU pattern>` (such as `time:HH:mm`), `localized:<ICU skeleton>`. Anything else needs `text` with `{{ … }}`.
 

@@ -278,6 +278,8 @@ class NodeView {
             return a.size
         case .flip(let f):
             return f.layout.width
+        case .moon(let m):
+            return m.size
         case .divider(let d):
             return d.axis == .v ? d.thickness : 0
         case .spacer(let s):
@@ -310,6 +312,8 @@ class NodeView {
             return (a.size, nil)
         case .flip(let f):
             return (f.layout.height, nil)
+        case .moon(let m):
+            return (m.size, nil)
         case .divider(let d):
             return (d.axis == .h ? d.thickness : 0, nil)
         case .spacer(let s):
@@ -675,6 +679,7 @@ class NodeView {
         case .image(let image): drawImage(snapshot, image, inner)
         case .analog(let analog): drawAnalog(snapshot, analog, inner)
         case .flip(let flip): drawFlip(snapshot, flip, inner)
+        case .moon(let moon): drawMoon(snapshot, moon, inner)
         case .divider(let divider): drawDivider(snapshot, divider, inner)
         default: break
         }
