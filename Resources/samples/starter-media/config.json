@@ -6,7 +6,8 @@
     "background": {
       "type": "artmesh",
       "source": "media"
-    }
+    },
+    "typeface": "instrument"
   },
   "pages": {
     "order": [
@@ -33,13 +34,11 @@
       "width": "fill",
       "children": [
         {
-          "type": "text",
-          "text": "{{ now | fmt_time(\"HH:mm\") }}",
-          "style": {
-            "size": 22,
-            "weight": "thin",
-            "font": "mono"
-          }
+          "type": "clock",
+          "face": "thin",
+          "date": "none",
+          "hour12": "auto",
+          "size": 26
         },
         {
           "type": "spacer"
@@ -183,7 +182,9 @@
       ]
     },
     "clock": {
-      "type": "clock"
+      "type": "clock",
+      "hour12": "auto",
+      "face": "thin"
     },
     "systemBar": {
       "type": "systemBar",

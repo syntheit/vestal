@@ -3,7 +3,8 @@
   "hotkey": "cmd+shift+space",
   "defaultView": "main",
   "theme": {
-    "background": "sky"
+    "background": "sky",
+    "typeface": "instrument"
   },
   "pages": {
     "order": [
@@ -19,28 +20,11 @@
   },
   "widgets": {
     "clock": {
-      "type": "stack",
-      "gap": 10,
-      "align": "center",
-      "children": [
-        {
-          "type": "text",
-          "text": "{{ now | fmt_time(\"HH:mm\") }}",
-          "style": {
-            "size": 150,
-            "weight": "thin",
-            "font": "mono"
-          }
-        },
-        {
-          "type": "text",
-          "text": "{{ now | fmt_localized(\"EEEEMMMMd\") }}",
-          "style": {
-            "size": 20,
-            "color": "subtle"
-          }
-        }
-      ]
+      "type": "clock",
+      "face": "serif",
+      "date": "words",
+      "hour12": "auto",
+      "size": 150
     },
     "next": {
       "type": "row",

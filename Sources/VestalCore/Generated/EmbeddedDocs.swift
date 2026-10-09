@@ -3834,6 +3834,8 @@ A starter can also be a page or a single widget block (`kind` in its `starter.js
 
 Today's dashboard: time, this machine, music, agenda, your hosts, rates and weather. Background: `aurora`.
 
+Clock: `mono` face, `system` typeface (unchanged), `hour12: "auto"`.
+
 Pages: **Main** (key 1), **Focus** (key 2).
 
 You provide:
@@ -3857,6 +3859,8 @@ programs.vestal.starter = "default";
 
 A big clock, the date and the next event. Nothing to read twice. Background: `sky`.
 
+Clock: `serif` face with the date in words, `instrument` typeface, `hour12: "auto"`.
+
 Pages: **Main** (key 1).
 
 You provide:
@@ -3877,6 +3881,8 @@ programs.vestal.starter = "minimal";
 ## `developer`: Developer
 
 Reviews waiting on you, CI per repo, plan usage and your commit rhythm. Background: `topo`.
+
+Clock: `mono` face, `inter` typeface, `hour12: "auto"`. The compact density keeps the mono clock.
 
 Pages: **Main** (key 1), **Reviews** (key 2), **Builds** (key 3).
 
@@ -3901,6 +3907,8 @@ programs.vestal.starter = "developer";
 ## `homelab`: Homelab
 
 Hosts, monitors, containers, backups and the tailnet, two columns wide. Background: `aurora`.
+
+Clock: `mono` face, `inter` typeface, `hour12: "auto"`. The compact density keeps the mono clock.
 
 Pages: **Overview** (key 1), **nas** (key 2), **Network** (key 3).
 
@@ -3927,6 +3935,8 @@ programs.vestal.starter = "homelab";
 
 A watchlist, crypto and exchange rates with intraday lines. Background: `mesh`.
 
+Clock: `mono` face, `plex` typeface, `hour12: "auto"`. The compact density keeps the mono clock.
+
 Pages: **Markets** (key 1), **Main** (key 2).
 
 You provide:
@@ -3948,6 +3958,8 @@ programs.vestal.starter = "markets";
 ## `focus`: Focus
 
 A timer, the one task, today's list and habits. Tab away to everything else. Background: `grain`.
+
+Clock: `breathe` face, `geist` typeface, `hour12: "auto"`.
 
 Pages: **Focus** (key 1), **Main** (key 2).
 
@@ -3972,6 +3984,8 @@ programs.vestal.starter = "focus";
 
 Now playing, large. The background takes the album's colors. Background: `artmesh`.
 
+Clock: `thin` face (small, on the now-playing page), `instrument` typeface, `hour12: "auto"`.
+
 Pages: **Now playing** (key 1), **Main** (key 2).
 
 You provide:
@@ -3993,6 +4007,8 @@ programs.vestal.starter = "media";
 ## `agentops`: Agent ops
 
 Plan headroom, running agents and what needs you, for a day of delegated work. Background: `flow`.
+
+Clock: `mono` face, `inter` typeface, `hour12: "auto"`. The compact density keeps the mono clock.
 
 Pages: **Ops** (key 1), **Main** (key 2), **Reviews** (key 3).
 

@@ -4,7 +4,8 @@
   "defaultView": "markets",
   "theme": {
     "background": "mesh",
-    "density": "compact"
+    "density": "compact",
+    "typeface": "plex"
   },
   "pages": {
     "order": [
@@ -73,7 +74,8 @@
           "label": "TYO",
           "tz": "Asia/Tokyo"
         }
-      ]
+      ],
+      "hour12": "auto"
     },
     "indices": {
       "type": "row",

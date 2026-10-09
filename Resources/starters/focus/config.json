@@ -3,7 +3,8 @@
   "hotkey": "cmd+shift+space",
   "defaultView": "focus",
   "theme": {
-    "background": "grain"
+    "background": "grain",
+    "typeface": "geist"
   },
   "pages": {
     "order": [
@@ -92,7 +93,9 @@
       "source": "habits"
     },
     "clock": {
-      "type": "clock"
+      "type": "clock",
+      "hour12": "auto",
+      "face": "breathe"
     },
     "systemBar": {
       "type": "systemBar",
