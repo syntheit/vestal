@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { glyphFor, ICONS, ALIASES } from "./icons.js";
 import { makePalette, parseHex } from "./color.js";
 import { neighbor, transitionKind, PageSwipe, keyName, showsDots } from "./pages.js";
-import { fitLabel, visibleTicks, arcPath, sparkPoints, barsSVG, heatmapSVG } from "./draw.js";
+import { fitLabel, visibleTicks, arcPath, sparkPoints, barSVG, barsSVG, heatmapSVG } from "./draw.js";
 import { cssWeight, fontFamily } from "./text.js";
 import { FONT_FILES, fontFaceCSS } from "./typefaces.js";
 import { fragmentSource, shaderUrl } from "./backgrounds.js";
@@ -149,6 +149,21 @@ test("bars and heatmap markup", () => {
   assert.match(bars, /height="20"/); // clamped
   const heat = heatmapSVG({ cells: ["#ff0000ff", null], rows: 7 }, 8, 60, env);
   assert.equal((heat.match(/<rect/g) || []).length, 2);
+});
+
+test("bar: range fill, tick overhang and gradient", () => {
+  const env = { pal: makePalette({ colors: { cyan: "#00ffffff", orange: "#ff8800ff" } }), px: 1 };
+  const plain = barSVG({ value: 0.5, color: "cyan" }, 100, 8, env);
+  assert.equal((plain.match(/<rect/g) || []).length, 2);
+  assert.doesNotMatch(plain, /gradient/i);
+  const tick = barSVG({ value: 0.5, tick: 0.25, tickOverhang: 3 }, 100, 8, env);
+  assert.match(tick, /<rect x="24.25" y="-3" width="1.5" height="14"/);
+  assert.match(barSVG({ value: 0.5, tick: 0.25 }, 100, 8, env), /<rect x="24.25" y="0" width="1.5" height="8"/);
+  const range = barSVG({ start: 0.2, value: 0.6, gradient: ["cyan", "orange"] }, 100, 5, env);
+  assert.match(range, /<linearGradient[^>]*x1="20"[^>]*x2="60"/);
+  assert.match(range, /stop-color="rgba\(0,255,255,1\)"/);
+  assert.match(range, /stop-color="rgba\(255,136,0,1\)"/);
+  assert.match(range, /<rect x="20" y="0" width="40" height="5"[^>]*fill="url\(#vg\d+\)"/);
 });
 
 // MARK: text and shaders

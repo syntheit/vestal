@@ -255,7 +255,7 @@ final class ClockFacesTests: XCTestCase {
     }
 
     func testTheMinorVersion() {
-        XCTAssertEqual(RenderProtocol.minor, 2)
+        XCTAssertEqual(RenderProtocol.minor, 3)
         XCTAssertEqual(RenderDowngrade.nodeTypeMinor["analog"], 2)
         XCTAssertEqual(RenderDowngrade.nodeTypeMinor["flip"], 2)
         let s = render(#"{ "type": "stack", "children": [ { "type": "flip", "text": "10:42" }, { "type": "analog" } ] }"#)

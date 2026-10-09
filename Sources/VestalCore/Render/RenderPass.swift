@@ -654,6 +654,16 @@ final class RenderPass {
         if let tick = fraction(numeric(w["tick"], id: id, field: "tick", scope: s)) {
             bar.tick = tick
             bar.tickColor = w["tickColor"].flatMap { color($0, id: id, field: "tickColor", scope: s, value: nil) } ?? "#ffffff8c"
+            bar.tickOverhang = Swift.max(0, number(w["tickOverhang"], id: id, field: "tickOverhang", scope: s) ?? 0)
+        }
+        if case .array(let stops)? = w["gradient"] {
+            let colors = stops.compactMap { color($0, id: id, field: "gradient", scope: s, value: nil) }
+            if colors.count >= 2 {
+                bar.gradient = colors
+            } else {
+                report(id: id, field: "gradient", severity: "warning", code: "invalid-value",
+                       message: "gradient takes a list of two or more colors")
+            }
         }
         bar.color = barColor
         bar.trackColor = w["trackColor"].flatMap { color($0, id: id, field: "trackColor", scope: s, value: nil) }

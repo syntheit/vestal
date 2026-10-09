@@ -160,7 +160,7 @@ A glyph from the bundled Phosphor set (`vestal icons <query>`), `regular` or `fi
 
 ### `progress`
 
-A horizontal bar: `(value − min) / (max − min)`, clamped. Optional `label` before it, `text` after it (default `"{{ $value | round }}%"`; `""` for none), and an `overlay`, a second value on the same scale drawn `above` or `below` the fill. `start` (same scale) moves where the fill begins, so the fill covers `start` to `value`: a range bar for a low-to-high span. `tick` (same scale) draws a thin mark, `tickColor` its color (default white at about 55%): where usage would be at an even pace, say. `width` is the bar's own width (default `fill`).
+A horizontal bar: `(value − min) / (max − min)`, clamped. Optional `label` before it, `text` after it (default `"{{ $value | round }}%"`; `""` for none), and an `overlay`, a second value on the same scale drawn `above` or `below` the fill. `start` (same scale) moves where the fill begins, so the fill covers `start` to `value`: a range bar for a low-to-high span. `tick` (same scale) draws a thin mark, `tickColor` its color (default white at about 55%): where usage would be at an even pace, say. `tickOverhang` (default 0) makes the tick reach that many points above and below the bar. `gradient`, a list of two or more colors, fills from the first to the last across the fill itself (a range bar runs from its low to its high color) instead of `color`. `width` is the bar's own width (default `fill`).
 
 ```json
 { "type": "progress", "source": "system", "label": "RAM", "labelWidth": 30, "value": ".memory.percent", "overlay": ".memory.pressure", "width": 120, "textWidth": 34, "color": "purple" }

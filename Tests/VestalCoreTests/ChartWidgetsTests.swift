@@ -607,7 +607,7 @@ final class ChartWidgetsTests: XCTestCase {
     }
 
     func testTheMinorVersionAndOlderClients() {
-        XCTAssertEqual(RenderProtocol.minor, 2)
+        XCTAssertEqual(RenderProtocol.minor, 3)
         for type in ["bars", "stackedBar", "heatmap", "timeline", "image"] {
             XCTAssertEqual(RenderDowngrade.nodeTypeMinor[type], 1, type)
         }

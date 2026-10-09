@@ -31275,6 +31275,22 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "gradient": {
+          "description": "Two or more colors the fill runs through, left to right across the fill (a range bar's low to high). Default: color.",
+          "examples": [
+            [
+              "cyan",
+              "orange"
+            ]
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "header": {
           "anyOf": [
             {
@@ -32930,6 +32946,25 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "tickOverhang": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How far the tick reaches above and below the bar, in points.",
+          "examples": [
+            3
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "ticks": {
           "anyOf": [
             {
@@ -33462,6 +33497,22 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "gradient": {
+          "description": "Two or more colors the fill runs through, left to right across the fill (a range bar's low to high). Default: color.",
+          "examples": [
+            [
+              "cyan",
+              "orange"
+            ]
+          ],
+          "items": {},
+          "type": [
+            "array",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "height": {
           "anyOf": [
             {},
@@ -33917,6 +33968,26 @@
           "description": "The mark's color.",
           "examples": [
             "accent"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
+        "tickOverhang": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/computed"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0,
+          "description": "How far the tick reaches above and below the bar, in points.",
+          "examples": [
+            3
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"

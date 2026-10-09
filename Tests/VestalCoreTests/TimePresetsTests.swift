@@ -170,6 +170,7 @@ final class TimePresetsTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(all[1].tick), 0.5, accuracy: 0.001, "3.5 of 7 days left: halfway")
         XCTAssertEqual(try XCTUnwrap(all[3].tick), 1.0 / 7, accuracy: 0.001, "6 of 7 days left")
         XCTAssertEqual(all.map(\.color), ["orange", "orange", "bad", "teal"], "red from 90%")
+        XCTAssertEqual(all.map(\.tickOverhang), [0, 3, 3, 3], "the pace tick reaches past the bar")
     }
 
     func testAIPlanWindowThatHasResetIsZeroAndAServiceWithoutDataIsLeftOut() {
@@ -272,6 +273,7 @@ final class TimePresetsTests: XCTestCase {
         XCTAssertEqual(ranges[0].value, (19.0 - 8) / 14, accuracy: 0.001)
         XCTAssertEqual(ranges[1].start, 0, "the lowest low sits on the left edge")
         XCTAssertEqual(ranges[2].value, 1, "the highest high on the right edge")
+        XCTAssertEqual(ranges.compactMap(\.gradient), Array(repeating: ["cyan", "orange"], count: 3), "one cyan to orange fill per range")
     }
 
     func testForecastWithNoRainAndLimits() {
@@ -315,6 +317,22 @@ final class TimePresetsTests: XCTestCase {
         XCTAssertEqual(plain.start, 0)
         XCTAssertNil(plain.tick)
         XCTAssertNil(plain.tickColor)
+    }
+
+    func testProgressTickOverhangAndGradient() throws {
+        let bar = try XCTUnwrap(bars(render(
+            ##"{ "type": "progress", "value": 60, "tick": 50, "tickOverhang": 3, "gradient": ["cyan", "#ff8800"], "text": "" }"##)).first)
+        XCTAssertEqual(bar.tickOverhang, 3)
+        XCTAssertEqual(bar.gradient, ["cyan", "#ff8800"])
+        // A single color is no gradient.
+        let one = try XCTUnwrap(bars(render(#"{ "type": "progress", "value": 60, "gradient": ["cyan"], "text": "" }"#)).first)
+        XCTAssertNil(one.gradient)
+        // Round trip, and a plain bar writes neither key.
+        let node = RenderNode(id: "b", .bar(.init(value: 0.6, tick: 0.5, tickOverhang: 3, gradient: ["#00ffffff", "#ff8800ff"])))
+        XCTAssertEqual(try JSONDecoder().decode(RenderNode.self, from: JSONEncoder().encode(node)), node)
+        let plain = String(decoding: try JSONEncoder().encode(RenderNode(id: "p", .bar(.init(value: 0.6)))), as: UTF8.self)
+        XCTAssertFalse(plain.contains("tickOverhang"))
+        XCTAssertFalse(plain.contains("gradient"))
     }
 
     func testProgressStartAndTickScaleWithMinAndMax() throws {

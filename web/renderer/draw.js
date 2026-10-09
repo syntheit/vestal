@@ -29,14 +29,32 @@ export function barSVG(n, w, h, env) {
   const track = n.trackColor ? pal.css(n.trackColor) : cssColor(withAlpha(pal.rgba(n.color, "accent"), 0.15));
   const overlay = n.overlayColor ? pal.css(n.overlayColor) : "rgba(255,255,255,0.2)";
   const radius = Math.min(n.radius ?? 2, h / 2);
-  const seg = (fraction, c) => {
+  const seg = (fraction, c, from = 0) => {
     const v = clamp(fraction, 0, 1);
-    return v > 0 ? rect(0, 0, Math.round(w * v * px) / px, h, radius, c) : "";
+    if (!(v > from)) return "";
+    const x = from > 0 ? Math.round(w * from * px) / px : 0;
+    return rect(x, 0, Math.round(w * v * px) / px - x, h, radius, c);
   };
-  let out = seg(1, track);
+  // The fill's colors run left to right across the fill itself.
+  let fill = color, defs = "";
+  const stops = Array.isArray(n.gradient) && n.gradient.length >= 2 ? n.gradient : null;
+  if (stops) {
+    const id = `vg${++clipSerial}`;
+    const x0 = (n.start ?? 0) > 0 ? Math.round(w * n.start * px) / px : 0;
+    const x1 = Math.round(w * clamp(n.value ?? 0, 0, 1) * px) / px;
+    defs = `<defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${f(x0)}" y1="0" x2="${f(Math.max(x1, x0 + 0.001))}" y2="0">`
+      + stops.map((c, i) => `<stop offset="${f(i / (stops.length - 1))}" stop-color="${pal.css(c)}"/>`).join("") + "</linearGradient></defs>";
+    fill = `url(#${id})`;
+  }
+  let out = defs + seg(1, track);
   if (n.overlay != null && n.overlayPosition === "below") out += seg(n.overlay, overlay);
-  out += seg(n.value ?? 0, color);
+  out += seg(n.value ?? 0, fill, n.start ?? 0);
   if (n.overlay != null && n.overlayPosition !== "below") out += seg(n.overlay, overlay);
+  if (n.tick != null) {
+    const width = 1.5, over = Math.max(n.tickOverhang ?? 0, 0);
+    const x = clamp(w * clamp(n.tick, 0, 1) - width / 2, 0, Math.max(w - width, 0));
+    out += rect(x, -over, width, h + 2 * over, 0, n.tickColor ? pal.css(n.tickColor) : "rgba(255,255,255,0.55)");
+  }
   return out;
 }
 

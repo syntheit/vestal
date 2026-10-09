@@ -746,19 +746,24 @@ class NodeView {
         let overlayColor = bar.overlayColor.map { theme.color($0) } ?? RGBA(r: 1, g: 1, b: 1, a: 0.2)
         let radius = min(bar.radius, box.height / 2)
         fillRounded(snapshot, box, radius: radius, color: track)
-        func segment(_ fraction: Double, _ c: RGBA, from: Double = 0) {
+        func segment(_ fraction: Double, _ c: RGBA, from: Double = 0, gradient: [RGBA]? = nil) {
             let f = min(max(fraction, 0), 1)
             guard f > from else { return }
-            fillRounded(snapshot, Rect(x: box.x + box.width * from, y: box.y, width: box.width * (f - from), height: box.height),
-                        radius: radius, color: c)
+            let rect = Rect(x: box.x + box.width * from, y: box.y, width: box.width * (f - from), height: box.height)
+            if let gradient, gradient.count >= 2 {
+                fillGradient(snapshot, rect, radius: radius, colors: gradient)
+            } else {
+                fillRounded(snapshot, rect, radius: radius, color: c)
+            }
         }
         if let overlay = bar.overlay, bar.overlayPosition == "below" { segment(overlay, overlayColor) }
-        segment(bar.value, color, from: bar.start)
+        segment(bar.value, color, from: bar.start, gradient: bar.gradient?.map { theme.color($0) })
         if let overlay = bar.overlay, bar.overlayPosition != "below" { segment(overlay, overlayColor) }
         if let tick = bar.tick {
             let width = 1.5
             let x = min(max(box.x + box.width * min(max(tick, 0), 1) - width / 2, box.x), box.x + box.width - width)
-            fillRounded(snapshot, Rect(x: x, y: box.y, width: width, height: box.height), radius: 0,
+            let overhang = max(bar.tickOverhang, 0)
+            fillRounded(snapshot, Rect(x: x, y: box.y - overhang, width: width, height: box.height + 2 * overhang), radius: 0,
                         color: bar.tickColor.map { theme.color($0) } ?? RGBA(r: 1, g: 1, b: 1, a: 0.55))
         }
     }
@@ -872,6 +877,20 @@ func fillRounded(_ snapshot: OpaquePointer, _ rect: Rect, radius: Double, color:
     } else {
         gtk_snapshot_append_color(snapshot, &c, &g)
     }
+}
+
+/// `colors` spread left to right across `rect`, with rounded corners.
+func fillGradient(_ snapshot: OpaquePointer, _ rect: Rect, radius: Double, colors: [RGBA]) {
+    guard rect.width > 0, rect.height > 0, colors.count >= 2 else { return }
+    var g = rect.graphene
+    var start = graphene_point_t(x: Float(rect.x), y: Float(rect.y))
+    var end = graphene_point_t(x: Float(rect.x + rect.width), y: Float(rect.y))
+    var stops = colors.enumerated().map { index, color in
+        GskColorStop(offset: Float(index) / Float(colors.count - 1), color: color.gdk)
+    }
+    if radius > 0 { pushRoundedClip(snapshot, rect, radius: radius) }
+    gtk_snapshot_append_linear_gradient(snapshot, &g, &start, &end, &stops, stops.count)
+    if radius > 0 { gtk_snapshot_pop(snapshot) }
 }
 
 func pushRoundedClip(_ snapshot: OpaquePointer, _ rect: Rect, radius: Double) {

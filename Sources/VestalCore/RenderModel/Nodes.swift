@@ -354,13 +354,21 @@ public struct RenderNode: Equatable, Sendable, Codable {
         /// A thin vertical mark at this position, 0…1.
         public var tick: Double?
         public var tickColor: String?
+        /// How far the mark reaches above and below the bar, in points.
+        public var tickOverhang: Double = 0
+        /// Two or more colors the fill runs through, left to right across the
+        /// fill itself; nil: `color`.
+        public var gradient: [String]?
 
         public init(value: Double = 0, overlay: Double? = nil, overlayPosition: String = "above",
                     color: String? = nil, trackColor: String? = nil, overlayColor: String? = nil,
-                    radius: Double = 2, start: Double = 0, tick: Double? = nil, tickColor: String? = nil) {
+                    radius: Double = 2, start: Double = 0, tick: Double? = nil, tickColor: String? = nil,
+                    tickOverhang: Double = 0, gradient: [String]? = nil) {
             self.start = start
             self.tick = tick
             self.tickColor = tickColor
+            self.tickOverhang = tickOverhang
+            self.gradient = gradient
             self.value = value
             self.overlay = overlay
             self.overlayPosition = overlayPosition
@@ -770,7 +778,9 @@ public struct RenderNode: Equatable, Sendable, Codable {
                 radius: try opt("radius") ?? 2,
                 start: try opt("start") ?? 0,
                 tick: try opt("tick"),
-                tickColor: try opt("tickColor")))
+                tickColor: try opt("tickColor"),
+                tickOverhang: try opt("tickOverhang") ?? 0,
+                gradient: try opt("gradient")))
             // `radius` is also a common field (the box's corner); for a bar it
             // is the bar's own corner, default 2, and the box has none.
             radius = 0
@@ -938,6 +948,8 @@ public struct RenderNode: Equatable, Sendable, Codable {
             try put("start", b.start, default: 0)
             try put("tick", b.tick)
             try put("tickColor", b.tickColor)
+            try put("tickOverhang", b.tickOverhang, default: 0)
+            try put("gradient", b.gradient)
         case .ring(let r):
             try put("radius", radius, default: 0)
             try put("value", r.value, default: 0)

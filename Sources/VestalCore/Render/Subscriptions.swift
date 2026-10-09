@@ -33,7 +33,7 @@ import Foundation
 // A client that asks for another protocol gets `{"type":"error","code":
 // "protocol",…,"supported":[1]}` and is closed. A client whose `minor` is
 // below the server's gets node types newer than its minor as `text` nodes
-// with their `alt` (minor 1 added bars, stackedBar, heatmap, timeline, image; minor 2 analog, flip and the ring's dot, ticks and labels).
+// with their `alt` (minor 1 added bars, stackedBar, heatmap, timeline, image; minor 2 analog, flip and the ring's dot, ticks and labels; minor 3 the bar's tickOverhang and gradient).
 //
 // Everything runs on the main actor, like the engine. Writing never blocks:
 // IPCServer queues each connection's output and drops a client more than
