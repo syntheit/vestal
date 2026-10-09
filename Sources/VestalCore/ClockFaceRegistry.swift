@@ -43,6 +43,7 @@ public enum ClockFaces {
         Face(name: "analog", summary: "A round dial the UI draws and runs (clockAnalog): hands, optional ticks, numerals and a date window; seconds \"step\" or \"sweep\".", body: analog),
         Face(name: "flip", summary: "Split-flap tiles that fold over when a digit changes (clockFlip), with the date and am or pm under them.", body: flip),
         Face(name: "ring", summary: "The time inside a ring that fills across the day or the working hours (clockRing).", body: ring),
+        Face(name: "matrix", summary: "A 5 by 7 dot grid or seven-segment digits the UI draws, unlit cells faintly visible (clockMatrix); cells \"dots\" or \"segments\", color for the lit cells.", body: matrix),
     ]
 
     public static var names: [String] { registry.map(\.name) }
@@ -389,5 +390,10 @@ public enum ClockFaces {
 
     static let ring = drawn("ring", """
     { "type": "clockRing", "size": { "param": "size" }, "span": { "param": "span" }, "hour12": { "param": "hour12" } }
+    """)
+
+    static let matrix = drawn("matrix", """
+    { "type": "clockMatrix", "size": { "param": "size" }, "cells": { "param": "cells" }, "color": { "param": "color" },
+      "seconds": { "param": "seconds" }, "hour12": { "param": "hour12" }, "date": { "param": "date" } }
     """)
 }

@@ -155,6 +155,65 @@ function esc(s) {
   return String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
 }
 
+// MARK: - Matrix
+
+const MATRIX_GLYPHS = {
+  0: ["01110", "10001", "10011", "10101", "11001", "10001", "01110"], 1: ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+  2: ["01110", "10001", "00001", "00010", "00100", "01000", "11111"], 3: ["11111", "00010", "00100", "00010", "00001", "10001", "01110"],
+  4: ["00010", "00110", "01010", "10010", "11111", "00010", "00010"], 5: ["11111", "10000", "11110", "00001", "00001", "10001", "01110"],
+  6: ["00110", "01000", "10000", "11110", "10001", "10001", "01110"], 7: ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
+  8: ["01110", "10001", "10001", "01110", "10001", "10001", "01110"], 9: ["01110", "10001", "10001", "01111", "00001", "00010", "01100"],
+};
+const MATRIX_SEGMENTS = { 0: "abcdef", 1: "bc", 2: "abdeg", 3: "abcdg", 4: "bcfg", 5: "acdfg", 6: "acdefg", 7: "abc", 8: "abcdefg", 9: "abcdfg" };
+
+/** The segment polygons (flat x, y lists) of a `w` by `h` digit with stroke `t`. */
+export function segmentPolygons(w, h, t) {
+  const g = 1.6, l = t / 2, r = w - t / 2, top = t / 2, mid = h / 2, bottom = h - t / 2;
+  const horizontal = (y) => [l + g, y, l + g + t / 2, y - t / 2, r - g - t / 2, y - t / 2, r - g, y, r - g - t / 2, y + t / 2, l + g + t / 2, y + t / 2];
+  const vertical = (x, y0, y1) => [x, y0 + g, x + t / 2, y0 + g + t / 2, x + t / 2, y1 - g - t / 2, x, y1 - g, x - t / 2, y1 - g - t / 2, x - t / 2, y0 + g + t / 2];
+  return { a: horizontal(top), g: horizontal(mid), d: horizontal(bottom), f: vertical(l, top, mid), b: vertical(r, top, mid), e: vertical(l, mid, bottom), c: vertical(r, mid, bottom) };
+}
+
+/** The cells of a `matrix` node: { cells: [{ kind, lit, x, y, width, height, radius, points }], width, height }, as MatrixGeometry.layout. */
+export function matrixLayout(text, segments, size) {
+  const s = size / 84, tilt = Math.tan((-6 * Math.PI) / 180);
+  const polygons = segmentPolygons(46, 86, 9);
+  const cells = [];
+  let x = 0;
+  const chars = [...(text || "")];
+  for (const ch of chars) {
+    if (ch === ":") {
+      if (segments) {
+        cells.push({ kind: "rect", lit: true, x: x + 2 * s, y: 24 * s, width: 9 * s, height: 9 * s, radius: 1.5 * s });
+        cells.push({ kind: "rect", lit: true, x, y: 54 * s, width: 9 * s, height: 9 * s, radius: 1.5 * s });
+        x += 22 * s;
+      } else {
+        for (const y of [30, 54]) cells.push({ kind: "dot", lit: true, x: x + 6 * s, y: y * s, radius: 4.3 * s });
+        x += 24 * s;
+      }
+      continue;
+    }
+    if (segments) {
+      const on = MATRIX_SEGMENTS[ch] || "";
+      for (const name of "abcdefg") {
+        const p = polygons[name], points = [];
+        for (let i = 0; i < p.length; i += 2) points.push(x + 6 * s + p[i] * s + tilt * p[i + 1] * s, p[i + 1] * s);
+        cells.push({ kind: "polygon", lit: on.includes(name), points });
+      }
+      x += 56 * s;
+    } else {
+      const rows = MATRIX_GLYPHS[ch];
+      for (let row = 0; row < 7; row++) {
+        for (let col = 0; col < 5; col++) {
+          cells.push({ kind: "dot", lit: !!rows && rows[row][col] === "1", x: x + (col * 12 + 6) * s, y: (row * 12 + 6) * s, radius: 4.3 * s });
+        }
+      }
+      x += 72 * s;
+    }
+  }
+  return { cells, width: chars.length ? Math.max(0, x - (segments ? 10 : 12) * s) : 0, height: (segments ? 86 : 84) * s };
+}
+
 // MARK: - Ring marks
 
 /** The geometry of a ring's arc for a square of `side` (canvas radians, clockwise). */

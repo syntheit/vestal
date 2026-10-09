@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  analogTime, handAngles, analogGeometry, analogTicks, polar, flipLayout, colonSquares, changedTiles, ringGeometry, analogSVG, analogDots, isDay,
+  analogTime, handAngles, analogGeometry, analogTicks, polar, flipLayout, colonSquares, changedTiles, ringGeometry, analogSVG, analogDots, isDay, matrixLayout,
 } from "./clock.js";
 import { makePalette } from "./color.js";
 
@@ -99,4 +99,25 @@ test("small dials: dots, plain hands and a day or night fill", () => {
   assert.match(tokyo, /data-face="1"[^>]*fill="rgba\(0,0,0,0.322\)"/);
   assert.match(tokyo, /data-nightfill="rgba\(0,0,0,0.322\)"/);
   assert.equal((london.match(/<circle /g) || []).length, 1 + 12 + 1);
+});
+
+test("matrix cells match the native layout", () => {
+  const dots = matrixLayout("12:34", false, 84);
+  assert.equal(dots.cells.length, 4 * 35 + 2);
+  close(dots.width, 4 * 72 + 24 - 12); close(dots.height, 84);
+  const eight = matrixLayout("8", false, 84);
+  assert.equal(eight.cells.filter((c) => c.lit).length, 17);
+  assert.equal(eight.cells.length, 35); // the unlit dots are there too
+  close(eight.cells[0].x, 6); close(eight.cells[0].radius, 4.3);
+  const segs = matrixLayout("1 8:", true, 84);
+  assert.equal(segs.cells.length, 7 * 3 + 2);
+  assert.equal(segs.cells.slice(0, 7).filter((c) => c.lit).length, 2); // a one
+  assert.equal(segs.cells.slice(7, 14).filter((c) => c.lit).length, 0); // a blank digit
+  close(segs.height, 86); close(segs.width, 56 * 3 + 22 - 10);
+  close(matrixLayout("12:34", false, 42).width, dots.width / 2);
+  assert.equal(matrixLayout("", false, 84).width, 0);
+  // The first segment of a digit is the top bar, slanted by the skew.
+  const top = segs.cells[0].points;
+  assert.equal(top.length, 12);
+  assert.ok(top[3] < top[9], "the top bar sits above its lower edge");
 });

@@ -82,6 +82,8 @@ struct RenderNodeView: View {
             FlipDrawing(flip: flip, style: style)
         case .moon(let moon):
             MoonDrawing(moon: moon, style: style)
+        case .matrix(let matrix):
+            MatrixDrawing(matrix: matrix, style: style)
         }
     }
 
@@ -114,6 +116,9 @@ struct RenderNodeView: View {
             let layout = f.layout
             return .fixed(width: layout.width, height: layout.height)
         case .moon(let m): return .fixed(width: m.size, height: m.size)
+        case .matrix(let m):
+            let layout = m.layout
+            return .fixed(width: layout.width, height: layout.height)
         }
     }
 }

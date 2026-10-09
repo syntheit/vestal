@@ -10,7 +10,7 @@
 import { heatmapPosition } from "./layout.js";
 import { cssColor, withAlpha } from "./color.js";
 import { fontShorthand } from "./text.js";
-import { analogSVG, ringGeometry, ringMarksSVG } from "./clock.js";
+import { analogSVG, matrixLayout, ringGeometry, ringMarksSVG } from "./clock.js";
 
 const f = (n) => Math.round(n * 1000) / 1000;
 const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
@@ -85,6 +85,23 @@ export function moonSVG(n, w, h, env) {
   const track = n.trackColor ? pal.css(n.trackColor) : "rgba(255,255,255,0.08)";
   const d = moonOutline(n.phase ?? 0, side).map(([x, y], i) => `${i ? "L" : "M"}${f(x)} ${f(y)}`).join("") + "Z";
   return `<circle cx="${f(c)}" cy="${f(c)}" r="${f(r)}" fill="${track}"/><path d="${d}" fill="${pal.css(n.color || "#e8e4d4ff")}"/>`;
+}
+
+// MARK: - matrix
+
+/** Every cell of the panel: unlit ones faint, lit ones in `color`. */
+export function matrixSVG(n, w, h, env) {
+  const { pal } = env;
+  const layout = matrixLayout(n.text, n.cells === "segments", n.size ?? 84);
+  const lit = pal.css(n.color, "cyan"), off = n.offColor ? pal.css(n.offColor) : "rgba(255,255,255,0.065)";
+  let out = `<g transform="translate(${f((w - layout.width) / 2)} ${f((h - layout.height) / 2)})">`;
+  for (const cell of layout.cells) {
+    const fill = cell.lit ? lit : off;
+    if (cell.kind === "dot") out += `<circle cx="${f(cell.x)}" cy="${f(cell.y)}" r="${f(cell.radius)}" fill="${fill}"/>`;
+    else if (cell.kind === "rect") out += rect(cell.x, cell.y, cell.width, cell.height, cell.radius, fill);
+    else out += `<polygon points="${cell.points.map(f).join(" ")}" fill="${fill}"/>`;
+  }
+  return out + "</g>";
 }
 
 // MARK: - ring
@@ -300,5 +317,5 @@ export function timelineSVG(n, w, h, env) {
 
 export const DRAWERS = {
   bar: barSVG, ring: ringSVG, spark: sparkSVG, divider: dividerSVG, bars: barsSVG,
-  stackedBar: stackedBarSVG, heatmap: heatmapSVG, timeline: timelineSVG, analog: analogSVG, moon: moonSVG,
+  stackedBar: stackedBarSVG, heatmap: heatmapSVG, timeline: timelineSVG, analog: analogSVG, moon: moonSVG, matrix: matrixSVG,
 };

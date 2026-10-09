@@ -98,6 +98,37 @@ extension NodeView {
 
     // MARK: Analog
 
+    // MARK: Matrix
+
+    func drawMatrix(_ snapshot: OpaquePointer, _ matrix: RenderNode.Matrix, _ box: Rect) {
+        guard box.width > 0, box.height > 0 else { return }
+        let theme = context.theme
+        let layout = matrix.layout
+        let lit = theme.color(matrix.color)
+        let off = matrix.offColor.map { theme.color($0) } ?? RGBA(r: 1, g: 1, b: 1, a: 0.065)
+        var rect = box.graphene
+        let cr = gtk_snapshot_append_cairo(snapshot, &rect)
+        defer { cairo_destroy(cr) }
+        cairo_translate(cr, box.x + (box.width - layout.width) / 2, box.y + (box.height - layout.height) / 2)
+        for cell in layout.cells {
+            switch cell.kind {
+            case .dot:
+                cairo_arc(cr, cell.x, cell.y, cell.radius, 0, 2 * .pi)
+            case .rect:
+                roundedPath(cr, Rect(x: cell.x, y: cell.y, width: cell.width, height: cell.height), radius: cell.radius)
+            case .polygon:
+                var i = 0
+                while i + 1 < cell.points.count {
+                    if i == 0 { cairo_move_to(cr, cell.points[i], cell.points[i + 1]) } else { cairo_line_to(cr, cell.points[i], cell.points[i + 1]) }
+                    i += 2
+                }
+                cairo_close_path(cr)
+            }
+            setSource(cr, cell.lit ? lit : off)
+            cairo_fill(cr)
+        }
+    }
+
     // MARK: Moon
 
     func drawMoon(_ snapshot: OpaquePointer, _ moon: RenderNode.Moon, _ box: Rect) {

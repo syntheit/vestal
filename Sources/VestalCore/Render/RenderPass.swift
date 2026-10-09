@@ -277,6 +277,7 @@ final class RenderPass {
         case "analog": node = analog(w, id: id, scope: scope)
         case "flip": node = flip(w, id: id, scope: scope)
         case "moon": node = moon(w, id: id, scope: scope)
+        case "matrix": node = matrix(w, id: id, scope: scope)
         default:
             report(id: id, field: "type", severity: "error", code: "unknown-type", message: "unknown widget type \"\(type)\"")
             return nil

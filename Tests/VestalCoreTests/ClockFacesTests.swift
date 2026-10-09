@@ -451,6 +451,67 @@ final class ClockFacesTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(RenderNode.self, from: JSONEncoder().encode(node)), node)
     }
 
+    // MARK: Matrix
+
+    private func matrix(_ n: RenderNode) -> RenderNode.Matrix {
+        guard case .matrix(let m) = n.content else { XCTFail("not matrix: \(n.type)"); return .init() }
+        return m
+    }
+
+    func testMatrixGeometryDotsAndSegments() {
+        let dots = MatrixGeometry.layout(text: "12:34", segments: false, size: 84)
+        XCTAssertEqual(dots.cells.count, 4 * 35 + 2)
+        XCTAssertEqual(dots.width, 4 * 72 + 24 - 12)
+        XCTAssertEqual(dots.height, 84)
+        let eight = MatrixGeometry.layout(text: "8", segments: false, size: 84)
+        XCTAssertEqual(eight.cells.filter(\.lit).count, 17)
+        XCTAssertEqual(eight.cells.count, 35, "the unlit dots are there too")
+        XCTAssertEqual(eight.cells[0].x, 6)
+        XCTAssertEqual(eight.cells[0].radius, 4.3, accuracy: 1e-9)
+        let segs = MatrixGeometry.layout(text: "1 8:", segments: true, size: 84)
+        XCTAssertEqual(segs.cells.count, 7 * 3 + 2)
+        XCTAssertEqual(segs.cells.prefix(7).filter(\.lit).count, 2, "a one lights two segments")
+        XCTAssertEqual(segs.cells[7..<14].filter(\.lit).count, 0, "a blank digit is all unlit")
+        XCTAssertEqual(segs.height, 86)
+        XCTAssertEqual(segs.width, 56 * 3 + 22 - 10)
+        // The size scales everything.
+        XCTAssertEqual(MatrixGeometry.layout(text: "12:34", segments: false, size: 42).width, dots.width / 2, accuracy: 1e-9)
+        XCTAssertEqual(MatrixGeometry.layout(text: "", segments: false, size: 84).width, 0)
+    }
+
+    func testMatrixFaceFollowsTheClock() {
+        let s = clock(#""face": "matrix", "color": "orange", "seconds": true,"#)
+        let m = matrix(node(s, "main/w/matrix/0"))
+        XCTAssertEqual(m.text, "17:03:22")
+        XCTAssertEqual(m.cells, "dots")
+        XCTAssertEqual(m.color, "orange")
+        XCTAssertEqual(m.size, 84)
+        XCTAssertNotNil(m.offColor)
+        XCTAssertNotNil(s.root.node(withId: "main/w/2"), "world clocks stay under it")
+        XCTAssertEqual(s.diagnostics.count, 0, "\(s.diagnostics)")
+        // Seconds are on by default; false drops them.
+        XCTAssertEqual(matrix(node(clock(#""face": "matrix","#), "main/w/matrix/0")).text, "17:03:22")
+        XCTAssertEqual(matrix(node(clock(#""face": "matrix", "seconds": false,"#), "main/w/matrix/0")).text, "17:03")
+        // 12-hour time pads the hour with a blank, so the digits don't move.
+        let early = Date(timeIntervalSince1970: 1_790_528_602 - 12 * 3600)
+        let twelve = render(#"{ "type": "clock", "face": "matrix", "cells": "segments", "hour12": true }"#, now: early)
+        let t = matrix(node(twelve, "main/w/matrix/0"))
+        XCTAssertEqual(t.text, " 5:03:22")
+        XCTAssertEqual(t.cells, "segments")
+        XCTAssertEqual(node(twelve, "main/w/matrix/0").width, .points(t.layout.width))
+    }
+
+    func testMatrixNodeCodingAndDowngrade() throws {
+        let node = RenderNode(id: "m", .matrix(.init(text: "12:30", cells: "segments", size: 60, color: "#ff0000ff", offColor: "#ffffff10")))
+        XCTAssertEqual(try JSONDecoder().decode(RenderNode.self, from: JSONEncoder().encode(node)), node)
+        XCTAssertEqual(String(decoding: try RenderJSON.encoder.encode(RenderNode(id: "m", .matrix(.init(text: "1")))), as: UTF8.self),
+                       #"{"id":"m","text":"1","type":"matrix"}"#)
+        XCTAssertEqual(RenderDowngrade.nodeTypeMinor["matrix"], 3)
+        var n = RenderNode(id: "m", .matrix(.init(text: "12:30")))
+        n.alt = "12:30"
+        if case .text(let t) = RenderDowngrade.node(n, toMinor: 2).content { XCTAssertEqual(t.text, "12:30") } else { XCTFail("not text") }
+    }
+
     func testFlipFace() {
         let s = clock(#""face": "flip", "seconds": true,"#)
         let f = flip(node(s, "main/w/flip/0"))
@@ -524,7 +585,7 @@ final class ClockFacesTests: XCTestCase {
     }
 
     func testFaceHelpersAreNotUserFacingPresets() {
-        for name in ["clockAnalog", "clockFlip", "clockRing"] {
+        for name in ["clockAnalog", "clockFlip", "clockMatrix", "clockRing"] {
             XCTAssertTrue(SampleLibrary.helpers.contains(name), name)
             XCTAssertNotNil(TemplateRegistry.standard.builtins[name], name)
         }

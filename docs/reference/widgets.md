@@ -9,7 +9,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 | Containers | `stack` (top to bottom), `row` (left to right), `grid` (aligned columns), `list` (an array as rows), `table` (a list with aligned columns), `switch` (one child picked by a value) |
 | Primitives | `text`, `icon`, `progress` (bar), `gauge` (ring), `sparkline`, `keyValue`, `divider`, `spacer` |
 | Charts | `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
-| Clocks | `analog`, `flip` (the faces of the `clock` preset) |
+| Clocks | `analog`, `flip`, `matrix` (the faces of the `clock` preset) |
 | Sky | `moon` (the moon's phase) |
 | Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the system presets `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and the developer widgets `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`, and the homelab widgets `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers`, and `headlines`, `cryptoTicker`, `watchlist`, `dayTimeline`, `nextMeeting`, `focusTimer`, `todoFile`, `habits`, `homeAssistant` and `nowPlaying` (`vestal docs presets`) |
 | Your templates | any name under `templates` (`vestal docs templates`) |
@@ -194,6 +194,14 @@ Split-flap tiles: one per character of `text` (digits; `:` is a colon and a spac
 
 ```json
 { "type": "flip", "text": "{{ now | fmt_time(\"HH:mm\") }}", "small": "{{ now | fmt_time(\"ss\") }}" }
+```
+
+### `matrix`
+
+A dot matrix or seven-segment display of `text` (digits and `:`; anything else, a space say, is a blank digit), drawn by the UI so it needs no font. `cells` is `"dots"` (a 5 by 7 grid per digit) or `"segments"` (slanted seven-segment digits); `size` (84) is the height of a dot matrix (a segment digit is 86/84 of it); `color` (`cyan`) lights the cells and `offColor` (`text` at 6.5%) is the unlit ones, which are always drawn, faintly. The text is ordinary text, so a clock's seconds change it once a second as they would any text.
+
+```json
+{ "type": "matrix", "cells": "segments", "color": "orange", "text": "{{ now | fmt_time(\"HH:mm:ss\") }}" }
 ```
 
 ### `moon`

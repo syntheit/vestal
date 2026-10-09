@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Clock, dot matrix",
+  "description": "A 5 by 7 dot grid per digit, unlit dots faintly visible like a real panel, drawn by the UI; the date under it and world clocks below.",
+  "preset": "clock",
+  "size": [
+    680,
+    420
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time"
+  ]
+}

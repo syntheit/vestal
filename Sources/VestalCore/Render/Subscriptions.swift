@@ -424,7 +424,7 @@ public enum RenderDowngrade {
     public static let nodeTypeMinor: [String: Int] = [
         "stack": 0, "grid": 0, "text": 0, "icon": 0, "bar": 0, "ring": 0, "spark": 0, "divider": 0, "spacer": 0,
         "bars": 1, "stackedBar": 1, "heatmap": 1, "timeline": 1, "image": 1,
-        "analog": 2, "flip": 2, "moon": 3,
+        "analog": 2, "flip": 2, "moon": 3, "matrix": 3,
     ]
 
     public static func node(_ node: RenderNode, toMinor minor: Int) -> RenderNode {

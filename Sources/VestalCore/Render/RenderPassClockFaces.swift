@@ -77,6 +77,26 @@ extension RenderPass {
         value.flatMap { color($0, id: id, field: field, scope: scope, value: nil) }
     }
 
+    // MARK: matrix
+
+    func matrix(_ w: [String: AnyJSON], id: String, scope: Scope) -> RenderNode {
+        let scale = scope.style.scale
+        var matrix = RenderNode.Matrix()
+        matrix.text = fieldText(w["text"], id: id, field: "text", scope: scope)
+        matrix.cells = choice(w["cells"], id: id, field: "cells", scope: scope, allowed: ["dots", "segments"]) ?? "dots"
+        // A size of 0 (a preset's unset param) is the display's own.
+        let given = number(w["size"], id: id, field: "size", scope: scope).flatMap { $0 > 0 ? $0 : nil }
+        matrix.size = max(8, given ?? 84) * scale
+        matrix.color = colorField(w["color"], id: id, field: "color", scope: scope) ?? "cyan"
+        matrix.offColor = colorField(w["offColor"], id: id, field: "offColor", scope: scope) ?? model.palette.resolve("text@0.065")
+        var node = RenderNode(id: id, .matrix(matrix))
+        let layout = matrix.layout
+        node.width = .points(layout.width)
+        node.height = .points(layout.height)
+        node.alt = matrix.text
+        return node
+    }
+
     // MARK: moon
 
     func moon(_ w: [String: AnyJSON], id: String, scope: Scope) -> RenderNode {

@@ -280,6 +280,8 @@ class NodeView {
             return f.layout.width
         case .moon(let m):
             return m.size
+        case .matrix(let m):
+            return m.layout.width
         case .divider(let d):
             return d.axis == .v ? d.thickness : 0
         case .spacer(let s):
@@ -314,6 +316,8 @@ class NodeView {
             return (f.layout.height, nil)
         case .moon(let m):
             return (m.size, nil)
+        case .matrix(let m):
+            return (m.layout.height, nil)
         case .divider(let d):
             return (d.axis == .h ? d.thickness : 0, nil)
         case .spacer(let s):
@@ -680,6 +684,7 @@ class NodeView {
         case .analog(let analog): drawAnalog(snapshot, analog, inner)
         case .flip(let flip): drawFlip(snapshot, flip, inner)
         case .moon(let moon): drawMoon(snapshot, moon, inner)
+        case .matrix(let matrix): drawMatrix(snapshot, matrix, inner)
         case .divider(let divider): drawDivider(snapshot, divider, inner)
         default: break
         }
@@ -894,7 +899,7 @@ func fillGradient(_ snapshot: OpaquePointer, _ rect: Rect, radius: Double, color
         GskColorStop(offset: Float(index) / Float(colors.count - 1), color: color.gdk)
     }
     if radius > 0 { pushRoundedClip(snapshot, rect, radius: radius) }
-    gtk_snapshot_append_linear_gradient(snapshot, &g, &start, &end, &stops, stops.count)
+    gtk_snapshot_append_linear_gradient(snapshot, &g, &start, &end, &stops, gsize(stops.count))
     if radius > 0 { gtk_snapshot_pop(snapshot) }
 }
 

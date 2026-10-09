@@ -321,6 +321,14 @@ extension SchemaRegistry {
             colorKey("secondsColor", "bad", "The seconds hand."),
             colorKey("pivotColor", nil, "The pivot. Default: accent, or the seconds hand's color with one."),
         ]),
+        SchemaEntityType("matrix", since: "0.4", "A dot matrix or seven-segment display the UI draws, unlit cells faintly visible.", keys: [
+            key("text", .string, kind: .text, required: true, .string("{{ now | fmt_time(\"HH:mm:ss\") }}"), "Digits and :; anything else is a blank digit."),
+            key("cells", .oneOf(["dots", "segments"]), default: .string("dots"), .string("segments"), computed: true,
+                "dots: a 5 by 7 grid per digit. segments: seven-segment digits."),
+            key("size", .number, default: .int(84), .int(60), computed: true, "The height of a dot matrix in points (a segment digit is 86/84 of it)."),
+            colorKey("color", "cyan", "The lit cells."),
+            colorKey("offColor", nil, "The unlit cells. Default: text at 6.5%."),
+        ]),
         SchemaEntityType("moon", since: "0.4", "The moon's phase drawn as the lit part of a disc, on the side the phase says.", keys: [
             key("phase", .any, kind: .expr, required: true, .string(".moon.phase"), "0 (new) to 1; 0.5 is full. Below 0.5 the right side is lit."),
             key("size", .number, default: .int(22), .int(28), computed: true, "The square's side."),

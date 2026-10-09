@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "widgets": {
+    "clock": {
+      "type": "clock",
+      "face": "matrix",
+      "cells": "segments",
+      "color": "orange",
+      "hour12": true,
+      "worldClocks": [
+        { "label": "NYC", "tz": "America/New_York" },
+        { "label": "TYO", "tz": "Asia/Tokyo" }
+      ]
+    }
+  },
+  "views": {
+    "main": {
+      "children": ["clock"],
+      "padding": 24
+    }
+  }
+}

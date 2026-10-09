@@ -145,6 +145,7 @@ public struct RenderNode: Equatable, Sendable, Codable {
         case analog(Analog)
         case flip(Flip)
         case moon(Moon)
+        case matrix(Matrix)
         /// A type this build doesn't know (a newer `minor`); drawn as `alt`.
         case unknown(type: String)
     }
@@ -191,6 +192,7 @@ public struct RenderNode: Equatable, Sendable, Codable {
         case .analog: return "analog"
         case .flip: return "flip"
         case .moon: return "moon"
+        case .matrix: return "matrix"
         case .unknown(let type): return type
         }
     }
@@ -719,6 +721,32 @@ public struct RenderNode: Equatable, Sendable, Codable {
         }
     }
 
+    /// A dot matrix or seven-segment display of `text`, drawn by the UI from
+    /// MatrixGeometry: every cell of the panel is there, the unlit ones faint.
+    public struct Matrix: Equatable, Sendable {
+        /// Digits and `:`; anything else is a blank digit.
+        public var text: String = ""
+        /// `dots` (5 by 7 per digit) or `segments` (seven-segment).
+        public var cells: String = "dots"
+        /// The height of a dot matrix; a segment digit is 86/84 of it.
+        public var size: Double = 84
+        /// Lit cells, and unlit ones.
+        public var color: String = "cyan"
+        public var offColor: String?
+
+        public init(text: String = "", cells: String = "dots", size: Double = 84, color: String = "cyan", offColor: String? = nil) {
+            self.text = text
+            self.cells = cells
+            self.size = size
+            self.color = color
+            self.offColor = offColor
+        }
+
+        public var layout: MatrixGeometry.Result {
+            MatrixGeometry.layout(text: text, segments: cells == "segments", size: size)
+        }
+    }
+
     // MARK: Coding
 
     private struct Key: CodingKey {
@@ -899,6 +927,13 @@ public struct RenderNode: Equatable, Sendable, Codable {
                 tile: try opt("tile") ?? "#2a2c35ff",
                 tileBottom: try opt("tileBottom") ?? "#1f212aff",
                 animate: try opt("animate") ?? true))
+        case "matrix":
+            content = .matrix(Matrix(
+                text: try opt("text") ?? "",
+                cells: lenient("cells", "dots"),
+                size: try opt("size") ?? 84,
+                color: try opt("color") ?? "cyan",
+                offColor: try opt("offColor")))
         case "moon":
             content = .moon(Moon(
                 phase: try opt("phase") ?? 0,
@@ -1066,6 +1101,13 @@ public struct RenderNode: Equatable, Sendable, Codable {
             try put("tile", f.tile, default: "#2a2c35ff")
             try put("tileBottom", f.tileBottom, default: "#1f212aff")
             try put("animate", f.animate, default: true)
+        case .matrix(let m):
+            try put("radius", radius, default: 0)
+            try put("text", m.text, default: "")
+            try put("cells", m.cells, default: "dots")
+            try put("size", m.size, default: 84)
+            try put("color", m.color, default: "cyan")
+            try put("offColor", m.offColor)
         case .moon(let m):
             try put("radius", radius, default: 0)
             try put("phase", m.phase, default: 0)
