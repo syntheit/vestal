@@ -17,14 +17,15 @@ extension DefaultPresets {
           "seconds": { "type": "any", "default": false, "description": "false, true or \"step\" (once a second), \"sweep\" (every frame while shown)" },
           "dateWindow": { "type": "boolean", "default": false, "description": "The day of the month in a window at three o'clock instead of the date line" },
           "numerals": { "type": "boolean", "default": false, "description": "The numerals 1 to 12" },
-          "zone": { "type": "string", "default": "", "description": "An IANA time zone; default the system's" }
+          "zone": { "type": "string", "default": "", "description": "An IANA time zone; default the system's" },
+          "date": { "type": "string", "default": "auto", "enum": ["auto", "full", "words", "none"], "description": "The date line under the dial: none hides it (it is never there with dateWindow); anything else is the locale's full date" }
         },
         "widget": {
           "type": "stack", "gap": 16, "align": "center",
           "children": [
             { "type": "analog", "size": { "param": "size" }, "ticks": { "param": "ticks" }, "seconds": { "param": "seconds" },
               "dateWindow": { "param": "dateWindow" }, "numerals": { "param": "numerals" }, "zone": { "param": "zone" } },
-            { "type": "text", "when": "$dateWindow != true", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}",
+            { "type": "text", "when": "$dateWindow != true and $date != \"none\"", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}",
               "style": { "size": 15, "font": "rounded", "color": "subtle" } }
           ]
         }
@@ -34,19 +35,21 @@ extension DefaultPresets {
         "description": "The clock's split-flap face: tiles that fold over when a digit changes, with the date and am or pm under them",
         "params": {
           "size": { "type": "number", "default": 0, "description": "The big tiles' font size; 0 is 90" },
-          "seconds": { "type": "boolean", "default": false, "description": "Seconds on small tiles after the minutes" },
+          "seconds": { "type": "any", "default": false, "description": "true, \"step\" or \"sweep\": seconds on small tiles after the minutes" },
           "animate": { "type": "boolean", "default": true, "description": "Fold changing tiles (never with reduced motion)" },
-          "hour12": { "type": "boolean", "default": false }
+          "hour12": { "type": "any", "default": false, "description": "true, false or \"auto\" (the system's)" },
+          "date": { "type": "string", "default": "auto", "enum": ["auto", "full", "words", "none"], "description": "The date line under the tiles: none hides it" }
         },
         "widget": {
           "type": "stack", "gap": 16, "align": "center",
+          "vars": { "h12": "$hour12 == true or ($hour12 == \"auto\" and uses_12h)", "secs": "$seconds == true or $seconds == \"step\" or $seconds == \"sweep\"" },
           "children": [
             { "type": "flip", "size": { "expr": "if $size > 0 then $size else 90 end" }, "animate": { "param": "animate" },
-              "text": "{{ now | fmt_time(if $hour12 then \"hh:mm\" else \"HH:mm\" end) }}",
-              "small": "{{ if $seconds then (now | fmt_time(\"ss\")) else \"\" end }}" },
+              "text": "{{ now | fmt_time(if $h12 then \"hh:mm\" else \"HH:mm\" end) }}",
+              "small": "{{ if $secs then (now | fmt_time(\"ss\")) else \"\" end }}" },
             { "type": "row", "gap": 12, "align": "baseline", "children": [
-              { "type": "text", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}", "style": { "size": 14, "weight": "medium", "color": "subtle" } },
-              { "type": "text", "when": "$hour12", "text": "{{ now | fmt_time(\"a\") }}", "background": "text@0.1", "radius": 4,
+              { "type": "text", "when": "$date != \"none\"", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}", "style": { "size": 14, "weight": "medium", "color": "subtle" } },
+              { "type": "text", "when": "$h12", "text": "{{ now | fmt_time(\"a\") }}", "background": "text@0.1", "radius": 4,
                 "padding": [3, 6, 3, 6], "style": { "size": 11, "weight": "bold", "tracking": 1.1, "case": "upper" } }
             ] }
           ]
@@ -58,17 +61,18 @@ extension DefaultPresets {
         "params": {
           "size": { "type": "number", "default": 0, "description": "The ring's diameter; 0 is 272" },
           "span": { "type": "any", "default": "day", "description": "What the ring measures: \"day\", \"work\" (09:00 to 18:00) or [\"09:00\", \"18:00\"]" },
-          "hour12": { "type": "boolean", "default": false }
+          "hour12": { "type": "any", "default": false, "description": "true, false or \"auto\" (the system's)" }
         },
         "widget": {
           "type": "gauge", "size": { "expr": "if $size > 0 then $size else 272 end" }, "thickness": 5, "sweep": 360, "ticks": 24, "dot": true,
           "color": "accent", "trackColor": "text@0.08", "min": 0, "max": 1,
           "vars": {
+            "h12": "$hour12 == true or ($hour12 == \"auto\" and uses_12h)",
             "t": "(now | fmt_time(\"H\") | tonumber) * 3600 + (now | fmt_time(\"m\") | tonumber) * 60 + (now | fmt_time(\"s\") | tonumber)",
             "bounds": "if $span == \"work\" then [32400, 64800] elif ($span | type) == \"array\" and ($span | length) == 2 then ($span | map(split(\":\") | (.[0] | tonumber) * 3600 + ((.[1] // \"0\") | tonumber) * 60)) else [0, 86400] end",
             "len": "[$bounds[1] - $bounds[0], 1] | max",
             "frac": "[[($t - $bounds[0]) / $len, 0] | max, 1] | min",
-            "hours": "[0, 1, 2, 3] | map((($bounds[0] + . * $len / 4) / 3600 | floor) % 24 | if $hour12 then ((. % 12 | if . == 0 then 12 else . end | tostring) + (if . < 12 then \"a\" else \"p\" end)) else (tostring | if length < 2 then \"0\" + . else . end) end)"
+            "hours": "[0, 1, 2, 3] | map((($bounds[0] + . * $len / 4) / 3600 | floor) % 24 | if $h12 then ((. % 12 | if . == 0 then 12 else . end | tostring) + (if . < 12 then \"a\" else \"p\" end)) else (tostring | if length < 2 then \"0\" + . else . end) end)"
           },
           "value": "$frac",
           "labels": ["{{ $hours[0] }}", "{{ $hours[1] }}", "{{ $hours[2] }}", "{{ $hours[3] }}"],
@@ -76,8 +80,8 @@ extension DefaultPresets {
             "type": "stack", "gap": 8, "align": "center",
             "children": [
               { "type": "row", "gap": 6, "align": "baseline", "children": [
-                { "type": "text", "text": "{{ now | fmt_time(if $hour12 then \"h:mm\" else \"HH:mm\" end) }}", "style": { "size": 58, "weight": "ultralight" } },
-                { "type": "text", "when": "$hour12", "text": "{{ now | fmt_time(\"a\") }}", "style": { "size": 16, "weight": "medium", "color": "subtle" } }
+                { "type": "text", "text": "{{ now | fmt_time(if $h12 then \"h:mm\" else \"HH:mm\" end) }}", "style": { "size": 58, "weight": "ultralight" } },
+                { "type": "text", "when": "$h12", "text": "{{ now | fmt_time(\"a\") }}", "style": { "size": 16, "weight": "medium", "color": "subtle" } }
               ] },
               { "type": "row", "gap": 4, "align": "baseline", "children": [
                 { "type": "text", "text": "{{ ($frac * 100) | floor }}%", "style": { "size": 12, "weight": "semibold" } },

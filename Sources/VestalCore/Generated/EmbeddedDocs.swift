@@ -2241,7 +2241,7 @@ One GraphQL request per refresh covers every repository: it reads each branch's 
 | `runs` | `12` | Cells per repository, at most 30. |
 | `refresh` | `5m` | |
 
-The source's data: a list, in `repos` order, of `{repo, nameWithOwner, branch, url, runs (oldest first: success, failure, running, canceled), state (the newest, or none), started, finished (epoch seconds)}`. A repository GitHub can't find or read is left out.
+The source's data: a list, in `repos` order, of `{repo, nameWithOwner, branch, url, runs (oldest first: success, failure, running, cancelled), state (the newest, or none), started, finished (epoch seconds)}`. A repository GitHub can't find or read is left out.
 
 ```json
 { "type": "ciStatus", "repos": ["acme/api", "acme/web", "acme/infra@update-flake"] }
@@ -2961,7 +2961,7 @@ One of `aiPlan`'s blocks: `name`, `color`, `plan` and `hour12`, reading the `cla
 
 ### `clockAnalog`, `clockFlip`, `clockRing`
 
-The drawn faces of `clock` (above), as widgets of their own: `clockAnalog` (`size`, `ticks`, `seconds`, `dateWindow`, `numerals`, `zone`), `clockFlip` (`size`, `seconds`, `animate`, `hour12`) and `clockRing` (`size`, `span`, `hour12`). `clock` picks one with its `face` param; a size of 0 is the face's own.
+The drawn faces of `clock` (above), as widgets of their own: `clockAnalog` (`size`, `ticks`, `seconds`, `dateWindow`, `numerals`, `zone`, `date`), `clockFlip` (`size`, `seconds`, `animate`, `hour12`, `date`) and `clockRing` (`size`, `span`, `hour12`); `hour12` takes `true`, `false` or `"auto"`, and `date: "none"` hides the date line (the clock's `date` parameter reaches them). `clock` picks one with its `face` param; a size of 0 is the face's own.
 
 ### `hostDetail`
 

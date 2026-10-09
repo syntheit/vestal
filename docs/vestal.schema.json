@@ -14846,6 +14846,19 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "date": {
+          "default": "auto",
+          "description": "The date line under the dial: none hides it (it is never there with dateWindow); anything else is the locale's full date",
+          "examples": [
+            "auto"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "dateWindow": {
           "default": false,
           "description": "The day of the month in a window at three o'clock instead of the date line",
@@ -15354,6 +15367,19 @@
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
         },
+        "date": {
+          "default": "auto",
+          "description": "The date line under the tiles: none hides it",
+          "examples": [
+            "auto"
+          ],
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-vestal-kind": "literal",
+          "x-vestal-since": "0.4"
+        },
         "height": {
           "anyOf": [
             {},
@@ -15375,13 +15401,9 @@
         },
         "hour12": {
           "default": false,
-          "description": "The hour12 parameter (boolean).",
+          "description": "true, false or \"auto\" (the system's)",
           "examples": [
             false
-          ],
-          "type": [
-            "boolean",
-            "null"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -15553,13 +15575,9 @@
         },
         "seconds": {
           "default": false,
-          "description": "Seconds on small tiles after the minutes",
+          "description": "true, \"step\" or \"sweep\": seconds on small tiles after the minutes",
           "examples": [
             false
-          ],
-          "type": [
-            "boolean",
-            "null"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
@@ -15835,13 +15853,9 @@
         },
         "hour12": {
           "default": false,
-          "description": "The hour12 parameter (boolean).",
+          "description": "true, false or \"auto\" (the system's)",
           "examples": [
             false
-          ],
-          "type": [
-            "boolean",
-            "null"
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.4"
