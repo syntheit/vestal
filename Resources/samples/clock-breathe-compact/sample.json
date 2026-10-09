@@ -1,0 +1,16 @@
+{
+  "kind": "widget",
+  "title": "Clock, breathing colon (compact)",
+  "description": "Hours and minutes with a colon that fades in and out over four seconds, stepping once a second. Shown with theme.density set to compact.",
+  "preset": "clock",
+  "size": [
+    680,
+    190
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "compact",
+    "face",
+    "time"
+  ]
+}

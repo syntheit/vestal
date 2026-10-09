@@ -197,6 +197,8 @@ public struct TemplateRegistry: Equatable, Sendable {
             // The compact bodies have no variants: they draw one look.
             result[name]?.variants = [:]
         }
+        // Except the clock's: every face has a compact body (ClockFaceRegistryCompact.swift).
+        result["clock"]?.variants = ClockFaces.compactBodies
         return result
     }()
 

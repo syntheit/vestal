@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Clock, split-flap (compact)",
+  "description": "Departure-board tiles that fold over when a digit changes, seconds on small tiles, the date under them. Shown with theme.density set to compact.",
+  "preset": "clock",
+  "size": [
+    680,
+    200
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "compact",
+    "time"
+  ]
+}

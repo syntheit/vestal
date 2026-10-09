@@ -1,0 +1,16 @@
+{
+  "kind": "widget",
+  "title": "Clock, condensed (compact)",
+  "description": "Narrow tall numerals with the seconds beside the minutes, and the date line with the ISO week in tracked capitals. Shown with theme.density set to compact.",
+  "preset": "clock",
+  "size": [
+    680,
+    250
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "compact",
+    "face",
+    "time"
+  ]
+}

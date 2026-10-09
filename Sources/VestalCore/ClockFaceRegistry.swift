@@ -60,7 +60,7 @@ public enum ClockFaces {
 
     /// The `vars` every face declares. `seconds` is the face's own default
     /// for the `seconds` parameter.
-    private static func vars(seconds: Bool) -> String {
+    static func vars(seconds: Bool) -> String {
         """
         {
           "h12": "if $hour12 == \\"auto\\" then uses_12h else $hour12 end",
@@ -73,7 +73,7 @@ public enum ClockFaces {
 
     /// A time of day, 12 or 24 hour, with seconds when `$secs` says so.
     /// `ampm` puts the AM/PM marker in the 12 hour form.
-    private static func clockText(ampm: Bool = false) -> String {
+    static func clockText(ampm: Bool = false) -> String {
         let a = ampm ? " a" : ""
         return "{{ now | fmt_time(if $h12 then (if $secs then \\\"h:mm:ss\(a)\\\" else \\\"h:mm\(a)\\\" end) "
             + "else (if $secs then \\\"HH:mm:ss\\\" else \\\"HH:mm\\\" end) end) }}"
@@ -81,7 +81,7 @@ public enum ClockFaces {
 
     /// A `text` widget. `size` and `tracking` are JSON (a number or an
     /// `{"expr"}`), `color` a palette name or JSON, `extra` more members.
-    private static func text(_ text: String, size: String, weight: String? = nil, font: String? = nil, color: String? = nil,
+    static func text(_ text: String, size: String, weight: String? = nil, font: String? = nil, color: String? = nil,
                              tracking: String? = nil, textCase: String? = nil, when: String? = nil, extra: String = "") -> String {
         var style = ["\"size\": \(size)"]
         if let weight { style.append("\"weight\": \"\(weight)\"") }
@@ -94,36 +94,36 @@ public enum ClockFaces {
     }
 
     /// `{"expr": "$size // <default>"}`: the `size` parameter or the face's.
-    private static func sized(_ fallback: Int, scale: Double? = nil) -> String {
+    static func sized(_ fallback: Int, scale: Double? = nil) -> String {
         guard let scale else { return "{ \"expr\": \"$size // \(fallback)\" }" }
         return "{ \"expr\": \"\(scale) * ($size // \(fallback))\" }"
     }
 
     /// The date line in the locale's form (`Sunday, September 27, 2026`).
-    private static let fullDate = "{{ now | fmt_localized(\\\"EEEEMMMMdy\\\") }}"
+    static let fullDate = "{{ now | fmt_localized(\\\"EEEEMMMMdy\\\") }}"
 
     /// The same without the year, for the faces that are not v0.3's.
-    private static let shortDate = "{{ now | fmt_localized(\\\"EEEEMMMMd\\\") }}"
+    static let shortDate = "{{ now | fmt_localized(\\\"EEEEMMMMd\\\") }}"
 
     /// `date: "words"`: "It is Sunday, the twenty-seventh of September".
-    private static let wordsDate = "It is {{ now | fmt_localized(\\\"EEEE\\\") }}, the {{ $dayWords }} of {{ now | fmt_localized(\\\"MMMM\\\") }}"
+    static let wordsDate = "It is {{ now | fmt_localized(\\\"EEEE\\\") }}, the {{ $dayWords }} of {{ now | fmt_localized(\\\"MMMM\\\") }}"
 
     /// `$dayWords`: the day of the month as an ordinal word.
-    private static let dayWordsVar = "[\\\"\\\", \\\"first\\\", \\\"second\\\", \\\"third\\\", \\\"fourth\\\", \\\"fifth\\\", \\\"sixth\\\", \\\"seventh\\\", "
+    static let dayWordsVar = "[\\\"\\\", \\\"first\\\", \\\"second\\\", \\\"third\\\", \\\"fourth\\\", \\\"fifth\\\", \\\"sixth\\\", \\\"seventh\\\", "
         + "\\\"eighth\\\", \\\"ninth\\\", \\\"tenth\\\", \\\"eleventh\\\", \\\"twelfth\\\", \\\"thirteenth\\\", \\\"fourteenth\\\", \\\"fifteenth\\\", "
         + "\\\"sixteenth\\\", \\\"seventeenth\\\", \\\"eighteenth\\\", \\\"nineteenth\\\", \\\"twentieth\\\"] as $o | "
         + "(now | fmt_time(\\\"d\\\") | tonumber) as $d | if $d <= 20 then $o[$d] elif $d == 30 then \\\"thirtieth\\\" "
         + "elif $d == 31 then \\\"thirty-first\\\" else \\\"twenty-\\\" + $o[$d - 20] end"
 
     /// The ISO 8601 week of the local date: the week of that week's Thursday.
-    private static let isoWeek = "(now | fmt_time(\\\"yyyy\\\") | tonumber) as $y | (now | fmt_time(\\\"D\\\") | tonumber) as $doy | "
+    static let isoWeek = "(now | fmt_time(\\\"yyyy\\\") | tonumber) as $y | (now | fmt_time(\\\"D\\\") | tonumber) as $doy | "
         + "(((now | fmt_time(\\\"e\\\") | tonumber) + 5) % 7 + 1) as $wd | "
         + "def days($y): if ($y % 4 == 0 and ($y % 100 != 0 or $y % 400 == 0)) then 366 else 365 end; "
         + "($doy + 4 - $wd) as $th | "
         + "if $th < 1 then (($th + days($y - 1)) / 7 | ceil) elif $th > days($y) then 1 else ($th / 7 | ceil) end"
 
     /// The world clocks as a list; `row` is one item's widget.
-    private static func world(direction: String, gap: Int, spaceBefore: Int, id: String? = nil, row: String) -> String {
+    static func world(direction: String, gap: Int, spaceBefore: Int, id: String? = nil, row: String) -> String {
         let ident = id.map { "\"id\": \"\($0)\", " } ?? ""
         return """
         { "type": "list", \(ident)"spaceBefore": \(spaceBefore), "direction": "\(direction)", "gap": \(gap),
@@ -134,7 +134,7 @@ public enum ClockFaces {
     }
 
     /// A world clock's time of day (`$item.tz`), in `style`.
-    private static func zoneTime(_ style: String) -> String {
+    static func zoneTime(_ style: String) -> String {
         "{ \"type\": \"text\", \"text\": \"{{ now | fmt_time(if $h12 then \\\"h:mm a\\\" else \\\"HH:mm\\\" end; $item.tz) }}\", \"style\": \(style) }"
     }
 
@@ -327,18 +327,18 @@ public enum ClockFaces {
     /// DefaultConfigPresetsClockFaces.swift, so the clock's `size`,
     /// `seconds`, `hour12` and so on reach it as that preset's parameters.
     /// The world clocks stay a row of text under it.
-    private static func drawn(_ id: String, _ node: String) -> String {
+    static func drawn(_ id: String, _ node: String, compact: Bool = false) -> String {
         """
         {
-          "type": "stack", "gap": 4, "align": "center", "spaceBefore": 0,
+          "type": "stack", "gap": \(compact ? 3 : 4), "align": "center", "spaceBefore": 0,
           "vars": \(vars(seconds: false)),
           "children": [
             \(node.replacingOccurrences(of: "{ \"type\"", with: "{ \"id\": \"\(id)\", \"type\""
             )),
-            \(world(direction: "row", gap: 16, spaceBefore: 10, id: "2", row: """
+            \(world(direction: "row", gap: compact ? 12 : 16, spaceBefore: compact ? 3 : 10, id: "2", row: """
             { "type": "row", "gap": 4, "children": [
-              \(text("{{ .label }}", size: "11", weight: "semibold", color: "dim")),
-              \(zoneTime("{ \"size\": 11, \"font\": \"mono\", \"color\": \"subtle\" }"))
+              \(text("{{ .label }}", size: compact ? "10" : "11", weight: "semibold", color: "dim")),
+              \(zoneTime("{ \"size\": \(compact ? 10 : 11), \"font\": \"mono\", \"color\": \"subtle\" }"))
             ] }
             """))
           ]

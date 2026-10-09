@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "theme": {
+    "density": "compact"
+  },
+  "widgets": {
+    "clock": {
+      "type": "clock",
+      "worldClocks": [
+        {
+          "label": "NYC",
+          "tz": "America/New_York"
+        },
+        {
+          "label": "LON",
+          "tz": "Europe/London"
+        },
+        {
+          "label": "TYO",
+          "tz": "Asia/Tokyo"
+        }
+      ],
+      "face": "stacked",
+      "minutesColor": "accent",
+      "secondsBar": true
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "clock"
+      ],
+      "padding": 24
+    }
+  }
+}

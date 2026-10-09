@@ -61,6 +61,8 @@
   "widgets": {
     "clock": {
       "type": "clock",
+      "face": "flip",
+      "seconds": false,
       "worldClocks": [
         {
           "label": "NYC",

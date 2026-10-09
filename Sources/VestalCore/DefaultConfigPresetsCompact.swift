@@ -42,6 +42,55 @@ extension DefaultPresets {
         ]
       },
 
+      "clockAnalog": {
+        "type": "stack", "gap": 6, "align": "center",
+        "children": [
+          { "type": "analog", "size": { "expr": "if $size > 0 then $size else 120 end" }, "ticks": { "param": "ticks" }, "seconds": { "param": "seconds" },
+            "dateWindow": { "param": "dateWindow" }, "numerals": { "param": "numerals" }, "zone": { "param": "zone" } },
+          { "type": "text", "when": "$dateWindow != true and $date != \"none\"", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}",
+            "style": { "size": 11, "font": "rounded", "color": "subtle" } }
+        ]
+      },
+
+      "clockFlip": {
+        "type": "stack", "gap": 6, "align": "center",
+        "vars": { "h12": "$hour12 == true or ($hour12 == \"auto\" and uses_12h)", "secs": "$seconds == true or $seconds == \"step\" or $seconds == \"sweep\"" },
+        "children": [
+          { "type": "flip", "size": { "expr": "if $size > 0 then $size else 60 end" }, "animate": { "param": "animate" },
+            "text": "{{ now | fmt_time(if $h12 then \"hh:mm\" else \"HH:mm\" end) }}",
+            "small": "{{ if $secs then (now | fmt_time(\"ss\")) else \"\" end }}" },
+          { "type": "row", "gap": 8, "align": "baseline", "children": [
+            { "type": "text", "when": "$date != \"none\"", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}", "style": { "size": 11, "weight": "medium", "color": "subtle" } },
+            { "type": "text", "when": "$h12", "text": "{{ now | fmt_time(\"a\") }}", "background": "text@0.1", "radius": 3,
+              "padding": [2, 5, 2, 5], "style": { "size": 9, "weight": "bold", "tracking": 0.9, "case": "upper" } }
+          ] }
+        ]
+      },
+
+      "clockRing": {
+        "type": "gauge", "size": { "expr": "if $size > 0 then $size else 120 end" }, "thickness": 4, "sweep": 360, "ticks": 24, "dot": true,
+        "color": "accent", "trackColor": "text@0.08", "min": 0, "max": 1,
+        "vars": {
+          "h12": "$hour12 == true or ($hour12 == \"auto\" and uses_12h)",
+          "t": "(now | fmt_time(\"H\") | tonumber) * 3600 + (now | fmt_time(\"m\") | tonumber) * 60 + (now | fmt_time(\"s\") | tonumber)",
+          "bounds": "if $span == \"work\" then [32400, 64800] elif ($span | type) == \"array\" and ($span | length) == 2 then ($span | map(split(\":\") | (.[0] | tonumber) * 3600 + ((.[1] // \"0\") | tonumber) * 60)) else [0, 86400] end",
+          "len": "[$bounds[1] - $bounds[0], 1] | max",
+          "frac": "[[($t - $bounds[0]) / $len, 0] | max, 1] | min"
+        },
+        "value": "$frac",
+        "center": {
+          "type": "stack", "gap": 1, "align": "center",
+          "children": [
+            { "type": "row", "gap": 3, "align": "baseline", "children": [
+              { "type": "text", "text": "{{ now | fmt_time(if $h12 then \"h:mm\" else \"HH:mm\" end) }}", "style": { "size": 26, "weight": "ultralight" } },
+              { "type": "text", "when": "$h12", "text": "{{ now | fmt_time(\"a\") }}", "style": { "size": 9, "weight": "medium", "color": "subtle" } }
+            ] },
+            { "type": "text", "text": "{{ ($len * (1 - $frac)) | fmt_duration }} left",
+              "style": { "size": 9, "color": "subtle" } }
+          ]
+        }
+      },
+
       "claudeItem": {
         "type": "row", "gap": 4,
         "children": [

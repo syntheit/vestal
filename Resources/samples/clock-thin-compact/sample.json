@@ -1,0 +1,16 @@
+{
+  "kind": "widget",
+  "title": "Clock, thin (compact)",
+  "description": "Huge hairline hours and minutes with the date in spaced capitals and the world clocks under it. Shown with theme.density set to compact.",
+  "preset": "clock",
+  "size": [
+    680,
+    230
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "compact",
+    "face",
+    "time"
+  ]
+}

@@ -82,7 +82,7 @@ programs.vestal.starter = "minimal";
 
 Reviews waiting on you, CI per repo, plan usage and your commit rhythm. Background: `topo`.
 
-Clock: `mono` face, `inter` typeface, `hour12: "auto"`. The compact density keeps the mono clock.
+Clock: `mono` face, `inter` typeface, `hour12: "auto"`. The compact density keeps it, small.
 
 Pages: **Main** (key 1), **Reviews** (key 2), **Builds** (key 3).
 
@@ -108,7 +108,7 @@ programs.vestal.starter = "developer";
 
 Hosts, monitors, containers, backups and the tailnet, two columns wide. Background: `aurora`.
 
-Clock: `mono` face, `inter` typeface, `hour12: "auto"`. The compact density keeps the mono clock.
+Clock: `condensed` face at size 84, `inter` typeface, `hour12: "auto"`.
 
 Pages: **Overview** (key 1), **nas** (key 2), **Network** (key 3).
 
@@ -135,7 +135,7 @@ programs.vestal.starter = "homelab";
 
 A watchlist, crypto and exchange rates with intraday lines. Background: `mesh`.
 
-Clock: `mono` face, `plex` typeface, `hour12: "auto"`. The compact density keeps the mono clock.
+Clock: `flip` face without seconds, `plex` typeface, `hour12: "auto"`.
 
 Pages: **Markets** (key 1), **Main** (key 2).
 
@@ -208,7 +208,7 @@ programs.vestal.starter = "media";
 
 Plan headroom, running agents and what needs you, for a day of delegated work. Background: `flow`.
 
-Clock: `mono` face, `inter` typeface, `hour12: "auto"`. The compact density keeps the mono clock.
+Clock: `ring` face, `inter` typeface, `hour12: "auto"`.
 
 Pages: **Ops** (key 1), **Main** (key 2), **Reviews** (key 3).
 

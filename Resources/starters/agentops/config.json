@@ -44,6 +44,7 @@
   "widgets": {
     "clock": {
       "type": "clock",
+      "face": "ring",
       "hour12": "auto"
     },
     "plan": {

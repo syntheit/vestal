@@ -188,6 +188,27 @@ final class ThemeDensityTests: XCTestCase {
         XCTAssertEqual(expanded.registry.lookup("clock")?.widget?.objectValue?["text"], .string("mine"))
     }
 
+    /// Every clock face has a compact body, and each renders on its own.
+    func testCompactClockDrawsEveryFace() throws {
+        XCTAssertEqual(Set(ClockFaces.compactBodies.keys), Set(ClockFaces.names).subtracting([ClockFaces.defaultFace]))
+        var seen: [String: String] = [:]
+        for face in ClockFaces.names {
+            let text = """
+            {"version": 1, "theme": {"density": "compact"},
+             "widgets": {"clock": {"type": "clock", "face": "\(face)", "worldClocks": [{"label": "NYC", "tz": "America/New_York"}]}},
+             "views": {"main": {"children": ["clock"]}}}
+            """
+            let loaded = ConfigLoader.load(data: Data(text.utf8), platform: .macos, otherPlatforms: false)
+            XCTAssertFalse(loaded.hasErrors, "\(face): \(loaded.warnings)")
+            let snapshot = try render(loaded)
+            XCTAssertEqual(snapshot.diagnostics, [], face)
+            XCTAssertEqual(snapshot.root.duplicateIds, [], face)
+            let body = "\(loaded.expanded.tree.objectValue?["widgets"] as Any)"
+            XCTAssertNil(seen[body], "\(face) differs from \(seen[body] ?? "")")
+            seen[body] = face
+        }
+    }
+
     func testCheckConfig() throws {
         func warnings(_ density: String) -> [ConfigWarning] {
             let data = Data(#"{"theme": {"density": "\#(density)"}}"#.utf8)
