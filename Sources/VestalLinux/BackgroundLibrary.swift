@@ -40,9 +40,9 @@ final class LibraryPass {
     private var texture: GLuint = 0
     private var size = (width: 0, height: 0)
     private var time = Backgrounds.Uniforms.stillTime
-    private var lastMicros: Int64 = 0
+    private var lastMicros = 0
     private var hour = 0.0
-    private var hourMicros: Int64 = -60_000_000
+    private var hourMicros = -60_000_000
     private var artworkPath: String?
     private var artworkColors: [[Float]]?
 
@@ -241,7 +241,7 @@ enum ArtworkPixels {
         guard width > 0, height > 0, width <= 4096, height <= 4096 else { return nil }
         // Native-endian premultiplied BGRA, four bytes a pixel.
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
-        gdk_texture_download(texture, &pixels, width * 4)
+        gdk_texture_download(texture, &pixels, gsize(width * 4))
         let grid = 8
         var sample = [UInt8](repeating: 0, count: grid * grid * 4)
         for y in 0..<grid {

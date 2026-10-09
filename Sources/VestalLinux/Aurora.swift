@@ -106,8 +106,8 @@ final class AuroraArea {
         if let library {
             // At most `fps` frames a second: the tick comes with every
             // display refresh and queues a frame when one is due.
-            let interval = Int64(1_000_000 / max(library.fps, 1))
-            var last: Int64 = 0
+            let interval = 1_000_000 / max(library.fps, 1)
+            var last = 0
             let due: () -> Void = { [weak self] in
                 guard let self else { return }
                 let now = g_get_monotonic_time()
