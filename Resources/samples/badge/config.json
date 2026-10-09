@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "widgets": {
+    "badge": {
+      "type": "row",
+      "gap": 8,
+      "children": [
+        {
+          "type": "badge",
+          "text": "ONLINE",
+          "color": "good"
+        },
+        {
+          "type": "badge",
+          "text": "DEGRADED",
+          "color": "warn"
+        },
+        {
+          "type": "badge",
+          "text": "OFFLINE",
+          "color": "bad"
+        },
+        {
+          "type": "badge",
+          "text": "v0.4",
+          "color": "accent",
+          "icon": "tag"
+        }
+      ]
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "badge"
+      ],
+      "padding": 24
+    }
+  }
+}

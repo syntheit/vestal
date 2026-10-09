@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "theme": {
+    "density": "compact"
+  },
+  "widgets": {
+    "media": {
+      "type": "media",
+      "hideWhenOff": true
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "media"
+      ],
+      "padding": 24
+    }
+  }
+}

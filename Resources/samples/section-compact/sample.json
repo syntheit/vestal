@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Section (compact)",
+  "description": "A titled block with a rule, around any children. Shown with theme.density set to compact.",
+  "preset": "section",
+  "size": [
+    680,
+    170
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "layout",
+    "compact"
+  ]
+}

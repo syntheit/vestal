@@ -1,0 +1,16 @@
+{
+  "kind": "widget",
+  "title": "System health (compact)",
+  "description": "CPU and RAM bars, temperature and uptime for this machine and remote hosts. Shown with theme.density set to compact.",
+  "preset": "systemHealth",
+  "size": [
+    680,
+    150
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "system",
+    "hosts",
+    "compact"
+  ]
+}

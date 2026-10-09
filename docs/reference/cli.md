@@ -105,6 +105,10 @@ Says what a key is bound to and what it would do, without running anything and w
 
 The same render as `vestal render`, drawn by the dashboard's own renderer. macOS: offscreen with the SwiftUI renderer, into a PNG. It needs no window, no running instance and no screen-recording permission, and shows nothing. The data is `vestal render`'s. The blur and the aurora can't be captured: the background is the palette's `bg`, or transparent. `--size` defaults to the main screen in points, `--scale` to 2. `--frames` also writes every node's frame with `clipped` and `truncated` flags (`-` as the PNG path writes only the frames). It prints the path, or with `--json` `{"path", "width", "height", "scale", "clipped", "truncated"}`. Linux: the same, drawn offscreen by the GTK UI: by the running dashboard when one answers (from any shell, SSH included; while it is hidden nothing appears on screen, and while it is shown the model is drawn in place for a moment, normally the same picture), else by this process, which needs a Wayland session (exit 5 without one) and maps its own window for about a second. Either way it draws the screen as it is, so `--size`, `--scale` and `--background` are macOS-only (exit 2) and the reported size is the PNG's in pixels (scale 1). The GTK UI draws its aurora into the PNG; the compositor's blur is never captured.
 
+`vestal gallery [--out <dir>] [--only <name>...] [--scale <n>] [--samples <dir>] [--json]`
+
+Draws every sample (`vestal docs samples`) as `vestal screenshot` would, from the sample's own config and data at its time, in UTC: `<dir>/<name>.png` (default `<dir>` is `vestal-gallery`, `--scale` 2), `index.json` (each sample's metadata, image, and counts of config errors, diagnostics, clipped and truncated nodes) and `README.md`. Where nothing can be drawn (Linux without Wayland) the samples are still checked and `index.json` has `"image": null`; exit 0. Exit 1 when a sample has config errors or diagnostics, 4 for an unknown name. See `vestal docs samples`.
+
 ## Documentation
 
 `vestal docs [topic] [--list] [--json] [--search <text>] [--legacy]`

@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Media (compact)",
+  "description": "What the music player is playing, with play/pause and volume. Shown with theme.density set to compact.",
+  "preset": "media",
+  "size": [
+    680,
+    100
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "media",
+    "compact"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Clock (compact)",
+  "description": "Local time, date and world clocks. Shown with theme.density set to compact.",
+  "preset": "clock",
+  "size": [
+    680,
+    130
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time",
+    "compact"
+  ]
+}

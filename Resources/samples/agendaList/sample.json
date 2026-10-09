@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Agenda",
+  "description": "The next events of a calendar source.",
+  "preset": "agendaList",
+  "size": [
+    680,
+    330
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "calendar",
+    "time"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "kind": "widget",
+  "title": "Agenda (compact)",
+  "description": "The next events of a calendar source. Shown with theme.density set to compact.",
+  "preset": "agendaList",
+  "size": [
+    680,
+    250
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "calendar",
+    "time",
+    "compact"
+  ]
+}

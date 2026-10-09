@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "widgets": {
+    "agendaList": {
+      "type": "agendaList",
+      "source": "calendar",
+      "maxEvents": 5
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "agendaList"
+      ],
+      "padding": 24
+    }
+  }
+}

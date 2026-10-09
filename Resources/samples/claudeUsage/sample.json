@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Claude usage",
+  "description": "Session and weekly percentage of a Claude plan, as a status row.",
+  "preset": "claudeUsage",
+  "size": [
+    680,
+    90
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "ai",
+    "status"
+  ]
+}

@@ -68,7 +68,7 @@ Vestal is a full-screen dashboard toggled by a key, on macOS and Linux, driven b
 3. **Never put secrets in the config.** Tokens live in a file (or an environment variable, or a command such as `gh auth token`), declared under `secrets` and used as `{{ $secrets.name }}` in a source's URL, headers or argv. Under Nix the config is in the world-readable store.
 4. **One config serves macOS and Linux.** Use the built-in sources (`system`, `media`, `calendar`, `claude`, `codex`) rather than OS commands. Put what is truly OS-specific (fonts, a command that exists on one OS, a player name) in `platform.macos` or `platform.linux`, and check both OSes: `vestal check-config --platform linux`.
 5. **Validate before you claim success:** `vestal check-config --json` must say `"error": 0` (exit 0, not 3), and `vestal render` must end with `diagnostics: 0`. Then look at it (`vestal screenshot`).
-6. **Prefer what exists:** presets (`vestal docs presets`), semantic colours (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
+6. **Prefer what exists:** presets (`vestal docs presets`; each ships a sample you can look at without any source: `vestal docs samples`, `vestal gallery --only <name>`), semantic colours (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
 7. **Tell the user what runs.** `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists every program the config can run (command sources, inline or from a template too; `command` secrets; `run` actions in widgets, views, keys and templates; the v0.3 privacy toggle and foyer hosts), with what triggers it and whether it is on `PATH`. Mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
 8. **Lists replace, objects merge.** Your file is merged over the built-in defaults: objects merge key by key, but a list (such as `views.main.children`) replaces the default list whole, and `null` deletes a default. When you add a widget to a view, write the view's full list.
 
@@ -1124,6 +1124,10 @@ Says what a key is bound to and what it would do, without running anything and w
 
 The same render as `vestal render`, drawn by the dashboard's own renderer. macOS: offscreen with the SwiftUI renderer, into a PNG. It needs no window, no running instance and no screen-recording permission, and shows nothing. The data is `vestal render`'s. The blur and the aurora can't be captured: the background is the palette's `bg`, or transparent. `--size` defaults to the main screen in points, `--scale` to 2. `--frames` also writes every node's frame with `clipped` and `truncated` flags (`-` as the PNG path writes only the frames). It prints the path, or with `--json` `{"path", "width", "height", "scale", "clipped", "truncated"}`. Linux: the same, drawn offscreen by the GTK UI: by the running dashboard when one answers (from any shell, SSH included; while it is hidden nothing appears on screen, and while it is shown the model is drawn in place for a moment, normally the same picture), else by this process, which needs a Wayland session (exit 5 without one) and maps its own window for about a second. Either way it draws the screen as it is, so `--size`, `--scale` and `--background` are macOS-only (exit 2) and the reported size is the PNG's in pixels (scale 1). The GTK UI draws its aurora into the PNG; the compositor's blur is never captured.
 
+`vestal gallery [--out <dir>] [--only <name>...] [--scale <n>] [--samples <dir>] [--json]`
+
+Draws every sample (`vestal docs samples`) as `vestal screenshot` would, from the sample's own config and data at its time, in UTC: `<dir>/<name>.png` (default `<dir>` is `vestal-gallery`, `--scale` 2), `index.json` (each sample's metadata, image, and counts of config errors, diagnostics, clipped and truncated nodes) and `README.md`. Where nothing can be drawn (Linux without Wayland) the samples are still checked and `index.json` has `"image": null`; exit 0. Exit 1 when a sample has config errors or diagnostics, 4 for an unknown name. See `vestal docs samples`.
+
 ## Documentation
 
 `vestal docs [topic] [--list] [--json] [--search <text>] [--legacy]`
@@ -1483,6 +1487,8 @@ Test a key without a screen: `vestal render --press h` renders the model after p
 
 The presets are templates that ship with vestal, written in the same config language as yours (`vestal docs templates`). Use them like any widget type. `vestal docs preset/<name>` prints one's parameters and full JSON, which is also the best way to learn how to build something similar: copy it into your `templates` under a new name and change it. With `theme.density` `"compact"` most presets use a denser body with the same parameters; the page shows that one too.
 
+Every preset ships a sample (its config and data, drawn by `vestal gallery`): `vestal docs samples`, and `docs/reference/samples.md` for the format. A new preset must ship one.
+
 A preset can't be edited in place: a template of your own with a preset's name is an error unless it sets `"override": true`, which replaces the preset whole.
 
 ## General-purpose
@@ -1817,6 +1823,83 @@ The diff runs top-down: a node whose own fields or ordered child ids changed is 
 ```
 
 Expression runtime errors, unknown icons and colours used at render time, duplicate row ids, failed sources. UIs needn't show them; `vestal render` prints them, and `vestal render --strict` exits 3 when there are any.
+
+"""#,
+        "samples": #"""
+# Samples and the gallery
+
+Every preset ships a **sample**: a small config, the source data it needs and the size to draw it at. A sample renders with no live source, so it proves the preset works (a test renders them all), shows an agent what the preset looks like without running anything, and feeds `vestal gallery`, which draws every sample to a PNG. **Every new preset must ship a sample** (and a `<name>-compact` one if it has a compact body); a test fails without it.
+
+## Seeing them
+
+```text
+vestal docs samples                        # lists them
+vestal gallery --out /tmp/gallery          # draws all, writes index.json and README.md
+vestal gallery --only clock aiUsage        # just these
+vestal gallery --scale 1 --json            # smaller images, the index on stdout
+```
+
+`vestal gallery [--out DIR] [--only NAME...] [--scale N] [--samples DIR] [--json]` renders each sample as `vestal screenshot` does (offscreen, no window; macOS and Linux with a Wayland session), in UTC with a 24-hour locale so the images do not depend on the machine. `DIR` defaults to `vestal-gallery`; `--scale` defaults to 2. It writes:
+
+- `DIR/<name>.png` for each sample.
+- `DIR/index.json`: `samples`, each with `name`, `kind`, `title`, `description`, `preset`, `size`, `at`, `tags`, `image` (the file name in `DIR`, or `null`), `configErrors`, `diagnostics`, `clipped` and `truncated` (nodes the renderer cut off; `null` when nothing was drawn), and `error` when drawing failed. Also `count`, `images`, `screenshots` (whether images could be drawn) and `scale`.
+- `DIR/README.md`: the gallery as Markdown, grouped by kind (dashboards, pages, widgets) and then by each sample's first tag: the image, title, description and, for a widget, the preset's parameters.
+
+Where no screenshot can be drawn (Linux without Wayland), nothing is drawn but every sample is still checked and `index.json` is written with `"image": null`; the exit status is 0 and stderr says so. Exit 1 when a sample has config errors or render diagnostics or failed to draw; 4 for an unknown `--only` name.
+
+Find a preset's sample from its docs: `vestal docs preset/<name>` ends with the sample's name and the command that draws it.
+
+## Where they live
+
+`Resources/samples/<name>/` in the source tree, installed next to the icon fonts (`share/vestal/samples`, `Contents/Resources/samples` in the macOS app). `vestal` looks in `$VESTAL_SAMPLES_DIR`, those places, and `Resources/samples` above the executable (a development build); `--samples DIR` overrides.
+
+```text
+Resources/samples/clock/
+  sample.json    what it is, the size and time
+  config.json    a minimal config
+  data/          source snapshots (optional when no source is read)
+```
+
+### `sample.json`
+
+```text
+{
+  "kind": "widget",
+  "title": "Clock",
+  "description": "Local time, date and world clocks.",
+  "preset": "clock",
+  "size": [680, 230],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": ["time"]
+}
+```
+
+| Key | |
+|---|---|
+| `kind` | `widget` (one preset), `page` (a whole view) or `dashboard` (a whole config). |
+| `title`, `description` | Shown in the gallery. A sentence each. |
+| `preset` | Required for `widget`, forbidden otherwise: the built-in template it shows. |
+| `size` | `[width, height]` in points: the screenshot's size. |
+| `at` | ISO 8601 time to render at (`vestal render --at`). Use UTC (`Z`): the gallery draws in UTC. |
+| `tags` | At least one. The first groups the sample in the gallery README. |
+
+### `config.json`
+
+A minimal config: the preset (or page) alone in `views.main`, with the sources it reads. It must pass `vestal check-config` with no errors. A compact sample sets `theme.density` to `"compact"`. Sources are declared as in a user's config (the URL need not be real: nothing is fetched).
+
+### `data/`
+
+What `vestal render --data` reads: `<source name>.json` for each source (`.txt` for `raw` ones), `<type>.json` for an inline source such as `media` or `claude`, and `<source name>.error` for a source whose last fetch failed. A source with no file reads as having no data yet, which draws placeholders: if the image shows dashes, the data does not match what the config reads. `vestal fetch <name> --shape` shows the shape a real source has.
+
+Keep the data realistic and generic: no personal names, hosts or places beyond a generic city, and nothing copied from a real machine.
+
+## Adding a sample
+
+1. Make `Resources/samples/<preset>/` with the three parts above. Name a widget sample after its preset, and a compact variant `<preset>-compact` (same `data/`).
+2. `vestal gallery --only <name> --out /tmp/gallery` and look at the PNG: nothing empty, clipped or showing placeholders.
+3. `swift test` (SampleTests): every user-facing preset has a sample, every config checks with no errors, and every render has no diagnostics.
+
+Presets that are only parts of another preset (`claudeItem`, `aiWindow`, `hostDetail`) or a source (`foyer`) have no sample of their own; the samples of the presets that use them cover them (`SampleLibrary.helpers`).
 
 """#,
         "sources": #"""

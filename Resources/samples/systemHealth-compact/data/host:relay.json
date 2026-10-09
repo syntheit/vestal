@@ -1,0 +1,97 @@
+{
+  "cpu": {
+    "cores": 16,
+    "usage_percent": 71.4
+  },
+  "disk": {
+    "mounts": [
+      {
+        "mountpoint": "/",
+        "total_bytes": 500000000000,
+        "usage_percent": 40.2,
+        "used_bytes": 201000000000
+      }
+    ],
+    "pools": [
+      {
+        "health": "ONLINE",
+        "name": "tank",
+        "total_bytes": 16000000000000,
+        "usage_percent": 71.3,
+        "used_bytes": 11408000000000
+      },
+      {
+        "health": "DEGRADED",
+        "name": "scratch",
+        "total_bytes": 1000000000000,
+        "usage_percent": 12.0,
+        "used_bytes": 120000000000
+      },
+      {
+        "usage_percent": 1.0
+      }
+    ]
+  },
+  "docker": {
+    "containers": [
+      {
+        "name": "web",
+        "state": "running"
+      },
+      {
+        "name": "db",
+        "state": "exited"
+      },
+      {
+        "name": "cache",
+        "state": "running"
+      }
+    ]
+  },
+  "hostname": "raven",
+  "memory": {
+    "compressed_percent": 30.2,
+    "total_bytes": 68719476736,
+    "usage_percent": 78.9
+  },
+  "network": {
+    "interfaces": [
+      {
+        "name": "br0",
+        "rx_bytes_per_sec": 500,
+        "tx_bytes_per_sec": 100
+      },
+      {
+        "name": "eth0",
+        "rx_bytes_per_sec": 12000,
+        "tx_bytes_per_sec": 3000
+      },
+      {
+        "name": "wg0",
+        "rx_bytes_per_sec": 9000,
+        "tx_bytes_per_sec": 7000
+      }
+    ]
+  },
+  "services": {
+    "jellyfin": {
+      "active_streams": 2
+    },
+    "minecraft": {
+      "max_players": 20,
+      "online": true,
+      "players": 3
+    }
+  },
+  "system": {
+    "load_avg": [
+      0.52,
+      0.61,
+      0.7
+    ],
+    "uptime_seconds": 812345.0
+  },
+  "temperatures": {
+    "cpu": 82
+  }
+}

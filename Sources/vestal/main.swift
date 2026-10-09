@@ -168,6 +168,14 @@ case .command(.screenshot(let arguments)):
                                renderer: renderer, unsupported: unsupported, fixedSize: false))
     #endif
 
+case .command(.gallery(let arguments)):
+    #if os(macOS)
+    emit(GalleryCommand.run(arguments, platform: sourcePlatform, shoot: GalleryCommand.selfShooter))
+    #else
+    // Drawn by this executable's own `screenshot` (exit 5 without Wayland).
+    emit(GalleryCommand.run(arguments, platform: sourcePlatform, shoot: GalleryCommand.selfShooter, fixedSize: false))
+    #endif
+
 case .command(.schema(let arguments)):
     emit(ConfigCommands.schema(arguments))
 

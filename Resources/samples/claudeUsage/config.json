@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "widgets": {
+    "claudeUsage": {
+      "type": "claudeUsage"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "claudeUsage"
+      ],
+      "padding": 24
+    }
+  }
+}

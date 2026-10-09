@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Weather (compact)",
+  "description": "Current conditions, temperature and sun times from a wttr.in source. Shown with theme.density set to compact.",
+  "preset": "weatherCard",
+  "size": [
+    680,
+    100
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "weather",
+    "compact"
+  ]
+}

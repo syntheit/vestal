@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "AI usage",
+  "description": "Claude and Codex plan windows as bars with their reset times.",
+  "preset": "aiUsage",
+  "size": [
+    680,
+    150
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "ai",
+    "status"
+  ]
+}

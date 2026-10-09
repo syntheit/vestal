@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "theme": {
+    "density": "compact"
+  },
+  "widgets": {
+    "claudeUsage": {
+      "type": "claudeUsage"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "claudeUsage"
+      ],
+      "padding": 24
+    }
+  }
+}
