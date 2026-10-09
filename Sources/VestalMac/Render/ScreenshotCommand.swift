@@ -123,6 +123,8 @@ public enum MacScreenshotCommand {
             let store = RenderStore { _ in }
             store.apply(prepared.snapshot)
             draw.hour = Backgrounds.hour(of: prepared.now)
+            // Drawn clock faces show the moment asked for.
+            if options.at != nil { RenderClock.override = prepared.now }
             let frames = MacRenderFileCommand.draw(store, options: draw, collect: json, status: &status)
             guard status == 0 else { return status }
             if json {

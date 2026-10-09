@@ -61,7 +61,11 @@ public enum RenderText {
             if let c = b.color { parts.append("color=\(c)") }
         case .ring(let r):
             parts = ["ring", "value=\(number(r.value))"]
+            if r.sweep != 270 { parts.append("sweep=\(number(r.sweep))") }
             if let c = r.color { parts.append("color=\(c)") }
+            if r.dot { parts.append("dot") }
+            if r.ticks > 0 { parts.append("ticks=\(r.ticks)") }
+            if !r.labels.isEmpty { parts.append("labels=[" + r.labels.joined(separator: ",") + "]") }
         case .spark(let s):
             parts = ["spark", "points=\(s.values.count)"]
             if let c = s.color { parts.append("color=\(c)") }
@@ -95,6 +99,16 @@ public enum RenderText {
             }
         case .image(let i):
             parts = ["image", i.path.map(quoted) ?? "empty", "fit=\(i.fit)"]
+        case .analog(let a):
+            parts = ["analog", "size=\(number(a.size))", "ticks=\(a.ticks)", "seconds=\(a.seconds)"]
+            if a.dateWindow { parts.append("dateWindow") }
+            if a.numerals { parts.append("numerals") }
+            if let zone = a.zone { parts.append("zone=\(zone)") }
+        case .flip(let f):
+            parts = ["flip", quoted(f.text)]
+            if !f.small.isEmpty { parts.append("small=\(quoted(f.small))") }
+            parts.append("size=\(number(f.size))")
+            if !f.animate { parts.append("static") }
         case .unknown(let type):
             parts = [type]
         }
@@ -157,6 +171,10 @@ public enum RenderText {
         case .heatmap(let h): return "▦\(h.columns)x\(h.rows)"
         case .timeline(let t): return "─\(t.items.count) items─"
         case .image(let i): return i.path == nil ? "(image)" : "[image]"
+        case .analog(let a):
+            let time = AnalogMath.time(RenderClock.now(), zone: a.zone)
+            return "◷" + String(format: "%02d:%02d", time.hour, time.minute)
+        case .flip(let f): return f.small.isEmpty ? f.text : f.text + " " + f.small
         case .divider(let d): return d.axis == .h ? "────" : "│"
         case .spacer: return " "
         case .stack(let s):

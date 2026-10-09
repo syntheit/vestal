@@ -96,15 +96,28 @@ public enum DefaultPresets {
         "description": "Local time and date, with world clocks under them (v0.3 clock)",
         "params": {
           "worldClocks": { "type": "array", "default": [], "description": "[{\"label\": \"NYC\", \"tz\": \"America/New_York\"}]; clocks in the local zone or with an unknown zone are skipped" },
-          "hour12": { "type": "boolean", "default": false, "description": "12-hour times with AM/PM (1:46:38 PM, world clocks 1:46 PM) instead of 24-hour (13:46:38, 13:46)" }
+          "hour12": { "type": "boolean", "default": false, "description": "12-hour times with AM/PM (1:46:38 PM, world clocks 1:46 PM) instead of 24-hour (13:46:38, 13:46)" },
+          "face": { "type": "string", "default": "mono", "description": "The face: mono (the default), or a drawn one: analog, flip, ring" },
+          "size": { "type": "number", "default": 0, "description": "Drawn faces: the dial's diameter (analog), the big tiles' font size (flip, 90) or the ring's diameter (ring, 272); 0 is the face's own" },
+          "ticks": { "type": "string", "default": "none", "description": "analog: none, hours or minutes" },
+          "seconds": { "type": "any", "default": false, "description": "analog: false, \"step\" or \"sweep\"; flip: true shows seconds on small tiles" },
+          "dateWindow": { "type": "boolean", "default": false, "description": "analog: the day of the month in a window at three o'clock" },
+          "numerals": { "type": "boolean", "default": false, "description": "analog: the numerals 1 to 12" },
+          "span": { "type": "any", "default": "day", "description": "ring: \"day\", \"work\" or [\"09:00\", \"18:00\"]" }
         },
         "widget": {
           "type": "stack", "gap": 4, "align": "center", "spaceBefore": 0,
           "children": [
-            { "type": "text", "text": "{{ now | fmt_time(if $hour12 then \"h:mm:ss a\" else \"HH:mm:ss\" end) }}", "style": { "size": 56, "weight": "ultralight", "font": "mono" } },
-            { "type": "text", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}", "style": { "size": 15, "font": "rounded", "color": "subtle" } },
+            { "type": "clockAnalog", "id": "analog", "when": "$face == \"analog\"", "size": { "param": "size" }, "ticks": { "param": "ticks" },
+              "seconds": { "param": "seconds" }, "dateWindow": { "param": "dateWindow" }, "numerals": { "param": "numerals" } },
+            { "type": "clockFlip", "id": "flip", "when": "$face == \"flip\"", "size": { "param": "size" }, "seconds": { "param": "seconds" },
+              "hour12": { "param": "hour12" } },
+            { "type": "clockRing", "id": "ring", "when": "$face == \"ring\"", "size": { "param": "size" }, "span": { "param": "span" },
+              "hour12": { "param": "hour12" } },
+            { "type": "text", "id": "0", "when": "[\"analog\", \"flip\", \"ring\"] | index($face) == null", "text": "{{ now | fmt_time(if $hour12 then \"h:mm:ss a\" else \"HH:mm:ss\" end) }}", "style": { "size": 56, "weight": "ultralight", "font": "mono" } },
+            { "type": "text", "id": "1", "when": "[\"analog\", \"flip\", \"ring\"] | index($face) == null", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}", "style": { "size": 15, "font": "rounded", "color": "subtle" } },
             {
-              "type": "list", "spaceBefore": 10, "direction": "row", "gap": 16,
+              "type": "list", "id": "2", "spaceBefore": 10, "direction": "row", "gap": 16,
               "items": "$worldClocks | map(select(.label != null and .tz != null and .tz != $tz and (.tz | tz_valid))) | uniq_by(.label)",
               "rowId": ".label",
               "empty": { "type": "spacer", "height": 0 },
@@ -586,7 +599,7 @@ public enum DefaultPresets {
         guard case .success(let tree) = AnyJSON.parse(Data(expandedJSON.utf8)) else { return .object([:]) }
         // The presets of the other files in this enum.
         var merged = tree.objectValue ?? [:]
-        for extra in [systemTree, timeTree, devTree, labTree, feedsTree, personalTree] { merged.merge(extra.objectValue ?? [:]) { first, _ in first } }
+        for extra in [systemTree, timeTree, clockFacesTree, devTree, labTree, feedsTree, personalTree] { merged.merge(extra.objectValue ?? [:]) { first, _ in first } }
         return .object(merged)
     }()
 }

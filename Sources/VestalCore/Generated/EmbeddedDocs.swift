@@ -353,7 +353,7 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 | Group | Types |
 |---|---|
 | Containers | `stack`, `row`, `grid`, `list`, `table`, `switch` |
-| Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer`, and the charts `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
+| Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer`, the charts `bars`, `stackedBar`, `heatmap`, `timeline`, `image`, and the clocks `analog`, `flip` |
 | Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage`, `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and for developers `reviewQueue`, `ciStatus`, `commitActivity`, `flakeInputs`, and for a home server `containers`, `tailnet`, `uptimeMonitors`, `backups`, `transfers`, and for feeds and markets `headlines`, `cryptoTicker`, `watchlist`, `homeAssistant`, `nowPlaying`, and for the day `dayTimeline`, `nextMeeting`, `focusTimer`, `todoFile`, `habits` (GitHub ones read the `github` secret: `gh auth token` unless defined; `vestal docs presets`) |
 
 Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` (`"fill"`), `spaceBefore`, `action`, `key`.
@@ -1838,6 +1838,20 @@ These keep their v0.3 names, parameters and look, so v0.3 configs work unchanged
 
 The local time (size 56, ultralight, mono), the date, and `worldClocks` under them: `[{"label": "NYC", "tz": "America/New_York"}]`. A world clock in the local zone, or with an unknown zone, is skipped. Times are 24-hour on every system (`13:46:38`); `hour12: true` shows `1:46:38 PM`. The date follows the locale.
 
+`face` picks how the time is drawn (default `mono`, the above). The drawn faces, each with the world clocks under it (not in the compact density, which keeps `mono`):
+
+| `face` | Parameters | |
+|---|---|---|
+| `analog` | `size` (236, or 260 with ticks), `ticks` (`none`; `hours`, `minutes`), `seconds` (`false`; `"step"`, `"sweep"`), `dateWindow` (false), `numerals` (false) | A round dial the UI draws and runs ([`analog`](widgets.md)), with the date under it (in a window at three o'clock with `dateWindow`). Quiet: `{"face": "analog"}`. With a sweeping seconds hand: `{"face": "analog", "size": 260, "ticks": "minutes", "seconds": "sweep", "dateWindow": true}`. |
+| `flip` | `size` (90), `seconds` (false: seconds on small tiles) | Split-flap tiles ([`flip`](widgets.md)) that fold when a digit changes, with the date and, with `hour12`, an AM or PM tag under them. |
+| `ring` | `size` (272), `span` (`"day"`; `"work"` is 09:00 to 18:00, or `["09:00", "18:00"]`) | The time inside a ring that fills across the span, with 24 marks, four hour labels and a dot on the end ([`gauge`](widgets.md)), and under the time the share of the span gone and what is left. |
+
+```json
+{ "type": "clock", "face": "ring", "span": "work", "worldClocks": [{ "label": "NYC", "tz": "America/New_York" }] }
+```
+
+World clocks stay a row of text under every face. Analog sub-dials for them (a small dial per city, light by day and dark by night) are not built yet.
+
 ### `systemBar`
 
 A row of this machine's stats from the `system` source. `show` lists the items left to right: `uptime`, `disk`, `battery`, `claudeUsage`, `codexUsage`, `network`, `privacy` (absent or empty: all but privacy and codexUsage). `privacy` is `{"command": [argv], "stateFile": "path"}`: a microphone and camera toggle drawn at the right end, green while the state file exists, which runs the command on click (and on `p`, in the default view). `claudeSource` and `codexSource` name the sources of the Claude and Codex usage items. `trailing` is a list of extra widgets drawn at the right end after the privacy toggle, such as per-device mic and camera toggles with their own `source`, `action` and `key` (example in CONFIG.md, `systemBar`).
@@ -2455,6 +2469,10 @@ One of `aiUsage`'s cells: `label`, `window` (an expression such as `.session`) a
 
 One of `aiPlan`'s blocks: `name`, `color`, `plan` and `hour12`, reading the `claude` or `codex` shape of the widget's source.
 
+### `clockAnalog`, `clockFlip`, `clockRing`
+
+The drawn faces of `clock` (above), as widgets of their own: `clockAnalog` (`size`, `ticks`, `seconds`, `dateWindow`, `numerals`, `zone`), `clockFlip` (`size`, `seconds`, `animate`, `hour12`) and `clockRing` (`size`, `span`, `hour12`). `clock` picks one with its `face` param; a size of 0 is the face's own.
+
 ### `hostDetail`
 
 The host popup of `systemHealth`: CPU, RAM, GPU, pools or mounts, network, docker and services. Parameters `host` (a host object with its health) and `provider`.
@@ -2540,14 +2558,14 @@ Any vestal instance serves subscribers, including a Linux `vestal daemon` with n
 ## Subscribing
 
 ```jsonc
-{"cmd": "subscribe", "role": "ui", "protocol": [1], "minor": 1, "client": "my-ui/0.1", "capabilities": ["copy", "notify"], "whileHidden": false, "control": false, "view": null}
+{"cmd": "subscribe", "role": "ui", "protocol": [1], "minor": 2, "client": "my-ui/0.1", "capabilities": ["copy", "notify"], "whileHidden": false, "control": false, "view": null}
 ```
 
 | Field | Default | |
 |---|---|---|
 | `role` | `observer` | `ui` draws the dashboard; `observer` watches (status bars, debuggers); `control` is an observer with `control: true`. |
 | `protocol` | `[1]` | The major versions the client speaks. Without `1`: an `error` message, and the connection closes. |
-| `minor` | `1` | The minor version the client understands (the current one is `1`); newer node types come as `text` with their `alt`. A client that draws `bars`, `stackedBar`, `heatmap`, `timeline` and `image` asks for `1`. |
+| `minor` | `1` | The minor version the client understands (the current one is `2`); newer node types come as `text` with their `alt`. A client that draws `bars`, `stackedBar`, `heatmap`, `timeline` and `image` asks for `1`; one that also draws `analog` and `flip` asks for `2`. |
 | `client` | none | A name for logs. |
 | `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise vestal's own UI takes it (macOS), or the headless daemon runs `wl-copy`. (`screenshot` delegation is specified but not implemented yet.) |
 | `whileHidden` | `false` | Keep evaluating and sending patches while the dashboard is hidden (debugging). |
@@ -2560,7 +2578,7 @@ The connection then stays open. The server writes one JSON message per line; the
 
 | Message | |
 |---|---|
-| `{"type": "hello", "protocol": 1, "minor": 1, "server": "0.4.0 (abc1234)", "os": "linux", "role": "observer", "primary": false}` | First, after `subscribe`. `primary` says whether this subscriber is the primary UI. |
+| `{"type": "hello", "protocol": 1, "minor": 2, "server": "0.4.0 (abc1234)", "os": "linux", "role": "observer", "primary": false}` | First, after `subscribe`. `primary` says whether this subscriber is the primary UI. |
 | `snapshot` | The whole model (`vestal docs render-model`), with this connection's `seq` (1 for the first; every later snapshot or patch adds 1). `visible` in it is `false` for a `whileHidden` subscriber while the dashboard is hidden. |
 | `patch` | Changes since `base` (`vestal docs render-model`). At most one per 50 ms per subscriber; a patch bigger than half a snapshot is sent as a snapshot. |
 | `{"type": "visibility", "visible": true, "view": "main"}` | Show or hide the window. The core decides: `vestal toggle`, Escape and actions all go through it. |
@@ -2621,7 +2639,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 ## Versions
 
 - `protocol` is the major version, `1`. A breaking change bumps it.
-- `minor` counts additive changes (new optional fields, new node types); it is `1`. Minor 1 added `pages` and the `page` input, and the node types `bars`, `stackedBar`, `heatmap`, `timeline` and `image`.
+- `minor` counts additive changes (new optional fields, new node types); it is `2`. Minor 1 added `pages` and the `page` input, and the node types `bars`, `stackedBar`, `heatmap`, `timeline` and `image`. Minor 2 added the node types `analog` and `flip`, and the `ring` fields `dot`, `dotColor`, `ticks` and `labels` (a client that predates them draws a plain ring).
 - Clients must ignore fields they don't know.
 - A subscriber that declares an older `minor` gets newer node types as `text` nodes carrying their `alt`.
 
@@ -2631,7 +2649,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 {
   "type": "snapshot",
   "protocol": 1,
-  "minor": 1,
+  "minor": 2,
   "seq": 1,
   "view": "main",
   "views": [ { "name": "main", "key": "1" }, { "name": "focus", "title": "Focus", "key": "2" } ],
@@ -2697,7 +2715,7 @@ Keys are sorted and defaults are left out, so output is deterministic.
 | `text` | `text`, `size` (13), `weight` (400), `font` (`sans`), `color` (`text`), `tracking` (0), `lines` (unlimited), `textAlign` (`start`) | One run of text, case already applied; cut at the tail with `…` beyond `lines`. |
 | `icon` | `name`, `glyph` (one character; absent for `sf:` names), `weight` (`regular` or `fill`), `size` (13), `color` (`text`) | The glyph in the icon font, centred in a `size`×`size` box. |
 | `bar` | `value` (0…1), `start` (0), `overlay` (0…1), `overlayPosition` (`above`), `tick` (0…1), `tickColor`, `color`, `trackColor`, `overlayColor`, `radius` (2) | A rounded track, the fill from `start` to `value`, the overlay above or below it, and a 1.5 point mark at `tick`. |
-| `ring` | `value` (0…1), `sweep` (270), `thickness` (6), `color`, `trackColor`, `center` (a node) | An arc track with its gap at the bottom, the fill arc with round caps, and `center` inside. Its size is its `width`. |
+| `ring` | `value` (0…1), `sweep` (270), `thickness` (6), `color`, `trackColor`, `center` (a node), `dot` (false), `dotColor` (`text`), `ticks` (0), `labels` (`[]`) | An arc track with its gap at the bottom, the fill arc with round caps, and `center` inside. A `sweep` of 360 has no gap and starts at the top. `dot` draws a dot, `thickness` × 1.1 in radius, on the fill's end. `ticks` marks the outside: that many marks evenly spaced over the sweep (a full circle: round it; an arc: the first and last on its ends), every fourth longer and brighter (`text` at 50%, 1.5 wide, against 20%, 1 wide), and the arc moves 15 points inwards to leave room. `labels` (up to four) are drawn inside the arc, 20 points from it, in the same way along the sweep, in `dim`, size 10, mono. Its size is its `width`. |
 | `spark` | `values`, `min`, `max`, `color`, `fill`, `strokeWidth` (1.5), `dot` (false), `dotAt` (0…1), `dotColor` | A polyline, x evenly spaced, y scaled to `min`…`max`; fewer than two values draw nothing. A dot on the last point, or with `dotAt` at that fraction of the width, on the line. |
 | `divider` | `axis` (`h`), `thickness` (0.5), `color` (`dim`) | A rule filling the width (`h`) or the height (`v`). |
 | `spacer` | `min` (0) | Nothing. |
@@ -2705,9 +2723,11 @@ Keys are sorted and defaults are left out, so output is deterministic.
 | `stackedBar` | `segments` (`[{ "value": 0…1, "color" }]`), `trackColor` (`track`), `radius` (4) | A track and the segments from the leading edge, each `value` of the width, all inside one rounded shape. |
 | `heatmap` | `cells` (a colour or `null` per cell), `rows` (7), `direction` (`columns`), `cell` (8), `gap` (2), `radius` (2), `trackColor` (`track`) | Square cells. `columns`: cell `i` is at column `i / rows`, row `i % rows`. `rows`: row-major with `ceil(count / rows)` columns. `null` draws a `trackColor` cell; positions past the last cell draw nothing. |
 | `timeline` | `items` (`[{ "start", "end", "label", "color", "lane" }]`), `ticks` (`[{ "at", "label" }]`), `lanes` (1), `now`, `nowColor` (`accent`) | A time axis, everything as fractions 0…1 of the width (`end` absent: a point marker). The bottom 12 points are tick labels (dim, 9); above them a faint line at each tick, the items on `lanes` equal rows 2 apart (a bar at least 3 wide, corners 3; a point is a dot at most 8 across), then a 1.5 wide `nowColor` line at `now`. An item's `label` is drawn inside its bar (10, medium, in `bg`) only when it fits with 4 either side and the lane is 12 or taller; a tick label only when it clears the previous one by 4. |
+| `analog` | `size` (236), `ticks` (`hours`; `none`, `minutes`), `seconds` (`none`; `step`, `sweep`), `dateWindow` (false), `numerals` (false), `zone` (the system's), `color` (`text`), `faceColor`, `secondsColor` (`bad`), `pivotColor` (`accent`) | A round clock the UI draws and runs by itself: the core sends it once and never again for a tick. The UI reads the time in `zone` and moves the hands: the hour and minute hands continuously, the seconds hand once a second (`step`) or every frame (`sweep`), and only while the dashboard is shown (nothing runs, and no timer, while it is hidden). Reduced motion turns `sweep` into `step`. `size` is its width and height. The face is a circle (`faceColor`, stroked in `color` at 20%); with `ticks` `none` it has a dot at twelve, short hands and no tails, otherwise sixty marks (`minutes`) or twelve (`hours`), heavier at the hours, and hands with tails. `dateWindow` is a box with the day of the month right of the pivot; `numerals` draw 1 to 12. The seconds hand has a counterweight dot. Proportions are fixed by the face's size (`AnalogGeometry` in VestalCore). |
+| `flip` | `text`, `small` (`""`), `size` (90), `smallSize` (40), `color` (`text`), `tile`, `tileBottom`, `animate` (true) | Split-flap tiles in a row with their bottoms on one line: one tile per character of `text` (80 × 114 at `size` 90, scaling with it), then the characters of `small` on smaller tiles (36 × 52 at `smallSize` 40, 14 apart from the big ones). `:` is two small squares in a colon cell, a space a gap. Each tile is two halves, `tile` above and `tileBottom` below, with a seam. The UI keeps the characters it last drew: when a later model changes a tile's character it folds over (the top half falls to the seam over 170 ms, then the new bottom half rises over 170 ms) and the other tiles stay; a node that is new, or whose number of tiles changed, appears without a fold, as does everything with `animate` false or under reduced motion. Its size follows from the text (`FlipLayout` in VestalCore). |
 | `image` | `path`, `fit` (`cover`), `radius` (6) | The picture in the file at `path`, scaled to `cover` the frame (cropped) or to be `contained` in it, clipped to a rounded rectangle. No `path`, or a file that can't be read: an empty rounded rectangle in `track`. |
 
-Config types map onto these: `row` → `stack` h; `list` and `table` → `stack` or `grid`; `progress` → a `stack` h of `text`, `bar`, `text`; `gauge` → a `stack` v of `ring` and `text`; `sparkline` → `spark`; `switch` → the chosen case; `bars` (vertical) → `bars`, or a `stack` v of `bars` and a `stack` h of `text` labels; `bars` (horizontal) → a `grid` of `text`, `bar`, `text` rows; `stackedBar` → `stackedBar`, or a `stack` v of it and a `stack` h of dot (`bar`) and `text` entries; `heatmap`, `timeline` and `image` → themselves. Templates disappear.
+Config types map onto these: `row` → `stack` h; `list` and `table` → `stack` or `grid`; `progress` → a `stack` h of `text`, `bar`, `text`; `gauge` → a `stack` v of `ring` and `text`; `sparkline` → `spark`; `switch` → the chosen case; `bars` (vertical) → `bars`, or a `stack` v of `bars` and a `stack` h of `text` labels; `bars` (horizontal) → a `grid` of `text`, `bar`, `text` rows; `stackedBar` → `stackedBar`, or a `stack` v of it and a `stack` h of dot (`bar`) and `text` entries; `heatmap`, `timeline` and `image` → themselves; `analog` and `flip` → themselves, and `gauge` also takes `dot`, `dotColor`, `ticks`, `labels` and a `center` widget. Templates disappear.
 
 `image.path` is a path on the machine running vestal, never bytes. For a local `src` it is the file itself (`~` expanded). For an http(s) `src` vestal fetches the picture (at most 5 MB, off the UI's thread) into its cache directory, in `images/` named by the SHA-256 of the URL, and `path` is that file; until it arrives `path` is absent and a patch brings it. A client that draws the model on the same machine reads the file; one that can't reach it draws the empty state.
 
@@ -3865,6 +3885,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 | Containers | `stack` (top to bottom), `row` (left to right), `grid` (aligned columns), `list` (an array as rows), `table` (a list with aligned columns), `switch` (one child picked by a value) |
 | Primitives | `text`, `icon`, `progress` (bar), `gauge` (ring), `sparkline`, `keyValue`, `divider`, `spacer` |
 | Charts | `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
+| Clocks | `analog`, `flip` (the faces of the `clock` preset) |
 | Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the system presets `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and the developer widgets `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`, and the homelab widgets `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers`, and `headlines`, `cryptoTicker`, `watchlist`, `dayTimeline`, `nextMeeting`, `focusTimer`, `todoFile`, `habits`, `homeAssistant` and `nowPlaying` (`vestal docs presets`) |
 | Your templates | any name under `templates` (`vestal docs templates`) |
 
@@ -4023,10 +4044,31 @@ A horizontal bar: `(value − min) / (max − min)`, clamped. Optional `label` b
 
 ### `gauge`
 
-A ring with centre `text` (default `"{{ $value | round }}"`) and an optional `label` under it. `sweep` is the arc in degrees, with the gap at the bottom.
+A ring with center `text` (default `"{{ $value | round }}"`) and an optional `label` under it. `sweep` is the arc in degrees, with the gap at the bottom; 360 closes the ring and starts it at the top. `dot` (with `dotColor`, default `text`) draws a dot on the fill's end; `ticks` marks the outside (that many marks, every fourth longer, the ring moves in to make room); `labels` (up to four texts, with `{{ }}` holes) sit inside the ring at the quarters of the sweep. `center` is a widget drawn in the middle instead of `text`. The `clock` preset's `ring` face is a gauge with all of these.
+
+```json
+{ "type": "gauge", "size": 272, "thickness": 5, "sweep": 360, "ticks": 24, "dot": true, "value": "$fraction", "min": 0, "max": 1,
+  "labels": ["00", "06", "12", "18"], "center": { "type": "text", "text": "{{ now | fmt_time(\"HH:mm\") }}" } }
+```
 
 ```json
 { "type": "gauge", "source": "system", "label": "CPU", "value": ".cpu.percent", "text": "{{ $value | round }}%", "color": { "steps": [[0, "good"], [70, "warn"], [90, "bad"]] } }
+```
+
+### `analog`
+
+A round clock the UI draws and runs by itself, from the time in `zone` (default: the system's): the render model carries the options once, and the UI moves the hands, so the core pushes nothing per frame. `size` is its diameter (default 236 without ticks, 260 with); `ticks` is `none` (a hairline ring, a dot at twelve, short hands), `hours` (twelve marks) or `minutes` (sixty, heavier at the hours); `seconds` is `false`, `true` or `"step"` (the red hand moves once a second) or `"sweep"` (every frame, while the dashboard is shown; with reduced motion it steps); `dateWindow` shows the day of the month in a window at three o'clock; `numerals` draws 1 to 12. `color` (hands, ticks, numerals; `text`), `faceColor`, `secondsColor` (`bad`) and `pivotColor` (`accent`, or the seconds color with a seconds hand) are palette colors. A hidden dashboard runs nothing: no frames and no timers.
+
+```json
+{ "type": "analog", "size": 260, "ticks": "minutes", "seconds": "sweep", "dateWindow": true, "zone": "Asia/Tokyo" }
+```
+
+### `flip`
+
+Split-flap tiles: one per character of `text` (digits; `:` is a colon and a space a gap), then the characters of `small` on smaller tiles (seconds). `size` (90) is the big tiles' font size and `smallSize` (40) the small ones'; the tiles' look comes from `color` (`text`) and `tileColor` (default: the palette's `bg`, lightened; the lower half is a little darker). When a later render changes a character, that tile folds over (170 ms for each half) while the others stay; `animate: false`, and reduced motion, swap the character instead.
+
+```json
+{ "type": "flip", "text": "{{ now | fmt_time(\"HH:mm\") }}", "small": "{{ now | fmt_time(\"ss\") }}" }
 ```
 
 ### `sparkline`

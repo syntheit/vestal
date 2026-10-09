@@ -144,6 +144,7 @@ for (const kind of order) {
       if (!es.some((e) => e.isIntersecting)) return;
       io.disconnect();
       mount(host, s.snapshot, { size: { width: s.size[0], height: s.size[1] }, scale, assets, views: s.views || undefined,
+        now: s.at, timeZone: "UTC",   // the samples render at their time in UTC, like the text clocks
         background: params.get("bg") || "auto",
         onInput: (m) => console.debug("input", s.name, m) });
     }, { rootMargin: params.has("eager") ? "100000px" : "400px" });

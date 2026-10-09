@@ -9,6 +9,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 | Containers | `stack` (top to bottom), `row` (left to right), `grid` (aligned columns), `list` (an array as rows), `table` (a list with aligned columns), `switch` (one child picked by a value) |
 | Primitives | `text`, `icon`, `progress` (bar), `gauge` (ring), `sparkline`, `keyValue`, `divider`, `spacer` |
 | Charts | `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
+| Clocks | `analog`, `flip` (the faces of the `clock` preset) |
 | Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the system presets `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and the developer widgets `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`, and the homelab widgets `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers`, and `headlines`, `cryptoTicker`, `watchlist`, `dayTimeline`, `nextMeeting`, `focusTimer`, `todoFile`, `habits`, `homeAssistant` and `nowPlaying` (`vestal docs presets`) |
 | Your templates | any name under `templates` (`vestal docs templates`) |
 
@@ -167,10 +168,31 @@ A horizontal bar: `(value − min) / (max − min)`, clamped. Optional `label` b
 
 ### `gauge`
 
-A ring with centre `text` (default `"{{ $value | round }}"`) and an optional `label` under it. `sweep` is the arc in degrees, with the gap at the bottom.
+A ring with center `text` (default `"{{ $value | round }}"`) and an optional `label` under it. `sweep` is the arc in degrees, with the gap at the bottom; 360 closes the ring and starts it at the top. `dot` (with `dotColor`, default `text`) draws a dot on the fill's end; `ticks` marks the outside (that many marks, every fourth longer, the ring moves in to make room); `labels` (up to four texts, with `{{ }}` holes) sit inside the ring at the quarters of the sweep. `center` is a widget drawn in the middle instead of `text`. The `clock` preset's `ring` face is a gauge with all of these.
+
+```json
+{ "type": "gauge", "size": 272, "thickness": 5, "sweep": 360, "ticks": 24, "dot": true, "value": "$fraction", "min": 0, "max": 1,
+  "labels": ["00", "06", "12", "18"], "center": { "type": "text", "text": "{{ now | fmt_time(\"HH:mm\") }}" } }
+```
 
 ```json
 { "type": "gauge", "source": "system", "label": "CPU", "value": ".cpu.percent", "text": "{{ $value | round }}%", "color": { "steps": [[0, "good"], [70, "warn"], [90, "bad"]] } }
+```
+
+### `analog`
+
+A round clock the UI draws and runs by itself, from the time in `zone` (default: the system's): the render model carries the options once, and the UI moves the hands, so the core pushes nothing per frame. `size` is its diameter (default 236 without ticks, 260 with); `ticks` is `none` (a hairline ring, a dot at twelve, short hands), `hours` (twelve marks) or `minutes` (sixty, heavier at the hours); `seconds` is `false`, `true` or `"step"` (the red hand moves once a second) or `"sweep"` (every frame, while the dashboard is shown; with reduced motion it steps); `dateWindow` shows the day of the month in a window at three o'clock; `numerals` draws 1 to 12. `color` (hands, ticks, numerals; `text`), `faceColor`, `secondsColor` (`bad`) and `pivotColor` (`accent`, or the seconds color with a seconds hand) are palette colors. A hidden dashboard runs nothing: no frames and no timers.
+
+```json
+{ "type": "analog", "size": 260, "ticks": "minutes", "seconds": "sweep", "dateWindow": true, "zone": "Asia/Tokyo" }
+```
+
+### `flip`
+
+Split-flap tiles: one per character of `text` (digits; `:` is a colon and a space a gap), then the characters of `small` on smaller tiles (seconds). `size` (90) is the big tiles' font size and `smallSize` (40) the small ones'; the tiles' look comes from `color` (`text`) and `tileColor` (default: the palette's `bg`, lightened; the lower half is a little darker). When a later render changes a character, that tile folds over (170 ms for each half) while the others stay; `animate: false`, and reduced motion, swap the character instead.
+
+```json
+{ "type": "flip", "text": "{{ now | fmt_time(\"HH:mm\") }}", "small": "{{ now | fmt_time(\"ss\") }}" }
 ```
 
 ### `sparkline`

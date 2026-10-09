@@ -28,6 +28,9 @@ final class RenderContext {
     var theme: ThemeState
     /// Every NodeView by node id, for patches.
     var nodes: [String: NodeView] = [:]
+    /// The characters each flip node showed when it was last built, so a
+    /// rebuilt one (a patch replaces subtrees) can fold what changed.
+    var flipMemory: [String: [String]] = [:]
     /// Clicks on `action` nodes (and keys, elsewhere) go here.
     let send: (RenderInput) -> Void
 
@@ -47,6 +50,8 @@ class NodeView {
     private(set) var label: WidgetPtr?
     /// An icon's glyph, laid out once.
     private var iconLayout: OpaquePointer?
+    /// A clock face's animation sources (analog, flip).
+    var faceState: FaceState?
 
     /// A NodeView and its widget for `node`, with its whole subtree. The
     /// widget is floating until it gets a parent.
@@ -66,6 +71,7 @@ class NodeView {
     }
 
     deinit {
+        faceState?.stop(widget)
         if let iconLayout { g_object_unref(UnsafeMutableRawPointer(iconLayout)) }
     }
 
@@ -87,6 +93,10 @@ class NodeView {
             attachLabel(text)
         case .unknown:
             attachLabel(RenderNode.Text(text: node.alt ?? "", color: "subtle"))
+        case .analog(let analog):
+            startAnalog(analog)
+        case .flip(let flip):
+            startFlip(flip)
         default:
             break
         }
@@ -171,6 +181,7 @@ class NodeView {
 
     /// Unregisters this subtree's ids (before it is dropped).
     func forget() {
+        faceState?.stop(widget)
         if context.nodes[node.id] === self { context.nodes[node.id] = nil }
         for child in children { child.forget() }
     }
@@ -263,6 +274,10 @@ class NodeView {
             return 60
         case .bars, .stackedBar, .heatmap, .timeline, .image:
             return Self.chartSize(node.content)?.width ?? 0
+        case .analog(let a):
+            return a.size
+        case .flip(let f):
+            return f.layout.width
         case .divider(let d):
             return d.axis == .v ? d.thickness : 0
         case .spacer(let s):
@@ -291,6 +306,10 @@ class NodeView {
             return (20, nil)
         case .bars, .stackedBar, .heatmap, .timeline, .image:
             return (Self.chartSize(node.content)?.height ?? 0, nil)
+        case .analog(let a):
+            return (a.size, nil)
+        case .flip(let f):
+            return (f.layout.height, nil)
         case .divider(let d):
             return (d.axis == .h ? d.thickness : 0, nil)
         case .spacer(let s):
@@ -654,6 +673,8 @@ class NodeView {
         case .heatmap(let heatmap): drawHeatmap(snapshot, heatmap, inner)
         case .timeline(let timeline): drawTimeline(snapshot, timeline, inner)
         case .image(let image): drawImage(snapshot, image, inner)
+        case .analog(let analog): drawAnalog(snapshot, analog, inner)
+        case .flip(let flip): drawFlip(snapshot, flip, inner)
         case .divider(let divider): drawDivider(snapshot, divider, inner)
         default: break
         }
@@ -754,11 +775,12 @@ class NodeView {
         let cr = gtk_snapshot_append_cairo(snapshot, &rect)
         defer { cairo_destroy(cr) }
         let cx = box.x + box.width / 2, cy = box.y + box.height / 2
-        let radius = max(0, (size - ring.thickness) / 2)
-        let sweep = min(max(ring.sweep, 0), 360) * .pi / 180
+        let geometry = RingGeometry(side: size, ring: ring)
+        let radius = geometry.radius
+        let sweep = geometry.sweep
         // Angles grow clockwise (y down); 90° is straight down, so the gap
-        // is centred at the bottom.
-        let start = Double.pi / 2 + (2 * .pi - sweep) / 2
+        // is centered at the bottom (a full circle starts at the top).
+        let start = geometry.start
         cairo_set_line_width(cr, ring.thickness)
         cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND)
         setSource(cr, track)
@@ -770,6 +792,7 @@ class NodeView {
             cairo_arc(cr, cx, cy, radius, start, start + sweep * value)
             cairo_stroke(cr)
         }
+        if ring.ticks > 0 || ring.dot || !ring.labels.isEmpty { drawRingMarks(cr, ring, geometry, cx: cx, cy: cy) }
     }
 
     // MARK: Spark

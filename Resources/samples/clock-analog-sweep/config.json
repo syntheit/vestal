@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "widgets": {
+    "clock": {
+      "type": "clock",
+      "face": "analog",
+      "size": 260,
+      "ticks": "minutes",
+      "seconds": "sweep",
+      "dateWindow": true,
+      "worldClocks": [
+        { "label": "NYC", "tz": "America/New_York" },
+        { "label": "LON", "tz": "Europe/London" },
+        { "label": "TYO", "tz": "Asia/Tokyo" }
+      ]
+    }
+  },
+  "views": {
+    "main": {
+      "children": ["clock"],
+      "padding": 24
+    }
+  }
+}

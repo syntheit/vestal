@@ -33,7 +33,7 @@ import Foundation
 // A client that asks for another protocol gets `{"type":"error","code":
 // "protocol",…,"supported":[1]}` and is closed. A client whose `minor` is
 // below the server's gets node types newer than its minor as `text` nodes
-// with their `alt` (minor 1 added bars, stackedBar, heatmap, timeline, image).
+// with their `alt` (minor 1 added bars, stackedBar, heatmap, timeline, image; minor 2 analog, flip and the ring's dot, ticks and labels).
 //
 // Everything runs on the main actor, like the engine. Writing never blocks:
 // IPCServer queues each connection's output and drops a client more than
@@ -424,6 +424,7 @@ public enum RenderDowngrade {
     public static let nodeTypeMinor: [String: Int] = [
         "stack": 0, "grid": 0, "text": 0, "icon": 0, "bar": 0, "ring": 0, "spark": 0, "divider": 0, "spacer": 0,
         "bars": 1, "stackedBar": 1, "heatmap": 1, "timeline": 1, "image": 1,
+        "analog": 2, "flip": 2,
     ]
 
     public static func node(_ node: RenderNode, toMinor minor: Int) -> RenderNode {

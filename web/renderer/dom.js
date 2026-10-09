@@ -6,6 +6,7 @@ import { padding, childrenOf } from "./layout.js";
 import { DRAWERS } from "./draw.js";
 import { fontShorthand } from "./text.js";
 import { glyphFor } from "./icons.js";
+import { buildFlip, flipSet, changedTiles } from "./clock.js";
 
 const px = (n) => `${Math.round(n * 1000) / 1000}px`;
 const SKIP = new Set(["children", "center"]);
@@ -67,6 +68,7 @@ function leafBox(el, node, frame) {
 
 function syncLeaf(node, frame, rctx, el, type) {
   if (type === "spacer") { if (el.__leaf) { el.__leaf.remove(); el.__leaf = null; el.__sig = null; } return; }
+  if (type === "flip") return flipLeaf(node, frame, rctx, el);
   const sig = signature(node, frame);
   if (el.__sig === sig) return;
   el.__sig = sig;
@@ -80,6 +82,32 @@ function syncLeaf(node, frame, rctx, el, type) {
   else if (DRAWERS[type]) drawingLeaf(box, node, type, iw, ih, rctx);
   el.insertBefore(box, el.firstChild);
   el.__leaf = box;
+}
+
+/**
+ * Split-flap tiles. The tile elements stay between updates so a changed
+ * character folds over (drawn once per structure: the same number of tiles
+ * at the same size); a different shape rebuilds them.
+ */
+function flipLeaf(node, frame, rctx, el) {
+  const shape = JSON.stringify([node.size, node.smallSize, node.color, node.tile, node.tileBottom, [...(node.text || "")].map((c) => (c === ":" || c === " " ? c : "d")), [...(node.small || "")].length, frame.w, frame.h]);
+  const chars = (n) => [...(n.text || "")].filter((c) => c !== ":" && c !== " ").concat([...(n.small || "")].filter((c) => c !== ":" && c !== " "));
+  const now = chars(node);
+  if (el.__flip && el.__flipShape === shape) {
+    const old = el.__flip.tiles;
+    const animate = node.animate !== false && !rctx.reduced;
+    const before = [...old.values()].map((t) => t.value);
+    for (const index of changedTiles(before, now)) flipSet(old.get(index), now[index], animate);
+    return;
+  }
+  if (el.__leaf) el.__leaf.remove();
+  const box = leafBox(el, node, frame);
+  const built = buildFlip(box, node, rctx.drawEnv);
+  el.insertBefore(box, el.firstChild);
+  el.__leaf = box;
+  el.__flip = built;
+  el.__flipShape = shape;
+  el.__sig = null;
 }
 
 function textLeaf(box, node, iw, rctx) {

@@ -10,6 +10,7 @@
 import { heatmapPosition } from "./layout.js";
 import { cssColor, withAlpha } from "./color.js";
 import { fontShorthand } from "./text.js";
+import { analogSVG, ringGeometry, ringMarksSVG } from "./clock.js";
 
 const f = (n) => Math.round(n * 1000) / 1000;
 const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
@@ -56,10 +57,12 @@ export function ringSVG(n, w, h, env) {
   const thickness = n.thickness ?? 6;
   const color = pal.css(n.color, "accent");
   const track = n.trackColor ? pal.css(n.trackColor) : cssColor(withAlpha(pal.rgba(n.color, "accent"), 0.15));
-  const cx = w / 2, cy = h / 2, r = Math.max(0, (side - thickness) / 2);
-  const sweep = (clamp(n.sweep ?? 270, 0, 360) * Math.PI) / 180;
-  // 90 degrees points straight down, so the gap is centred at the bottom.
-  const start = Math.PI / 2 + (2 * Math.PI - sweep) / 2;
+  const cx = w / 2, cy = h / 2;
+  const geometry = ringGeometry(side, n);
+  const r = geometry.radius, sweep = geometry.sweep;
+  // 90 degrees points straight down, so the gap is centered at the bottom
+  // (a full circle starts at the top).
+  const start = geometry.start;
   const arc = (fraction, c) => {
     const span = sweep * fraction;
     if (span <= 0) return "";
@@ -70,7 +73,8 @@ export function ringSVG(n, w, h, env) {
     const d = arcPath(cx, cy, r, start, start + span);
     return `<path d="${d}" fill="none" stroke="${c}" stroke-width="${f(thickness)}" stroke-linecap="round"/>`;
   };
-  return arc(1, track) + arc(clamp(n.value ?? 0, 0, 1), color);
+  const marks = n.ticks > 0 || n.dot || (n.labels && n.labels.length) ? ringMarksSVG(n, geometry, cx, cy, env) : "";
+  return arc(1, track) + arc(clamp(n.value ?? 0, 0, 1), color) + marks;
 }
 
 // MARK: - spark
@@ -249,5 +253,5 @@ export function timelineSVG(n, w, h, env) {
 
 export const DRAWERS = {
   bar: barSVG, ring: ringSVG, spark: sparkSVG, divider: dividerSVG, bars: barsSVG,
-  stackedBar: stackedBarSVG, heatmap: heatmapSVG, timeline: timelineSVG,
+  stackedBar: stackedBarSVG, heatmap: heatmapSVG, timeline: timelineSVG, analog: analogSVG,
 };
