@@ -44,7 +44,20 @@ final class LibraryPass {
     private var hour = 0.0
     private var hourMicros = -60_000_000
     private var artworkPath: String?
+    private var artworkChecked: String?
     private var artworkColors: [[Float]]?
+    /// The uniform values of the current parameters and hour: they change
+    /// far less often than a frame.
+    private var values: Backgrounds.Uniforms?
+    private var valuesKey: (name: String, params: RenderBackground?, hour: Double)?
+    /// Uniform locations, looked up when a program is built, not per frame.
+    private var locations = Locations()
+
+    private struct Locations {
+        var resolution: GLint = -1, time: GLint = -1, p: GLint = -1
+        var colours: [GLint] = []
+        var backdrop: GLint = -1, bgLayer: GLint = -1, hasBackdrop: GLint = -1, tint: GLint = -1
+    }
 
     /// The library's fragment shader for `name`: the shared header, the
     /// background's body and an entry point.
@@ -102,6 +115,13 @@ final class LibraryPass {
         self.name = name
         time = Backgrounds.Uniforms.stillTime
         lastMicros = 0
+        values = nil
+        func location(_ program: GLuint, _ name: String) -> GLint { epoxy_glGetUniformLocation!(program, name) }
+        locations = Locations(
+            resolution: location(program, "resolution"), time: location(program, "time"), p: location(program, "p"),
+            colours: (0..<4).map { location(program, "c\($0)") },
+            backdrop: locations.backdrop, bgLayer: locations.bgLayer,
+            hasBackdrop: locations.hasBackdrop, tint: locations.tint)
         return nil
     }
 
@@ -146,7 +166,16 @@ final class LibraryPass {
             hourMicros = now
             hour = Backgrounds.hour(of: Date())
         }
-        let values = Backgrounds.uniforms(settings.name, params: settings.params, hour: hour, artworkColors: artworkColors)
+        let values: Backgrounds.Uniforms
+        if let cached = self.values, let key = valuesKey, key.name == settings.name, key.params == settings.params,
+           key.hour == hour, artworkChecked == artworkPath {
+            values = cached
+        } else {
+            values = Backgrounds.uniforms(settings.name, params: settings.params, hour: hour, artworkColors: artworkColors)
+            self.values = values
+            valuesKey = (settings.name, settings.params, hour)
+            artworkChecked = artworkPath
+        }
         if settings.still {
             time = Backgrounds.Uniforms.stillTime
         } else {
@@ -163,12 +192,11 @@ final class LibraryPass {
         epoxy_glClear!(GLbitfield(GL_COLOR_BUFFER_BIT))
         epoxy_glDisable!(GLenum(GL_BLEND))
         epoxy_glUseProgram!(program)
-        func location(_ program: GLuint, _ name: String) -> GLint { epoxy_glGetUniformLocation!(program, name) }
-        epoxy_glUniform2f!(location(program, "resolution"), GLfloat(w), GLfloat(h))
-        epoxy_glUniform1f!(location(program, "time"), GLfloat(time))
-        epoxy_glUniform4f!(location(program, "p"), values.p[0], values.p[1], values.p[2], values.p[3])
-        for (index, colour) in values.colors.enumerated() {
-            epoxy_glUniform3f!(location(program, "c\(index)"), colour[0], colour[1], colour[2])
+        epoxy_glUniform2f!(locations.resolution, GLfloat(w), GLfloat(h))
+        epoxy_glUniform1f!(locations.time, GLfloat(time))
+        epoxy_glUniform4f!(locations.p, values.p[0], values.p[1], values.p[2], values.p[3])
+        for (index, colour) in values.colors.enumerated() where index < locations.colours.count {
+            epoxy_glUniform3f!(locations.colours[index], colour[0], colour[1], colour[2])
         }
         epoxy_glBindVertexArray!(vao)
         epoxy_glDrawArrays!(GLenum(GL_TRIANGLES), 0, 3)
@@ -181,12 +209,12 @@ final class LibraryPass {
         epoxy_glUseProgram!(composite)
         epoxy_glActiveTexture!(GLenum(GL_TEXTURE0))
         epoxy_glBindTexture!(GLenum(GL_TEXTURE_2D), backdrop)
-        epoxy_glUniform1i!(location(composite, "backdrop"), 0)
+        epoxy_glUniform1i!(locations.backdrop, 0)
         epoxy_glActiveTexture!(GLenum(GL_TEXTURE1))
         epoxy_glBindTexture!(GLenum(GL_TEXTURE_2D), texture)
-        epoxy_glUniform1i!(location(composite, "bgLayer"), 1)
-        epoxy_glUniform1f!(location(composite, "hasBackdrop"), backdrop != 0 ? 1 : 0)
-        epoxy_glUniform4f!(location(composite, "tint"), GLfloat(tint.r), GLfloat(tint.g), GLfloat(tint.b), GLfloat(tint.a))
+        epoxy_glUniform1i!(locations.bgLayer, 1)
+        epoxy_glUniform1f!(locations.hasBackdrop, backdrop != 0 ? 1 : 0)
+        epoxy_glUniform4f!(locations.tint, GLfloat(tint.r), GLfloat(tint.g), GLfloat(tint.b), GLfloat(tint.a))
         epoxy_glDrawArrays!(GLenum(GL_TRIANGLES), 0, 3)
         epoxy_glBindVertexArray!(0)
         epoxy_glBindTexture!(GLenum(GL_TEXTURE_2D), 0)

@@ -131,7 +131,7 @@ final class BackgroundTests: XCTestCase {
         XCTAssertEqual(night.stars, 1)
         let noon = Backgrounds.sky(hour: 13)
         XCTAssertEqual(noon.stars, 0)
-        XCTAssertGreaterThan(noon.y, 0.7)
+        XCTAssertGreaterThan(noon.y, 0.9, "the sun crosses above the clock and date")
         XCTAssertEqual(noon.top, Backgrounds.rgb("#1b4a8a"))
         let dusk = Backgrounds.sky(hour: 19)
         XCTAssertEqual(dusk.horizon, Backgrounds.rgb("#c0603e"))

@@ -161,7 +161,7 @@ public enum Backgrounds {
         }
         let elevation = sin((hour - 6.25) / 12.75 * Double.pi)
         return Sky(top: mix(a.top, b.top), horizon: mix(a.horizon, b.horizon), sun: mix(a.sun, b.sun),
-                   x: Float(min(max((hour - 6.25) / 12.75, 0), 1) * 0.8 + 0.1), y: Float(0.06 + 0.7 * elevation),
+                   x: Float(min(max((hour - 6.25) / 12.75, 0), 1) * 0.8 + 0.1), y: Float(0.06 + 0.88 * elevation),
                    stars: Float(min(max(-elevation * 3, 0), 1)))
     }
 

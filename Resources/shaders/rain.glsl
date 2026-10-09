@@ -13,23 +13,35 @@ vec3 lights(vec2 q, float asp, float sharp) {
     return c;
 }
 
-vec3 dropLayer(vec2 q, float cols, float sp, float seed) {
-    float cw = 1.0 / cols;
-    vec2 st = q / vec2(cw, 3.0 * cw);
-    vec2 id = floor(st);
-    vec2 cuv = fract(st);
+// One cell's drop and its trail. The drop stays inside the cell sideways;
+// up and down it crosses into the cells above and below, which dropLayer
+// reads, so nothing is cut at a cell's border.
+vec3 dropCell(vec2 cuv, vec2 id, float sp, float seed) {
     float n = hash(id + seed);
     if (n < 0.35) return vec3(0.0);
     float y = 1.0 - fract(time * sp * (0.6 + n) + n * 7.0);
-    float x = 0.5 + 0.22 * sin(y * 9.0 + n * 6.28);
+    float x = 0.5 + 0.15 * sin(y * 9.0 + n * 6.28);
     vec2 rel = (cuv - vec2(x, y)) * vec2(1.0, 3.0);
-    float r = 0.30 + 0.08 * n;
+    float r = 0.26 + 0.07 * n;
     float m = 1.0 - smoothstep(r * 0.75, r, length(rel));
     vec2 tr = vec2(cuv.x - x, (fract(cuv.y * 7.0) - 0.5) * 3.0 / 7.0);
     float above = smoothstep(y, y + 0.04, cuv.y) * (1.0 - smoothstep(y, y + 0.55, cuv.y));
     float tm = (1.0 - smoothstep(0.04, 0.065, length(tr))) * above;
     vec2 nrm = rel / r * m + tr * 6.0 * tm;
     return vec3(nrm, max(m, tm));
+}
+
+vec3 dropLayer(vec2 q, float cols, float sp, float seed) {
+    float cw = 1.0 / cols;
+    vec2 st = q / vec2(cw, 3.0 * cw);
+    vec2 id = floor(st);
+    vec2 cuv = fract(st);
+    vec3 sum = vec3(0.0);
+    for (int dy = -1; dy <= 1; dy++) {
+        vec3 d = dropCell(cuv - vec2(0.0, float(dy)), id + vec2(0.0, float(dy)), sp, seed);
+        sum = vec3(sum.xy + d.xy, max(sum.z, d.z));
+    }
+    return sum;
 }
 
 vec4 background() {

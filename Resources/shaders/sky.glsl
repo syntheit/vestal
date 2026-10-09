@@ -9,7 +9,10 @@ vec4 background() {
     vec2 d = (q - p.xy) * vec2(asp, 1.0);
     float g = exp(-dot(d, d) * 14.0);
     c += c2 * g * 0.55;
-    c = mix(c, c2, 1.0 - smoothstep(0.026, 0.032, length(d)));
+    // The disc fades out over the content column (the middle of the screen,
+    // below its top), where the clock and the date sit.
+    float column = (1.0 - smoothstep(0.17, 0.22, abs(q.x - 0.5))) * (1.0 - smoothstep(0.80, 0.86, q.y));
+    c = mix(c, c2, (1.0 - smoothstep(0.026, 0.032, length(d))) * (1.0 - column));
     float s = hash(floor(gl_FragCoord.xy));
     float star = step(0.9965, s) * p.z * (0.55 + 0.45 * sin(time * 1.7 + s * 300.0)) * smoothstep(0.25, 0.8, q.y);
     c += star;

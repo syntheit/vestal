@@ -120,6 +120,13 @@ if CommandLine.arguments.count > 1, CommandLine.arguments[1] == "render-file" {
     #endif
 }
 
+#if os(macOS)
+// Hidden: headless CPU benchmark of the backgrounds (VestalMac/BackgroundBench.swift).
+if CommandLine.arguments.count > 1, CommandLine.arguments[1] == "bench-background" {
+    exit(BackgroundBench.run(Array(CommandLine.arguments.dropFirst(2))))
+}
+#endif
+
 switch CLI.parse(Array(CommandLine.arguments.dropFirst())) {
 case .usageError(let message):
     emit(CLI.Output(status: 2, stderr: "vestal: \(message)\n\(CLI.usage)\n"))

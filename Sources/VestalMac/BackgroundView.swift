@@ -42,7 +42,8 @@ final class BackgroundMTKView: MTKView {
             return
         }
         super.init(frame: .zero, device: dev)
-        framebufferOnly = false
+        // Never read back: the drawable can go straight to the compositor.
+        framebufferOnly = true
         wantsLayer = true
         layer?.isOpaque = false
         (layer as? CAMetalLayer)?.isOpaque = false
@@ -62,8 +63,12 @@ final class BackgroundMTKView: MTKView {
     /// Takes the theme's background, its parameters, rate and resolution.
     func configure(_ theme: RenderTheme) {
         guard let renderer else { return }
+        // The dashboard's view updates reach this often; setting a property
+        // MTKView acts on (the frame rate restarts its display link) only
+        // when it changed keeps them from costing a frame.
         resolution = theme.backgroundResolution ?? Backgrounds.defaultResolution(theme.background)
-        preferredFramesPerSecond = theme.backgroundFPS ?? Backgrounds.defaultFPS
+        let fps = theme.backgroundFPS ?? Backgrounds.defaultFPS
+        if preferredFramesPerSecond != fps { preferredFramesPerSecond = fps }
         let changed = renderer.configure(name: theme.background, params: theme.backgroundParams)
         updateDrawableSize()
         // Reduced motion draws one frame: a changed picture needs another.
@@ -163,16 +168,31 @@ final class BackgroundRenderer: NSObject, MTKViewDelegate {
     private var hour = 0.0
     private var hourAt: CFTimeInterval = -1000
     private var viewSize = SIMD2<Float>(0, 0)
+    /// The uniform values of the current parameters and hour, which change
+    /// far less often than a frame.
+    private var values: Backgrounds.Uniforms?
 
     init?(view: MTKView) {
         guard let dev = view.device, let q = dev.makeCommandQueue() else { return nil }
         device = dev
         queue = q
         super.init()
+        motionObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.reducedMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        }
     }
 
-    /// Whether the system asks for less motion.
-    private var reducedMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
+    deinit {
+        if let motionObserver { NSWorkspace.shared.notificationCenter.removeObserver(motionObserver) }
+    }
+
+    /// Whether the system asks for less motion, read when the setting
+    /// changes (a read per frame goes through the accessibility daemon's
+    /// preferences).
+    private var reducedMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    private var motionObserver: NSObjectProtocol?
 
     /// True when something changed that a still frame must show.
     func configure(name: String, params: RenderBackground?) -> Bool {
@@ -181,10 +201,12 @@ final class BackgroundRenderer: NSObject, MTKViewDelegate {
             self.name = name
             pipeline = BackgroundPipeline(device: device, name: name, pixelFormat: .bgra8Unorm)
             changed = true
+            values = nil
         }
         if params != self.params {
             self.params = params
             changed = true
+            values = nil
             if params?.artwork != artworkPath {
                 artworkPath = params?.artwork
                 artworkColors = artworkPath.flatMap(ArtworkColors.extract)
@@ -210,7 +232,7 @@ final class BackgroundRenderer: NSObject, MTKViewDelegate {
 
         let now = CACurrentMediaTime()
         let still = reducedMotion
-        let values = Backgrounds.uniforms(name, params: params, hour: localHour(now), artworkColors: artworkColors)
+        let values = currentValues(now)
         if !still {
             // A pause is not time passing: the step is capped.
             time += min(max(now - last, 0), 0.1) * values.timeScale
@@ -228,13 +250,18 @@ final class BackgroundRenderer: NSObject, MTKViewDelegate {
         if still { view.isPaused = true }
     }
 
-    /// The local time as hours, read every ten seconds.
-    private func localHour(_ now: CFTimeInterval) -> Double {
+    /// The uniform values, worked out again when the parameters changed or
+    /// (the sky reads it) the hour was read again, every ten seconds.
+    private func currentValues(_ now: CFTimeInterval) -> Backgrounds.Uniforms {
         if now - hourAt > 10 {
             hourAt = now
             hour = Backgrounds.hour(of: Date())
+            if name == "sky" { values = nil }
         }
-        return hour
+        if let values { return values }
+        let fresh = Backgrounds.uniforms(name, params: params, hour: hour, artworkColors: artworkColors)
+        values = fresh
+        return fresh
     }
 }
 

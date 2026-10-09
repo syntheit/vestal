@@ -201,7 +201,10 @@ enum BackgroundShaders {
             float2 d = (q - k.p.xy) * float2(asp, 1.0);
             float g = exp(-dot(d, d) * 14.0);
             c += k.c2 * g * 0.55;
-            c = mix(c, k.c2, 1.0 - smoothstep(0.026, 0.032, length(d)));
+            // The disc fades out over the content column (the middle of the screen,
+            // below its top), where the clock and the date sit.
+            float column = (1.0 - smoothstep(0.17, 0.22, abs(q.x - 0.5))) * (1.0 - smoothstep(0.80, 0.86, q.y));
+            c = mix(c, k.c2, (1.0 - smoothstep(0.026, 0.032, length(d))) * (1.0 - column));
             float s = hash(floor(k.frag));
             float star = step(0.9965, s) * k.p.z * (0.55 + 0.45 * sin(k.time * 1.7 + s * 300.0)) * smoothstep(0.25, 0.8, q.y);
             c += star;
@@ -224,23 +227,35 @@ enum BackgroundShaders {
             return c;
         }
 
-        static float3 dropLayer(K k, float2 q, float cols, float sp, float seed) {
-            float cw = 1.0 / cols;
-            float2 st = q / float2(cw, 3.0 * cw);
-            float2 id = floor(st);
-            float2 cuv = fract(st);
+        // One cell's drop and its trail. The drop stays inside the cell
+        // sideways; up and down it crosses into the cells above and below,
+        // which dropLayer reads, so nothing is cut at a cell's border.
+        static float3 dropCell(K k, float2 cuv, float2 id, float sp, float seed) {
             float n = hash(id + seed);
             if (n < 0.35) return float3(0.0);
             float y = 1.0 - fract(k.time * sp * (0.6 + n) + n * 7.0);
-            float x = 0.5 + 0.22 * sin(y * 9.0 + n * 6.28);
+            float x = 0.5 + 0.15 * sin(y * 9.0 + n * 6.28);
             float2 rel = (cuv - float2(x, y)) * float2(1.0, 3.0);
-            float r = 0.30 + 0.08 * n;
+            float r = 0.26 + 0.07 * n;
             float m = 1.0 - smoothstep(r * 0.75, r, length(rel));
             float2 tr = float2(cuv.x - x, (fract(cuv.y * 7.0) - 0.5) * 3.0 / 7.0);
             float above = smoothstep(y, y + 0.04, cuv.y) * (1.0 - smoothstep(y, y + 0.55, cuv.y));
             float tm = (1.0 - smoothstep(0.04, 0.065, length(tr))) * above;
             float2 nrm = rel / r * m + tr * 6.0 * tm;
             return float3(nrm, max(m, tm));
+        }
+
+        static float3 dropLayer(K k, float2 q, float cols, float sp, float seed) {
+            float cw = 1.0 / cols;
+            float2 st = q / float2(cw, 3.0 * cw);
+            float2 id = floor(st);
+            float2 cuv = fract(st);
+            float3 sum = float3(0.0);
+            for (int dy = -1; dy <= 1; dy++) {
+                float3 d = dropCell(k, cuv - float2(0.0, float(dy)), id + float2(0.0, float(dy)), sp, seed);
+                sum = float3(sum.xy + d.xy, max(sum.z, d.z));
+            }
+            return sum;
         }
 
         static float4 background(K k) {
