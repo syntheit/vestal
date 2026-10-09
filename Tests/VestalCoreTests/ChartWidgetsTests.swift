@@ -707,10 +707,10 @@ final class ChartWidgetsTests: XCTestCase {
         XCTAssertNotNil(find(diagnostics(#"{"type": "heatmap", "values": "[]", "rows": 400}"#), "/widgets/w/rows"))
         let one = try XCTUnwrap(find(diagnostics(#"{"type": "heatmap", "values": "[]", "scale": ["good"]}"#), "/widgets/w/scale"))
         XCTAssertEqual(one.message, "scale needs two colours, [low, high]")
-        let unknown = try XCTUnwrap(find(diagnostics(#"{"type": "heatmap", "values": "[]", "scale": ["good", "gren"]}"#), "/widgets/w/scale[1]"))
+        let unknown = try XCTUnwrap(find(diagnostics(#"{"type": "heatmap", "values": "[]", "scale": ["good", "gren"]}"#), "/widgets/w/scale/1"))
         XCTAssertEqual(unknown.code, "unknown-color")
-        XCTAssertNotNil(find(diagnostics(#"{"type": "heatmap", "values": "[]", "steps": [[0, "good"], ["x"]]}"#), "/widgets/w/steps[1]"))
-        XCTAssertNotNil(find(diagnostics(#"{"type": "heatmap", "values": "[]", "steps": [[0, "nope"]]}"#), "/widgets/w/steps[0][1]"))
+        XCTAssertNotNil(find(diagnostics(#"{"type": "heatmap", "values": "[]", "steps": [[0, "good"], ["x"]]}"#), "/widgets/w/steps/1"))
+        XCTAssertNotNil(find(diagnostics(#"{"type": "heatmap", "values": "[]", "steps": [[0, "nope"]]}"#), "/widgets/w/steps/0/1"))
         XCTAssertNotNil(find(diagnostics(#"{"type": "heatmap", "values": "[]", "steps": "x"}"#), "/widgets/w/steps"))
     }
 
