@@ -40,7 +40,7 @@ Input: clicks on `action` nodes send `invoke`; keys (in the key grammar) go as `
 
 ## Backgrounds
 
-`aurora` is built in (a port of `AuroraView.metal`). Any other name loads `<assets.shaders><name>.glsl` (default `Resources/shaders/`) and falls back to the aurora when the file is missing or does not compile. `blur` draws the palette `bg` (over a blurred `wallpaper` at `theme.dim` when one is given), `none` is transparent. Shader files are GLSL ES 3.00 fragment bodies: without a `#version` line they get a prelude (`uv`, `o`, `uRes`, `uTime`, `uP`, `hash`, `vnoise`, `fbm`, `hsv2rgb`); with one they are used as is. Surfaces pause when off screen and under `prefers-reduced-motion`.
+`aurora` is built in (a port of `AuroraView.metal`). Any other name loads `<assets.shaders><name>.glsl` (default `Resources/shaders/`) and falls back to the aurora when the file is missing or does not compile. `blur` draws the palette `bg` (over a blurred `wallpaper` at `theme.dim` when one is given), `none` is transparent. Shader files are GLSL ES 3.00 fragment bodies: without a `#version` line they get a prelude (`uv`, `o`, `uRes`, `uTime`, `uP`, `hash`, `vnoise`, `fbm`, `hsv2rgb`); with one they are used as is. The library backgrounds (`mesh`, `topo`, `rain`, `sky`, ...) are the exception: they load `common.glsl` plus their body and use `resolution`, `time`, `p` and `c0` to `c3` (fixed defaults here). Surfaces pause when off screen and under `prefers-reduced-motion`.
 
 ## Gallery
 

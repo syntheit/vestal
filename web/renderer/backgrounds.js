@@ -19,6 +19,10 @@
 //   uniform vec2 uRes;          // pixels of the render target
 //   uniform float uTime;        // seconds
 //   uniform vec4 uP;            // free parameters (zero here)
+//
+// The library backgrounds (Resources/shaders/, not aurora) instead share
+// `common.glsl` and define `vec4 background()` with the uniforms `resolution`,
+// `time`, `p` and `c0`...`c3`; the web gives them fixed defaults.
 //   float hash(vec2), vnoise(vec2), fbm(vec2), vec3 hsv2rgb(h, s, v)
 //
 // A file that starts with `#version 300 es` is used as is; it must declare
@@ -84,6 +88,32 @@ export function shaderUrl(base, name) {
   return `${base}${encodeURIComponent(name)}.glsl`;
 }
 
+/** The library backgrounds (Resources/shaders/): a shared `common.glsl` plus
+ *  a body that defines `vec4 background()`, with the uniforms `resolution`,
+ *  `time`, `p` and `c0`...`c3`, as the native renderers give them. */
+const LIBRARY = new Set(["mesh", "topo", "stars", "flow", "rain", "plasma", "grain", "sky", "weather", "load", "artmesh"]);
+const shaderFile = (name) => (name === "artmesh" ? "mesh" : name);
+
+/** The uniforms the web gives a library background (no theme or live data here). */
+function libraryUniforms(name) {
+  const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const mesh = ["#1e2a62", "#4a2a72", "#164f5c", "#5a2448"].map(rgb);
+  const art = ["#2a1e4f", "#6a2f63", "#a0504a", "#b07a4a"].map(rgb);
+  const none = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  switch (name) {
+    case "mesh": return { p: [0.74, 0, 0, 0], c: mesh };
+    case "artmesh": return { p: [0.78, 0, 0, 0], c: art };
+    case "load": return { p: [0.3, 0, 0, 0], c: none };
+    case "sky": return { p: [0.5, 0.6, 0, 0.78], c: [rgb("#3a73c4"), rgb("#bcd6f0"), rgb("#fff0c0"), [0, 0, 0]] };
+    default: return { p: [0, 0, 0, 0], c: none };
+  }
+}
+
+/** The fragment source of a library background. */
+export function librarySource(common, body) {
+  return `#version 300 es\nprecision highp float;\n${common}\n${body}\nout vec4 o;\nvoid main() { o = background(); }\n`;
+}
+
 /** The full fragment source for a loaded shader file. */
 export function fragmentSource(body) {
   return /^\s*#version/.test(body) ? body : PRELUDE + body;
@@ -94,6 +124,12 @@ const sources = new Map(); // "base|name" -> Promise<string|null>
 function loadSource(base, name) {
   if (name === "aurora") return Promise.resolve(PRELUDE + AURORA);
   const key = `${base}|${name}`;
+  if (!sources.has(key) && LIBRARY.has(name)) {
+    const text = (n) => fetch(shaderUrl(base, n)).then((r) => (r.ok ? r.text() : null));
+    sources.set(key, Promise.all([text("common"), text(shaderFile(name))])
+      .then(([common, body]) => (common && body ? librarySource(common, body) : null))
+      .catch(() => null));
+  }
   if (!sources.has(key)) {
     sources.set(key, fetch(shaderUrl(base, name))
       .then((r) => (r.ok ? r.text() : null))
@@ -143,7 +179,9 @@ function program(source) {
     gl.bindAttribLocation(p, 0, "p");
     gl.linkProgram(p);
     if (gl.getProgramParameter(p, gl.LINK_STATUS)) {
-      entry = { p, u: { uRes: gl.getUniformLocation(p, "uRes"), uTime: gl.getUniformLocation(p, "uTime"), uP: gl.getUniformLocation(p, "uP") } };
+      const at = (n) => gl.getUniformLocation(p, n);
+      entry = { p, u: { uRes: at("uRes") || at("resolution"), uTime: at("uTime") || at("time"), uP: at("uP") || at("p"),
+        c: [at("c0"), at("c1"), at("c2"), at("c3")] } };
     } else console.warn("vestal shader:", gl.getProgramInfoLog(p));
   }
   programs.set(source, entry);
@@ -175,7 +213,9 @@ function draw(s) {
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
   gl.uniform2f(prog.u.uRes, w, h);
   gl.uniform1f(prog.u.uTime, s.t);
-  gl.uniform4f(prog.u.uP, 0, 0, 0, 0);
+  const lib = libraryUniforms(s.name);
+  gl.uniform4f(prog.u.uP, ...lib.p);
+  prog.u.c.forEach((loc, i) => { if (loc) gl.uniform3f(loc, ...lib.c[i]); });
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   s.ctx.clearRect(0, 0, w, h);
   s.ctx.drawImage(glCanvas, 0, glCanvas.height - h, w, h, 0, 0, w, h);
@@ -233,7 +273,7 @@ const io = typeof IntersectionObserver === "function"
 export function attachBackground(canvas, name, { shaderBase = "../../Resources/shaders/", observe = canvas } = {}) {
   const s = {
     canvas, ctx: canvas.getContext("2d"), t: T0, visible: !io, res: 0.35,
-    source: null, aurora: PRELUDE + AURORA, token: 0, host: observe,
+    name: null, source: null, aurora: PRELUDE + AURORA, token: 0, host: observe,
   };
   observe.__vestalBg = s;
   if (io) io.observe(observe);
@@ -242,6 +282,7 @@ export function attachBackground(canvas, name, { shaderBase = "../../Resources/s
   function set(next) {
     const token = ++s.token;
     s.source = null;
+    s.name = next;
     s.ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (SOLID.has(next) || !next) return;
     s.res = next === "aurora" ? 0.35 : 0.5;

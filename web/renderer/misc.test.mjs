@@ -168,3 +168,10 @@ test("shader files: prelude added unless they bring their own version line", () 
   assert.equal(shaderUrl("assets/shaders/", "mesh"), "assets/shaders/mesh.glsl");
   assert.equal(shaderUrl("x/", "a b"), "x/a%20b.glsl");
 });
+
+test("library shaders: common header, body and an entry point", async () => {
+  const { librarySource } = await import("./backgrounds.js");
+  const src = librarySource("uniform vec2 resolution;", "vec4 background() { return vec4(0.0); }");
+  assert.match(src, /^#version 300 es\nprecision highp float;\nuniform vec2 resolution;/);
+  assert.match(src, /void main\(\) \{ o = background\(\); \}/);
+});
