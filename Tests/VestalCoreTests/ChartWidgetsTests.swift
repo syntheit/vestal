@@ -618,7 +618,7 @@ final class ChartWidgetsTests: XCTestCase {
         XCTAssertEqual(text(first)?.text, "bars: 1, 2", "a text with the alt")
         XCTAssertEqual(first.width, .points(160))
         XCTAssertEqual(text(node(old, "main/w/1"))?.text, "image")
-        XCTAssertEqual(RenderDowngrade.snapshot(s, toMinor: 2), s)
+        XCTAssertEqual(RenderDowngrade.snapshot(s, toMinor: RenderProtocol.minor), s)
     }
 
     // MARK: The showcase

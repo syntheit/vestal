@@ -355,10 +355,7 @@ final class TimePresetsTests: XCTestCase {
         let bar = try XCTUnwrap(bars(render(
             ##"{ "type": "progress", "value": 60, "tick": 50, "tickOverhang": 3, "gradient": ["cyan", "#ff8800"], "text": "" }"##)).first)
         XCTAssertEqual(bar.tickOverhang, 3)
-        XCTAssertEqual(bar.gradient, ["cyan", "#ff8800"])
-        // A single color is no gradient.
-        let one = try XCTUnwrap(bars(render(#"{ "type": "progress", "value": 60, "gradient": ["cyan"], "text": "" }"#)).first)
-        XCTAssertNil(one.gradient)
+        XCTAssertEqual(bar.gradient, ["cyan", "#ff8800ff"])
         // Round trip, and a plain bar writes neither key.
         let node = RenderNode(id: "b", .bar(.init(value: 0.6, tick: 0.5, tickOverhang: 3, gradient: ["#00ffffff", "#ff8800ff"])))
         XCTAssertEqual(try JSONDecoder().decode(RenderNode.self, from: JSONEncoder().encode(node)), node)

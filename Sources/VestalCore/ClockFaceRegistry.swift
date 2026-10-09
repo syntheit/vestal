@@ -124,10 +124,11 @@ public enum ClockFaces {
         + "if $th < 1 then (($th + days($y - 1)) / 7 | ceil) elif $th > days($y) then 1 else ($th / 7 | ceil) end"
 
     /// The world clocks as a list; `row` is one item's widget.
-    private static func world(direction: String, gap: Int, spaceBefore: Int, id: String? = nil, row: String) -> String {
+    private static func world(direction: String, gap: Int, spaceBefore: Int, id: String? = nil, when: String? = nil, row: String) -> String {
         let ident = id.map { "\"id\": \"\($0)\", " } ?? ""
+        let condition = when.map { "\"when\": \"\($0)\", " } ?? ""
         return """
-        { "type": "list", \(ident)"spaceBefore": \(spaceBefore), "direction": "\(direction)", "gap": \(gap),
+        { "type": "list", \(ident)\(condition)"spaceBefore": \(spaceBefore), "direction": "\(direction)", "gap": \(gap),
           "items": "$clocks", "rowId": ".label",
           "empty": { "type": "spacer", "height": 0 },
           "row": \(row) }
@@ -356,14 +357,13 @@ public enum ClockFaces {
       "children": [
         { "id": "analog", "type": "clockAnalog", "size": { "param": "size" }, "ticks": { "param": "ticks" }, "dateWindow": { "param": "dateWindow" },
           "numerals": { "param": "numerals" }, "seconds": { "param": "seconds" }, "date": { "param": "date" } },
-        { "type": "switch", "on": "$subdials",
-          "default": \(world(direction: "row", gap: 16, spaceBefore: 10, id: "2", row: """
+        \(world(direction: "row", gap: 16, spaceBefore: 10, id: "2", when: "$subdials != \\\"worldClocks\\\"", row: """
           { "type": "row", "gap": 4, "children": [
             \(text("{{ .label }}", size: "11", weight: "semibold", color: "dim")),
             \(zoneTime("{ \"size\": 11, \"font\": \"mono\", \"color\": \"subtle\" }"))
           ] }
           """)),
-          "cases": { "worldClocks": \(world(direction: "row", gap: 22, spaceBefore: 14, id: "2", row: """
+        \(world(direction: "row", gap: 22, spaceBefore: 14, id: "3", when: "$subdials == \\\"worldClocks\\\"", row: """
           { "type": "row", "gap": 10, "align": "center",
             "vars": {
               "day": "(now | fmt_time(\\"H\\"; $item.tz) | tonumber) as $h | $h >= 7 and $h < 19",
@@ -378,7 +378,7 @@ public enum ClockFaces {
                        size: "10", font: "mono", color: "dim"))
               ] }
             ] }
-          """)) } }
+          """))
       ]
     }
     """
