@@ -348,6 +348,73 @@ final class SubscribeTests: XCTestCase {
         XCTAssertFalse(engine.evaluatesWhileHidden)
     }
 
+    /// Changes that land while an earlier render is still on its way (two
+    /// sources in the same moment) are patches from the model the UIs have,
+    /// never the whole model again: one snapshot, at the show, and every
+    /// patch follows the one before it.
+    @MainActor
+    func testOverlappingRendersArePatchesNotSnapshots() async throws {
+        let config = """
+            {
+              "version": 1,
+              "sources": { "a": { "type": "http", "url": "https://feed.test/a", "refresh": "30m" },
+                           "b": { "type": "http", "url": "https://feed.test/b", "refresh": "30m" } },
+              "widgets": { "a": { "type": "text", "source": "a", "text": "a={{ .n }}" },
+                           "b": { "type": "text", "source": "b", "text": "b={{ .n }}" } },
+              "views": { "main": { "children": ["a", "b"] } }
+            }
+            """
+        let fetcher = FakeFetcher()
+        fetcher.reply("https://feed.test/a", .data(#"{"n": 0}"#))
+        fetcher.reply("https://feed.test/b", .data(#"{"n": 0}"#))
+        let loaded = ConfigLoader.load(data: Data(config.utf8), path: "/c.json")
+        let runtime = AppRuntime(config: loaded.config, fetcher: fetcher, cache: nil)
+        let engine = RenderEngine(runtime: runtime, loaded: loaded)
+        var snapshots = 0
+        var model: RenderSnapshot?
+        var broken: String?
+        _ = engine.observe { update in
+            switch update {
+            case .snapshot(let snapshot):
+                snapshots += 1
+                model = snapshot
+            case .patch(let patch):
+                guard var current = model, current.seq == patch.base else {
+                    broken = "patch \(patch.seq) on base \(patch.base), model at \(model?.seq ?? -1)"
+                    return
+                }
+                do { for op in patch.ops { try current.apply(op) } } catch { broken = "\(error)" }
+                current.seq = patch.seq
+                model = current
+            default:
+                break
+            }
+        }
+        runtime.start()
+        defer { runtime.shutdown() }
+        await waitUntil { runtime.snapshot(.source("a"))?.data != nil && runtime.snapshot(.source("b"))?.data != nil }
+        engine.setVisible(true)
+        await waitUntil { engine.snapshot != nil }
+        XCTAssertEqual(snapshots, 1)
+
+        for n in 1...40 {
+            for name in ["a", "b"] {
+                fetcher.reply("https://feed.test/\(name)", .data(#"{"n": \#(n)}"#))
+                Task { _ = await runtime.fetchNow(.source(name)) }
+            }
+            if n % 3 == 0 { await Task.yield() }
+        }
+        func shows(_ text: String) -> Bool {
+            guard let snapshot = engine.snapshot, let json = try? JSONEncoder().encode(snapshot) else { return false }
+            return String(decoding: json, as: UTF8.self).contains(text)
+        }
+        await waitUntil { model == engine.snapshot && shows("a=40") && shows("b=40") }
+        await settle()
+        XCTAssertNil(broken)
+        XCTAssertEqual(snapshots, 1, "a change was sent as the whole model")
+        XCTAssertEqual(model, engine.snapshot)
+    }
+
     @MainActor
     func testThePrimaryUIHandsOverWhenItLeaves() async throws {
         let fetcher = FakeFetcher()

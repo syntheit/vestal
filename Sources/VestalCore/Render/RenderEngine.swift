@@ -417,21 +417,20 @@ public final class RenderEngine {
         fullPending = false
         let inputs = collectInputs()
         let now = self.now()
-        let previous = snapshot
         queue.async { [worker] in
             let data = worker.data(inputs)
             let next = worker.session.render(data: data, now: now, changed: full ? nil : changed, tick: isTick)
             let usesNow = worker.session.usesNow
-            Task { @MainActor [weak self] in self?.publish(next, previous: previous, full: full, usesNow: usesNow) }
+            Task { @MainActor [weak self] in self?.publish(next, full: full, usesNow: usesNow) }
         }
     }
 
-    private func publish(_ fresh: RenderSnapshot, previous: RenderSnapshot?, full: Bool, usesNow: Bool) {
+    private func publish(_ fresh: RenderSnapshot, full: Bool, usesNow: Bool) {
         guard isEvaluating else { return }
         var next = fresh
         next.visible = isVisible
         next.diagnostics += failures
-        if full || previous == nil || snapshot != previous {
+        if full || snapshot == nil {
             // A show, a resync or a view change: the whole model.
             seq += 1
             next.seq = seq
@@ -441,8 +440,11 @@ public final class RenderEngine {
                 announce = false
                 send(.visibility(visible: true, view: next.view))
             }
-        } else if let previous {
-            let (model, patch) = Self.patch(from: previous, to: next)
+        } else if let base = snapshot {
+            // From the model the UIs have now: an evaluation that began
+            // after this one did (the tick and a source in the same moment)
+            // may have published since, and renders publish in order.
+            let (model, patch) = Self.patch(from: base, to: next)
             seq = model.seq
             snapshot = model
             if let patch { send(.patch(patch)) }
