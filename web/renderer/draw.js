@@ -233,7 +233,7 @@ export function timelineSVG(n, w, h, env) {
     if (item.label && laneHeight >= 12 && room >= 14) {
       const text = fitLabel(item.label, room, itemWidth);
       if (text) {
-        out += `<text x="${f(x0 + 6)}" y="${f(top + laneHeight / 2)}" dominant-baseline="central" style="font:${itemFont}" fill="${pal.css("bg")}">${esc(text)}</text>`;
+        out += `<text x="${f(x0 + 6)}" y="${f(top + laneHeight / 2)}" dominant-baseline="central" style="font:${esc(itemFont)}" fill="${pal.css("bg")}">${esc(text)}</text>`;
       }
     }
   }
@@ -242,7 +242,7 @@ export function timelineSVG(n, w, h, env) {
   }
   const dim = pal.css("dim");
   for (const t of visibleTicks(ticks, w, tickWidth)) {
-    out += `<text x="${f(t.left)}" y="${f(axisY + TIMELINE_LABEL_HEIGHT / 2)}" dominant-baseline="central" style="font:${tickFont}" fill="${dim}">${esc(t.label)}</text>`;
+    out += `<text x="${f(t.left)}" y="${f(axisY + TIMELINE_LABEL_HEIGHT / 2)}" dominant-baseline="central" style="font:${esc(tickFont)}" fill="${dim}">${esc(t.label)}</text>`;
   }
   return out;
 }

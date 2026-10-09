@@ -235,14 +235,22 @@ public enum InitCommand {
                 """)
         }
         var backup: String?
+        var mode: NSNumber?
         if exists(target) {
             guard options.force else {
                 return Output(status: 1, stderr: "vestal: \(target) exists; --force replaces it after copying it to \(target).bak-<timestamp>\n")
             }
-            let copy = target + ".bak-" + timestamp(now)
+            if (try? FileManager.default.destinationOfSymbolicLink(atPath: target)) != nil {
+                return Output(status: 1, stderr: "vestal: \(target) is a symbolic link, so init leaves it alone. Remove the link or pass --path.\n")
+            }
+            var copy = target + ".bak-" + timestamp(now)
+            var n = 1
+            while exists(copy) { n += 1; copy = target + ".bak-" + timestamp(now) + "-\(n)" }
             do {
                 let old = try Data(contentsOf: URL(fileURLWithPath: target))
                 try old.write(to: URL(fileURLWithPath: copy))
+                mode = (try? FileManager.default.attributesOfItem(atPath: target))?[.posixPermissions] as? NSNumber
+                if let mode { try? FileManager.default.setAttributes([.posixPermissions: mode], ofItemAtPath: copy) }
                 try FileManager.default.removeItem(atPath: target)
             } catch {
                 return Output(status: 1, stderr: "vestal: can't back up \(target): \(error.localizedDescription)\n")
@@ -253,6 +261,7 @@ public enum InitCommand {
             let parent = (target as NSString).deletingLastPathComponent
             if !parent.isEmpty { try FileManager.default.createDirectory(atPath: parent, withIntermediateDirectories: true) }
             try config.write(to: URL(fileURLWithPath: target), options: .atomic)
+            if let mode { try? FileManager.default.setAttributes([.posixPermissions: mode], ofItemAtPath: target) }
         } catch {
             return Output(status: 1, stderr: "vestal: can't write \(target): \(error.localizedDescription)\n")
         }
