@@ -223,7 +223,7 @@ final class PagesTests: XCTestCase {
         let path = dir.appendingPathComponent("config.json")
         try Data(config().utf8).write(to: path)
         let output = RenderCommands.render(
-            ["--config", path.path, "--data", dir.path, "--at", "1790528602", "--press", "right", "--format", "json"],
+            ["--config", path.path, "--data", dir.path, "--at", "1790528602", "--view", "a", "--press", "right", "--format", "json"],
             platform: SourcePlatform(), client: { _, _ in throw IPCError.notRunning(path: "") },
             cache: SnapshotCache(directory: dir.path))
         XCTAssertEqual(output.status, 0, output.stderr)
