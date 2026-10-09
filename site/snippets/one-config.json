@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "hotkey": "f3",
+  "theme": { "background": "aurora" },
+  "widgets": {
+    "reviews": { "type": "reviewQueue" },
+    "cores": { "type": "cpuCores" }
+  },
+  "views": {
+    "main": { "key": "1", "children": ["clock", "systemBar", "reviews", "agenda", "weather"] },
+    "machine": { "key": "2", "children": ["clock", "cores", "systems"] }
+  },
+  "platform": {
+    "linux": { "theme": { "background": "topo" } }
+  }
+}
