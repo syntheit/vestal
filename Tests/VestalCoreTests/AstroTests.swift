@@ -76,7 +76,7 @@ final class AstroTests: XCTestCase {
         XCTAssertEqual(winter.dayLength, 0)
     }
 
-    func testAltitudeAtNoonIsNinetyMinusLatitudePlusDeclination() {
+    func testAltitudeAtNoonIsNinetyMinusLatitudePlusDeclination() throws {
         // At the June solstice the noon sun at 51.5 N stands 62 degrees high (90 - 51.5 + 23.44).
         let sun = Astro.sun(latitude: 51.5074, longitude: -0.1278, year: 2024, month: 6, day: 21)
         let noon = Astro.altitude(latitude: 51.5074, longitude: -0.1278, epoch: sun.solarNoon)
@@ -164,14 +164,14 @@ final class AstroTests: XCTestCase {
         XCTAssertEqual(source.refresh, "10m")
         XCTAssertEqual(source.when, "visible")
         XCTAssertEqual(source.showRefreshSeconds, 60)
-        let fetcher = SourceFetcher(platform: SourcePlatform(), now: { Date(timeIntervalSince1970: 1_718_967_600) })
+        let fetcher = LiveFetcher(platform: SourcePlatform(), now: { Date(timeIntervalSince1970: 1_718_967_600) })
         XCTAssertNil(fetcher.problem(with: source))
         XCTAssertNotNil(fetcher.problem(with: SourceConfig(type: "astro")))
         XCTAssertNotNil(fetcher.problem(with: SourceConfig(type: "astro", latitude: 95, longitude: 0)))
     }
 
     func testFetchReturnsTheShape() async throws {
-        let fetcher = SourceFetcher(platform: SourcePlatform(), now: { Date(timeIntervalSince1970: 1_718_967_600) })
+        let fetcher = LiveFetcher(platform: SourcePlatform(), now: { Date(timeIntervalSince1970: 1_718_967_600) })
         let data = try await fetcher.fetch(SourceConfig(type: "astro", latitude: 38.72, longitude: -9.14))
         guard case .success(let tree) = AnyJSON.parse(data), let object = tree.objectValue else { return XCTFail("not JSON") }
         XCTAssertEqual(number(object["latitude"]), 38.72)

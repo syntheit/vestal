@@ -1004,6 +1004,7 @@ Both sources give the same shape:
 ## Showing it
 
 - **`aiUsage`**: one row with Claude's and Codex's windows as small bars, a percentage each and `in 4h` after it, all on one line. A service without data yet is left out. `{"type": "aiUsage"}`; `show: ["codex"]` for one service.
+- **`aiPlan`**: the same windows as full-width bars, one per window (5 hours, week, and a `<model> week` for each of Claude's per-model windows) with the percentage and when it resets. The weekly bars carry a white tick where usage would be at an even pace through the week (the elapsed share of the 7-day window, found from `resetsAt`). The plan badge is Codex's `plan`; Claude's endpoint doesn't give one, so write `"claudePlan": "Max"`. `{"type": "aiPlan"}`; `show: ["codex"]` for one service.
 - **System bar items**: `"claudeUsage"` and `"codexUsage"` in a `systemBar`'s `show` draw `session% / weekly%` with an icon. `codexUsage` is only drawn when listed.
 - **`claudeUsage`**: the Claude item as a row of its own.
 - **Your own**: any widget over the sources, such as `{ "type": "progress", "source": "claude", "label": "Claude", "value": ".weekly.percent // 0" }`, `{{ .weekly.resetsAt - now | fmt_duration(1) }}` for the time left, or a `list` over `.extra` for the per-model limits.

@@ -282,18 +282,21 @@ final class TimePresetsTests: XCTestCase {
     }
 
     func testOpenMeteoTemplateExpandsToAnHTTPSource() throws {
-        let config = ConfigLoader.load(data: Data(#"""
+        let imperial = ConfigExpansion.expand(tree(#"""
             { "sources": { "f": { "type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "imperial" } } }
-            """#.utf8), platform: .linux)
-        XCTAssertEqual(config.warnings.filter { $0.severity == .error }.map(\.description), [])
-        let source = try XCTUnwrap(config.config.sources["f"])
+            """#))
+        XCTAssertEqual(imperial.warnings.filter { $0.severity == .error }.map(\.description), [])
+        let source = try XCTUnwrap(imperial.sources["f"])
         XCTAssertEqual(source.type, "http")
         let url = try XCTUnwrap(source.url)
         XCTAssertTrue(url.hasPrefix("https://api.open-meteo.com/v1/forecast?latitude=38.72&longitude=-9.14&"), url)
         XCTAssertTrue(url.hasSuffix("temperature_unit=fahrenheit"), url)
-        XCTAssertFalse(url.contains("apikey") || url.contains("key="))
-        let metric = ConfigLoader.load(data: Data(#"{ "sources": { "f": { "type": "openMeteo", "latitude": 1, "longitude": 2 } } }"#.utf8), platform: .linux)
-        XCTAssertTrue(try XCTUnwrap(metric.config.sources["f"]?.url).hasSuffix("temperature_unit=celsius"))
+        XCTAssertFalse(url.contains("key="), "no API key")
+        XCTAssertEqual(source.refresh, "30m")
+        XCTAssertEqual(source.when, "visible")
+        XCTAssertNotNil(source.transform)
+        let metric = ConfigExpansion.expand(tree(#"{ "sources": { "f": { "type": "openMeteo", "latitude": 1, "longitude": 2 } } }"#))
+        XCTAssertTrue(try XCTUnwrap(metric.sources["f"]?.url).hasSuffix("temperature_unit=celsius"))
     }
 
     // MARK: progress and sparkline additions
