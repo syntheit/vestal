@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Clock, stacked",
+  "description": "Hours over minutes with the minutes in the accent, and the date, a seconds bar and the world clocks in a column beside them.",
+  "preset": "clock",
+  "size": [
+    680,
+    250
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time",
+    "face"
+  ]
+}

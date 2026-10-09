@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Clock, rounded",
+  "description": "Light rounded numerals with small gray seconds; the world clocks are pills with a sun or moon for day and night there.",
+  "preset": "clock",
+  "size": [
+    680,
+    300
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time",
+    "face"
+  ]
+}

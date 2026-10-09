@@ -133,6 +133,7 @@ step_build() {
     install -m644 Resources/icons/Phosphor.ttf "$APP/Contents/Resources/Fonts/Phosphor.ttf"
     install -m644 Resources/icons/Phosphor-Fill.ttf "$APP/Contents/Resources/Fonts/Phosphor-Fill.ttf"
     install -m644 Resources/icons/LICENSE "$APP/Contents/Resources/Fonts/LICENSE-Phosphor"
+    cp -R Resources/fonts/. "$APP/Contents/Resources/Fonts/"
     cp -R Resources/samples "$APP/Contents/Resources/samples"
     cp -R Resources/starters "$APP/Contents/Resources/starters"
     [[ -d Resources/shaders ]] && cp -R Resources/shaders "$APP/Contents/Resources/shaders"

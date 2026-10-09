@@ -1389,6 +1389,7 @@ Numbers are written the American way on every system, whatever its locale (`LC_N
 | `fmt_relative` | time → distance from now | `"5m ago"`, `"3h ago"`, `"2d ago"`, `"in 25m"`, `"now"` |
 | `starts_in` | minutes → `"now"`, `"in 25m"`, `"in 2h 5m"` | `125 \| starts_in` → `"in 2h 5m"` |
 | `fmt_time(pattern)`, `fmt_time(pattern; tz)` | time → an ICU date pattern, in the local zone or `tz` | `now \| fmt_time("HH:mm"; "Asia/Tokyo")` |
+| `uses_12h` | → boolean | whether the system's locale shows 12-hour times (macOS: the user's time format setting; Linux: `LC_ALL`, `LC_TIME` or `LANG`); the `clock`'s `hour12: "auto"`. `if uses_12h then "h:mm a" else "HH:mm" end` |
 | `fmt_localized(skeleton)`, `fmt_localized(skeleton; tz)` | time → the locale's form of an ICU skeleton | `now \| fmt_localized("EEEEMMMMdy")` → `"Sunday, September 27, 2026"`; `"JJmm"`: hours and minutes in the locale's hour cycle (12-hour without AM/PM in `en_US`; for a fixed 24-hour time use `fmt_time("HH:mm")`) |
 | `clock24` | 12-hour text → 24-hour | `"06:15 PM"` → `"18:15"`, `"06:15"` → `"6:15"` |
 | `capitalize` | first letter upper-cased | `"exchange"` → `"Exchange"` |
@@ -1836,7 +1837,26 @@ These keep their v0.3 names, parameters and look, so v0.3 configs work unchanged
 
 ### `clock`
 
-The local time (size 56, ultralight, mono), the date, and `worldClocks` under them: `[{"label": "NYC", "tz": "America/New_York"}]`. A world clock in the local zone, or with an unknown zone, is skipped. Times are 24-hour on every system (`13:46:38`); `hour12: true` shows `1:46:38 PM`. The date follows the locale.
+The local time (size 56, ultralight, mono), the date, and `worldClocks` under them: `[{"label": "NYC", "tz": "America/New_York"}]`. A world clock in the local zone, or with an unknown zone, is skipped. Times are 24-hour on every system (`13:46:38`); `hour12: true` shows `1:46:38 PM`, and `hour12: "auto"` follows the system's 12 or 24 hour setting (macOS: the user's time format; Linux: `LC_ALL`, `LC_TIME` or `LANG`). The date follows the locale.
+
+`face` picks the look. Every face is built from `text`, `row`, `stack`, `list`, `progress` and `icon`, shows the world clocks, and sets its time in the `display` font role (`vestal docs styling`): the theme's `display` family (a `typeface` or `theme.fonts.display`) when it sets one, else the face's own, which ships with vestal. `theme.density: "compact"` draws `mono` only.
+
+| `face` | Looks like | Own family (point size) | Parameters it reads |
+|---|---|---|---|
+| `mono` | Today's clock: time with seconds, the date, world clocks. The default. | the `mono` role (56) | `seconds`, `date`, `hour12` |
+| `thin` | Hairline hours and minutes, the date in spaced capitals. | Inter Tight 100 (168) | `seconds`, `date`, `size`, `hour12` |
+| `stacked` | Hours over minutes, the minutes in `minutesColor`; weekday, date, a seconds bar and a column of world clocks beside. | Space Grotesk 300 (128) | `minutesColor`, `secondsBar`, `date`, `size`, `hour12` |
+| `serif` | A magazine time; `date: "words"` writes the date out; world cities set like a byline. | Instrument Serif (136) | `date`, `seconds`, `size`, `hour12` |
+| `condensed` | Tall narrow numerals with the seconds beside them; the date line in tracked capitals with the ISO week. | Big Shoulders Display 200 (212) | `seconds`, `date`, `size`, `hour12` |
+| `rounded` | Light rounded numerals, seconds small and gray; `worldStyle: "chips"` makes world clocks pills with a sun or moon. | Nunito 300 (108) | `seconds`, `worldStyle`, `date`, `size`, `hour12` |
+| `breathe` | Hours and minutes with a colon that fades over four seconds. | Manrope 200 (132) | `colon`, `seconds`, `date`, `size`, `hour12` |
+
+```json
+{ "type": "clock", "face": "serif", "date": "words", "hour12": "auto",
+  "worldClocks": [ { "label": "NYC", "tz": "America/New_York" }, { "label": "TYO", "tz": "Asia/Tokyo" } ] }
+```
+
+The breathing colon steps its opacity once a second (the dashboard redraws each second while a clock shows), which approximates a fade without an animation in the render model. Italic is not part of the render model, so the `serif` face's am and pm are lower-case roman.
 
 ### `systemBar`
 
@@ -2655,7 +2675,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 | `pages` | Present with two or more pages: `items` (the pages in paging order, each `{name, title, key}`), `index` (the current view's place in `items`, absent when it is not a page), `direction` (`1` or `-1`: which way the last change of view went; absent when there was none or it has no direction), and the settings `transition`, `indicator`, `swipe` and `wrap` (`vestal docs views`). A UI draws the transition on a change of `view`, and the dots when `indicator` is `dots`. |
 | `visible` | Whether the dashboard should be on screen. |
 | `theme.colors` | Every palette name a node may use, resolved to `#rrggbbaa`. |
-| `theme.fonts` | A family per role; `null` is the platform default. |
+| `theme.fonts` | A family per role (`sans`, `mono`, `rounded`, and `display` when set: the clock and big-number family); `null` is the platform default. The config's `typeface` is already resolved into it. A text node's `font` is a role or a family name. |
 | `theme.icons` | The icon font family per weight; `mode` (`native` or `phosphor`) when the config sets `theme.icons`. |
 | `theme.dim` | The config's `theme.dim`, clamped to 0 to 1, when it sets one: the opacity of `bg` over the blurred desktop for `aurora` and `blur`. Absent: the UI's default (0.5 in the GTK UI; no tint in the macOS UI). |
 | `theme.backdrop` | The config's `theme.backdrop` (`self`, `compositor` or `none`) when it sets one. Absent: `self` in the GTK UI where the compositor can capture the screen; the macOS UI ignores it. |
@@ -3521,13 +3541,59 @@ programs.vestal.starter = "agentops";
 | `blur` | `48` | Linux, `backdrop` `self`: the blur radius in points, 0 to 200. |
 | `palettes` | none | Name → `{ "extends": "<palette>", "colors": { name: colour } }`. |
 | `colors` | none | Colours added to, or replacing, the chosen palette's. |
-| `fonts` | platform | `{ "sans": family, "mono": family, "rounded": family }`; `null` means the platform default. |
+| `typeface` | `system` | A named set of fonts that fills the four roles at once: `system`, `geist`, `inter`, `plex`, `instrument` or `fira` ([Fonts](#fonts)). |
+| `fonts` | the typeface's | `{ "display": family, "sans": family, "mono": family, "rounded": family }`; each entry overrides the typeface's family for that role. `null` or absent means the typeface's, else the platform default. |
 | `font` | none | Shorthand for `fonts.sans`. |
 | `scale` | `1` | Multiplies every text, icon and fixed size (numeric widths and heights, min/max sizes, column widths, the view's `maxWidth`, popup widths; not gaps or padding): for large screens or reading from afar. |
 | `density` | `comfortable` | How much room the built-in presets take. `"comfortable"`: the v0.3 look. `"compact"`: about half the height: a clock two thirds the size with the date and world clocks on one line under it, no section titles or rules where the rows explain themselves (hosts, currencies, weather; the agenda keeps a small title), shorter and thinner bars, currencies and weather on one line each, plan-usage resets beside the bars, and about half the space between blocks. Same parameters at both; a template you override stays yours. The `title` of `systemHealth`, `keyValueList` and `weatherCard` is accepted and not drawn; a `section` (yours too) gets a small title and no rule. `vestal docs preset/<name>` shows both bodies. Views without a `gap` use `12` instead of `24`. `vestal print-config --expanded` shows the bodies in use. |
 | `icons` | platform | `native`: the macOS UI draws the presets' icons as SF Symbols (the default on macOS). `phosphor`: the bundled Phosphor font everywhere (`vestal docs icons`). |
 
-Fonts are the usual reason for a `platform` block:
+## Fonts
+
+Text draws in one of four **roles**, each a font family:
+
+| Role | Used for | macOS default | Linux default |
+|---|---|---|---|
+| `display` | clocks and big numbers | the clock face's own family (below), else `sans` | the same |
+| `sans` | labels, titles, rows | the system font (SF Pro) | Geist with the Nix package, else fontconfig `sans-serif` |
+| `mono` | times, values, hosts | the system monospaced font (SF Mono) | Geist Mono with the Nix package, else fontconfig `monospace` |
+| `rounded` | the clock's date line | SF Pro Rounded | same as `sans` |
+
+`style.font` on any widget takes a role name or a family name (`"font": "mono"`, `"font": "Instrument Serif"`). It may also be a comma-separated list, of which the first usable entry counts: `display` is usable when the theme sets that role (a typeface or `theme.fonts.display`), a family name always is. The clock faces use `"display, Inter Tight"`: the theme's display font, else the face's own. A family that is neither bundled nor installed draws as `sans`; `vestal check-config` says so with an `unknown-font` note.
+
+### Typefaces
+
+`theme.typeface` fills the roles from a named set; `theme.fonts` entries override single roles.
+
+| `typeface` | `display` | `sans` | `mono` |
+|---|---|---|---|
+| `system` (default) | the face's own | SF Pro / Geist | SF Mono / Geist Mono |
+| `geist` | Geist Mono | Geist | Geist Mono |
+| `inter` | Inter Tight | Inter | JetBrains Mono |
+| `plex` | IBM Plex Sans | IBM Plex Sans | IBM Plex Mono |
+| `instrument` | Instrument Serif | Instrument Sans | JetBrains Mono |
+| `fira` | Fira Code | Fira Code | Fira Code |
+
+`rounded` follows `sans` in every set but `system`. `fira` changes no colors: the palette stays as it is. The 14 families ship with vestal (about 4.8 MB, `Resources/fonts/`, each with its license) and are loaded for vestal's own process only (CoreText on macOS, fontconfig on Linux, `@font-face` in the web renderer); nothing is installed on the system. Any other installed family can be named in `theme.fonts` or `style.font`.
+
+| Family | License | Used by |
+|---|---|---|
+| Geist, Geist Mono | SIL OFL 1.1 | `geist` |
+| Inter, Inter Tight | SIL OFL 1.1 | `inter`; Inter Tight is the `thin` clock face |
+| JetBrains Mono | SIL OFL 1.1 | `inter`, `instrument` |
+| IBM Plex Sans, IBM Plex Mono | SIL OFL 1.1 | `plex` |
+| Instrument Serif, Instrument Sans | SIL OFL 1.1 | `instrument`; Instrument Serif is the `serif` clock face |
+| Fira Code | SIL OFL 1.1 | `fira` |
+| Big Shoulders Display | SIL OFL 1.1 | the `condensed` clock face |
+| Space Grotesk | SIL OFL 1.1 | the `stacked` clock face |
+| Manrope | SIL OFL 1.1 | the `breathe` clock face |
+| Nunito | SIL OFL 1.1 | the `rounded` clock face |
+
+```json
+{ "theme": { "typeface": "instrument", "fonts": { "mono": "Fira Code" } } }
+```
+
+Fonts are also the usual reason for a `platform` block:
 
 ```json
 {
@@ -3536,14 +3602,6 @@ Fonts are the usual reason for a `platform` block:
   "platform": { "linux": { "theme": { "dim": 0.8, "fonts": { "sans": "Inter", "mono": "JetBrains Mono" } } } }
 }
 ```
-
-| Role | macOS default | Linux default |
-|---|---|---|
-| `sans` | the system font (SF Pro) | Geist with the Nix package, else fontconfig `sans-serif` |
-| `mono` | the system monospaced font (SF Mono) | Geist Mono with the Nix package, else fontconfig `monospace` |
-| `rounded` | SF Pro Rounded | same as `sans` |
-
-A missing family falls back to the default.
 
 ## Backgrounds
 
@@ -3647,7 +3705,7 @@ A palette entry may name another entry. A palette of your own:
 |---|---|---|
 | `size` | points, or `xs` 10, `sm` 11, `md` 12, `base` 13, `lg` 14, `xl` 18, `2xl` 24, `3xl` 36, `display` 56 | `base` (13) |
 | `weight` | `ultralight` 100, `thin` 200, `light` 300, `regular` 400, `medium` 500, `semibold` 600, `bold` 700, `heavy` 800, `black` 900, or the number | `regular` |
-| `font` | `sans`, `mono`, `rounded` | `sans` |
+| `font` | a role (`display`, `sans`, `mono`, `rounded`) or a family name; a comma-separated list takes the first usable entry (`"display, Inter Tight"`: the theme's display font, else Inter Tight) | `sans` |
 | `color` | a colour | `text` |
 | `tracking` | points of letter spacing | `0` |
 | `case` | `upper`, `lower`, `none` | `none` |

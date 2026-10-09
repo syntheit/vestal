@@ -19,7 +19,7 @@ main().catch((e) => console.error("vestal site:", e));
 
 async function main() {
   data = S.data || await (await fetch("data.json")).json();
-  assets = S.assets || { icons: new URL("assets/icons/", location.href).href, shaders: new URL("assets/shaders/", location.href).href };
+  assets = S.assets || { icons: new URL("assets/icons/", location.href).href, fonts: new URL("assets/fonts/", location.href).href, shaders: new URL("assets/shaders/", location.href).href };
   resolveImage = S.image || ((p) => (p.startsWith("Resources/samples/") ? new URL(`assets/samples/${p.slice(18)}`, location.href).href : null));
   await fontsSettled();
 

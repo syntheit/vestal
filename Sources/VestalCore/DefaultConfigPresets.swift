@@ -93,27 +93,18 @@ public enum DefaultPresets {
       },
 
       "clock": {
-        "description": "Local time and date, with world clocks under them (v0.3 clock)",
+        "description": "Local time and date, with world clocks under them. The face parameter picks the look (vestal docs presets); mono is the v0.3 clock",
         "params": {
+          "face": { "type": "string", "default": "mono", "description": "The look: mono, thin, stacked, serif, condensed, rounded or breathe" },
           "worldClocks": { "type": "array", "default": [], "description": "[{\"label\": \"NYC\", \"tz\": \"America/New_York\"}]; clocks in the local zone or with an unknown zone are skipped" },
-          "hour12": { "type": "boolean", "default": false, "description": "12-hour times with AM/PM (1:46:38 PM, world clocks 1:46 PM) instead of 24-hour (13:46:38, 13:46)" }
-        },
-        "widget": {
-          "type": "stack", "gap": 4, "align": "center", "spaceBefore": 0,
-          "children": [
-            { "type": "text", "text": "{{ now | fmt_time(if $hour12 then \"h:mm:ss a\" else \"HH:mm:ss\" end) }}", "style": { "size": 56, "weight": "ultralight", "font": "mono" } },
-            { "type": "text", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}", "style": { "size": 15, "font": "rounded", "color": "subtle" } },
-            {
-              "type": "list", "spaceBefore": 10, "direction": "row", "gap": 16,
-              "items": "$worldClocks | map(select(.label != null and .tz != null and .tz != $tz and (.tz | tz_valid))) | uniq_by(.label)",
-              "rowId": ".label",
-              "empty": { "type": "spacer", "height": 0 },
-              "row": { "type": "row", "gap": 4, "children": [
-                { "type": "text", "text": "{{ .label }}", "style": { "size": 11, "weight": "semibold", "color": "dim" } },
-                { "type": "text", "text": "{{ now | fmt_time(if $hour12 then \"h:mm a\" else \"HH:mm\" end; $item.tz) }}", "style": { "size": 11, "font": "mono", "color": "subtle" } }
-              ] }
-            }
-          ]
+          "hour12": { "type": "any", "default": false, "description": "true: 12-hour times with AM/PM (1:46:38 PM, world clocks 1:46 PM); false: 24-hour (13:46:38, 13:46); \"auto\": whichever the system is set to" },
+          "seconds": { "type": "any", "default": null, "description": "Show seconds. Default: the face's own (mono, condensed and rounded show them)" },
+          "date": { "type": "string", "default": "auto", "enum": ["auto", "full", "words", "none"], "description": "The date line: full (the locale's), none, or words (\"It is Sunday, the twenty-seventh of September\", the serif face). auto: full" },
+          "size": { "type": "any", "default": null, "description": "The time's point size. Default: the face's own" },
+          "minutesColor": { "type": "color", "default": "accent", "description": "stacked: the minutes' color" },
+          "secondsBar": { "type": "boolean", "default": true, "description": "stacked: a bar of the minute's seconds" },
+          "worldStyle": { "type": "string", "default": "row", "enum": ["row", "chips"], "description": "rounded: world clocks as a row, or as pills with a sun or moon for day and night there" },
+          "colon": { "type": "string", "default": "auto", "enum": ["auto", "static", "breathe"], "description": "breathe: the colon fades over four seconds (stepping each second); auto: on in the breathe face, off elsewhere" }
         }
       },
 

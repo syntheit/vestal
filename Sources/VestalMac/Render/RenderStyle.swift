@@ -98,20 +98,36 @@ struct RenderStyle {
 
     /// The font for a text node: its role's family, absolute size and
     /// numeric weight. The system font by default, as v0.3 draws: SF Pro,
-    /// SF Mono for `mono`, SF Pro Rounded for `rounded`.
+    /// SF Mono for `mono`, SF Pro Rounded for `rounded`. `role` may also be a
+    /// family name (`style.font`); one that is not installed draws as sans.
     func font(role: String, size: Double, weight: Int) -> Font {
         let w = Self.fontWeight(weight)
-        let family: String?
-        let design: Font.Design
-        switch role {
-        case "mono": family = theme.fonts.mono; design = .monospaced
-        case "rounded": family = theme.fonts.rounded; design = .rounded
-        default: family = theme.fonts.sans; design = .default
-        }
+        let (family, design) = Self.family(role: role, fonts: theme.fonts)
         if let family, Self.hasFamily(family) {
             return Font.custom(family, fixedSize: CGFloat(size)).weight(w)
         }
+        if let fallback = Self.fallback(role: role, fonts: theme.fonts), Self.hasFamily(fallback) {
+            return Font.custom(fallback, fixedSize: CGFloat(size)).weight(w)
+        }
         return .system(size: CGFloat(size), weight: w, design: design)
+    }
+
+    /// The family a role names in `fonts` (nil: the system font), with the
+    /// system design that stands in for it. A name that is not a role is a
+    /// family of its own.
+    static func family(role: String, fonts: RenderTheme.Fonts) -> (String?, Font.Design) {
+        switch role {
+        case "mono": return (fonts.mono, .monospaced)
+        case "rounded": return (fonts.rounded, .rounded)
+        case "display": return (fonts.display ?? fonts.sans, .default)
+        case "sans": return (fonts.sans, .default)
+        default: return (role, .default)
+        }
+    }
+
+    /// For a family name that is not installed: the sans role's family.
+    static func fallback(role: String, fonts: RenderTheme.Fonts) -> String? {
+        Typefaces.roles.contains(role) ? nil : fonts.sans
     }
 
     /// The weight names: 100 ultralight … 900 black; other numbers round to the

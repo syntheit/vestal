@@ -109,6 +109,7 @@ in
       ./Resources/icons/Phosphor.ttf
       ./Resources/icons/Phosphor-Fill.ttf
       ./Resources/icons/LICENSE
+      ./Resources/fonts
       ./Resources/samples
       ./Resources/starters
       ./Resources/shaders
@@ -178,6 +179,8 @@ in
         install -Dm644 Resources/icons/Phosphor.ttf "$app/Contents/Resources/Fonts/Phosphor.ttf"
         install -Dm644 Resources/icons/Phosphor-Fill.ttf "$app/Contents/Resources/Fonts/Phosphor-Fill.ttf"
         install -Dm644 Resources/icons/LICENSE "$app/Contents/Resources/Fonts/LICENSE-Phosphor"
+        # The typefaces (theme.typeface), one directory per family with its license.
+        cp -r Resources/fonts/. "$app/Contents/Resources/Fonts/"
         # The sample of every preset, which `vestal gallery` draws.
         cp -r Resources/samples "$app/Contents/Resources/samples"
         cp -r Resources/starters "$app/Contents/Resources/starters"
@@ -191,6 +194,12 @@ in
         install -Dm755 "$(swiftpmBinPath)/vestal" "$out/libexec/vestal/vestal"
         mkdir -p "$out/share/vestal/fonts" "$out/share/vestal/icons"
         ln -s ${geist-font}/share/fonts/opentype "$out/share/vestal/fonts/geist"
+        # The other typefaces (theme.typeface), a directory per family with its
+        # license. Geist and Geist Mono come from nixpkgs above.
+        for family in Resources/fonts/*/; do
+          case "$(basename "$family")" in geist|geist-mono) continue ;; esac
+          cp -r "$family" "$out/share/vestal/fonts/"
+        done
         install -m644 Resources/icons/Phosphor.ttf Resources/icons/Phosphor-Fill.ttf Resources/icons/LICENSE \
           "$out/share/vestal/icons/"
         # The sample of every preset, which `vestal gallery` draws.

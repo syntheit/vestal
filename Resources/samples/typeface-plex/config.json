@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "theme": {
+    "typeface": "plex"
+  },
+  "widgets": {
+    "clock": {
+      "type": "clock",
+      "seconds": false,
+      "worldClocks": [
+        {
+          "label": "NYC",
+          "tz": "America/New_York"
+        },
+        {
+          "label": "LON",
+          "tz": "Europe/London"
+        }
+      ]
+    },
+    "display": {
+      "type": "text",
+      "text": "10:42  Display",
+      "style": {
+        "font": "display",
+        "size": 36,
+        "weight": "light"
+      }
+    },
+    "sans": {
+      "type": "text",
+      "text": "Sans: labels, titles and rows read in this.",
+      "style": {
+        "font": "sans",
+        "size": 15
+      }
+    },
+    "mono": {
+      "type": "text",
+      "text": "Mono: 13:46:38  3d 4h  412 / 926 GB  0.1.0",
+      "style": {
+        "font": "mono",
+        "size": 15
+      }
+    },
+    "rounded": {
+      "type": "text",
+      "text": "Rounded: Sunday, September 27",
+      "style": {
+        "font": "rounded",
+        "size": 15,
+        "color": "subtle"
+      }
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "clock",
+        "display",
+        "sans",
+        "mono",
+        "rounded"
+      ],
+      "padding": 24
+    }
+  }
+}

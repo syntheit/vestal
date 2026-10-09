@@ -73,6 +73,7 @@ writeFileSync(join(args.out, "data.json"), JSON.stringify({ samples }));
 for (const f of readdirSync(join(root, "Resources", "icons")).filter((f) => f.endsWith(".ttf"))) {
   cpSync(join(root, "Resources", "icons", f), join(args.out, "assets", "icons", f));
 }
+cpSync(join(root, "Resources", "fonts"), join(args.out, "assets", "fonts"), { recursive: true });
 const shaders = join(root, "Resources", "shaders");
 if (existsSync(shaders)) {
   mkdirSync(join(args.out, "assets", "shaders"), { recursive: true });
@@ -114,7 +115,7 @@ writeFileSync(join(args.out, "index.html"), `<!doctype html>
 <script type="module">
 import { mount } from "../renderer/index.js";
 
-const assets = { icons: new URL("assets/icons/", location.href).href, shaders: new URL("assets/shaders/", location.href).href };
+const assets = { icons: new URL("assets/icons/", location.href).href, fonts: new URL("assets/fonts/", location.href).href, shaders: new URL("assets/shaders/", location.href).href };
 const params = new URLSearchParams(location.search);   // ?bg=blur|none|aurora, ?scale=2, ?eager
 const { samples } = await (await fetch("data.json")).json();
 const scale = Number(params.get("scale")) || 1;

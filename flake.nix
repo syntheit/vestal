@@ -50,9 +50,9 @@
             ];
           }
           // lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
-            # Where a dev build of the macOS UI finds the Phosphor icon fonts
+            # Where a dev build of the macOS UI finds the Phosphor icon fonts and the typefaces
             # (the app bundle has them in Contents/Resources/Fonts).
-            VESTAL_FONT_DIRS = "${./Resources/icons}";
+            VESTAL_FONT_DIRS = "${./Resources/icons}:${./Resources/fonts}";
           }
           // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
             # SwiftPM compiles and runs Package.swift against libdispatch.
@@ -63,6 +63,7 @@
             VESTAL_FONT_DIRS = lib.concatStringsSep ":" [
               "${pkgs.geist-font}/share/fonts"
               "${./Resources/icons}"
+              "${./Resources/fonts}"
             ];
           }
         );

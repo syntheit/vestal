@@ -100,7 +100,8 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 | `blur` | number | `48` | Linux, `backdrop` `"self"`: the blur's radius in points (about twice the Gaussian's standard deviation; scaled by the output's scale). `0` to `200`, clamped with a warning. Takes effect at the next show. |
 | `palettes` | object | none | Your palettes: name → `{"extends": "<palette>", "colors": {name: colour}}`. `extends` defaults to `tokyo-night`. |
 | `colors` | object | none | Colours added to, or overriding, the chosen palette: name → colour. |
-| `fonts` | object | platform defaults | A family per role: `{"sans": …, "mono": …, "rounded": …}`. `null` (or absent) is the platform's default: SF Pro, SF Mono and SF Pro Rounded on macOS; Geist and Geist Mono on Linux (shipped by the Nix package; fontconfig's `sans-serif` and `monospace` without them; `rounded` is `sans` there). A family that isn't installed falls back to the default. On Linux, text is drawn with FreeType's stem darkening and text below bold one weight step heavier (400 as 500, 600 as 700), which matches macOS's heavier glyphs (`docs/screenshots/linux/fonts/`); `VESTAL_FONT_WEIGHT_OFFSET=0` in vestal's environment draws the weights as given, and a `FREETYPE_PROPERTIES` of your own replaces the darkening. |
+| `typeface` | string | `"system"` | A named set of fonts filling the roles at once: `system`, `geist`, `inter`, `plex`, `instrument` or `fira` (`vestal docs styling`). The families ship with vestal and are loaded for its own process only. |
+| `fonts` | object | the typeface's | A family per role: `{"display": …, "sans": …, "mono": …, "rounded": …}` (`display` is for clocks and big numbers); an entry overrides the typeface's. `null` (or absent) is the typeface's, else the platform's default: SF Pro, SF Mono and SF Pro Rounded on macOS; Geist and Geist Mono on Linux (shipped by the Nix package; fontconfig's `sans-serif` and `monospace` without them; `rounded` is `sans` there). A family that isn't installed falls back to the default. On Linux, text is drawn with FreeType's stem darkening and text below bold one weight step heavier (400 as 500, 600 as 700), which matches macOS's heavier glyphs (`docs/screenshots/linux/fonts/`); `VESTAL_FONT_WEIGHT_OFFSET=0` in vestal's environment draws the weights as given, and a `FREETYPE_PROPERTIES` of your own replaces the darkening. |
 | `font` | string | none | Shorthand for `fonts.sans`. |
 | `scale` | number | `1` | Multiplies every text, icon and fixed size (numeric widths and heights, min/max sizes, column widths, the view's `maxWidth`, popup widths; not gaps or padding), for large screens or reading distance. |
 | `density` | string | `"comfortable"` | How much room the built-in presets take. `"comfortable"`: the v0.3 look. `"compact"`: about half the height: a clock two thirds the size with the date and world clocks on one line under it, no section titles or rules where the rows explain themselves (hosts, currencies, weather; the agenda keeps a small title), shorter and thinner bars, currencies and weather on one line each, plan-usage resets beside the bars, and about half the space between blocks. Same parameters at both; a template you override stays yours. The `title` of `systemHealth`, `keyValueList` and `weatherCard` is accepted and not drawn; a `section` (yours too) gets a small title and no rule. `vestal docs preset/<name>` shows both bodies. Views without a `gap` use `12` instead of `24`. Screenshots: `docs/screenshots/compact/`. |
@@ -152,7 +153,7 @@ Wherever a colour goes (`color`, `background`, `trackColor`, a style's `color`, 
 |---|---|---|
 | `size` | points, or `xs` 10, `sm` 11, `md` 12, `base` 13, `lg` 14, `xl` 18, `2xl` 24, `3xl` 36, `display` 56 | `base` (13) |
 | `weight` | `ultralight`, `thin`, `light`, `regular`, `medium`, `semibold`, `bold`, `heavy`, `black`, or 100–900 | `regular` |
-| `font` | `sans`, `mono`, `rounded` | `sans` |
+| `font` | a role (`display`, `sans`, `mono`, `rounded`) or a family name; a comma-separated list takes the first usable entry (`"display, Inter Tight"`: the theme's display font, else Inter Tight) | `sans` |
 | `color` | a colour | `text` |
 | `tracking` | points of letter spacing | 0 |
 | `case` | `upper`, `lower`, `none` | `none` |
@@ -722,7 +723,15 @@ The local time and date.
 | Key | Type | Default | |
 |---|---|---|---|
 | `worldClocks` | list of `{ "label": string, "tz": string }` | none | Extra clocks under the date. `tz` is an IANA zone such as `"America/New_York"`. A clock in the local time zone, or with an unknown zone, is skipped. Both keys are required. |
-| `hour12` | boolean | `false` | 12-hour times with AM/PM (`1:46:38 PM`, world clocks `1:46 PM`). By default times are 24-hour (`13:46:38`, `13:46`) whatever the system's locale; the date follows the locale. |
+| `face` | string | `"mono"` | The look: `mono` (v0.3's), `thin`, `stacked`, `serif`, `condensed`, `rounded` or `breathe` (`vestal docs preset/clock`). |
+| `hour12` | boolean or `"auto"` | `false` | `true`: 12-hour times with AM/PM (`1:46:38 PM`, world clocks `1:46 PM`). `false`: 24-hour (`13:46:38`, `13:46`) whatever the system's locale. `"auto"`: whichever the system is set to (macOS: the user's time format setting; Linux: `LC_ALL`, `LC_TIME` or `LANG`). The date follows the locale. |
+| `seconds` | boolean | the face's | Show seconds. `mono`, `condensed` and `rounded` show them by default; `thin`, `serif` and `breathe` do not (set, they add them to the time); `stacked` has `secondsBar` instead. |
+| `date` | `"auto"`, `"full"`, `"words"`, `"none"` | `"auto"` | The date line. `auto` and `full`: the locale's (with the year on `mono`). `words`: "It is Sunday, the twenty-seventh of September" (English phrasing; weekday and month follow the locale). `none`: no date line. |
+| `size` | number | the face's | The time's point size: 168 `thin`, 128 `stacked`, 136 `serif`, 212 `condensed`, 108 `rounded`, 132 `breathe`. `mono` stays 56. |
+| `minutesColor` | color | `"accent"` | `stacked`: the minutes' color. |
+| `secondsBar` | boolean | `true` | `stacked`: a bar of the minute's seconds beside the date. |
+| `worldStyle` | `"row"`, `"chips"` | `"row"` | `rounded`: world clocks as a row of text, or as pills with a sun or moon for day or night there. |
+| `colon` | `"auto"`, `"static"`, `"breathe"` | `"auto"` | `breathe`: the colon fades over four seconds, in one step a second (`static` keeps it solid). The other faces have no separate colon. |
 
 ### `systemBar`
 

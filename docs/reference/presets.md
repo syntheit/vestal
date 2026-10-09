@@ -259,7 +259,26 @@ These keep their v0.3 names, parameters and look, so v0.3 configs work unchanged
 
 ### `clock`
 
-The local time (size 56, ultralight, mono), the date, and `worldClocks` under them: `[{"label": "NYC", "tz": "America/New_York"}]`. A world clock in the local zone, or with an unknown zone, is skipped. Times are 24-hour on every system (`13:46:38`); `hour12: true` shows `1:46:38 PM`. The date follows the locale.
+The local time (size 56, ultralight, mono), the date, and `worldClocks` under them: `[{"label": "NYC", "tz": "America/New_York"}]`. A world clock in the local zone, or with an unknown zone, is skipped. Times are 24-hour on every system (`13:46:38`); `hour12: true` shows `1:46:38 PM`, and `hour12: "auto"` follows the system's 12 or 24 hour setting (macOS: the user's time format; Linux: `LC_ALL`, `LC_TIME` or `LANG`). The date follows the locale.
+
+`face` picks the look. Every face is built from `text`, `row`, `stack`, `list`, `progress` and `icon`, shows the world clocks, and sets its time in the `display` font role (`vestal docs styling`): the theme's `display` family (a `typeface` or `theme.fonts.display`) when it sets one, else the face's own, which ships with vestal. `theme.density: "compact"` draws `mono` only.
+
+| `face` | Looks like | Own family (point size) | Parameters it reads |
+|---|---|---|---|
+| `mono` | Today's clock: time with seconds, the date, world clocks. The default. | the `mono` role (56) | `seconds`, `date`, `hour12` |
+| `thin` | Hairline hours and minutes, the date in spaced capitals. | Inter Tight 100 (168) | `seconds`, `date`, `size`, `hour12` |
+| `stacked` | Hours over minutes, the minutes in `minutesColor`; weekday, date, a seconds bar and a column of world clocks beside. | Space Grotesk 300 (128) | `minutesColor`, `secondsBar`, `date`, `size`, `hour12` |
+| `serif` | A magazine time; `date: "words"` writes the date out; world cities set like a byline. | Instrument Serif (136) | `date`, `seconds`, `size`, `hour12` |
+| `condensed` | Tall narrow numerals with the seconds beside them; the date line in tracked capitals with the ISO week. | Big Shoulders Display 200 (212) | `seconds`, `date`, `size`, `hour12` |
+| `rounded` | Light rounded numerals, seconds small and gray; `worldStyle: "chips"` makes world clocks pills with a sun or moon. | Nunito 300 (108) | `seconds`, `worldStyle`, `date`, `size`, `hour12` |
+| `breathe` | Hours and minutes with a colon that fades over four seconds. | Manrope 200 (132) | `colon`, `seconds`, `date`, `size`, `hour12` |
+
+```json
+{ "type": "clock", "face": "serif", "date": "words", "hour12": "auto",
+  "worldClocks": [ { "label": "NYC", "tz": "America/New_York" }, { "label": "TYO", "tz": "Asia/Tokyo" } ] }
+```
+
+The breathing colon steps its opacity once a second (the dashboard redraws each second while a clock shows), which approximates a fade without an animation in the render model. Italic is not part of the render model, so the `serif` face's am and pm are lower-case roman.
 
 ### `systemBar`
 

@@ -116,6 +116,11 @@ public struct TemplateDefinition: Equatable, Sendable {
     /// In declaration order is not kept by JSON objects; sorted by name.
     public var params: [String: TemplateParam]
     public var widget: AnyJSON?
+    /// Other widget bodies of a built-in template, picked by the value of
+    /// the parameter `variantParam` (the `clock` preset's faces). A value
+    /// without an entry takes `widget`.
+    public var variants: [String: AnyJSON] = [:]
+    public var variantParam: String?
     public var source: AnyJSON?
     public var builtin: Bool
     /// A user template that replaces a built-in of the same name.
@@ -174,6 +179,11 @@ public struct TemplateRegistry: Equatable, Sendable {
         for (name, json) in DefaultPresets.tree.objectValue ?? [:] {
             result[name] = TemplateDefinition(name: name, json: json, builtin: true)
         }
+        // The clock's faces: `mono` is the body above; the others replace it.
+        result["clock"]?.variantParam = "face"
+        result["clock"]?.variants = ClockFaces.bodies.filter { $0.key != ClockFaces.defaultFace }
+        result["clock"]?.widget = ClockFaces.bodies[ClockFaces.defaultFace]
+        result["clock"]?.params["face"]?.enumValues = ClockFaces.names.map(AnyJSON.string)
         return result
     }()
 
@@ -184,6 +194,8 @@ public struct TemplateRegistry: Equatable, Sendable {
         var result = builtinTemplates
         for (name, body) in DefaultPresets.compactTree.objectValue ?? [:] {
             result[name]?.widget = body
+            // The compact bodies have no variants: they draw one look.
+            result[name]?.variants = [:]
         }
         return result
     }()

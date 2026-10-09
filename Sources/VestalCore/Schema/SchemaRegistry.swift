@@ -228,8 +228,14 @@ public enum SchemaRegistry {
                       "User palettes: name → extends and colors."),
             SchemaKey("colors", .map(.string), since: "0.4", examples: [.object(["brand": .string("#e01e5a")])],
                       "Colours added to or overriding the chosen palette: name → colour (hex, a palette name, or name@alpha)."),
+            SchemaKey("typeface", .oneOf(Typefaces.names), default: .string(Typefaces.defaultName), since: "0.4",
+                      examples: [.string("inter")],
+                      "A named set of fonts filling the roles at once (display, sans, mono, rounded). "
+                      + Typefaces.all.map { "\($0.name): \($0.summary)" }.joined(separator: " ")
+                      + " The families ship with vestal. theme.fonts entries override the set's roles."),
             SchemaKey("fonts", .shape("fonts"), since: "0.4", examples: [.object(["sans": .string("Inter")])],
-                      "A font family per role; null means the platform default."),
+                      "A font family per role (display, sans, mono, rounded); null means the typeface's family, else the "
+                      + "platform default. A family that is not bundled or installed draws as the role's default."),
             SchemaKey("font", .string, since: "0.4", examples: [.string("Inter")],
                       "Shorthand for fonts.sans."),
             SchemaKey("scale", .number, default: .int(1), since: "0.4", examples: [.double(1.25)],

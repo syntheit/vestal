@@ -438,7 +438,11 @@ struct Expander {
             }
             resolved[name] = value
         }
-        guard case .object(var root)? = substitute(body, resolved) else {
+        var chosen: AnyJSON = body
+        if let selector = template.variantParam, let name = resolved[selector]?.stringValue, let variant = template.variants[name] {
+            chosen = variant
+        }
+        guard case .object(var root)? = substitute(chosen, resolved) else {
             return errorNode("template \"\(template.name)\" expands to nothing")
         }
         let data = resolved.filter { template.params[$0.key]?.isData == true }

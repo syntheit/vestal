@@ -929,7 +929,8 @@ final class RenderPass {
         if let weight = literal(fields["weight"], id: id, field: "style.weight", scope: s).flatMap(TextStyle.weight) {
             style.weight = weight
         }
-        if let font = string(fields["font"], id: id, field: "style.font", scope: s), TextStyle.fonts.contains(font) {
+        if let spec = string(fields["font"], id: id, field: "style.font", scope: s),
+           let font = TextStyle.font(spec, display: model.theme.fonts.display) {
             style.font = font
         }
         if let color = fields["color"].flatMap({ self.color($0, id: id, field: "style.color", scope: s, value: current) }) {

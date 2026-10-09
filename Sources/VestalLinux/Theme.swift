@@ -83,7 +83,13 @@ final class ThemeState {
             // No rounded Geist; the rounded role falls back to sans.
             let family = theme.fonts.rounded ?? theme.fonts.sans
             return (family.map { "\($0)," } ?? "") + "Geist,sans-serif"
-        default: return (theme.fonts.sans.map { "\($0)," } ?? "") + "Geist,sans-serif"
+        case "display":
+            let family = theme.fonts.display ?? theme.fonts.sans
+            return (family.map { "\($0)," } ?? "") + "Geist,sans-serif"
+        case "sans": return (theme.fonts.sans.map { "\($0)," } ?? "") + "Geist,sans-serif"
+        // A family name (`style.font`): Pango tries the list in order, so one
+        // that is not installed draws as sans.
+        default: return "\(role)," + family(role: "sans")
         }
     }
 
@@ -171,7 +177,8 @@ enum FontRendering {
 enum BundledFonts {
     private static var registered = false
 
-    /// Adds Geist, Geist Mono and the Phosphor icon fonts to fontconfig
+    /// Adds the typefaces (Geist, Inter, Plex, ... one directory per family, see
+    /// Resources/fonts) and the Phosphor icon fonts to fontconfig
     /// for this process, before GTK loads any font. Looked up in
     /// `$VESTAL_FONT_DIRS` (colon-separated, for dev builds) and next to the
     /// executable in `share/vestal/{fonts,icons}` (the Nix package).

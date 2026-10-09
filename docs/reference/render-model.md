@@ -41,7 +41,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 | `pages` | Present with two or more pages: `items` (the pages in paging order, each `{name, title, key}`), `index` (the current view's place in `items`, absent when it is not a page), `direction` (`1` or `-1`: which way the last change of view went; absent when there was none or it has no direction), and the settings `transition`, `indicator`, `swipe` and `wrap` (`vestal docs views`). A UI draws the transition on a change of `view`, and the dots when `indicator` is `dots`. |
 | `visible` | Whether the dashboard should be on screen. |
 | `theme.colors` | Every palette name a node may use, resolved to `#rrggbbaa`. |
-| `theme.fonts` | A family per role; `null` is the platform default. |
+| `theme.fonts` | A family per role (`sans`, `mono`, `rounded`, and `display` when set: the clock and big-number family); `null` is the platform default. The config's `typeface` is already resolved into it. A text node's `font` is a role or a family name. |
 | `theme.icons` | The icon font family per weight; `mode` (`native` or `phosphor`) when the config sets `theme.icons`. |
 | `theme.dim` | The config's `theme.dim`, clamped to 0 to 1, when it sets one: the opacity of `bg` over the blurred desktop for `aurora` and `blur`. Absent: the UI's default (0.5 in the GTK UI; no tint in the macOS UI). |
 | `theme.backdrop` | The config's `theme.backdrop` (`self`, `compositor` or `none`) when it sets one. Absent: `self` in the GTK UI where the compositor can capture the screen; the macOS UI ignores it. |

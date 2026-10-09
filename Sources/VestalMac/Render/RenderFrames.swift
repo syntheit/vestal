@@ -67,6 +67,16 @@ final class FrameCollector: @unchecked Sendable {
         return bounds.height > lineHeight * CGFloat(max(1, lines)) + 0.5
     }
 
+    /// A font of an installed family at a weight, by family or PostScript name.
+    private static func namedFont(_ family: String, size: Double, weight: NSFont.Weight) -> NSFont? {
+        if NSFontManager.shared.availableMembers(ofFontFamily: family) != nil {
+            let traits: [NSFontDescriptor.TraitKey: Any] = [.weight: weight.rawValue]
+            let descriptor = NSFontDescriptor(fontAttributes: [.family: family, .traits: traits])
+            if let font = NSFont(descriptor: descriptor, size: CGFloat(size)) { return font }
+        }
+        return NSFont(name: family, size: CGFloat(size))
+    }
+
     private static func nsFont(role: String, size: Double, weight: Int, style: RenderStyle) -> NSFont {
         let w: NSFont.Weight
         switch (min(900, max(100, weight)) + 50) / 100 {
@@ -80,13 +90,10 @@ final class FrameCollector: @unchecked Sendable {
         case 8: w = .heavy
         default: w = .black
         }
-        let family: String?
-        switch role {
-        case "mono": family = style.theme.fonts.mono
-        case "rounded": family = style.theme.fonts.rounded
-        default: family = style.theme.fonts.sans
-        }
-        if let family, let custom = NSFont(name: family, size: CGFloat(size)) { return custom }
+        let family = RenderStyle.family(role: role, fonts: style.theme.fonts).0
+        if let family, let custom = namedFont(family, size: size, weight: w) { return custom }
+        if let fallback = RenderStyle.fallback(role: role, fonts: style.theme.fonts),
+           let custom = namedFont(fallback, size: size, weight: w) { return custom }
         switch role {
         case "mono": return .monospacedSystemFont(ofSize: CGFloat(size), weight: w)
         case "rounded":
