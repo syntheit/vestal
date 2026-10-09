@@ -173,7 +173,7 @@ extension DefaultPresets {
           "children": [
             { "type": "stack", "gap": 6, "children": [
               { "type": "row", "gap": 8, "children": [
-                { "type": "text", "text": "{{ .temp | round }}°", "style": { "size": 22, "weight": "light", "font": "mono" } },
+                { "type": "text", "when": ".temp != null", "text": "{{ .temp | round }}°", "style": { "size": 22, "weight": "light", "font": "mono" } },
                 { "type": "text", "style": { "size": 12, "color": "subtle" },
                   "text": "{{ if $rainAt != null then \"Rain from \" + ($rainAt.time | fmt_time(\"HH:00\"; $zone)) else \"No rain expected\" end }}" }
               ] },
@@ -209,7 +209,7 @@ extension DefaultPresets {
           "hour12": { "type": "boolean", "default": false }
         },
         "widget": {
-          "type": "stack", "gap": 7, "width": "fill",
+          "type": "stack", "gap": 7, "width": "fill", "when": ". != null",
           "vars": { "planName": "((if $plan == \"\" then null else $plan end) // .plan // null) | if . == null or . == \"\" then null else capitalize end" },
           "children": [
             { "type": "row", "gap": 8, "children": [
