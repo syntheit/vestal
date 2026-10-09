@@ -8,9 +8,10 @@ import VestalCore
 // The drawing of `analog` and `flip` nodes, after VestalLinux/NodeClockFaces.swift
 // and web/renderer/clock.js, from the numbers in VestalCore's ClockFaces.swift
 // (angles, geometry, the tiles that change). The hands and the fold animate
-// here, on the display's frames, and only while the dashboard is shown:
-// `RenderPulse` says so, and a hidden dashboard draws a still face with no
-// timeline running at all.
+// here, and only while the dashboard is shown: `RenderPulse` says so, and a
+// hidden dashboard draws a still face with no timeline running at all. A
+// sweeping hand turns in Core Animation (`AnalogHands`); a fold draws on
+// the display's frames while it lasts.
 
 /// Whether the dashboard is on screen, for drawings that animate themselves.
 @MainActor
@@ -33,7 +34,11 @@ struct AnalogDrawing: View {
         if !pulse.running || RenderClock.override != nil {
             face(at: RenderClock.now(), mode: mode)
         } else if mode == "sweep" {
-            TimelineView(.animation) { context in face(at: context.date, mode: mode) }
+            // The face changes with the minute at most (day and night, the
+            // date); the hands turn in Core Animation, so no frame of the
+            // sweep is drawn here.
+            TimelineView(.everyMinute) { context in face(at: context.date, mode: mode, hands: false) }
+                .overlay(AnalogHands(analog: analog, style: style).allowsHitTesting(false))
         } else {
             // A second hand steps once a second; without one, the minute
             // hand needs no more than a look every few seconds.
@@ -43,7 +48,8 @@ struct AnalogDrawing: View {
         }
     }
 
-    private func face(at date: Date, mode: String) -> some View {
+    /// The face at `date`; without `hands`, only what lies under them.
+    private func face(at date: Date, mode: String, hands: Bool = true) -> some View {
         let geometry = analog.geometry
         let time = AnalogMath.time(date, zone: analog.zone)
         let angles = AnalogMath.angles(time, mode: mode)
@@ -100,6 +106,7 @@ struct AnalogDrawing: View {
                     .foregroundStyle(ink))
                 context.draw(text, at: CGPoint(x: rect.midX, y: rect.midY), anchor: .center)
             }
+            guard hands else { return }
             func hand(_ hand: AnalogGeometry.Hand, _ degrees: Double, _ color: Color) {
                 var path = Path()
                 path.move(to: point(-hand.tail, degrees))
@@ -122,6 +129,163 @@ struct AnalogDrawing: View {
                              with: .color(hole))
             }
         }
+    }
+}
+
+// MARK: - Sweeping hands
+
+/// The hands of a sweeping face and the pivot over them, as Core Animation
+/// layers that turn by themselves: the render server moves them, and the
+/// app draws nothing per frame. Each hand turns at its steady rate from
+/// its angle at the moment it was set; the angles are set again when the
+/// view appears (every show makes a new one) and on every minute, so a
+/// clock change or a sleep doesn't leave them behind. The drawing is
+/// `AnalogDrawing`'s, from the same geometry.
+struct AnalogHands: NSViewRepresentable {
+    let analog: RenderNode.Analog
+    let style: RenderStyle
+
+    func makeNSView(context: Context) -> AnalogHandsView { AnalogHandsView() }
+
+    func updateNSView(_ view: AnalogHandsView, context: Context) {
+        view.configure(analog: analog, style: style)
+    }
+
+    static func dismantleNSView(_ view: AnalogHandsView, coordinator: ()) {
+        view.stop()
+    }
+}
+
+final class AnalogHandsView: NSView {
+    /// At the pivot: the hands point to twelve in it (y up) and turn about it.
+    private let pivot = CALayer()
+    private let hour = CAShapeLayer()
+    private let minute = CAShapeLayer()
+    private let second = CALayer()
+    private let secondLine = CAShapeLayer()
+    private let secondDot = CAShapeLayer()
+    private let cap = CAShapeLayer()
+    private let hole = CAShapeLayer()
+    private var zone: String?
+    private var hasSecond = false
+    private var drawn: (analog: RenderNode.Analog, theme: RenderTheme)?
+    private var minuteTimer: Timer?
+
+    init() {
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.masksToBounds = false
+        second.addSublayer(secondLine)
+        second.addSublayer(secondDot)
+        for part in [hour, minute, second, cap, hole] { pivot.addSublayer(part) }
+        layer?.addSublayer(pivot)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    func configure(analog: RenderNode.Analog, style: RenderStyle) {
+        if let drawn, drawn.analog == analog, drawn.theme == style.theme { return }
+        drawn = (analog, style.theme)
+        zone = analog.zone
+        let g = analog.geometry
+        func cg(_ spec: String?) -> CGColor {
+            let c = style.rgba(spec)
+            return CGColor(srgbRed: c.r, green: c.g, blue: c.b, alpha: c.a)
+        }
+        func line(_ layer: CAShapeLayer, _ hand: AnalogGeometry.Hand, _ color: CGColor) {
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: 0, y: -hand.tail))
+            path.addLine(to: CGPoint(x: 0, y: hand.length))
+            layer.path = path
+            layer.strokeColor = color
+            layer.fillColor = nil
+            layer.lineWidth = hand.width
+            layer.lineCap = .round
+        }
+        func disc(_ layer: CAShapeLayer, y: Double, radius: Double, _ color: CGColor) {
+            layer.path = CGPath(ellipseIn: CGRect(x: -radius, y: y - radius, width: radius * 2, height: radius * 2), transform: nil)
+            layer.fillColor = color
+            layer.strokeColor = nil
+        }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        line(hour, g.hour, cg(analog.color))
+        line(minute, g.minute, cg(analog.color))
+        hasSecond = g.second != nil
+        second.isHidden = !hasSecond
+        if let hand = g.second {
+            line(secondLine, hand, cg(analog.secondsColor))
+            disc(secondDot, y: -g.secondDotOffset, radius: g.secondDotRadius, cg(analog.secondsColor))
+        }
+        disc(cap, y: 0, radius: g.pivotRadius, cg(analog.pivotColor))
+        hole.isHidden = g.pivotHole <= 0
+        disc(hole, y: 0, radius: g.pivotHole, cg("bg"))
+        CATransaction.commit()
+        sync()
+    }
+
+    override func layout() {
+        super.layout()
+        // The face is centered in the node's box, so the pivot is its middle.
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        pivot.position = CGPoint(x: bounds.midX, y: bounds.midY)
+        CATransaction.commit()
+    }
+
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        let scale = window?.backingScaleFactor ?? 2
+        for part in [hour, minute, secondLine, secondDot, cap, hole] { part.contentsScale = scale }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        stop()
+        guard window != nil else { return }
+        viewDidChangeBackingProperties()
+        sync()
+        // On every minute, just after it turns.
+        let now = Date().timeIntervalSinceReferenceDate
+        let next = Date(timeIntervalSinceReferenceDate: (now / 60).rounded(.down) * 60 + 60.05)
+        let timer = Timer(fire: next, interval: 60, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.sync() }
+        }
+        timer.tolerance = 0.5
+        RunLoop.main.add(timer, forMode: .common)
+        minuteTimer = timer
+    }
+
+    func stop() {
+        minuteTimer?.invalidate()
+        minuteTimer = nil
+    }
+
+    /// Each hand at its angle now, turning a full circle in its period.
+    private func sync() {
+        guard drawn != nil else { return }
+        let angles = AnalogMath.angles(AnalogMath.time(Date(), zone: zone), mode: "sweep")
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        turn(hour, from: angles.hour, period: 12 * 3600)
+        turn(minute, from: angles.minute, period: 3600)
+        if hasSecond { turn(second, from: angles.second, period: 60) }
+        CATransaction.commit()
+    }
+
+    private func turn(_ layer: CALayer, from degrees: Double, period: Double) {
+        // Clockwise is a negative angle with y up.
+        let start = -degrees * .pi / 180
+        layer.transform = CATransform3DMakeRotation(start, 0, 0, 1)
+        let spin = CABasicAnimation(keyPath: "transform.rotation.z")
+        spin.fromValue = start
+        spin.toValue = start - 2 * .pi
+        spin.duration = period
+        spin.repeatCount = .infinity
+        spin.isRemovedOnCompletion = false
+        layer.add(spin, forKey: "sweep")
     }
 }
 

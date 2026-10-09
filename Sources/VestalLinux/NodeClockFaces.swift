@@ -16,6 +16,8 @@ import VestalCore
 
 /// What a clock face keeps: its animation sources, and a fold in progress.
 final class FaceState {
+    /// The frames a second of a sweeping hand.
+    static let sweepFPS = 30
     var tick: guint = 0
     var timer: guint = 0
     /// A fold: when it started (monotonic microseconds) and the characters the
@@ -34,8 +36,8 @@ final class FaceState {
 extension NodeView {
     // MARK: Starting
 
-    /// An analog face redraws itself: every frame for a sweeping hand, every
-    /// second (or five) otherwise, only while mapped.
+    /// An analog face redraws itself: 30 times a second for a sweeping hand,
+    /// every second (or five) otherwise, only while mapped.
     func startAnalog(_ analog: RenderNode.Analog) {
         let state = FaceState()
         faceState = state
@@ -45,11 +47,20 @@ extension NodeView {
             guard let self, let state else { return }
             state.stop(self.widget)
             if mode == "sweep" {
-                let tick: GtkTickCallback = { widget, _, _ in
-                    gtk_widget_queue_draw(widget)
+                // The frame clock, but a frame at most `sweepFPS` times a
+                // second: a smooth hand needs no more.
+                var last: gint64 = 0
+                let due: (WidgetPtr?) -> Void = { widget in
+                    let now = g_get_monotonic_time()
+                    guard now - last >= 1_000_000 / gint64(FaceState.sweepFPS) * 9 / 10 else { return }
+                    last = now
+                    if let widget { gtk_widget_queue_draw(widget) }
+                }
+                let tick: GtkTickCallback = { widget, _, data in
+                    Box<(WidgetPtr?) -> Void>.from(data)(widget)
                     return 1 // G_SOURCE_CONTINUE
                 }
-                state.tick = gtk_widget_add_tick_callback(self.widget, tick, nil, nil)
+                state.tick = gtk_widget_add_tick_callback(self.widget, tick, Box(due).retained(), releaseBox)
             } else {
                 let seconds: guint = mode == "step" ? 1 : 5
                 let widget = self.widget

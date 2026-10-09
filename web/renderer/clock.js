@@ -397,11 +397,16 @@ export const FLIP_CSS = `
 
 // MARK: - Driver
 
+/** A turn of `deg` about (c, c) as a CSS transform, for an animation. */
+const turn = (deg, c) => `translate(${f(c)}px, ${f(c)}px) rotate(${f(deg)}deg) translate(${f(-c)}px, ${f(-c)}px)`;
+
 /**
  * Keeps the hands of the analog faces under `root` turning, and only while
- * they can be seen: the page is visible and `root` is on screen. A sweeping
- * hand uses animation frames; otherwise one timer a second (five without a
- * seconds hand). A fixed `now` (a Date or a function) freezes them.
+ * they can be seen: the page is visible and `root` is on screen. Sweeping
+ * hands turn by themselves (Web Animations, one steady turn per period, set
+ * again every minute), so no script runs per frame; otherwise one timer a
+ * second (five without a seconds hand). A fixed `now` (a Date or a function)
+ * freezes them.
  */
 export class ClockDriver {
   constructor(root, { now = null, reduced = () => false } = {}) {
@@ -409,8 +414,8 @@ export class ClockDriver {
     this.now = now;
     this.reduced = reduced;
     this.faces = [];
-    this.raf = 0;
     this.timer = 0;
+    this.sync = 0;
     this.onScreen = true;
     this.pageVisible = typeof document === "undefined" || document.visibilityState !== "hidden";
     this.destroyed = false;
@@ -441,20 +446,47 @@ export class ClockDriver {
     this.stop();
     if (!this.running) return;
     this.tick();
-    const sweeps = this.faces.some((face) => face.mode === "sweep") && !this.reduced();
+    const reduced = this.reduced();
+    const sweeps = !reduced && this.faces.some((face) => face.mode === "sweep");
+    const steps = this.faces.some((face) => face.mode === "step" || (face.mode === "sweep" && reduced));
+    // A sweeping face's day and fill change with the minute at most.
+    const every = steps ? 1000 : sweeps ? 60000 : 5000;
+    this.timer = setInterval(() => this.tick(), every);
     if (sweeps) {
-      const loop = () => { this.tick(); this.raf = requestAnimationFrame(loop); };
-      this.raf = requestAnimationFrame(loop);
-    } else {
-      const every = this.faces.some((face) => face.mode !== "none") ? 1000 : 5000;
-      this.timer = setInterval(() => this.tick(), every);
+      this.spin();
+      this.sync = setInterval(() => this.spin(), 60000);
     }
   }
 
   stop() {
-    if (this.raf) cancelAnimationFrame(this.raf);
     if (this.timer) clearInterval(this.timer);
-    this.raf = this.timer = 0;
+    if (this.sync) clearInterval(this.sync);
+    this.timer = this.sync = 0;
+    for (const face of this.faces) this.unspin(face);
+  }
+
+  /** Sets each sweeping hand turning from its angle now, a full turn per period. */
+  spin() {
+    const date = new Date();
+    for (const face of this.faces) {
+      if (face.mode !== "sweep") continue;
+      this.unspin(face);
+      const a = handAngles(analogTime(date, face.zone), "sweep");
+      face.anims = [[face.h, a.hour, 43200], [face.m, a.minute, 3600], [face.s, a.second, 60]]
+        .filter(([el]) => el && typeof el.animate === "function")
+        .map(([el, deg, seconds]) => {
+          // The frame of the SVG `transform` attribute: the face's user space.
+          el.style.transformBox = "view-box";
+          el.style.transformOrigin = "0 0";
+          return el.animate([{ transform: turn(deg, face.c) }, { transform: turn(deg + 360, face.c) }],
+            { duration: seconds * 1000, iterations: Infinity, easing: "linear" });
+        });
+    }
+  }
+
+  unspin(face) {
+    for (const anim of face.anims || []) anim.cancel();
+    face.anims = null;
   }
 
   tick() {
