@@ -100,6 +100,18 @@ final class CalDAVTests: XCTestCase {
         }
     }
 
+    func testCredentialScopeIsTheEntryHostOrICloudPartitions() {
+        func same(_ a: String, _ origin: String) -> Bool { CalDAVClient.sameSite(URL(string: a)!, URL(string: origin)!) }
+        XCTAssertTrue(same("https://dav.example.co.uk/x", "https://dav.example.co.uk/"))
+        XCTAssertFalse(same("https://evil.co.uk/", "https://dav.example.co.uk/"))
+        XCTAssertFalse(same("https://other.example.com/", "https://dav.example.com/"))
+        XCTAssertTrue(same("https://p42-caldav.icloud.com/", "https://caldav.icloud.com/"))
+        XCTAssertFalse(same("https://evil.example/", "https://caldav.icloud.com/"))
+        XCTAssertFalse(same("http://p42-caldav.icloud.com/", "https://caldav.icloud.com/"))
+        XCTAssertFalse(same("https://caldav.icloud.com/", "https://dav.example.com/"))
+        XCTAssertFalse(same("http://b.example.com/", "http://a.example.com/"))
+    }
+
     func testQueryBodyHasTheTimeRangeAndAsksForNoExpansion() async throws {
         let server = radicale()
         _ = try await events(try client("http://test:pw@radicale.example:5232/", server))

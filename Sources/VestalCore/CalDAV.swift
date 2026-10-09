@@ -376,8 +376,8 @@ public struct CalDAVClient: Sendable {
         request.setValue("vestal/\(BuildInfo.version)", forHTTPHeaderField: "User-Agent")
         request.setValue(depth, forHTTPHeaderField: "Depth")
         request.setValue("application/xml; charset=utf-8", forHTTPHeaderField: "Content-Type")
-        // Credentials go to the entry's own site (and its sibling hosts, as iCloud's
-        // partition servers are), never to another domain a server points at.
+        // Credentials go to the entry's own host (and, for iCloud, its partition hosts),
+        // never to another host a server points at.
         if let authorization = location.authorization {
             guard Self.sameSite(url, location.url) else {
                 throw SourceError("caldav \(location.display) : the server points to \(Self.shown(url)); credentials are not sent to another site")
@@ -428,15 +428,15 @@ public struct CalDAVClient: Sendable {
         return parts.url
     }
 
-    /// Same host, or hosts under one parent domain (two labels), and no step down from https.
-    static func sameSite(_ url: URL, _ origin: URL) -> Bool {
+    /// The entry's own host, plus (for an iCloud entry only) other hosts under
+    /// icloud.com, whose servers hand out `pNN-caldav.icloud.com` partitions. No
+    /// step down from https.
+    public static func sameSite(_ url: URL, _ origin: URL) -> Bool {
         guard let host = url.host?.lowercased(), let originHost = origin.host?.lowercased() else { return false }
         if origin.scheme?.lowercased() == "https", url.scheme?.lowercased() != "https" { return false }
         if host == originHost { return true }
-        // Plain IP addresses and single-label hosts only match themselves.
-        guard originHost.contains(where: { $0.isLetter }) else { return false }
-        let labels = host.split(separator: "."), originLabels = originHost.split(separator: ".")
-        return labels.count >= 2 && originLabels.count >= 2 && labels.suffix(2) == originLabels.suffix(2)
+        let isICloud = { (h: String) in h == "icloud.com" || h.hasSuffix(".icloud.com") }
+        return isICloud(originHost) && isICloud(host) && url.scheme?.lowercased() == "https"
     }
 
     /// A URL for messages: path only matters, and it holds no secret.
