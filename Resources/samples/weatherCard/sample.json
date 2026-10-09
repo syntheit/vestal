@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Weather",
+  "description": "Current conditions, temperature and sun times from a wttr.in source.",
+  "preset": "weatherCard",
+  "size": [
+    680,
+    220
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "weather"
+  ]
+}

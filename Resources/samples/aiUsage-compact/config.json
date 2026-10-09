@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "theme": {
+    "density": "compact"
+  },
+  "widgets": {
+    "aiUsage": {
+      "type": "aiUsage"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "aiUsage"
+      ],
+      "padding": 24
+    }
+  }
+}

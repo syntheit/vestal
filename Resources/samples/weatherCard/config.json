@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "sources": {
+    "weather": {
+      "type": "http",
+      "url": "https://wttr.in/?m&format=j1",
+      "refresh": "30m",
+      "parse": "json"
+    }
+  },
+  "widgets": {
+    "weatherCard": {
+      "type": "weatherCard",
+      "source": "weather",
+      "units": "metric",
+      "fields": {
+        "location": ".nearest_area[0].areaName[0].value",
+        "region": ".nearest_area[0].region[0].value",
+        "condition": ".current_condition[0].weatherDesc[0].value",
+        "temp": ".current_condition[0].temp_C",
+        "sunrise": ".weather[0].astronomy[0].sunrise",
+        "sunset": ".weather[0].astronomy[0].sunset"
+      }
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "weatherCard"
+      ],
+      "padding": 24
+    }
+  }
+}

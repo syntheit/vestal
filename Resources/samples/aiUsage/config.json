@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "widgets": {
+    "aiUsage": {
+      "type": "aiUsage"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "aiUsage"
+      ],
+      "padding": 24
+    }
+  }
+}

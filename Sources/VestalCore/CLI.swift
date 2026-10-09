@@ -30,6 +30,7 @@ import Foundation
 //                           (SubscribeCommand)
 //   vestal capabilities     what this machine supports (CapabilitiesCommand)
 //   vestal screenshot       render a view to a PNG (ScreenshotCommand)
+//   vestal gallery          render every sample to a PNG (GalleryCommand)
 //
 // Exit codes: 0 ok, 1 error or not running,
 // 2 usage, 3 the config has errors, 4 not found (a view, a docs topic, a
@@ -77,6 +78,8 @@ public enum CLI {
         /// `vestal screenshot ...`: MacScreenshotCommand on macOS,
         /// ScreenshotCommand with the GTK renderer on Linux.
         case screenshot([String])
+        /// `vestal gallery ...` (GalleryCommand).
+        case gallery([String])
     }
 
     public enum Parsed: Equatable, Sendable {
@@ -116,6 +119,7 @@ public enum CLI {
         case "capabilities": return .command(.capabilities(rest))
         case "press": return .command(.press(rest))
         case "screenshot": return .command(.screenshot(rest))
+        case "gallery": return .command(.gallery(rest))
         case "show" where !rest.isEmpty, "toggle" where !rest.isEmpty:
             guard rest.count == 1, !rest[0].hasPrefix("-") else { return .usageError("'\(name)' takes one view at most") }
             return .command(.sendRequest(IPCRequest(IPCCommand(rawValue: name)!, view: rest[0])))
@@ -192,6 +196,10 @@ public enum CLI {
                                (the screen as it is, so no --size, --scale or
                                --background); --frames writes every node's frame,
                                clipped and truncated flags
+          gallery [--out <dir>] [--only <name>...] [--scale <n>] [--json]
+                               Render every sample (`docs samples`) to <dir>/<name>.png
+                               with index.json and README.md; without a screen, only
+                               validate them and write index.json with "image": null
           press <key> [--dry-run]
                                Send a key to the running dashboard, as if typed on
                                it; --dry-run says what it is bound to instead (local,

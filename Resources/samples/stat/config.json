@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "widgets": {
+    "stat": {
+      "type": "row",
+      "gap": 40,
+      "children": [
+        {
+          "type": "stat",
+          "source": "system",
+          "label": "CPU",
+          "value": ".cpu.percent",
+          "format": "percent",
+          "size": "lg",
+          "delta": "-1.4",
+          "deltaFormat": "fixed:1",
+          "trend": "up-bad"
+        },
+        {
+          "type": "stat",
+          "source": "system",
+          "label": "Memory",
+          "value": ".memory.percent",
+          "format": "percent",
+          "size": "lg",
+          "delta": "3.2",
+          "deltaFormat": "fixed:1",
+          "trend": "up-bad"
+        },
+        {
+          "type": "stat",
+          "source": "system",
+          "label": "Battery",
+          "value": ".battery.percent",
+          "format": "percent",
+          "size": "md"
+        }
+      ]
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "stat"
+      ],
+      "padding": 24
+    }
+  }
+}

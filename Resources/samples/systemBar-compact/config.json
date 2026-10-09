@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "theme": {
+    "density": "compact"
+  },
+  "widgets": {
+    "systemBar": {
+      "type": "systemBar",
+      "show": [
+        "uptime",
+        "disk",
+        "battery",
+        "claudeUsage",
+        "network"
+      ]
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "systemBar"
+      ],
+      "padding": 24
+    }
+  }
+}

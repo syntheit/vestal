@@ -1,0 +1,42 @@
+[
+  {
+    "title": "Standup",
+    "start": 1790512200,
+    "end": 1790513100,
+    "allDay": false,
+    "calendar": "Work",
+    "location": null
+  },
+  {
+    "title": "Rent due",
+    "start": 1790478000,
+    "end": 1790564400,
+    "allDay": true,
+    "calendar": "Home",
+    "location": null
+  },
+  {
+    "title": "Design review",
+    "start": 1790532000,
+    "end": 1790533800,
+    "allDay": false,
+    "calendar": "Work",
+    "location": "Room 2"
+  },
+  {
+    "title": "1:1 with Alex",
+    "start": 1790537400,
+    "end": 1790539200,
+    "allDay": false,
+    "calendar": "Work",
+    "location": null
+  },
+  {
+    "title": "Dinner with Sam",
+    "start": 1790546400,
+    "end": 1790553600,
+    "allDay": false,
+    "calendar": "Home",
+    "location": null
+  }
+]

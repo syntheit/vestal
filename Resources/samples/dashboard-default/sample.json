@@ -1,0 +1,13 @@
+{
+  "kind": "dashboard",
+  "title": "Default dashboard",
+  "description": "What vestal shows with no config file: clock, system bar, media, agenda, this machine's health and weather (the machine is named so the image does not show a real host).",
+  "size": [
+    760,
+    740
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "default"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Clock",
+  "description": "Local time, date and world clocks.",
+  "preset": "clock",
+  "size": [
+    680,
+    230
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time"
+  ]
+}

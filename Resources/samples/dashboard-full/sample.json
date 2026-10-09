@@ -1,0 +1,13 @@
+{
+  "kind": "dashboard",
+  "title": "Full example",
+  "description": "examples/full.json: every v0.3 widget with world clocks, remote hosts, currencies and weather.",
+  "size": [
+    760,
+    860
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "example"
+  ]
+}

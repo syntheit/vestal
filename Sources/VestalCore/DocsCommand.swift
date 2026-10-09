@@ -42,6 +42,7 @@ public enum DocsCommand {
         "widgets": "Containers and primitives, the fields every widget takes, and layout",
         "templates": "Defining your own parameterised widgets and sources",
         "presets": "The built-in templates: section, stat, badge and the v0.3 widgets",
+        "samples": "The sample every preset ships, its format, and `vestal gallery`, which draws them all",
         "styling": "Theme, palettes and colours, text style, fonts",
         "icons": "The bundled Phosphor icons, sf: names on macOS, the font files",
         "views": "Views, switching between them, and popups",
@@ -93,6 +94,7 @@ public enum DocsCommand {
         case "sources": return prose + "\n" + sourceIndex()
         case "widgets": return prose + "\n" + widgetIndex()
         case "presets": return prose + "\n" + presetIndex()
+        case "samples": return prose + "\n" + sampleIndex()
         case "recipes": return prose + "\n" + recipeIndex()
         default: return prose
         }
@@ -318,6 +320,21 @@ public enum DocsCommand {
         return out + "\n`*` required.\n"
     }
 
+    /// The samples found on this machine (`SampleLibrary.locate`), one line each.
+    static func sampleIndex() -> String {
+        guard let directory = SampleLibrary.locate() else {
+            return "## Every sample\n\nThe samples directory was not found next to this build; "
+                + "set `VESTAL_SAMPLES_DIR` to `Resources/samples` of a checkout.\n"
+        }
+        var out = "## Every sample\n\nIn `\(directory)`.\n\n| Name | Kind | Preset | Size | Tags | |\n|---|---|---|---|---|---|\n"
+        for sample in SampleLibrary.load(directory).samples {
+            out += "| `\(sample.name)` | \(sample.kind) | \(sample.preset.map { "`\($0)`" } ?? "") | "
+                + "\(ScreenshotCommand.format(sample.size.width))x\(ScreenshotCommand.format(sample.size.height)) | "
+                + sample.tags.joined(separator: ", ") + " | \(sample.title) |\n"
+        }
+        return out
+    }
+
     static func presetPage(_ name: String) -> String? {
         guard let template = TemplateRegistry.standard.builtins[name] else { return nil }
         var out = "# Preset `\(template.name)`\n\n\(sentence(template.description ?? "A built-in template."))\n\n"
@@ -332,6 +349,13 @@ public enum DocsCommand {
         if let compact = DefaultPresets.compactTree.objectValue?[name] {
             out += "\n## Its compact body\n\nWith `theme.density` `\"compact\"` (`vestal docs styling`) the same parameters "
                 + "fill this `widget` instead.\n\n```json\n" + compact.prettyPrinted() + "\n```\n"
+        }
+        if !SampleLibrary.helpers.contains(name) {
+            let compact = SampleLibrary.hasCompactBody(name)
+            out += "\n## Its sample\n\nSample `\(name)`" + (compact ? " (and `\(name)-compact`)" : "")
+                + " shows it with realistic data and no live source. Draw it with "
+                + "`vestal gallery --only \(name)" + (compact ? " \(name)-compact" : "")
+                + " --out <dir>`; `vestal docs samples` has the format.\n"
         }
         return out
     }

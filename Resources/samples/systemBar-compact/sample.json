@@ -1,0 +1,16 @@
+{
+  "kind": "widget",
+  "title": "System bar (compact)",
+  "description": "Uptime, disk, battery, plan usage and network in one row. Shown with theme.density set to compact.",
+  "preset": "systemBar",
+  "size": [
+    680,
+    80
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "system",
+    "status",
+    "compact"
+  ]
+}

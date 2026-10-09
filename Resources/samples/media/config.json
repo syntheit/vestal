@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "widgets": {
+    "media": {
+      "type": "media",
+      "hideWhenOff": true
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "media"
+      ],
+      "padding": 24
+    }
+  }
+}

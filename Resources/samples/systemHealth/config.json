@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "widgets": {
+    "systemHealth": {
+      "type": "systemHealth",
+      "hosts": [
+        {
+          "name": "workstation",
+          "source": "local"
+        },
+        {
+          "name": "atlas",
+          "url": "https://atlas.example.com"
+        },
+        {
+          "name": "relay",
+          "url": "https://relay.example.com"
+        }
+      ]
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "systemHealth"
+      ],
+      "padding": 24
+    }
+  }
+}

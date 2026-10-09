@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Stat",
+  "description": "A label, a big value and an optional delta.",
+  "preset": "stat",
+  "size": [
+    680,
+    160
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "metrics"
+  ]
+}

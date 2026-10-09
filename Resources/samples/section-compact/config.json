@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "theme": {
+    "density": "compact"
+  },
+  "widgets": {
+    "section": {
+      "type": "section",
+      "title": "Disks",
+      "source": "system",
+      "children": [
+        {
+          "type": "list",
+          "items": ".disks",
+          "row": {
+            "type": "text",
+            "text": "{{ .mount }}  {{ .percent | round }}% of {{ .total | fmt_bytes }}"
+          }
+        },
+        {
+          "type": "text",
+          "text": "Memory  {{ .memory.percent }}% of {{ .memory.total | fmt_bytes }}"
+        }
+      ]
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "section"
+      ],
+      "padding": 24
+    }
+  }
+}

@@ -109,6 +109,7 @@ in
       ./Resources/icons/Phosphor.ttf
       ./Resources/icons/Phosphor-Fill.ttf
       ./Resources/icons/LICENSE
+      ./Resources/samples
     ];
   };
 
@@ -175,6 +176,8 @@ in
         install -Dm644 Resources/icons/Phosphor.ttf "$app/Contents/Resources/Fonts/Phosphor.ttf"
         install -Dm644 Resources/icons/Phosphor-Fill.ttf "$app/Contents/Resources/Fonts/Phosphor-Fill.ttf"
         install -Dm644 Resources/icons/LICENSE "$app/Contents/Resources/Fonts/LICENSE-Phosphor"
+        # The sample of every preset, which `vestal gallery` draws.
+        cp -r Resources/samples "$app/Contents/Resources/samples"
         makeBinaryWrapper "$app/Contents/MacOS/vestal" "$out/bin/vestal"
       ''
     else
@@ -185,6 +188,8 @@ in
         ln -s ${geist-font}/share/fonts/opentype "$out/share/vestal/fonts/geist"
         install -m644 Resources/icons/Phosphor.ttf Resources/icons/Phosphor-Fill.ttf Resources/icons/LICENSE \
           "$out/share/vestal/icons/"
+        # The sample of every preset, which `vestal gallery` draws.
+        cp -r Resources/samples "$out/share/vestal/samples"
         makeBinaryWrapper "$out/libexec/vestal/vestal" "$out/bin/vestal" \
           --suffix PATH : ${
             lib.makeBinPath [

@@ -1,0 +1,16 @@
+{
+  "kind": "widget",
+  "title": "Currencies (compact)",
+  "description": "Labelled values picked out of a JSON source: exchange rates against the dollar. Shown with theme.density set to compact.",
+  "preset": "keyValueList",
+  "size": [
+    680,
+    130
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "finance",
+    "list",
+    "compact"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "System bar",
+  "description": "Uptime, disk, battery, plan usage and network in one row.",
+  "preset": "systemBar",
+  "size": [
+    680,
+    100
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "system",
+    "status"
+  ]
+}

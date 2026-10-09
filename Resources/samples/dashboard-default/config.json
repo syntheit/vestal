@@ -1,0 +1,4 @@
+{
+  "version": 1,
+  "widgets": { "systems": { "type": "systemHealth", "hosts": [{ "name": "workstation", "source": "local" }] } }
+}

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "sources": {
+    "rates": {
+      "type": "http",
+      "url": "https://rates.example.com/latest.json",
+      "refresh": "4h"
+    }
+  },
+  "widgets": {
+    "keyValueList": {
+      "type": "keyValueList",
+      "title": "Currencies",
+      "source": "rates",
+      "items": [
+        {
+          "label": "EUR",
+          "pick": "rates.EUR",
+          "format": "decimal"
+        },
+        {
+          "label": "GBP",
+          "pick": "rates.GBP",
+          "format": "decimal"
+        },
+        {
+          "label": "JPY",
+          "pick": "rates.JPY",
+          "format": "decimal"
+        },
+        {
+          "label": "BRL",
+          "pick": "rates.BRL",
+          "format": "decimal"
+        }
+      ]
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "keyValueList"
+      ],
+      "padding": 24
+    }
+  }
+}
