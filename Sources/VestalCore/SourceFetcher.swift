@@ -537,7 +537,7 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
     func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge,
                     completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
         let method = challenge.protectionSpace.authenticationMethod
-        if !challenge.protectionSpace.isProxy,
+        if !challenge.protectionSpace.isProxy(),
            method == NSURLAuthenticationMethodHTTPBasic || method == NSURLAuthenticationMethodHTTPDigest {
             lock.lock()
             challenged = true
