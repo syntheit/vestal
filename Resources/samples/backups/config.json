@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "widgets": {
+    "backups": {
+      "type": "backups",
+      "dir": "~/.local/state/vestal/backups"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "backups"
+      ],
+      "padding": 24
+    }
+  }
+}

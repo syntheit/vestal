@@ -1,0 +1,108 @@
+[
+  {
+    "id": "active",
+    "jsonrpc": "2.0",
+    "result": [
+      {
+        "gid": "2089b05ecca3d829",
+        "status": "active",
+        "totalLength": "6442450944",
+        "completedLength": "3994319585",
+        "downloadSpeed": "42991616",
+        "uploadSpeed": "0",
+        "connections": "8",
+        "dir": "/downloads",
+        "files": [
+          {
+            "index": "1",
+            "path": "/downloads/ubuntu-26.04-desktop-amd64.iso",
+            "length": "6442450944",
+            "completedLength": "3994319585",
+            "selected": "true",
+            "uris": [
+              {
+                "uri": "https://releases.example.org/ubuntu-26.04-desktop-amd64.iso",
+                "status": "used"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "gid": "d270e5a5a1c3e4b1",
+        "status": "active",
+        "totalLength": "1073741824",
+        "completedLength": "107374182",
+        "downloadSpeed": "0",
+        "uploadSpeed": "10240",
+        "connections": "0",
+        "dir": "/downloads",
+        "bittorrent": {
+          "info": {
+            "name": "debian-13-netinst"
+          },
+          "mode": "single"
+        },
+        "files": [
+          {
+            "index": "1",
+            "path": "/downloads/debian-13-netinst/debian-13-netinst.iso",
+            "length": "1073741824",
+            "completedLength": "107374182",
+            "selected": "true",
+            "uris": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "waiting",
+    "jsonrpc": "2.0",
+    "result": [
+      {
+        "gid": "f1c2d3e4a5b60718",
+        "status": "waiting",
+        "totalLength": "734003200",
+        "completedLength": "0",
+        "downloadSpeed": "0",
+        "uploadSpeed": "0",
+        "dir": "/downloads",
+        "files": [
+          {
+            "index": "1",
+            "path": "",
+            "length": "734003200",
+            "completedLength": "0",
+            "selected": "true",
+            "uris": [
+              {
+                "uri": "https://example.com/files/archive.tar.zst?token=abc",
+                "status": "waiting"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "gid": "0a1b2c3d4e5f6071",
+        "status": "paused",
+        "totalLength": "0",
+        "completedLength": "0",
+        "downloadSpeed": "0",
+        "uploadSpeed": "0",
+        "dir": "/downloads",
+        "files": [
+          {
+            "index": "1",
+            "path": "/downloads/notes.pdf",
+            "length": "0",
+            "completedLength": "0",
+            "selected": "true",
+            "uris": []
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Backups",
+  "description": "Last run, result and next run of each backup job; a failed job says why and a job that has not run in time is marked late.",
+  "preset": "backups",
+  "size": [
+    680,
+    200
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "storage",
+    "monitoring"
+  ]
+}

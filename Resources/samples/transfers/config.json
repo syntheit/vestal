@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "sources": {
+    "downloads": {
+      "type": "file",
+      "path": "~/.local/state/vestal/transfers.json"
+    }
+  },
+  "widgets": {
+    "transfers": {
+      "type": "transfers",
+      "source": "downloads"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "transfers"
+      ],
+      "padding": 24
+    }
+  }
+}

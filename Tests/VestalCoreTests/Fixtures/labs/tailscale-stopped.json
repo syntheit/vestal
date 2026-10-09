@@ -1,0 +1,18 @@
+{
+  "Version": "1.80.0",
+  "BackendState": "Stopped",
+  "HaveNodeKey": true,
+  "AuthURL": "",
+  "TailscaleIPs": null,
+  "Self": {
+    "HostName": "atlas",
+    "DNSName": "atlas.example-tailnet.ts.net.",
+    "TailscaleIPs": null,
+    "Online": false
+  },
+  "Health": [
+    "Tailscale is stopped."
+  ],
+  "CurrentTailnet": null,
+  "Peer": null
+}

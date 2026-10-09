@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Transfers",
+  "description": "Downloads and long jobs with progress, speed and time left, from an aria2 source or any progress file.",
+  "preset": "transfers",
+  "size": [
+    680,
+    200
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "network",
+    "monitoring"
+  ]
+}

@@ -1,0 +1,43 @@
+[
+  {
+    "AutoRemove": false,
+    "Command": [
+      "/init"
+    ],
+    "CreatedAt": "2 days ago",
+    "Exited": false,
+    "ExitedAt": -62135596800,
+    "ExitCode": 0,
+    "Id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "Image": "docker.io/library/nginx:latest",
+    "IsInfra": false,
+    "Names": [
+      "web"
+    ],
+    "Pid": 4242,
+    "Ports": null,
+    "StartedAt": 1790000000,
+    "State": "running",
+    "Status": "Up 2 days"
+  },
+  {
+    "AutoRemove": false,
+    "Command": [
+      "/bin/sh"
+    ],
+    "CreatedAt": "3 days ago",
+    "Exited": true,
+    "ExitedAt": 1790400000,
+    "ExitCode": 137,
+    "Id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "Image": "docker.io/library/alpine:latest",
+    "IsInfra": false,
+    "Names": [
+      "job"
+    ],
+    "Pid": 0,
+    "StartedAt": 1790300000,
+    "State": "exited",
+    "Status": "Exited (137) 3 hours ago"
+  }
+]

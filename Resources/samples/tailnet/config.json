@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "widgets": {
+    "tailnet": {
+      "type": "tailnet"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "tailnet"
+      ],
+      "padding": 24
+    }
+  }
+}

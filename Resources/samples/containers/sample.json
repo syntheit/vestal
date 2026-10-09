@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Containers",
+  "description": "Docker or Podman containers: how many run and have exited, each one's state, CPU and memory.",
+  "preset": "containers",
+  "size": [
+    680,
+    250
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "homelab",
+    "monitoring"
+  ]
+}

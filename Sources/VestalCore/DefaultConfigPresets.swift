@@ -584,6 +584,7 @@ public enum DefaultPresets {
     /// The templates as JSON.
     public static let tree: AnyJSON = {
         guard case .success(let tree) = AnyJSON.parse(Data(expandedJSON.utf8)) else { return .object([:]) }
-        return tree
+        guard case .object(let base) = tree, case .object(let lab) = labTree else { return tree }
+        return .object(base.merging(lab) { first, _ in first })
     }()
 }

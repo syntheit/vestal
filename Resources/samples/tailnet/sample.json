@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Tailnet",
+  "description": "Tailscale devices: online state, address, activity and roles such as exit node and subnet router.",
+  "preset": "tailnet",
+  "size": [
+    680,
+    230
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "homelab",
+    "network"
+  ]
+}

@@ -54,7 +54,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 
 **Inline sources.** Wherever a widget takes `source`, it may give a definition instead of a name: `"source": {"type": "file", "path": "~/notes/today.md", "parse": "lines"}`. Identical definitions share one fetch. Its name in `vestal sources` and the cache is `inline:<8 hex digits>`.
 
-**Load-time text.** `url`, `argv`, `env`, `headers`, `path`, `ics`, `caldav` and a text `body` are text fields evaluated once when the config loads, with only `$env` (the environment), `$secrets` and template parameters in scope: `"url": "https://api.example.com/v1?key={{ $secrets.apiKey }}"`. There is no data and no `now` there, so one source can't depend on another's data: to chain fetches, write a `command` source. In `argv` and `path`, a leading `~/` expands to the home directory.
+**Load-time text.** `url`, `also`, `argv`, `env`, `headers`, `path`, `ics`, `caldav`, a text `body` and the strings of a JSON `body` are text fields evaluated once when the config loads, with only `$env` (the environment), `$secrets` and template parameters in scope: `"url": "https://api.example.com/v1?key={{ $secrets.apiKey }}"`. There is no data and no `now` there, so one source can't depend on another's data: to chain fetches, write a `command` source. In `argv` and `path`, a leading `~/` expands to the home directory.
 
 **Failures.** A failed fetch keeps the last good data on screen and retries after `refresh` or 60 seconds, whichever is shorter. `$meta` (`vestal docs expressions`) tells a widget whether its data is current: `{{ if $meta.stale then "(old)" else "" end }}`.
 
@@ -115,9 +115,10 @@ Fetches a URL; the answer must have a 2xx status.
 | Key | Default | |
 |---|---|---|
 | `url` | required | `http://` or `https://`. Text: may use `{{ $secrets.x }}` and `{{ $env.X }}`. |
+| `also` | none | More URLs (a list, or one), fetched at the same time as `url` with the same method, headers and body. The data is then a list of the answers, `url`'s first, in order (each read with `parse`); if any fails, the fetch fails (`HTTP 404 from also[0]`). For an API that spreads what one widget needs over two endpoints: join them with `transform` (`.[0]`, `.[1]`). |
 | `method` | `GET` | `GET` or `POST`. |
 | `headers` | none | Object of text: `{"Authorization": "Bearer {{ $secrets.token }}"}`. |
-| `body` | none | The POST body: text (may use `{{ $secrets.x }}`), or a JSON value sent as `application/json` as written. |
+| `body` | none | The POST body: text (may use `{{ $secrets.x }}`), or a JSON value sent as `application/json`. Every string inside a JSON value is load-time text too (`{"auth": "token:{{ $secrets.x }}"}`); `{{{{` writes a literal `{{`. |
 | `timeout` | `10s` | |
 | `parse` | `json` | `json`, `raw` (the body as a string), `lines` (a list of lines, the final newline dropped), `feed` (below). |
 
@@ -150,8 +151,10 @@ A draft config (`--config` naming another file than the running instance's) neve
 
 | Key | Default | |
 |---|---|---|
-| `path` | required | A leading `~/` expands. |
+| `path` | required | A file, or a directory of `.json` files. A leading `~/` expands. |
 | `parse` | `json` | `json`, `raw`, `lines`, `feed`, or `exists`: `{"exists": true, "modified": 1790000000}`, which never fails. The others fail while the file is missing. |
+
+A **directory** with `parse` `json` reads every `*.json` file in it (at most 500, by file name; hidden files and anything else are skipped) into a list of their contents. An object gets `_file` (the name without `.json`) and `_modified` (seconds since 1970) added, unless it has them; a file that is not valid JSON, such as one being written, is skipped. One small file per job or per transfer, each written by its own script, is the pattern (`backups`, `transfers`: `vestal docs presets`). Write to a name that does not end in `.json` and `mv` it into place so a half-written file is never read.
 
 ### `calendar`
 
