@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "widgets": {
+    "countdowns": {
+      "type": "countdowns",
+      "items": [
+        {
+          "title": "Trip to Kyoto",
+          "date": "2026-10-20",
+          "since": "2026-08-21",
+          "color": "accent"
+        },
+        {
+          "title": "Passport renewal",
+          "date": "2026-11-07",
+          "since": "2026-09-09",
+          "color": "warn"
+        },
+        {
+          "title": "Q4 ends",
+          "date": "2026-12-20",
+          "since": "2026-09-20",
+          "color": "subtle"
+        },
+        {
+          "title": "Lease ends",
+          "date": "2027-04-27",
+          "since": "2026-05-03",
+          "color": "subtle"
+        }
+      ]
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "countdowns"
+      ],
+      "padding": 24
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "AI plan",
+  "description": "Every plan window as a full-width bar with its reset time and an even-pace tick for the weekly ones.",
+  "preset": "aiPlan",
+  "size": [
+    680,
+    240
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "ai",
+    "status"
+  ]
+}

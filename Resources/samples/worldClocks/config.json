@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "widgets": {
+    "worldClocks": {
+      "type": "worldClocks"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "worldClocks"
+      ],
+      "padding": 24
+    }
+  }
+}

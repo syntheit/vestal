@@ -31,7 +31,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 
 | Key | Default | Meaning |
 |---|---|---|
-| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, `codex`, or a source template such as `foyer`. |
+| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, `codex`, `astro`, or a source template such as `foyer` or `openMeteo`. |
 | `refresh` | per type | How often to fetch: `"30s"`, `"5m"`, `"4h"`, `"1d"`. |
 | `when` | per type | `always`: fetched whether or not the dashboard is shown. `visible`: only while it is shown and a widget of the view reads it, with an immediate fetch on show when stale. |
 | `transform` | none | A jq expression applied to the data before widgets see it. The cache keeps the untransformed data, so editing a transform needs no refetch. |
@@ -49,6 +49,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 | `media` | `3s` | `visible` | a music player |
 | `claude` | `5m` | `visible` | the Claude plan's usage, from the usage endpoint or `claude -p /usage` |
 | `codex` | `5m` | `visible` | the Codex plan's usage, from `codex app-server` |
+| `astro` | `10m` | `visible` | nothing: sun and moon computed from `latitude` and `longitude` |
 
 **Built-in sources.** The defaults define `system`, `media` (`player: "auto"`), `claude`, `codex`, `calendar` and `weather` (wttr.in). A `visible` source that nothing on screen reads is never fetched, so unused ones cost nothing.
 
@@ -245,6 +246,33 @@ The Codex plan's usage, in the same shape as `claude`, with `source: "codex"`, `
 |---|---|---|
 | `argv` | `["codex", "app-server"]` | The app server, when `codex` isn't on `PATH`. |
 
+### `astro`
+
+The sun and moon for a place, computed offline (no network, no key) from `latitude` and `longitude`, for the local calendar day. The sun follows NOAA's solar calculator (sunrise and sunset for a 90.833 degree zenith, good to about a minute away from the poles); the moon counts the mean synodic month from a known new moon, so its phases are within about half a day of the real ones.
+
+```jsonc
+{ "latitude": 38.72, "longitude": -9.14, "date": "2026-09-27",
+  "sunrise": 1790490535, "sunset": 1790533572, "solarNoon": 1790512053,   // epoch seconds; null in polar day or night
+  "dayLength": 43036, "dayLengthChange": -150,                            // seconds; the change from yesterday
+  "polar": null,                                                          // "day": the sun stays up, "night": it stays down
+  "arc": [0, 1.4, 3.5, "..."], "peak": 49.52,                              // the sun's altitude in degrees, 49 samples from sunrise to sunset (null when polar); the highest of them
+  "moon": { "phase": 0.542, "age": 16.0, "illumination": 98.2, "name": "Full moon",
+            "nextFull": 1792971954, "nextNew": 1791696232, "daysToFull": 28.3, "daysToNew": 13.5 } }
+```
+
+`phase` is 0 (new) to 1, 0.5 full; `illumination` percent; the sun's position now is not stored, a widget works it out from `now` and `sunrise`/`sunset`.
+
+| Key | Default | |
+|---|---|---|
+| `latitude` | required | Degrees north, -90 to 90. |
+| `longitude` | required | Degrees east, -180 to 180 (west is negative). |
+
+`refresh` defaults to `10m` and `when` to `visible`; a dashboard shown with data older than a minute recomputes at once. `sunMoon` draws it.
+
 ### `foyer`
 
 A built-in source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while shown, and maps the payload to the `system` shape with `foyer_health`. Any source whose `transform` produces the `system` shape works the same way: write a source template for another health agent (`vestal docs templates`) and name it in `systemHealth`'s `provider`.
+
+### `openMeteo`
+
+A built-in source template for [Open-Meteo](https://open-meteo.com/) (free, no key): `{"type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric"}`. It fetches every 30 minutes while shown and maps the answer to `{tz, temp, code, hours: [{time, temp, rain}], days: [{time, code, min, max, rain}]}` (`time` epoch seconds, `rain` percent, `code` a WMO weather code, `tz` the place's zone, six days of daily values and 144 hourly ones). `units` is `metric` (Celsius) or `imperial` (Fahrenheit). The `forecast` preset draws it.

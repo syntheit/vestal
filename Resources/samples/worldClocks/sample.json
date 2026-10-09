@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "World clocks",
+  "description": "Four cities with local time, day or night, the offset from here and whether it is working hours there.",
+  "preset": "worldClocks",
+  "size": [
+    680,
+    110
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time"
+  ]
+}

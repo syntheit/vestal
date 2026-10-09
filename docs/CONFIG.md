@@ -230,7 +230,7 @@ Every source takes:
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `type` | string | required | `"http"`, `"command"`, `"calendar"` (`"eventkit"` is an alias), `"file"`, `"system"`, `"media"`, `"claude"`, `"codex"`, or a source template such as `"foyer"`. |
+| `type` | string | required | `"http"`, `"command"`, `"calendar"` (`"eventkit"` is an alias), `"file"`, `"system"`, `"media"`, `"claude"`, `"codex"`, `"astro"`, or a source template such as `"foyer"` or `"openMeteo"`. |
 | `refresh` | duration | per type | How often to fetch: `"30m"` for `http`, `command` and `calendar`; `"5m"` for `claude` and `codex`; `"30s"` for `file`; `"3s"` for `system` and `media`. |
 | `when` | string | per type | `"always"` or `"visible"`, see above. |
 | `transform` | expr | none | A jq expression applied to the data before widgets see it. The cache keeps the data untransformed, so editing a transform needs no refetch. |
@@ -349,9 +349,20 @@ Codex plan usage, in the same shape as [`claude`](#claude), with `source` `"code
 |---|---|---|---|
 | `argv` | list of strings | `["codex", "app-server"]` | The app server to run, when `codex` is not on `PATH` (the launch agent's `PATH` includes the Nix profiles and Homebrew). A draft config (`--config`) runs a custom one only with `--allow-commands`. |
 
+### `astro`
+
+Sun and moon for a place, computed offline: sunrise, sunset, day length, the sun's arc and the moon's phase (`vestal docs sources` has the shape).
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `latitude` | number | required | Degrees north, -90 to 90. |
+| `longitude` | number | required | Degrees east, -180 to 180. |
+
+`refresh` defaults to `10m`, `when` to `visible`.
+
 ### Source templates
 
-A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in one is **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). Any other health agent can be mapped the same way with a template of your own. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
+A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in ones are **`openMeteo`** (`{"type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric"}`: an [Open-Meteo](https://open-meteo.com/) forecast, free and keyless, for the `forecast` preset) and **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). Any other health agent can be mapped the same way with a template of your own. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
 
 ## Secrets
 
@@ -443,9 +454,9 @@ The tables below give each type's main fields. `vestal docs config` lists every 
 |---|---|---|
 | `text` | `text` (text), or `value` (expr) with `format`, `prefix`, `suffix`, `placeholder` (`–`); `icon`, `iconColor`, `iconSize` (0.8 × size), `iconWeight`, `gap` (5); `lines` (unlimited), `align` (`start`); `size`, `weight`, `color` | Text, with an optional leading icon. |
 | `icon` | `name`, `weight` (`regular` or `fill`), `size` (13), `color` (inherited) | A Phosphor glyph. |
-| `progress` | `value`, `max` (100), `min` (0), `overlay`, `overlayPosition` (`above`; `below`), `label`, `labelWidth` (a minimum), `text` (`{{ $value \| round }}%`; `""` for none), `textWidth` (a minimum), `width` (`fill`), `height` (6), `radius` (2), `color` (`accent`), `trackColor` (`color` at 15%), `overlayColor` (`#ffffff33`), `labelStyle`, `textStyle`, `gap` (4) | A horizontal bar with a label before and a value after. |
+| `progress` | `value`, `max` (100), `min` (0), `overlay`, `overlayPosition` (`above`; `below`), `start` (where the fill begins, on the same scale: a range bar), `tick` (a thin mark at this value), `tickColor` (`#ffffff8c`), `label`, `labelWidth` (a minimum), `text` (`{{ $value \| round }}%`; `""` for none), `textWidth` (a minimum), `width` (`fill`), `height` (6), `radius` (2), `color` (`accent`), `trackColor` (`color` at 15%), `overlayColor` (`#ffffff33`), `labelStyle`, `textStyle`, `gap` (4) | A horizontal bar with a label before and a value after. |
 | `gauge` | `value`, `max`, `min`, `text` (`{{ $value \| round }}`), `label`, `size` (64), `thickness` (6), `sweep` (270), `color`, `trackColor`, `textStyle`, `labelStyle` | A ring with centre text and a label under it. |
-| `sparkline` | `values` (expr: an array of numbers), or `value` + `history` (`{size, every}`); `min`, `max` (the data's own), `width` (`fill`), `height` (24), `color` (`accent`; may use `$value`, the last point), `fill`, `strokeWidth` (1.5), `dot` (false) | A line. Fewer than two points draws nothing. |
+| `sparkline` | `values` (expr: an array of numbers), or `value` + `history` (`{size, every}`); `min`, `max` (the data's own), `width` (`fill`), `height` (24), `color` (`accent`; may use `$value`, the last point), `fill`, `strokeWidth` (1.5), `dot` (false), `dotAt` (a dot at this fraction of the width, 0 to 1), `dotColor` | A line. Fewer than two points draws nothing. |
 | `keyValue` | `items` (a list of `{label, value` + `format` or `text, color, source, vars, when, action, key}`), `gap` (24), `align` (`center`), `labelStyle`, `valueStyle` | Labelled values side by side. An item whose source has no data, whose `when` is false, or whose value is `null` is skipped; with none left the widget is hidden. |
 | `divider` | `axis` (`h`; `v`), `thickness` (0.5), `color` (`dim`) | A rule that fills the width (or height). |
 | `spacer` | `min` (0); with `width` or `height` a fixed gap | Flexible space along the parent's axis. |
@@ -797,9 +808,60 @@ Claude and Codex plan usage in one row: for each, the 5-hour and weekly windows 
 | `claudeSource` | source | `"claude"` | What the Claude cells read. |
 | `codexSource` | source | `"codex"` | What the Codex cells read. |
 
+### `worldClocks`
+
+Cities side by side: the time there, a sun or moon for day or night, the offset from here and `· working` during working hours. New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `cities` | list of `{label, zone}` | San Francisco, New York, London, Tokyo | IANA zones; unknown ones are skipped. |
+| `workHours` | list of two numbers | `[9, 18]` | The city's own working hours. |
+| `columns` | integer | `4` | Cities per row. |
+| `hour12` | boolean | `false` | 12-hour times. |
+
+### `sunMoon`
+
+The sun's arc with a dot for now, sunrise and sunset, day length and its daily change, and the moon's phase, from an [`astro` source](#astro). New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `source` | source | `"astro"` | An `astro` source (it needs `latitude` and `longitude`, so there is no default one). |
+| `hour12` | boolean | `false` | 12-hour times. |
+
+### `countdowns`
+
+Days until each date, soonest first, with a bar of the time passed since `since`. New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `items` | list of `{title, date, since?, color?}` | `[]` | Dates as `2026-12-24`; no bar without `since`; past dates are left out. |
+| `limit` | integer | `6` | At most this many. |
+
+### `forecast`
+
+Twelve hours of temperature bars with the rain chance marked, and five days as low-to-high range bars, from an [`openMeteo` source](#source-templates). New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `source` | source | `"forecast"` | An `openMeteo` source. |
+| `hours` | integer | `12` | Hours of bars. |
+| `days` | integer | `5` | Days of range bars. |
+
+### `aiPlan`
+
+Claude and Codex plan windows as full-width bars with reset times and an even-pace tick on the weekly ones. New in 0.4; `vestal docs ai-usage` has the setup.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `show` | list of strings | `["claude", "codex"]` | Which services, in order. |
+| `claudeSource`, `codexSource` | source | `"claude"`, `"codex"` | What each reads. |
+| `claudePlan`, `codexPlan` | string | none | The plan badge; Codex's default is the plan it reports. |
+| `hint` | boolean | `true` | The line explaining the tick. |
+| `hour12` | boolean | `false` | 12-hour reset times. |
+
 ### Helpers
 
-`claudeItem` (an icon and `session% / weekly%` of a `claude` or `codex` source), `aiWindow` (one of `aiUsage`'s cells) and `hostDetail` (a host's popup: CPU, RAM, GPU, pools or mounts, network and services) are the presets' building blocks; `foyer` is the source template described under [sources](#source-templates).
+`claudeItem` (an icon and `session% / weekly%` of a `claude` or `codex` source), `aiWindow` (one of `aiUsage`'s cells), `aiPlanService` (one block of `aiPlan`) and `hostDetail` (a host's popup: CPU, RAM, GPU, pools or mounts, network and services) are the presets' building blocks; `foyer` is the source template described under [sources](#source-templates).
 
 ## Changes in 0.4
 

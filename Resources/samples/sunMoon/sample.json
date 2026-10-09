@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Sun and moon",
+  "description": "The sun's place on today's arc, day length and its daily change, and the moon phase, computed offline.",
+  "preset": "sunMoon",
+  "size": [
+    680,
+    130
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "time",
+    "sky"
+  ]
+}
