@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "CI status",
+  "description": "The latest Actions results per repository and branch.",
+  "preset": "ciStatus",
+  "size": [
+    680,
+    200
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "dev",
+    "github"
+  ]
+}

@@ -32,6 +32,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 | Key | Default | Meaning |
 |---|---|---|
 | `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, `codex`, `astro`, or a source template such as `foyer` or `openMeteo`. |
+| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, `codex`, `flake`, or a source template such as `foyer` or `github`. |
 | `refresh` | per type | How often to fetch: `"30s"`, `"5m"`, `"4h"`, `"1d"`. |
 | `when` | per type | `always`: fetched whether or not the dashboard is shown. `visible`: only while it is shown and a widget of the view reads it, with an immediate fetch on show when stale. |
 | `transform` | none | A jq expression applied to the data before widgets see it. The cache keeps the untransformed data, so editing a transform needs no refetch. |
@@ -50,6 +51,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 | `claude` | `5m` | `visible` | the Claude plan's usage, from the usage endpoint or `claude -p /usage` |
 | `codex` | `5m` | `visible` | the Codex plan's usage, from `codex app-server` |
 | `astro` | `10m` | `visible` | nothing: sun and moon computed from `latitude` and `longitude` |
+| `flake` | `1h` | `visible` | a Nix flake's locked inputs, from `nix flake metadata`, and optionally GitHub |
 
 **Built-in sources.** The defaults define `system`, `media` (`player: "auto"`), `claude`, `codex`, `calendar` and `weather` (wttr.in). A `visible` source that nothing on screen reads is never fetched, so unused ones cost nothing.
 
@@ -77,7 +79,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 }
 ```
 
-A secret is read once when the config loads (a `command` secret has 10 seconds), trimmed, and usable only in source-definition text as `{{ $secrets.<name> }}`. Never write a secret's value into the config: under Nix the config is in the world-readable store. `print-config`, `render`, `status` and the logs never show secret values, and fetch errors are scrubbed of them. check-config warns about a literal-looking token in a URL, header, body, command argv or env.
+A secret is read once when the config loads (a `command` secret has 10 seconds), trimmed, and usable only in source-definition text as `{{ $secrets.<name> }}`. One name has a built-in definition: `github`, the token of the `github` source template and of the GitHub presets (`reviewQueue`, `ciStatus`, `flakeInputs` with `behind`), is `["gh", "auth", "token"]` until the config defines a secret of that name (`"github": {"env": "GITHUB_TOKEN"}`, or a `file`). It is added only when something reads it, so a config without those widgets never runs `gh`, and `vestal check-config --commands` lists it when it applies. Never write a secret's value into the config: under Nix the config is in the world-readable store. `print-config`, `render`, `status` and the logs never show secret values, and fetch errors are scrubbed of them. check-config warns about a literal-looking token in a URL, header, body, command argv or env.
 
 ## History
 
@@ -283,6 +285,27 @@ The sun and moon for a place, computed offline (no network, no key) from `latitu
 
 `refresh` defaults to `10m` and `when` to `visible`; a dashboard shown with data older than a minute recomputes at once. `sunMoon` draws it.
 
+### `flake`
+
+The inputs a Nix flake has locked, from `nix flake metadata --json <path>`, and optionally how far behind each GitHub input is. It runs `nix` (the flake's own lock is read; nothing is fetched or built), so `nix` must be on the daemon's `PATH` (`programs.vestal.extraPackages` under Nix); `vestal check-config --commands` lists it. A draft config runs it only with `--allow-commands`.
+
+| Key | Default | |
+|---|---|---|
+| `path` | required | The flake: a directory or a flake reference. A leading `~/` expands. Text. |
+| `behind` | `false` | Also ask GitHub how many commits each GitHub input's branch has gained since its locked revision. One GraphQL request (`https://api.github.com/graphql`) for all inputs, authorised by `headers`. The branch is the one the flake follows (`original.ref`), else the repository's default branch. Inputs that are not on github.com, or are pinned to a revision, are not asked about. If GitHub fails, or there is no token, `behind` is `null` everywhere, the lock data is still delivered, and the source's note says why (`vestal sources`). |
+| `headers` | none | Headers of that request, such as `{"Authorization": "Bearer {{ $secrets.github }}"}`; read only with `behind`. |
+| `argv` | `["nix", "--extra-experimental-features", "nix-command flakes", "flake", "metadata", "--json"]` | The command, before the flake's path. |
+| `timeout` | `10s` | For the `nix` command and the GitHub request. |
+
+```jsonc
+{ "path": "~/config",
+  "inputs": [ { "name": "nixpkgs", "type": "github", "owner": "NixOS", "repo": "nixpkgs", "ref": "nixpkgs-unstable",
+                "rev": "d233902339c02a9c334e7e593de68855ad26c4cb", "lastModified": 1778869304,
+                "url": "https://github.com/NixOS/nixpkgs", "behind": 412 } ] }
+```
+
+`inputs` are the flake's direct inputs, sorted by name; one that follows another input's lock (`inputs.x.follows`) has no lock of its own and is left out. `type` is the locked type (`github`, `gitlab`, `git`, `tarball`, `path`, ...), `owner` and `repo` are `null` where the type has none, `ref` is the branch or tag the flake names (`null`: the default branch), `lastModified` is epoch seconds (when the locked revision was committed or published), and `behind` is a number of commits, `0` when level, `null` when not asked for or not answered. `vestal docs preset/flakeInputs` draws it.
+
 ### `foyer`
 
 A built-in source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while shown, and maps the payload to the `system` shape with `foyer_health`. Any source whose `transform` produces the `system` shape works the same way: write a source template for another health agent (`vestal docs templates`) and name it in `systemHealth`'s `provider`.
@@ -308,3 +331,30 @@ Programs: `sh` and `du` (`vestal check-config --commands` lists them). Pass the 
 ### `openMeteo`
 
 A built-in source template for [Open-Meteo](https://open-meteo.com/) (free, no key): `{"type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric"}`. It fetches every 30 minutes while shown and maps the answer to `{tz, temp, code, hours: [{time, temp, rain}], days: [{time, code, min, max, rain}]}` (`time` epoch seconds, `rain` percent, `code` a WMO weather code, `tz` the place's zone, six days of daily values and 144 hourly ones). `units` is `metric` (Celsius) or `imperial` (Fahrenheit). The `forecast` preset draws it.
+
+### `github`
+
+A built-in source template for GitHub's GraphQL API: `POST https://api.github.com/graphql` with the token of the `github` secret as a Bearer header (`gh auth token` unless the config defines that secret, see Secrets), refreshed every 5 minutes while the dashboard is shown. The GitHub presets use it, and it is meant for your own queries too.
+
+| Parameter | Default | |
+|---|---|---|
+| `query` | none | A GraphQL document. |
+| `variables` | `{}` | Its variables, an object. |
+| `body` | none | A complete request body as JSON text, instead of `query` and `variables`: for a query a preset builds from its own parameters (`ciStatus` writes one repository field per repository). |
+
+The data is GitHub's answer, `{"data": …, "errors": …}`. GraphQL reports many failures as a 200 with `errors`, so a `transform` that needs `data` should fail when it is missing (`if .data == null then error(.errors[0].message) else … end`), which keeps the last good data on screen. The instance takes the common source keys (`refresh`, `when`, `timeout`, `transform`, ...).
+
+```json
+{
+  "version": 1,
+  "sources": {
+    "me": { "type": "github", "query": "{ viewer { login repositories { totalCount } } }" }
+  },
+  "widgets": {
+    "repos": { "type": "text", "source": "me", "text": "{{ .data.viewer.login }}: {{ .data.viewer.repositories.totalCount }} repositories" }
+  },
+  "views": { "main": { "children": ["clock", "repos"] } }
+}
+```
+
+GitHub's GraphQL allows 5,000 points an hour; a query like the presets' costs one point, and a `visible` source asks only while the dashboard is shown.

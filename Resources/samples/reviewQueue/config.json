@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "sources": {
+    "reviews": {
+      "type": "http",
+      "url": "https://api.github.com/graphql",
+      "method": "POST"
+    }
+  },
+  "widgets": {
+    "w": {
+      "type": "reviewQueue",
+      "source": "reviews"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "w"
+      ],
+      "padding": 24
+    }
+  }
+}

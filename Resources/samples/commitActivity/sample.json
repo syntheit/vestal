@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Commit activity",
+  "description": "Commits per day across several repositories, with the total and the streak.",
+  "preset": "commitActivity",
+  "size": [
+    680,
+    190
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "dev",
+    "git"
+  ]
+}

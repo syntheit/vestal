@@ -20,6 +20,7 @@ final class SchemaTests: XCTestCase {
             "claude": common.union(["argv", "path", "fiveHourLimit", "weeklyLimit", "backend"]),
             "codex": common.union(["argv"]),
             "astro": common.union(["latitude", "longitude"]),
+            "flake": common.union(["path", "behind", "headers", "argv", "timeout"]),
         ])
         XCTAssertEqual(SourceConfig.aliases, ["eventkit": "calendar"])
         XCTAssertEqual(WidgetConfig.keysByType, [
@@ -58,7 +59,7 @@ final class SchemaTests: XCTestCase {
         let source = SourceConfig(
             type: "command", url: "u", argv: ["a"], env: [:], calendars: [], transform: ".", history: [:], maxAge: "1h",
             headers: [:], body: .null, path: "p", disks: [], interfaces: [], player: [], ics: [], thunderbird: "", backend: "auto", caldav: [], processes: 1,
-            latitude: 1, longitude: 2)
+            latitude: 1, longitude: 2, behind: true)
         // The v0.3 Claude options are declared (accepted, then ignored) but
         // not decoded; a source's `path` is still the file source's.
         let ignored: Set<String> = ["path", "fiveHourLimit", "weeklyLimit"]

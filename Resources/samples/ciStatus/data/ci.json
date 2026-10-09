@@ -1,0 +1,94 @@
+[
+  {
+    "repo": "api",
+    "nameWithOwner": "acme/api",
+    "branch": "main",
+    "url": "https://github.com/acme/api/actions?query=branch%3Amain",
+    "runs": [
+      "failure",
+      "failure",
+      "success",
+      "success",
+      "failure",
+      "success",
+      "success",
+      "success",
+      "success",
+      "success",
+      "success",
+      "success"
+    ],
+    "state": "success",
+    "started": 1790525002,
+    "finished": 1790525254
+  },
+  {
+    "repo": "web",
+    "nameWithOwner": "acme/web",
+    "branch": "main",
+    "url": "https://github.com/acme/web/actions?query=branch%3Amain",
+    "runs": [
+      "success",
+      "success",
+      "success",
+      "success",
+      "success",
+      "success",
+      "success",
+      "failure",
+      "success",
+      "success",
+      "failure",
+      "failure"
+    ],
+    "state": "failure",
+    "started": 1790523202,
+    "finished": 1790523265
+  },
+  {
+    "repo": "infra",
+    "nameWithOwner": "acme/infra",
+    "branch": "update-flake",
+    "url": "https://github.com/acme/infra/actions?query=branch%3Aupdate-flake",
+    "runs": [
+      "success",
+      "success",
+      "success",
+      "success",
+      "success",
+      "success",
+      "failure",
+      "success",
+      "success",
+      "success",
+      "success",
+      "running"
+    ],
+    "state": "running",
+    "started": 1790528482,
+    "finished": 1790528572
+  },
+  {
+    "repo": "docs",
+    "nameWithOwner": "acme/docs",
+    "branch": "main",
+    "url": "https://github.com/acme/docs/actions?query=branch%3Amain",
+    "runs": [
+      "success",
+      "success",
+      "success",
+      "failure",
+      "success",
+      "failure",
+      "success",
+      "success",
+      "failure",
+      "success",
+      "failure",
+      "success"
+    ],
+    "state": "success",
+    "started": 1790442202,
+    "finished": 1790442240
+  }
+]

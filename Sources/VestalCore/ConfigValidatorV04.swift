@@ -269,7 +269,7 @@ struct V04Checker {
                 if !(inTemplate && containsParameter(source)) {
                     inlineSources.append((source, "\(path).source"))
                 }
-                sourceFields(definition, path: "\(path).source", params: [])
+                sourceFields(definition, path: "\(path).source", params: inTemplate ? outer.variables : [])
             default:
                 break
             }
@@ -421,7 +421,7 @@ struct V04Checker {
                             suggestions: DidYouMean.suggestions(for: name, among: Array(sourceNames)))
                     } else if case .object(let definition) = value {
                         inlineSources.append((value, fieldPath))
-                        sourceFields(definition, path: fieldPath, params: [])
+                        sourceFields(definition, path: fieldPath, params: inTemplate ? inner.variables : [])
                     }
                 default:
                     break

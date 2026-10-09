@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Review queue",
+  "description": "Pull requests waiting on your review, with size, author and age.",
+  "preset": "reviewQueue",
+  "size": [
+    680,
+    200
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "dev",
+    "github"
+  ]
+}

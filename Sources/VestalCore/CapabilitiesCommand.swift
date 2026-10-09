@@ -273,6 +273,10 @@ public enum CapabilitiesCommand {
         for (name, source) in loaded.expanded.sources where SourceConfig.canonicalType(source.type) == "command" {
             if let program = source.argv?.first, !program.isEmpty { programs[program, default: []].insert("source \(name)") }
         }
+        for (name, source) in loaded.expanded.sources where SourceConfig.canonicalType(source.type) == "flake" {
+            let program = source.argv?.first ?? FlakeInputs.defaultArgv[0]
+            programs[program, default: []].insert("source \(name)")
+        }
         for (name, secret) in loaded.config.secrets {
             if let program = secret.command?.first, !program.isEmpty { programs[program, default: []].insert("secret \(name)") }
         }

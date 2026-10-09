@@ -62,6 +62,7 @@ extension Config {
     public mutating func adopt(_ expansion: ExpandedConfig) {
         expanded = expansion.tree
         for (name, source) in expansion.sources { sources[name] = source }
+        for (name, secret) in DefaultSecrets.needed(by: sources.values) where secrets[name] == nil { secrets[name] = secret }
     }
 }
 
@@ -130,6 +131,7 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 //   claude    backend, argv (path, fiveHourLimit and weeklyLimit are accepted and ignored)
 //   codex     argv
 //   astro     latitude, longitude
+//   flake     path, behind, headers, argv, timeout
 
 public struct SourceConfig: Codable, Equatable, Sendable {
     /// Keys every type accepts.
@@ -160,6 +162,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         case "astro": return "10m"
         case "file": return "30s"
         case "claude", "codex": return "5m"
+        case "flake": return "1h"
         default: return defaultRefresh
         }
     }
@@ -168,7 +171,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     /// while the dashboard is shown, everything else always.
     public static func defaultWhen(for type: String) -> String {
         switch canonicalType(type) {
-        case "system", "media", "claude", "codex", "astro": return "visible"
+        case "system", "media", "claude", "codex", "astro", "flake": return "visible"
         default: return "always"
         }
     }
@@ -211,11 +214,12 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public var processes: Int?              // system: how many top processes to report (nil: none, and none are read)
     public var latitude: Double?            // astro (required): degrees north
     public var longitude: Double?           // astro (required): degrees east
+    public var behind: Bool?                // flake: also ask GitHub how far behind each input is
 
     enum CodingKeys: String, CodingKey {
         case type, url, refresh, parse, argv, timeout, env, days, calendars
         case when, transform, history, maxAge, cache, method, headers, body, path
-        case disks, interfaces, player, ics, thunderbird, backend, caldav, processes, latitude, longitude
+        case disks, interfaces, player, ics, thunderbird, backend, caldav, processes, latitude, longitude, behind
     }
 
     public init(
@@ -246,7 +250,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         caldav: [String]? = nil,
         processes: Int? = nil,
         latitude: Double? = nil,
-        longitude: Double? = nil
+        longitude: Double? = nil,
+        behind: Bool? = nil
     ) {
         let type = Self.canonicalType(type)
         self.type = type
@@ -260,6 +265,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         self.ics = ics; self.thunderbird = thunderbird; self.backend = backend; self.caldav = caldav
         self.processes = processes
         self.latitude = latitude; self.longitude = longitude
+        self.behind = behind
         fillDefaults()
     }
 
@@ -301,6 +307,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         backend   = c.lenient(String.self, .backend).map { $0.lowercased() }.flatMap { Self.claudeBackends.contains($0) ? $0 : nil }
         latitude  = c.lenient(Double.self, .latitude)
         longitude = c.lenient(Double.self, .longitude)
+        behind    = c.lenient(Bool.self, .behind)
         fillDefaults()
     }
 

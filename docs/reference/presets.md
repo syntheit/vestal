@@ -149,6 +149,110 @@ A ring with the charge and "On battery", "Charging" or "Plugged in" under it; th
 programs.vestal.settings.views.main.children = [ { type = "batteryPower"; } ];
 ```
 
+## Developer widgets
+
+Four presets for a developer's day. `reviewQueue`, `ciStatus` and `flakeInputs` with `behind` talk to GitHub through the `github` source template (`vestal docs source/github`) with one token for all of them: the `github` secret, which is `gh auth token` (log in once with `gh auth login`) until your config defines a secret of that name:
+
+```json
+{ "secrets": { "github": { "env": "GITHUB_TOKEN" } } }
+```
+
+They run only while the dashboard is shown, and hide until their first answer arrives or when it fails (`vestal sources` shows why). Each reads one source; give a widget your own `source` (a name) to feed it the data shape described under it. Under Home Manager, add what they run to `programs.vestal.extraPackages` (`pkgs.gh`, `pkgs.git`, `pkgs.nix`); `vestal check-config --commands` lists the programs.
+
+### `reviewQueue`
+
+Pull requests waiting on your review, newest first, one row each: a state icon (`accent` waiting, `warn` changes requested, `good` approved, `dim` a draft), `repo#number`, the title, `+additions` and `−deletions`, `@author` and the age (`2h`, `5d`), then a summary badge (`4 waiting on you`) with the age of the oldest. With none, a green tick and "No reviews waiting on you". A row's key (1 to 9) or a click opens the pull request. One GraphQL request per refresh.
+
+| Parameter | Default | |
+|---|---|---|
+| `search` | `is:pr is:open review-requested:@me archived:false` | A GitHub issue search; every pull request it finds is listed (add `-draft:true` to skip drafts, or `team-review-requested:org/team`). |
+| `limit` | `5` | Rows shown (the summary counts all that were found, up to 30). |
+| `refresh` | `5m` | |
+| `numberKeys` | `true` | Keys `1` to `9` open the rows' pull requests. |
+
+The source's data: a list of `{repo, nameWithOwner, number, title, url, additions, deletions, author, created (epoch seconds), draft, state}` where `state` is `review`, `changes`, `approved` or `draft`.
+
+```json
+{ "type": "reviewQueue", "limit": 6 }
+```
+
+```nix
+programs.vestal.settings.widgets.reviews = { type = "reviewQueue"; limit = 6; };
+programs.vestal.extraPackages = [ pkgs.gh ];
+```
+
+### `ciStatus`
+
+The latest GitHub Actions results per repository and branch: a state icon (`check-circle` green, `x-circle` red, `circle-notch` yellow while running, `minus-circle` for cancelled), the repository, the branch, the last `runs` results as small cells (older ones half as strong, the newest full), and how long the newest took (`4m 12s`, `running 2m`). A row opens the repository's Actions page for that branch.
+
+One GraphQL request per refresh covers every repository: it reads each branch's last 30 commits and the check suites GitHub Actions ran for them. A commit is one cell: running when any of its suites is still running, failed when one failed or timed out, cancelled when one was cancelled, else passed; commits no workflow ran for (skipped suites, path filters) have no cell. So a cell is a commit's result rather than a single workflow run, and the duration spans the commit's suites. Use a `repos` entry per branch you care about.
+
+| Parameter | Default | |
+|---|---|---|
+| `repos` | required | `["owner/name", "owner/name@branch"]`: a repository on its default branch, or on the branch after the `@`. An entry that is not `owner/name` is skipped. |
+| `runs` | `12` | Cells per repository, at most 30. |
+| `refresh` | `5m` | |
+
+The source's data: a list, in `repos` order, of `{repo, nameWithOwner, branch, url, runs (oldest first: success, failure, running, cancelled), state (the newest, or none), started, finished (epoch seconds)}`. A repository GitHub can't find or read is left out.
+
+```json
+{ "type": "ciStatus", "repos": ["acme/api", "acme/web", "acme/infra@update-flake"] }
+```
+
+```nix
+programs.vestal.settings.widgets.ci = { type = "ciStatus"; repos = [ "acme/api" "acme/infra@update-flake" ]; };
+```
+
+### `commitActivity`
+
+Commits per day across your repositories, as GitHub draws its contribution graph: a column per week (the last one the current week), a row per weekday from Sunday, `weeks` columns of cells in five shades of green, then `1,284 commits in 30 weeks`, the current streak (`9d`; a day without a commit yet today does not break it) and a legend.
+
+It runs `git log --branches --since=<weeks>.weeks --format=%cs --author=<email>` in each directory of `paths`, through `sh -c` with the script fixed and the paths, the author and the period passed as arguments (so nothing you configure is ever interpreted as shell). The author is each repository's own `git config user.email` unless you set `author`; a repository with neither, or that is not a repository, adds nothing. One source for all repositories because a template can't loop over a list of sources; the loop is the fixed script's. It needs `sh` and `git` on the daemon's `PATH`. Commits count on any local branch, once each per repository.
+
+| Parameter | Default | |
+|---|---|---|
+| `paths` | required | Repository directories; `~/` expands. |
+| `weeks` | `30` | Columns of the grid. |
+| `author` | none | A `git log --author` pattern (a regular expression: `me@example.com\|me@work.example`), for every repository. |
+| `levels` | `[1, 3, 6, 10]` | Commits in a day from which a cell takes the 1st, 2nd, 3rd and 4th shade; a day with none is empty. |
+| `cell`, `gap` | `10`, `3` | Cell size and spacing, in points. |
+| `refresh` | `10m` | |
+
+The source's data: `{"days": {"<days since 1970-01-01>": commits}}`, from the lines `git log` printed.
+
+```json
+{ "type": "commitActivity", "paths": ["~/code/api", "~/code/web", "~/config"], "weeks": 30 }
+```
+
+```nix
+programs.vestal.settings.widgets.commits = { type = "commitActivity"; paths = [ "~/code/api" "~/config" ]; };
+programs.vestal.extraPackages = [ pkgs.git ];
+```
+
+### `flakeInputs`
+
+How old each locked input of a Nix flake is, oldest first, as a table: the input, the age of its lock (`19d`; green under `fresh` days, then neutral, yellow from `warn`, red from `bad`) and, with `behind: true`, how far its branch has moved on (`412 commits`, `up to date`, a dash for what can't be asked: inputs not on GitHub, or pinned to a revision). Above it: the flake's path, a badge (`3 updates` with `behind`, else `2 old`) and when it was checked.
+
+The locks come from `nix flake metadata --json` (the `flake` source, `vestal docs source/flake`), which reads the lock file and fetches nothing. `behind` adds one GitHub GraphQL request per refresh for all GitHub inputs, comparing each locked revision with the branch the flake follows (or the default branch). It is off by default because it needs the token; without a token the table still shows the lock ages. It uses GraphQL's `compare` field, the same comparison as GitHub's REST compare endpoint, so one request covers every input and the answer is a few bytes instead of a list of commits.
+
+| Parameter | Default | |
+|---|---|---|
+| `path` | required | The flake's directory or reference; `~/` expands. |
+| `behind` | `false` | Also ask GitHub how many commits each GitHub input is behind. |
+| `fresh`, `warn`, `bad` | `3`, `14`, `30` | Days: the lock age colours. |
+| `sort` | `age` | `age` (oldest lock first) or `name`. |
+| `limit` | `8` | Rows shown. |
+| `refresh` | `1h` | |
+
+```json
+{ "type": "flakeInputs", "path": "~/config", "behind": true }
+```
+
+```nix
+programs.vestal.settings.widgets.flake = { type = "flakeInputs"; path = "~/config"; behind = true; };
+programs.vestal.extraPackages = [ pkgs.nix pkgs.gh ];
+```
+
 ## The v0.3 widgets
 
 These keep their v0.3 names, parameters and look, so v0.3 configs work unchanged.
@@ -311,3 +415,7 @@ A source template: `{"type": "diskUsage", "paths": [{"label": "Developer", "path
 
 A source template for [Open-Meteo](https://open-meteo.com/) (free, no key): `{"type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric"}` (`units` `metric` or `imperial`) fetches the forecast every 30 minutes while shown and maps it to `{tz, temp, code, hours: [{time, temp, rain}], days: [{time, code, min, max, rain}]}`: `time` epoch seconds, `rain` the chance in percent, `code` a WMO weather code, `tz` the place's time zone. `forecast` draws it.
 
+
+### `github`
+
+A source template for GitHub's GraphQL API with the `github` secret's token: `{"type": "github", "query": "{ viewer { login } }"}`. The developer widgets use it; `vestal docs source/github` has its parameters and the token.
