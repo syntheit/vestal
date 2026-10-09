@@ -245,17 +245,28 @@ final class AppleScriptBackend: MediaBackend, @unchecked Sendable {
             return MediaReading(player: nil, playing: .off, players: players)
         }
         let key = player.lowercased()
+        // Only Spotify and Music post notifications; any other player is
+        // always asked.
+        let notifies = Set(Self.notices.values).contains { $0.caseInsensitiveCompare(player) == .orderedSame }
         let started = Date()
-        if let known = withLock({ listening ? heard[key]?.reading(at: started) : nil }) {
-            return MediaReading(player: player, playing: known, players: players)
+        let known = withLock { () -> NowPlaying? in
+            guard listening else { return nil }
+            // A player that quit starts over when it runs again.
+            heard = heard.filter { entry in players.contains { $0.lowercased() == entry.key } }
+            return notifies ? heard[key]?.reading(at: started) : nil
         }
+        if let known { return MediaReading(player: player, playing: known, players: players) }
         let directory = player.caseInsensitiveCompare("Music") == .orderedSame ? Self.artworkDirectory() : nil
-        let playing = await SystemBridge.track(player: player, script: MediaScript.track(player: player, artworkDirectory: directory))
-        withLock {
-            // A notification that came while the script ran is newer.
-            if listening, (heard[key]?.at ?? .distantPast) <= started { heard[key] = MediaHeard(playing: playing, at: started) }
+        let answer = await SystemBridge.track(player: player, script: MediaScript.track(player: player, artworkDirectory: directory))
+        // A script that failed (Automation not allowed yet, a timeout) is
+        // asked again next time.
+        if let answer, notifies {
+            withLock {
+                // A notification that came while the script ran is newer.
+                if listening, (heard[key]?.at ?? .distantPast) <= started { heard[key] = MediaHeard(playing: answer, at: started) }
+            }
         }
-        return MediaReading(player: player, playing: playing, players: players)
+        return MediaReading(player: player, playing: answer ?? .off, players: players)
     }
 
     /// Starts keeping what Spotify and Music say; `changed` runs (on the

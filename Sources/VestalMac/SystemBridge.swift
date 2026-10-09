@@ -255,7 +255,10 @@ enum SystemBridge {
     static func runAppleScript(_ source: String) -> String? {
         var error: NSDictionary?
         if let script = compiledScripts[source] {
-            return script.executeAndReturnError(&error).stringValue
+            if let result = script.executeAndReturnError(&error).stringValue { return result }
+            // The player may have quit and started again since it was
+            // compiled: compile it once more.
+            compiledScripts[source] = nil
         }
         guard let script = NSAppleScript(source: source) else { return nil }
         if script.compileAndReturnError(&error), compiledScripts.count < 32 { compiledScripts[source] = script }
@@ -391,12 +394,13 @@ enum SystemBridge {
         }
     }
 
-    /// The whole track (`MediaScript.track`), on `appleScriptQueue`.
-    static func track(player: String, script: String) async -> NowPlaying {
+    /// The whole track (`MediaScript.track`), on `appleScriptQueue`; nil
+    /// when the player isn't running or the script failed.
+    static func track(player: String, script: String) async -> NowPlaying? {
         await withCheckedContinuation { continuation in
             appleScriptQueue.async {
                 guard isRunning(player), let raw = runAppleScript(script) else {
-                    continuation.resume(returning: .off)
+                    continuation.resume(returning: nil)
                     return
                 }
                 continuation.resume(returning: MediaScript.parseTrack(raw, player: player))
