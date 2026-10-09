@@ -140,11 +140,11 @@ Twelve hours of temperature as bars (hour labels under them, blue where the rain
 ```json
 {
   "sources": { "forecast": { "type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric" } },
-  "widgets": { "weather": { "type": "forecast" } }
+  "widgets": { "outlook": { "type": "forecast" } }
 }
 ```
 
-Under Home Manager: `programs.vestal.settings.sources.forecast = { type = "openMeteo"; latitude = 38.72; longitude = -9.14; };` and `programs.vestal.settings.widgets.weather.type = "forecast";`.
+Under Home Manager: `programs.vestal.settings.sources.forecast = { type = "openMeteo"; latitude = 38.72; longitude = -9.14; };` and `programs.vestal.settings.widgets.outlook.type = "forecast";`.
 
 ### `aiPlan`
 
