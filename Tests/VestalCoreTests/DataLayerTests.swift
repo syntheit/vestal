@@ -332,7 +332,7 @@ final class BuiltinShapeTests: XCTestCase {
         XCTAssertEqual(keys(mac), [
             "audio", "audio.muted", "audio.volume", "battery", "battery.ac", "battery.charging", "battery.cycles",
             "battery.health", "battery.percent", "battery.power", "battery.remaining", "battery.temperature", "cpu",
-            "cpu.cores", "cpu.load", "cpu.percent", "cpu.perCore", "disks", "gpu", "host", "memory",
+            "cpu.cores", "cpu.load", "cpu.perCore", "cpu.percent", "disks", "gpu", "host", "memory",
             "memory.compressed", "memory.parts", "memory.percent", "memory.pressure", "memory.psi", "memory.state",
             "memory.swap", "memory.total", "memory.used", "network", "network.interfaces", "network.rx",
             "network.today", "network.tx", "os", "processes", "services", "temperature", "temperature.cpu", "uptime",

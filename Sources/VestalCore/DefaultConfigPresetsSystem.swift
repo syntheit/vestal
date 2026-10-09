@@ -82,8 +82,8 @@ extension DefaultPresets {
           "type": "row", "gap": 22, "align": "end", "source": { "param": "source" },
           "when": ".cpu.perCore != null",
           "vars": {
-            "p": "[.cpu.perCore[] | select(.kind == \"performance\")] | length",
-            "e": "[.cpu.perCore[] | select(.kind == \"efficiency\")] | length"
+            "p": "[(.cpu.perCore // [])[] | select(.kind == \"performance\")] | length",
+            "e": "[(.cpu.perCore // [])[] | select(.kind == \"efficiency\")] | length"
           },
           "children": [
             { "type": "bars", "orientation": "vertical", "height": 48, "barWidth": 12, "gap": 4, "max": 100, "labels": true,

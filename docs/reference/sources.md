@@ -187,10 +187,7 @@ This machine, with the same shape on macOS and Linux. Units: bytes, bytes per se
   "host": "swift",
   "os": "macos",
   "uptime": 273600,
-  "cpu": {
-    "percent": 12.5, "cores": 10, "load": [1.21, 1.43, 1.52],
-    "perCore": [ { "percent": 64, "kind": "performance" }, { "percent": 9, "kind": "efficiency" } ]
-  },
+  "cpu": { "percent": 12.5, "cores": 10, "load": [1.21, 1.43, 1.52], "perCore": [ { "percent": 64, "kind": "performance" }, { "percent": 9, "kind": "efficiency" } ] },
   "memory": {
     "percent": 61, "pressure": 12, "compressed": 12, "psi": null, "used": 20957347840, "total": 34359738368,
     "parts": { "app": 10522669875, "wired": 3328599654, "compressed": 1503238553, "cached": 5583457484, "free": 13421772800 },
