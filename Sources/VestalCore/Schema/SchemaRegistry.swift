@@ -340,7 +340,7 @@ public enum SchemaRegistry {
                       "Added to the command's environment."),
         ] + common("30m", "always") + [parse("stdout")]),
         SchemaEntityType("calendar", aliases: ["eventkit"],
-                         "Events: EventKit on macOS, or .ics files, directories and URLs (ics) on both OSes.", keys: [
+                         "Events: EventKit on macOS, or .ics files, directories and URLs (ics) or Thunderbird's calendars (thunderbird) on both OSes.", keys: [
             SchemaKey("days", .integer(minimum: 1), default: .int(SourceConfig.defaultDays), examples: [.int(2)],
                       "How many days to read, today being the first."),
             SchemaKey("calendars", .list(.string), examples: [.array([.string("Work"), .string("Home")])],
@@ -349,6 +349,11 @@ public enum SchemaRegistry {
                       examples: [.array([.string("~/.calendars/work"), .string("https://example.com/cal.ics")])],
                       "A list (or one) of .ics files, directories of them, or http(s) URLs. Without it macOS reads EventKit and "
                       + "Linux yields no events. Recurrences with unsupported rules (BYSETPOS, BYWEEKNO, ...) are left out."),
+            SchemaKey("thunderbird", .any, kind: .text, since: "0.4",
+                      examples: [.bool(true)],
+                      "true for Thunderbird's default profile, or a profile directory such as ~/.thunderbird/abcd1234.default: its "
+                      + "calendars with Offline support enabled, read from the profile's local databases. Replaces EventKit like ics, "
+                      + "and adds to ics when both are set."),
             timeout("For ics URLs."),
         ] + common("30m", "always")),
         SchemaEntityType("file", since: "0.4", "Reads a file.", keys: [

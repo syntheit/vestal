@@ -45,6 +45,7 @@
               pkgs.swiftPackages.XCTest
               # The GTK UI (VestalLinux): vestal-gtk4.pc and its libraries.
               pkgs.pkg-config
+              pkgs.sqlite
               (pkgs.callPackage ./nix/gtk-pkgconfig.nix { })
             ];
           }

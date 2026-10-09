@@ -13,7 +13,7 @@ final class SchemaTests: XCTestCase {
         XCTAssertEqual(SourceConfig.keysByType, [
             "http": common.union(["url", "parse", "method", "headers", "body", "timeout"]),
             "command": common.union(["argv", "timeout", "parse", "env"]),
-            "calendar": common.union(["days", "calendars", "ics", "timeout"]),
+            "calendar": common.union(["days", "calendars", "ics", "thunderbird", "timeout"]),
             "file": common.union(["path", "parse"]),
             "system": common.union(["disks", "interfaces"]),
             "media": common.union(["player"]),

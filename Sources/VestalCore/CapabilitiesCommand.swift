@@ -146,10 +146,10 @@ public enum CapabilitiesCommand {
 
         // calendar: EventKit, or ics.
         let calendars = loaded.config.sources.filter { SourceConfig.canonicalType($0.value.type) == "calendar" }
-        let withICS = calendars.filter { !($0.value.ics ?? []).isEmpty }.keys.sorted()
+        let withICS = calendars.filter { !($0.value.ics ?? []).isEmpty || $0.value.thunderbird != nil }.keys.sorted()
         let calendarCheck: Check
         if !withICS.isEmpty {
-            calendarCheck = Check(true, "ics files or URLs on: " + withICS.joined(separator: ", "))
+            calendarCheck = Check(true, "ics files, URLs or Thunderbird on: " + withICS.joined(separator: ", "))
         } else if linux {
             calendarCheck = Check(false, "no calendar backend: set `ics` (files, a vdirsyncer directory or URLs) on the calendar source")
         } else {

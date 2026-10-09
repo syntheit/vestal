@@ -9,6 +9,14 @@ import PackageDescription
 
 let macOS = BuildSettingCondition.when(platforms: [.macOS])
 
+// The system libsqlite3 (Thunderbird's calendar caches): in the macOS SDK; on
+// Linux found through pkg-config.
+#if os(Linux)
+let sqliteTarget = Target.systemLibrary(name: "CSQLite", pkgConfig: "sqlite3")
+#else
+let sqliteTarget = Target.systemLibrary(name: "CSQLite")
+#endif
+
 #if os(Linux)
 // GTK 4, gtk4-layer-shell, libepoxy and fontconfig as one flattened
 // pkg-config module, which the Nix build and dev shell provide
@@ -41,6 +49,7 @@ let package = Package(
     targets: [
         .target(
             name: "VestalCore",
+            dependencies: ["CSQLite"],
             swiftSettings: [
                 // Swift 5.10's closure specializer runs away on the expression
                 // engine's continuation-passing evaluator (Expr/): a release
@@ -70,8 +79,8 @@ let package = Package(
         ),
         .testTarget(
             name: "VestalCoreTests",
-            dependencies: ["VestalCore"],
+            dependencies: ["VestalCore", "CSQLite"],
             exclude: ["Fixtures"]
         ),
-    ] + linuxTargets
+    ] + [sqliteTarget] + linuxTargets
 )

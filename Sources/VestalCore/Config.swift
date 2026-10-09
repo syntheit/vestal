@@ -123,7 +123,7 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 // common `refresh`, `when`, `transform`, `history`, `maxAge` and `cache`):
 //   http      url, parse, method, headers, body, timeout
 //   command   argv, timeout, parse, env
-//   calendar  days, calendars, ics, timeout   ("eventkit" is an alias)
+//   calendar  days, calendars, ics, thunderbird, timeout   ("eventkit" is an alias)
 //   file      path, parse
 //   system    disks, interfaces
 //   media     player
@@ -201,12 +201,13 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public var interfaces: [String]?        // system: interfaces to sum (nil: all but loopback)
     public var player: [String]?            // media: names in order, or ["auto"] (a string decodes as one)
     public var ics: [String]?               // calendar: .ics files, directories or http(s) URLs
+    public var thunderbird: String?         // calendar: a Thunderbird profile ("" = the default one); nil: off
     public var backend: String?             // claude: see `claudeBackends` (nil: auto)
 
     enum CodingKeys: String, CodingKey {
         case type, url, refresh, parse, argv, timeout, env, days, calendars
         case when, transform, history, maxAge, cache, method, headers, body, path
-        case disks, interfaces, player, ics, backend
+        case disks, interfaces, player, ics, thunderbird, backend
     }
 
     public init(
@@ -232,6 +233,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         interfaces: [String]? = nil,
         player: [String]? = nil,
         ics: [String]? = nil,
+        thunderbird: String? = nil,
         backend: String? = nil
     ) {
         let type = Self.canonicalType(type)
@@ -243,7 +245,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         self.transform = transform; self.history = history; self.maxAge = maxAge; self.cache = cache
         self.method = method; self.headers = headers; self.body = body; self.path = path
         self.disks = disks; self.interfaces = interfaces; self.player = player
-        self.ics = ics; self.backend = backend
+        self.ics = ics; self.thunderbird = thunderbird; self.backend = backend
         fillDefaults()
     }
 
@@ -278,6 +280,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         interfaces = c.lenient([String].self, .interfaces)
         player    = c.lenient([String].self, .player) ?? c.lenient(String.self, .player).map { [$0] }
         ics       = c.lenient([String].self, .ics) ?? c.lenient(String.self, .ics).map { [$0] }
+        thunderbird = c.lenient(String.self, .thunderbird).map { $0.trimmingCharacters(in: .whitespaces) }
+            ?? (c.lenient(Bool.self, .thunderbird) == true ? "" : nil)
         backend   = c.lenient(String.self, .backend).map { $0.lowercased() }.flatMap { Self.claudeBackends.contains($0) ? $0 : nil }
         fillDefaults()
     }

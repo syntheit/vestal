@@ -21,6 +21,8 @@
   writeText,
   callPackage,
   pkg-config,
+  # Linux: libsqlite3, for reading Thunderbird's calendar caches.
+  sqlite,
   geist-font,
   # Linux runtime tools: `wpctl get-volume` and `playerctl`.
   wireplumber,
@@ -120,7 +122,10 @@ in
     patchelf
   ];
 
-  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [ gtkPkgConfig ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
+    gtkPkgConfig
+    sqlite
+  ];
 
   # SwiftPM compiles and runs Package.swift, which on Linux needs libdispatch
   # on the library path (nixpkgs' own swift-format does the same).
