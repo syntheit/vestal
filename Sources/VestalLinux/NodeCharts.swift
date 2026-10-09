@@ -213,7 +213,7 @@ enum TextureFiles {
             return nil
         }
         let texture: OpaquePointer = loaded
-        if let old = entries[path] { g_object_unref(UnsafeMutableRawPointer(old.texture)) }
+        if let old = entries.removeValue(forKey: path) { g_object_unref(UnsafeMutableRawPointer(old.texture)) }
         if entries.count >= 32, let victim = entries.keys.first, let old = entries.removeValue(forKey: victim) {
             g_object_unref(UnsafeMutableRawPointer(old.texture))
         }
