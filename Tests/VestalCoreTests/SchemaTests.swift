@@ -19,6 +19,7 @@ final class SchemaTests: XCTestCase {
             "media": common.union(["player"]),
             "claude": common.union(["argv", "path", "fiveHourLimit", "weeklyLimit", "backend"]),
             "codex": common.union(["argv"]),
+            "flake": common.union(["path", "behind", "headers", "argv", "timeout"]),
         ])
         XCTAssertEqual(SourceConfig.aliases, ["eventkit": "calendar"])
         XCTAssertEqual(WidgetConfig.keysByType, [

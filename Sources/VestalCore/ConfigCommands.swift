@@ -190,7 +190,8 @@ public enum ConfigCommands {
         }
         // v0.4: named sources whose type is a source template (`foyer`, the
         // user's own) run what their expanded body says.
-        let expandedSources = ConfigExpansion.expand(merged).top["sources"]?.objectValue ?? [:]
+        let expanded = ConfigExpansion.expand(merged)
+        let expandedSources = expanded.top["sources"]?.objectValue ?? [:]
         for (name, value) in expandedSources.sorted(by: { $0.key < $1.key })
         where !name.hasPrefix("inline:") && !name.hasPrefix("host:") {
             guard let source = value.objectValue, source["type"]?.stringValue.map(SourceConfig.canonicalType) == "command",
@@ -202,11 +203,70 @@ public enum ConfigCommands {
             let env = (source["env"]?.objectValue ?? [:]).keys.sorted()
             add(["sources", name, "type"], "source \"\(name)\" (template \"\(template)\"), every \(refresh), \(shown)", argv, env: env)
         }
+        // `flake` sources run `nix`, whether named or written inline.
+        func flakeArgv(_ source: [String: AnyJSON]) -> [String]? {
+            guard source["type"]?.stringValue.map(SourceConfig.canonicalType) == "flake",
+                  let path = source["path"]?.stringValue, !path.isEmpty else { return nil }
+            return (strings(source["argv"]) ?? FlakeInputs.defaultArgv) + [path]
+        }
+        for (name, value) in (top["sources"]?.objectValue ?? [:]).sorted(by: { $0.key < $1.key }) {
+            guard let source = value.objectValue, let argv = flakeArgv(source) else { continue }
+            let refresh = source["refresh"]?.stringValue ?? SourceConfig.defaultRefresh(for: "flake")
+            add(["sources", name, "path"], "source \"\(name)\", every \(refresh) while the dashboard is shown", argv)
+        }
+        // Sources the presets define inline (a widget of the preset's type
+        // runs them): the expansion names them `inline:…`.
+        var presetSources: Set<String> = []
+        func visitPresets(_ value: AnyJSON, _ segments: [String], preset: String?, owner: String) {
+            switch value {
+            case .object(let object):
+                var preset = preset
+                if let chain = object["$template"]?.arrayValue, let name = chain.last?.stringValue { preset = name }
+                if let preset, let name = object["source"]?.stringValue, name.hasPrefix("inline:"),
+                   !presetSources.contains(name), let source = expandedSources[name]?.objectValue {
+                    let type = source["type"]?.stringValue.map(SourceConfig.canonicalType)
+                    let argv = type == "command" ? strings(source["argv"]) : flakeArgv(source)
+                    // (A user's own inline source inside a preset's children is listed already.)
+                    if let argv, !argv.isEmpty, !entries.contains(where: { $0.argv == argv }) {
+                        presetSources.insert(name)
+                        let refresh = source["refresh"]?.stringValue ?? SourceConfig.defaultRefresh(for: type ?? "command")
+                        let when = source["when"]?.stringValue ?? SourceConfig.defaultWhen(for: type ?? "command")
+                        let shown = when == "visible" ? "while the dashboard is shown" : "shown or hidden"
+                        let env = (source["env"]?.objectValue ?? [:]).keys.sorted()
+                        add(segments + ["type"], "\(owner) (preset \"\(preset)\"), every \(refresh), \(shown)", argv, env: env)
+                    }
+                }
+                for (key, child) in object where !key.hasPrefix("$") { visitPresets(child, segments, preset: preset, owner: owner) }
+            case .array(let items):
+                for child in items { visitPresets(child, segments, preset: preset, owner: owner) }
+            default:
+                break
+            }
+        }
+        func addPresetSources() {
+            let expandedTop = expanded.top
+            for (key, value) in (expandedTop["widgets"]?.objectValue ?? [:]).sorted(by: { $0.key < $1.key }) {
+                visitPresets(value, ["widgets", key], preset: nil, owner: "widget \"\(key)\"")
+            }
+            for (name, view) in (expandedTop["views"]?.objectValue ?? [:]).sorted(by: { $0.key < $1.key }) {
+                for (index, child) in (view.objectValue?["children"]?.arrayValue ?? []).enumerated() where child.objectValue != nil {
+                    visitPresets(child, ["views", name, "children", String(index)], preset: nil, owner: "view \"\(name)\"")
+                }
+            }
+        }
         // v0.4: command secrets, `run` actions and inline command sources
         // anywhere in widgets, views, keys and templates.
         for (name, value) in (top["secrets"]?.objectValue ?? [:]).sorted(by: { $0.key < $1.key }) {
             if let argv = strings(value.objectValue?["command"]), !argv.isEmpty {
                 add(["secrets", name, "command"], "secret \"\(name)\", once when the config loads", argv)
+            }
+        }
+        // The built-in default of a secret some source reads and the config
+        // does not define (`gh auth token` for `github`).
+        for (name, secret) in DefaultSecrets.needed(by: expanded.sources.values).sorted(by: { $0.key < $1.key })
+        where top["secrets"]?.objectValue?[name] == nil {
+            if let argv = secret.command {
+                add(["secrets", name, "command"], "secret \"\(name)\" (built-in default), once when the config loads", argv)
             }
         }
         func owner(_ segments: [String]) -> String {
@@ -246,6 +306,7 @@ public enum ConfigCommands {
         for key in ["widgets", "views", "keys", "templates"] {
             if let value = top[key] { visit(value, [key]) }
         }
+        addPresetSources()
         return entries.enumerated().sorted {
             ($0.element.pointer, $0.offset) < ($1.element.pointer, $1.offset)
         }.map(\.element)

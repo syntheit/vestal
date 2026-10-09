@@ -146,6 +146,9 @@ public struct LiveFetcher: SourceFetcher {
             return nil
         case "claude", "codex":
             return source.argv?.isEmpty == true ? "\"argv\" must not be empty" : nil
+        case "flake":
+            if (source.path ?? "").isEmpty { return "needs a \"path\" (the flake's directory or reference)" }
+            return source.argv?.isEmpty == true ? "\"argv\" must not be empty" : nil
         default:
             return "unknown source type \"\(source.type)\""
         }
@@ -161,6 +164,7 @@ public struct LiveFetcher: SourceFetcher {
         case "http": return FetchResult(data: try await fetchHTTP(source))
         case "command": return FetchResult(data: try await runCommand(source))
         case "file": return FetchResult(data: try readFile(source))
+        case "flake": return try await readFlake(source)
         case "system":
             guard let system = platform.system else { throw SourceError("system stats are not supported on this platform") }
             return FetchResult(data: await system.read(source).canonicalData())
@@ -251,6 +255,57 @@ public struct LiveFetcher: SourceFetcher {
             throw SourceError("\(argv[0]) exited with status \(result.status)\(firstLine)")
         }
         return try Self.parsed(result.stdout, parse: source.parse)
+    }
+
+    // MARK: Flake
+
+    /// The locked inputs of the flake at `path`, and with `behind` how far
+    /// GitHub says each one's branch has moved on (FlakeInputs). Lock ages
+    /// come from `nix` alone; a failed GitHub request leaves `behind` null
+    /// and says why in the source's note.
+    private func readFlake(_ source: SourceConfig) async throws -> FetchResult {
+        guard allowCommands else { throw SourceError("not loaded (draft: pass --allow-commands)") }
+        let path = source.path ?? ""
+        let argv = (source.argv ?? FlakeInputs.defaultArgv) + [path]
+        let result = try await CommandRunner.run(argv, timeout: source.timeoutSeconds,
+                                                 maxStdout: Self.maxBytes, maxStderr: Self.maxStderr)
+        guard result.status == 0 else {
+            let firstLine = result.stderrString.split(whereSeparator: \.isNewline).first
+                .map { ": " + $0.trimmingCharacters(in: .whitespaces) } ?? ""
+            throw SourceError("\(argv[0]) exited with status \(result.status)\(firstLine)")
+        }
+        guard case .success(let metadata) = AnyJSON.parse(result.stdout) else {
+            throw SourceError("\(argv[0]) did not print JSON")
+        }
+        var inputs = FlakeInputs.parse(metadata)
+        var note: String?
+        if source.behind == true, let body = FlakeInputs.behindRequest(inputs) {
+            do {
+                inputs = try await behind(inputs, body: body, source: source)
+            } catch {
+                note = "behind: \((error as? SourceError)?.description ?? error.localizedDescription)"
+            }
+        }
+        return FetchResult(data: FlakeInputs.shape(path: path, inputs: inputs).canonicalData(), info: note)
+    }
+
+    private func behind(_ inputs: [FlakeInputs.Input], body: Data, source: SourceConfig) async throws -> [FlakeInputs.Input] {
+        guard allowNetwork else { throw SourceError("not loaded (--no-network)") }
+        guard let url = URL(string: FlakeInputs.graphQLURL) else { throw SourceError("bad URL") }
+        var request = source
+        request.method = "POST"
+        request.body = .string(String(decoding: body, as: UTF8.self))
+        var headers = source.headers ?? [:]
+        if !headers.keys.contains(where: { $0.lowercased() == "content-type" }) { headers["Content-Type"] = "application/json" }
+        request.headers = headers
+        let (data, status) = try await Self.download(url, source: request)
+        if let status, !(200..<300).contains(status) {
+            throw SourceError(status == 401 ? "HTTP 401: GitHub needs a token (set headers.Authorization)" : "HTTP \(status)")
+        }
+        guard case .success(let response) = AnyJSON.parse(data) else { throw SourceError("GitHub did not answer with JSON") }
+        let updated = FlakeInputs.applyBehind(response, to: inputs)
+        if updated.allSatisfy({ $0.behind == nil }), let message = FlakeInputs.firstError(response) { throw SourceError(message) }
+        return updated
     }
 
     // MARK: File

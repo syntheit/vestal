@@ -413,6 +413,22 @@ public enum SchemaRegistry {
             SchemaKey("argv", .list(.string), since: "0.4", examples: [.array([.string("~/.local/bin/codex"), .string("app-server")])],
                       "The app server to ask. Default: codex app-server, codex found on PATH; set it when it isn't."),
         ] + common("5m", "visible")),
+        SchemaEntityType("flake", since: "0.4",
+                         "The inputs a Nix flake has locked (name, revision, lock time) from `nix flake metadata`, and optionally how far behind GitHub each one is.", keys: [
+            SchemaKey("path", .string, kind: .text, required: true, examples: [.string("~/config")],
+                      "The flake: a directory or a flake reference. A leading ~/ expands."),
+            SchemaKey("behind", .boolean, default: .bool(false), since: "0.4", examples: [.bool(true)],
+                      "Also ask GitHub (one GraphQL request) how many commits each GitHub input's branch has gained since "
+                      + "its locked revision. Needs a token in headers.Authorization; without one, or when GitHub fails, "
+                      + "`behind` stays null and the source says why."),
+            SchemaKey("headers", .map(.string), kind: .text, since: "0.4",
+                      examples: [.object(["Authorization": .string("Bearer {{ $secrets.github }}")])],
+                      "Headers of the GitHub request (behind)."),
+            SchemaKey("argv", .list(.string), since: "0.4",
+                      examples: [.array([.string("nix"), .string("flake"), .string("metadata"), .string("--json")])],
+                      "The command, before the flake's path. Default: nix --extra-experimental-features \"nix-command flakes\" flake metadata --json, nix found on PATH."),
+            timeout("The nix command and the GitHub request fail after this long."),
+        ] + common("1h", "visible")),
     ]
 
     /// The v0.3 Claude options: accepted and ignored (an info

@@ -216,7 +216,8 @@ public final class SecretStore: @unchecked Sendable {
         resolved.url = try await text(source.url)
         resolved.argv = try await texts(source.argv)
         resolved.env = try await map(source.env)
-        resolved.headers = try await map(source.headers)
+        // A flake's headers are for the GitHub request that `behind` makes.
+        resolved.headers = source.type == "flake" && source.behind != true ? nil : try await map(source.headers)
         resolved.path = try await text(source.path)
         resolved.ics = try await texts(source.ics)
         resolved.caldav = try await texts(source.caldav)
@@ -229,5 +230,36 @@ public final class SecretStore: @unchecked Sendable {
     private func withLock<T>(_ body: () -> T) -> T {
         lock.lock(); defer { lock.unlock() }
         return body()
+    }
+}
+
+// MARK: - Default secrets
+
+/// Secrets a built-in source template reads that the config need not define:
+/// `github`, the token the GitHub presets send (`vestal docs templates`),
+/// is `gh auth token` until the config defines a secret of that name. It is
+/// added only when some source reads it, so a config that uses no GitHub
+/// preset gains no `gh` command.
+public enum DefaultSecrets {
+    public static let github = "github"
+
+    public static let definitions: [String: SecretConfig] = [
+        github: SecretConfig(command: ["gh", "auth", "token"]),
+    ]
+
+    /// The default secrets that `sources` read through `{{ $secrets.<name> }}`.
+    public static func needed(by sources: some Sequence<SourceConfig>) -> [String: SecretConfig] {
+        var names: Set<String> = []
+        for source in sources {
+            var texts: [String] = [source.url, source.path].compactMap { $0 }
+            texts += source.argv ?? []
+            texts += source.ics ?? []
+            texts += source.caldav ?? []
+            texts += (source.env ?? [:]).values
+            if source.type != "flake" || source.behind == true { texts += (source.headers ?? [:]).values }
+            if case .string(let body)? = source.body { texts.append(body) }
+            for text in texts where text.contains("$secrets.") { names.formUnion(LoadTimeText.secretNames(in: text)) }
+        }
+        return definitions.filter { names.contains($0.key) }
     }
 }

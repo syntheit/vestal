@@ -323,6 +323,17 @@ private struct Walker {
             _ = strings(source["interfaces"], "\(path).interfaces")
         case "media":
             if case .string? = source["player"] {} else { _ = strings(source["player"], "\(path).player") }
+        case "flake":
+            if string(source["path"], "\(path).path") == nil, isAbsent(source["path"]) {
+                add(.missingKey, path, "missing \"path\"; the source never reads")
+            }
+            _ = boolean(source["behind"], "\(path).behind")
+            for (name, header) in (stringMap(source["headers"], "\(path).headers") ?? [:]).sorted(by: { $0.key < $1.key }) {
+                secretLiteral(header, "\(path).headers.\(name)")
+            }
+            if let argv = strings(source["argv"], "\(path).argv"), argv.isEmpty {
+                add(.invalidValue, "\(path).argv", "must not be empty")
+            }
         case "claude", "codex":
             if canonical == "claude" {
                 ignoredClaudeOptions(source, path)
