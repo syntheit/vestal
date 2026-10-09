@@ -175,3 +175,30 @@ test("library shaders: common header, body and an entry point", async () => {
   assert.match(src, /^#version 300 es\nprecision highp float;\nuniform vec2 resolution;/);
   assert.match(src, /void main\(\) \{ o = background\(\); \}/);
 });
+
+// MARK: background uniforms
+
+test("sky follows the native keyframes and sun path", async () => {
+  const { skyAt, libraryUniforms } = await import("./backgrounds.js");
+  const noon = skyAt(13);
+  assert.deepEqual(noon.sun, [1, 1, 1]);
+  assert.ok(noon.y > 0.9 && noon.stars === 0);
+  assert.ok(Math.abs(noon.x - (((13 - 6.25) / 12.75) * 0.8 + 0.1)) < 1e-9);
+  const night = skyAt(2);
+  assert.equal(night.stars, 1);
+  assert.ok(night.top[2] < 0.1, "night is dark");
+  assert.deepEqual(skyAt(-5), skyAt(0));
+  assert.deepEqual(skyAt(99), skyAt(24));
+  const u = libraryUniforms("sky", 2);
+  assert.equal(u.p[2], 1);
+  assert.equal(u.p[3], 0.78);
+  assert.ok(libraryUniforms("sky", 13).c[0][2] > u.c[0][2]);
+});
+
+test("data-driven backgrounds get demo parameters", async () => {
+  const { libraryUniforms } = await import("./backgrounds.js");
+  assert.equal(libraryUniforms("load").p[0], 0.55);
+  assert.equal(libraryUniforms("weather").p[0], 1);
+  assert.equal(libraryUniforms("artmesh").c.length, 4);
+  assert.deepEqual(libraryUniforms("plasma").p, [0, 0, 0, 0]);
+});

@@ -22,7 +22,8 @@
 //
 // The library backgrounds (Resources/shaders/, not aurora) instead share
 // `common.glsl` and define `vec4 background()` with the uniforms `resolution`,
-// `time`, `p` and `c0`...`c3`; the web gives them fixed defaults.
+// `time`, `p` and `c0`...`c3`; the web gives them demo values (`sky` follows
+// the viewer's clock).
 //   float hash(vec2), vnoise(vec2), fbm(vec2), vec3 hsv2rgb(h, s, v)
 //
 // A file that starts with `#version 300 es` is used as is; it must declare
@@ -94,17 +95,54 @@ export function shaderUrl(base, name) {
 const LIBRARY = new Set(["mesh", "topo", "stars", "flow", "rain", "plasma", "grain", "sky", "weather", "load", "artmesh"]);
 const shaderFile = (name) => (name === "artmesh" ? "mesh" : name);
 
-/** The uniforms the web gives a library background (no theme or live data here). */
-function libraryUniforms(name) {
-  const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-  const mesh = ["#1e2a62", "#4a2a72", "#164f5c", "#5a2448"].map(rgb);
-  const art = ["#2a1e4f", "#6a2f63", "#a0504a", "#b07a4a"].map(rgb);
+const hexRGB = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+
+/** Keyframes of `sky` (hour, overhead, horizon, sun or moon): the same table
+ *  as `Backgrounds.skyKeys` in VestalCore. */
+export const SKY_KEYS = [
+  [0, "#04060d", "#0d1428", "#cfd6ff"], [5, "#05070f", "#141b33", "#cfd6ff"], [6.5, "#1a2350", "#b0674f", "#ffcf8a"],
+  [8.5, "#1d3f78", "#6b8fb8", "#fff2c8"], [13, "#1b4a8a", "#6a98c8", "#ffffff"], [17, "#1f3c74", "#a07a5e", "#ffe0a0"],
+  [19, "#231c48", "#c0603e", "#ffb070"], [20.5, "#0a0d1e", "#22203f", "#cfd6ff"], [24, "#04060d", "#0d1428", "#cfd6ff"],
+];
+
+/** The sky at `hour` (0 to 24, local time); port of `Backgrounds.sky(hour:)`. */
+export function skyAt(rawHour) {
+  const hour = Math.min(Math.max(Number.isFinite(rawHour) ? rawHour : 12, 0), 24);
+  let i = 0;
+  while (i < SKY_KEYS.length - 2 && SKY_KEYS[i + 1][0] <= hour) i++;
+  const a = SKY_KEYS[i], b = SKY_KEYS[i + 1];
+  const f = Math.min(Math.max((hour - a[0]) / (b[0] - a[0]), 0), 1);
+  const mix = (k) => { const u = hexRGB(a[k]), v = hexRGB(b[k]); return u.map((x, j) => x + (v[j] - x) * f); };
+  const elevation = Math.sin((hour - 6.25) / 12.75 * Math.PI);
+  return {
+    top: mix(1), horizon: mix(2), sun: mix(3),
+    x: Math.min(Math.max((hour - 6.25) / 12.75, 0), 1) * 0.8 + 0.1,
+    y: 0.06 + 0.88 * elevation,
+    stars: Math.min(Math.max(-elevation * 3, 0), 1),
+  };
+}
+
+/** Hours into the viewer's local day, minutes as the fraction. */
+export function localHour(date = new Date()) {
+  return date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
+}
+
+/** The uniforms the web gives a library background: `sky` follows the
+ *  viewer's clock; `load`, `weather` and `artmesh` get static demo values
+ *  (no live data here). */
+export function libraryUniforms(name, hour = localHour()) {
+  const mesh = ["#1e2a62", "#4a2a72", "#164f5c", "#5a2448"].map(hexRGB);
+  const art = ["#2a1e4f", "#6a2f63", "#a0504a", "#b07a4a"].map(hexRGB);
   const none = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
   switch (name) {
     case "mesh": return { p: [0.74, 0, 0, 0], c: mesh };
     case "artmesh": return { p: [0.78, 0, 0, 0], c: art };
-    case "load": return { p: [0.3, 0, 0, 0], c: none };
-    case "sky": return { p: [0.5, 0.6, 0, 0.78], c: [rgb("#3a73c4"), rgb("#bcd6f0"), rgb("#fff0c0"), [0, 0, 0]] };
+    case "load": return { p: [0.55, 0, 0, 0], c: none };
+    case "weather": return { p: [1, 0, 0, 0], c: none }; // rain
+    case "sky": {
+      const k = skyAt(hour);
+      return { p: [k.x, k.y, k.stars, 0.78], c: [k.top, k.horizon, k.sun, [0, 0, 0]] };
+    }
     default: return { p: [0, 0, 0, 0], c: none };
   }
 }
