@@ -11,7 +11,12 @@ import Foundation
 //
 // A pass renders each root child of the view separately and records what it
 // read (sources, `now`), so the engine re-evaluates only the root children
-// whose inputs changed. Not thread-safe: one pass, one thread.
+// whose inputs changed. A root child rendered again only for the clock's tick
+// replays the last tick's results up to its first expression that reads the
+// time (or `$meta`, whose age moves with it): with the same data and the same
+// results before it, everything before that one evaluates to what it did a
+// second ago, so only what follows is evaluated again. Not thread-safe: one
+// pass, one thread.
 
 /// An action as written and the scope it was written in, for `invoke` and
 /// keys.
@@ -41,6 +46,8 @@ struct RenderedChild {
     /// Sources it read; "*" means any.
     var sources: Set<String> = []
     var usesNow = false
+    /// Its evaluations before the first that read the time, for the next tick.
+    var memo: [RenderPass.MemoEntry] = []
 
     func dependsOn(_ changed: Set<String>) -> Bool {
         sources.contains("*") || !sources.isDisjoint(with: changed)
@@ -62,6 +69,25 @@ final class RenderPass {
     private var keys: [KeyCandidate] = []
     var sources: Set<String> = []
     var usesNow = false
+
+    /// One evaluation, as the next tick replays it.
+    struct MemoEntry {
+        var expression: String
+        var id: String
+        var field: String
+        var all: Bool
+        /// Nil: evaluate it again (it failed, or read the time).
+        var outputs: [JQValue]?
+    }
+
+    /// The last tick's evaluations of the root child being rendered (set
+    /// only for a render that nothing but the tick asked for).
+    private var replay: [MemoEntry] = []
+    private var replayed = 0
+    private var recorded: [MemoEntry] = []
+    /// An evaluation read the time or `$meta`: from here on, nothing is
+    /// replayed or recorded.
+    private var moved = false
 
     init(model: RenderConfigModel, data: RenderData, now: Date, view: String,
          timeZone: TimeZone = .current, locale: Locale = .current, os: String = RenderPass.currentOS) {
@@ -110,8 +136,10 @@ final class RenderPass {
     // MARK: Views
 
     /// One root child of `spec`: a widget key or an inline widget.
-    func renderRootChild(_ entry: AnyJSON, index: Int, axis: RenderAxis = .v) -> RenderedChild {
-        begin()
+    /// `replay`: its evaluations at the last tick (`RenderedChild.memo`),
+    /// when only the tick asks for it again.
+    func renderRootChild(_ entry: AnyJSON, index: Int, axis: RenderAxis = .v, replay: [MemoEntry] = []) -> RenderedChild {
+        begin(replay: replay)
         var node: RenderNode?
         switch entry {
         case .string(let key):
@@ -164,25 +192,29 @@ final class RenderPass {
 
     /// A popup: its widget is already expanded and its `{"expr"}`
     /// values filled in.
-    func renderPopup(_ widget: [String: AnyJSON]) -> RenderedChild {
-        begin()
+    func renderPopup(_ widget: [String: AnyJSON], replay: [MemoEntry] = []) -> RenderedChild {
+        begin(replay: replay)
         let node = build(widget, id: "popup/0", scope: baseScope(), axis: .v)
         return finish(node)
     }
 
-    private func begin() {
+    private func begin(replay: [MemoEntry] = []) {
         diagnostics = []
         diagnosticKeys = []
         actions = [:]
         keys = []
         sources = []
         usesNow = false
+        self.replay = replay
+        replayed = 0
+        recorded = []
+        moved = false
         data.resetReads()
     }
 
     private func finish(_ node: RenderNode?) -> RenderedChild {
         RenderedChild(node: node, diagnostics: diagnostics, actions: actions, keys: keys,
-                      sources: sources.union(data.reads), usesNow: usesNow)
+                      sources: sources.union(data.reads), usesNow: usesNow, memo: recorded)
     }
 
     // MARK: Widgets
@@ -1194,6 +1226,22 @@ final class RenderPass {
         for use in compiled.references.variables where use.name == "sources" || use.name == "history" {
             sources.insert(use.path.first ?? "*")
         }
+        // Before anything read the time, the same evaluation as at the last
+        // tick, in the same scope: its result then.
+        let steady = !moved && !usesNow
+        if steady, replayed < replay.count {
+            let last = replay[replayed]
+            if last.expression == expression, last.id == id, last.field == field, last.all == all {
+                replayed += 1
+                if let outputs = last.outputs {
+                    recorded.append(last)
+                    return outputs
+                }
+            } else {
+                replay = []
+            }
+        }
+        let metaReads = data.metaReads
         let context = JQEvalContext(now: now, timeZone: timeZone, userInfo: [
             VestalFunctions.dataKey: data,
             VestalFunctions.localeKey: locale,
@@ -1206,6 +1254,13 @@ final class RenderPass {
             result = model.environment.first(compiled, input: scope.dot, variables: scope.vars, context: context).map { $0.map { [$0] } ?? [] }
         }
         if context.nowWasCalled { usesNow = true }
+        if steady {
+            let reads = context.nowWasCalled || data.metaReads != metaReads
+                || compiled.references.variables.contains { $0.name == "meta" }
+            if reads { moved = true }
+            recorded.append(MemoEntry(expression: expression, id: id, field: field, all: all,
+                                      outputs: reads ? nil : try? result.get()))
+        }
         switch result {
         case .success(let outputs):
             return outputs

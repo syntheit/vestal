@@ -156,15 +156,21 @@ public final class RenderSession {
         if full {
             children = spec.children.enumerated().map { pass.renderRootChild($1, index: $0, axis: axis) }
         } else {
-            for (index, entry) in spec.children.enumerated()
-            where children[index].dependsOn(changed ?? []) || (tick && children[index].usesNow) {
-                children[index] = pass.renderRootChild(entry, index: index, axis: axis)
+            for (index, entry) in spec.children.enumerated() {
+                let old = children[index]
+                if old.dependsOn(changed ?? []) {
+                    children[index] = pass.renderRootChild(entry, index: index, axis: axis)
+                } else if tick && old.usesNow {
+                    children[index] = Self.ticked(old, pass.renderRootChild(entry, index: index, axis: axis, replay: old.memo))
+                }
             }
         }
         renderedView = view
         if let popup {
-            if full || popupChild == nil || popupChild!.dependsOn(changed ?? []) || (tick && popupChild!.usesNow) {
+            if full || popupChild == nil || popupChild!.dependsOn(changed ?? []) {
                 popupChild = pass.renderPopup(popup.widget)
+            } else if tick, let old = popupChild, old.usesNow {
+                popupChild = Self.ticked(old, pass.renderPopup(popup.widget, replay: old.memo))
             }
         }
         let root = pass.root(spec, children: children)
@@ -210,6 +216,14 @@ public final class RenderSession {
         return RenderSnapshot(seq: 1, view: view, views: model.viewInfos,
                               pages: model.renderPages(view: view, direction: pageDirection),
                               visible: true, theme: theme, root: root, popup: renderedPopup, diagnostics: diagnostics)
+    }
+
+    /// A child rendered again for the tick: what it replayed read the same
+    /// sources as before.
+    private static func ticked(_ old: RenderedChild, _ new: RenderedChild) -> RenderedChild {
+        var child = new
+        child.sources.formUnion(old.sources)
+        return child
     }
 
     /// Every source any root child or the popup read in the last render.

@@ -220,6 +220,8 @@ public final class RenderData: ExprData {
     public let problems: [String: String]
 
     private(set) var reads: Set<String> = []
+    /// How often `meta` was asked (`$meta` moves with the clock: its age).
+    private(set) var metaReads = 0
 
     public init(sources: [String: JQValue], metas: [String: JQValue] = [:],
                 histories: [String: [String: [HistorySample]]] = [:], names: Set<String>? = nil,
@@ -238,6 +240,7 @@ public final class RenderData: ExprData {
 
     public func meta(_ source: String) -> JQValue? {
         reads.insert(source)
+        metaReads += 1
         return metas[source]
     }
 
