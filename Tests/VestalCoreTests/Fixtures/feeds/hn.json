@@ -1,0 +1,44 @@
+{
+ "hits": [
+  {
+   "title": "Whistle: Speech to Text in 16.9 MB",
+   "url": "https://cactuscompute.com/blog/whistle",
+   "points": 568,
+   "num_comments": 127,
+   "created_at_i": 1791478779,
+   "objectID": "50008427"
+  },
+  {
+   "title": "Why isn't the industry freaking out about DeepSeek 4.1 Flash?",
+   "url": "https://www.dgt.is/blog/2026-10-07-deepseek-freek-out/",
+   "points": 445,
+   "num_comments": 377,
+   "created_at_i": 1791418488,
+   "objectID": "50000488"
+  },
+  {
+   "title": "Man discovers his parents' coffee machine used 1TB of data in 10 days",
+   "url": "https://www.dexerto.com/entertainment/man-discovers-his-parents-coffee-machine-used-1tb-of-data-in-10-days-3416399/",
+   "points": 436,
+   "num_comments": 273,
+   "created_at_i": 1791392190,
+   "objectID": "49995495"
+  },
+  {
+   "title": "I hired an illustrator to draw my house. Now it's my Home Assistant dashboard",
+   "url": "https://antonfrolov.substack.com/p/i-hired-an-illustrator-to-draw-my",
+   "points": 414,
+   "num_comments": 69,
+   "created_at_i": 1791337263,
+   "objectID": "49986882"
+  },
+  {
+   "title": "Ask HN: A story without a link",
+   "url": null,
+   "points": 12,
+   "num_comments": 3,
+   "created_at_i": 1791478179,
+   "objectID": "1234567"
+  }
+ ]
+}

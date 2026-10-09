@@ -214,10 +214,10 @@ One music player.
 | `player` | `auto` | A name, a list of names (the first running one wins), or `auto`. macOS: an application over AppleScript (`auto`: Spotify, then Music). Linux: an MPRIS player through `playerctl`, matched case-insensitively on its bus name or identity (`auto`: the first playing one, else the first found). |
 
 ```jsonc
-{ "player": "Spotify", "state": "playing", "title": "Windowlicker", "artist": "Aphex Twin", "album": "Windowlicker", "position": 83.2, "duration": 367.0, "players": ["Spotify", "Music"] }
+{ "player": "Spotify", "state": "playing", "title": "Windowlicker", "artist": "Aphex Twin", "album": "Windowlicker", "artwork": "https://i.scdn.co/image/ab67616d0000b273", "position": 83.2, "duration": 367.0, "players": ["Spotify", "Music"] }
 ```
 
-`state` is `playing`, `paused`, `stopped` or `off` (not running, or nothing loaded; the other fields are then empty or `null`). `players` lists the names this machine can see right now, which is how you find working `player` values: `vestal fetch media`. A name that exists on one OS only belongs in a `platform` block. The volume is in `system`'s `audio`.
+`state` is `playing`, `paused`, `stopped` or `off` (not running, or nothing loaded; the other fields are then empty or `null`). `artwork` is the cover for an `image` widget, a file path or an http(s) URL, or `null`: Spotify gives its image URL; Music has no URL, so vestal writes the picture once per track to `artwork/` in its cache directory (`~/Library/Caches/Vestal`, the 40 most recent kept) and gives that path; on Linux it is MPRIS's `mpris:artUrl` from `playerctl metadata`, a `file://` URL turned into a path or an http(s) URL as it is (the `nowPlaying` preset draws it). `players` lists the names this machine can see right now, which is how you find working `player` values: `vestal fetch media`. A name that exists on one OS only belongs in a `platform` block. The volume is in `system`'s `audio`.
 
 ### `claude`
 
@@ -248,3 +248,36 @@ The Codex plan's usage, in the same shape as `claude`, with `source: "codex"`, `
 ### `foyer`
 
 A built-in source template: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while shown, and maps the payload to the `system` shape with `foyer_health`. Any source whose `transform` produces the `system` shape works the same way: write a source template for another health agent (`vestal docs templates`) and name it in `systemHealth`'s `provider`.
+
+### Data packs
+
+The packs below are built-in source templates (like `foyer`): one line in `sources` names an API that needs no key, and the data comes out in a shape a preset reads. They are `when: visible`, so one that nothing on screen reads is never fetched. Each preset that reads one also uses it by itself, with its defaults, when it has no `source`: `{ "type": "headlines" }` works with no `sources` entry. Template parameters are available as `$name` in `url`, `headers` and `transform`.
+
+**Headlines.** `hackerNews`, `lobsters` and `rssFeed` all give a list of `{title, link, published, source, points, comments}`: `published` in epoch seconds, `source` the badge (`HN`, `Lobsters`, the feed's `name`), and `points` and `comments` `null` where the site has none (an RSS feed). The `headlines` preset shows any mix of them, and also a `parse: "feed"` source as it is.
+
+| Type | Keys | Reads |
+|---|---|---|
+| `hackerNews` | `count` (30, at most 100) | The front page from Algolia's Hacker News API, `https://hn.algolia.com/api/v1/search?tags=front_page`, every 15 minutes. One request, no key, and the points and comment counts in the answer; a story without a link points at its discussion. |
+| `lobsters` | none | `https://lobste.rs/hottest.json` every 15 minutes: `score` is `points`, `comment_count` is `comments`; a text post links to its page. |
+| `rssFeed` | `url` (required), `name` (`Feed`) | Any RSS 2.0, Atom or JSON Feed URL, every 15 minutes, read with `parse: "feed"`. |
+
+Hacker News through Algolia rather than the Firebase API or `hnrss.org`: Firebase needs one request per story, and `hnrss.org` carries points and comments only as text inside each item's description. Algolia's front page is one JSON request with everything.
+
+```json
+{
+  "version": 1,
+  "sources": {
+    "hn": { "type": "hackerNews" },
+    "lobsters": { "type": "lobsters" },
+    "blog": { "type": "rssFeed", "url": "https://example.com/feed.xml", "name": "Blog" }
+  },
+  "widgets": { "news": { "type": "headlines", "source": "hn", "also": ["lobsters", "blog"] } },
+  "views": { "main": { "children": ["news"] } }
+}
+```
+
+**`coingecko`.** Prices for some coins from CoinGecko's `/coins/markets` (no key; one request for all coins, so the free tier's rate limit is no concern at the 5-minute refresh), with the last 24 hourly prices of the 7-day sparkline as one day of history. Keys: `coins` (CoinGecko ids, default `["bitcoin", "ethereum", "solana"]`, kept in that order) and `currency` (`usd`). Data: `[{id, symbol, name, price, change24h, history}]`, `symbol` upper case, `change24h` in percent, `history` the prices oldest first. Read by `cryptoTicker`.
+
+**`yahooQuotes`.** Today's quotes from Yahoo Finance's chart endpoint, `https://query1.finance.yahoo.com/v8/finance/spark`, for all symbols in one request every 5 minutes. Keys: `symbols` (tickers in the order to show, default `["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA"]`; a symbol Yahoo doesn't know is left out) and `interval` (`1m`, `2m`, `5m`, `15m`; default `5m`). Data: `[{symbol, last, previousClose, change, history, time}]`: `last` the latest price, `change` the day's change in percent against the previous close, `history` the session's prices so far, `time` the epoch time of the last one. The endpoint is not an official API (it needs no key or sign-up, and has worked unchanged for years, but Yahoo may change or block it) and quotes can be delayed by up to 15 minutes. Daily-only sources (Stooq) draw no intraday line, and the keyed ones (Finnhub, Alpha Vantage, Twelve Data) need a sign-up and have free tiers of a few calls a minute or a day, one call per symbol: to use one, write a source of your own (`http` with `{{ $secrets.x }}` in the URL, and a `transform` to this shape) and give it to `watchlist` as its `source`.
+
+**`haStates`.** Home Assistant's `GET <url>/api/states` with a long-lived access token, sent as `Authorization: Bearer <token>` from a secret. Keys: `url` (required, the base URL, such as `http://homeassistant.local:8123`), `secret` (the name of the secret that holds the token, default `homeAssistant`) and `entities` (ids, or objects with an `id`, to keep; empty keeps every entity). Refreshes every 30 seconds while shown. Data: an object by entity id of `{state, attributes, lastChanged}` (epoch seconds), such as `.["lock.front_door"].state`. Create the token in Home Assistant under your profile (Security, Long-lived access tokens) and keep it in a file: `"secrets": { "homeAssistant": { "file": "~/.config/vestal/secrets/home-assistant.token" } }`. Read by `homeAssistant`.

@@ -1,0 +1,20 @@
+[
+  {
+    "short_id": "x0",
+    "title": "The quiet death of the RSS reader, again",
+    "url": "https://example.com/rss-again",
+    "score": 87,
+    "comment_count": 21,
+    "created_at": "2026-09-27T14:33:22.000+00:00",
+    "comments_url": "https://lobste.rs/s/x0"
+  },
+  {
+    "short_id": "x1",
+    "title": "Why our build got 4x faster with one flag",
+    "url": "https://example.com/one-flag",
+    "score": 61,
+    "comment_count": 12,
+    "created_at": "2026-09-27T12:03:22.000+00:00",
+    "comments_url": "https://lobste.rs/s/x1"
+  }
+]

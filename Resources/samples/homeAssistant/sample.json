@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Home Assistant",
+  "description": "A grid of the sensors you check most: temperature, solar, locks, appliances.",
+  "preset": "homeAssistant",
+  "size": [
+    680,
+    220
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "home"
+  ]
+}

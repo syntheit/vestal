@@ -1,0 +1,38 @@
+{
+  "items": [
+    {
+      "author": "Ada Lovelace",
+      "date": 1031356801,
+      "id": "tag:example.com,2026:parser",
+      "summary": "A parser in 200 lines. Tom & Jerry's \"favourite\" — it’s <fine>.",
+      "title": "Show HN: A <tiny> parser",
+      "url": "https://example.com/posts/parser"
+    },
+    {
+      "author": "editor@example.com (Editor)",
+      "date": 1055235600,
+      "id": "https://example.com/posts/offset",
+      "summary": "one two",
+      "title": "Offset date, escaped HTML",
+      "url": "https://example.com/posts/offset"
+    },
+    {
+      "author": null,
+      "date": null,
+      "id": "https://example.com/posts/undated",
+      "summary": "Only encoded content.",
+      "title": "No date",
+      "url": "https://example.com/posts/undated"
+    },
+    {
+      "author": null,
+      "date": 1704119400,
+      "id": null,
+      "summary": "Named zone EST, no title, no link.",
+      "title": null,
+      "url": null
+    }
+  ],
+  "title": "Example News & Notes",
+  "url": "https://example.com/"
+}

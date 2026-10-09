@@ -1,0 +1,28 @@
+{
+  "hits": [
+    {
+      "title": "Show HN: A tiny SQLite-backed job queue",
+      "url": "https://example.com/job-queue",
+      "points": 412,
+      "num_comments": 138,
+      "created_at_i": 1790523202,
+      "objectID": "50000000"
+    },
+    {
+      "title": "Writing a shader compiler in a weekend",
+      "url": "https://example.com/shader-compiler",
+      "points": 198,
+      "num_comments": 44,
+      "created_at_i": 1790514202,
+      "objectID": "50000001"
+    },
+    {
+      "title": "Notes on running NixOS on a phone",
+      "url": "https://example.com/nixos-phone",
+      "points": 155,
+      "num_comments": 87,
+      "created_at_i": 1790507002,
+      "objectID": "50000002"
+    }
+  ]
+}

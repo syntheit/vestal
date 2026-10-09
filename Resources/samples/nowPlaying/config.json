@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "widgets": {
+    "nowPlaying": {
+      "type": "nowPlaying"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "nowPlaying"
+      ],
+      "padding": 24
+    }
+  }
+}

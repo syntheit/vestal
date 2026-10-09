@@ -322,7 +322,7 @@ This machine, with the same keys on macOS and Linux; a value the machine can't r
 
 ### `media`
 
-One music player: `{player, state, title, artist, album, position, duration, players}`. `state` is `playing`, `paused`, `stopped` or `off` (not running, or nothing loaded). `players` lists the players this machine can see now, which are the values `player` accepts.
+One music player: `{player, state, title, artist, album, artwork, position, duration, players}`. `artwork` is the cover for an `image` widget (a file path or an http(s) URL, or `null`): Spotify's image URL; for Music, a file vestal writes once per track under `artwork/` in its cache directory; on Linux, MPRIS's `mpris:artUrl` (a `file://` URL as a path). `state` is `playing`, `paused`, `stopped` or `off` (not running, or nothing loaded). `players` lists the players this machine can see now, which are the values `player` accepts.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -351,7 +351,7 @@ Codex plan usage, in the same shape as [`claude`](#claude), with `source` `"code
 
 ### Source templates
 
-A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in one is **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). Any other health agent can be mapped the same way with a template of your own. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
+A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in one is **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). Any other health agent can be mapped the same way with a template of your own. Six more read free APIs for the feed and market presets (their keys, endpoints and data shapes are in `vestal docs sources`, "Data packs"): `hackerNews` (`count`), `lobsters`, `rssFeed` (`url`, `name`), `coingecko` (`coins`, `currency`), `yahooQuotes` (`symbols`, `interval`) and `haStates` (`url`, `secret`, `entities`). A template's data parameters are `$name` variables in `url`, `headers`, `body` and `transform`. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
 
 ## Secrets
 
@@ -796,6 +796,61 @@ Claude and Codex plan usage in one row: for each, the 5-hour and weekly windows 
 | `show` | list of strings | `["claude", "codex"]` | Which services, in order. |
 | `claudeSource` | source | `"claude"` | What the Claude cells read. |
 | `codexSource` | source | `"codex"` | What the Codex cells read. |
+
+### `headlines`
+
+Numbered top stories with points and comments, source badges and the data's age; a row (or the first free letter of its title) opens its link. New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `source` | source | Hacker News | A source of `[{title, link, published, source, points, comments}]`: `hackerNews`, `lobsters`, `rssFeed`, or a `parse: "feed"` source. |
+| `also` | list of source names | `[]` | More sources, interleaved with it. |
+| `limit` | integer | `5` | Rows. |
+| `keys` | boolean | `true` | A key per row. |
+
+### `cryptoTicker`
+
+Symbol, name, a day's line, price and 24-hour change per coin (CoinGecko, no key). New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `source` | source | `coingecko` pack | A `coingecko` source: `[{id, symbol, name, price, change24h, history}]`. |
+| `limit` | integer | `8` | Rows. |
+| `currency` | string | `"$"` | Written before each price. |
+
+### `watchlist`
+
+Symbol, the session's line, last price and day change per stock, and the market state under them (Yahoo Finance's unofficial chart endpoint, no key). New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `source` | source | `yahooQuotes` pack | A `yahooQuotes` source: `[{symbol, last, change, history, time}]`. |
+| `limit` | integer | `8` | Rows. |
+| `header` | boolean | `true` | The Symbol / Last / Day row. |
+
+### `homeAssistant`
+
+Home Assistant entities as tiles (icon, label, state with unit, a second line), coloured by state or thresholds; the token is a secret. New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `entities` | list | required | `[{id, label, icon, attribute, attributeUnit, attributeLabel, since, precision, unit, thresholds, colors, color}]`, or plain ids. |
+| `url` | string | `"http://homeassistant.local:8123"` | The base URL. |
+| `secret` | string | `"homeAssistant"` | The secret that holds the long-lived token. |
+| `columns` | integer | `3` | Tiles per row. |
+| `stateColors` | object | `locked`, `closed` good; `on`, `open`, `unlocked` warn; `unavailable`, `unknown` dim | State word to colour. |
+
+### `nowPlaying`
+
+Album art, title, `artist — album`, progress with times, and previous / pause / next on the `media` actions. Hidden while nothing plays. New in 0.4.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `player` | string | `"auto"` | As the `media` source's `player`. |
+| `hideWhenOff` | boolean | `true` | |
+| `artSize` | number | `72` | The cover's side in points. |
+
+`vestal docs presets` has an example of each.
 
 ### Helpers
 

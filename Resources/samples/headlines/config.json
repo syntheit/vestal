@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "sources": {
+    "hn": {
+      "type": "hackerNews"
+    },
+    "lobsters": {
+      "type": "lobsters"
+    }
+  },
+  "widgets": {
+    "headlines": {
+      "type": "headlines",
+      "source": "hn",
+      "also": [
+        "lobsters"
+      ],
+      "limit": 5
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "headlines"
+      ],
+      "padding": 24
+    }
+  }
+}
