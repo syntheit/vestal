@@ -564,10 +564,11 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
             result = .failure(SourceError("response larger than \(limit / 1024 / 1024) MiB"))
         } else if expired, error != nil {
             result = .failure(URLError(.timedOut))
-        } else if challenged, response == nil, let url = task.originalRequest?.url,
-                  let unauthorized = HTTPURLResponse(url: url, statusCode: 401, httpVersion: nil, headerFields: nil) {
+        } else if challenged, error != nil,
+                  let unauthorized = response ?? task.originalRequest?.url.flatMap({
+                      HTTPURLResponse(url: $0, statusCode: 401, httpVersion: nil, headerFields: nil) }) {
             // The challenge was cancelled, which URLSession reports as an error.
-            result = .success((Data(), unauthorized))
+            result = .success((data, unauthorized))
         } else if let error {
             result = .failure(error)
         } else if let response = response ?? task.response {
