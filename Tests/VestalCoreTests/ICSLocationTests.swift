@@ -1,5 +1,5 @@
 import XCTest
-@testable import VestalCore
+import VestalCore
 
 /// Authenticated `ics` URLs: the userinfo leaves the URL, becomes a Basic
 /// header, and never appears in a displayed string.
@@ -56,6 +56,17 @@ final class ICSLocationTests: XCTestCase {
             XCTFail("nothing listens on port 9")
         } catch {
             XCTAssertFalse("\(error)".contains("hunter22"), "\(error)")
+        }
+    }
+
+    func testAnInvalidURLEntryIsRejectedWithoutThePassword() async throws {
+        XCTAssertNil(ICSLocation("https://me:secret@[bad"))
+        let fetcher = LiveFetcher(platform: SourcePlatform())
+        do {
+            _ = try await fetcher.fetch(SourceConfig(type: "calendar", ics: ["https://me:secret@[bad"]))
+            XCTFail("an invalid ics URL must fail")
+        } catch {
+            XCTAssertFalse("\(error)".contains("secret"), "\(error)")
         }
     }
 }

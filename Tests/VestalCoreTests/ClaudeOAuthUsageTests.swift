@@ -247,6 +247,24 @@ final class ClaudeOAuthUsageTests: XCTestCase {
         XCTAssertEqual(api.api + api.cli, 0)
     }
 
+    func testAPIDraftsMayPickTheProgram() async throws {
+        let fetcher = LiveFetcher(platform: SourcePlatform(), allowCommands: false, allowNetwork: false,
+                                  home: NSTemporaryDirectory() + "vestal-claude-\(UUID().uuidString)")
+        let api = SourceConfig(type: "claude", argv: ["/bin/echo", "x"], backend: "api")
+        do {
+            _ = try await fetcher.fetch(api)
+        } catch {
+            XCTAssertFalse("\(error)".contains("--allow-commands"), "\(error)")
+        }
+        let cli = SourceConfig(type: "claude", argv: ["/bin/echo", "x"], backend: "cli")
+        do {
+            _ = try await fetcher.fetch(cli)
+            XCTFail("a custom argv still needs --allow-commands")
+        } catch {
+            XCTAssertTrue("\(error)".contains("--allow-commands"), "\(error)")
+        }
+    }
+
     // MARK: Config
 
     func testBackendOption() throws {

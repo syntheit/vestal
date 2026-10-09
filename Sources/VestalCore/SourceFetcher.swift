@@ -169,8 +169,11 @@ public struct LiveFetcher: SourceFetcher {
                 ?? MediaReading(player: nil, playing: .off, players: [])
             return FetchResult(data: MediaSource.shape(reading).canonicalData())
         case "claude":
-            // A draft may not pick the program; plain `claude -p /usage` is fine.
-            if source.argv != nil, !allowCommands { throw SourceError("not loaded (draft: pass --allow-commands)") }
+            // A draft may not pick the program; plain `claude -p /usage` is
+            // fine, and so is any argv when only the API is used.
+            if source.argv != nil, source.backend != "api", !allowCommands {
+                throw SourceError("not loaded (draft: pass --allow-commands)")
+            }
             let argv = source.argv ?? ClaudeUsage.defaultArgv
             let directory = SnapshotCache.platformDirectory(home: home)
             let moment = now()
@@ -308,6 +311,9 @@ public struct LiveFetcher: SourceFetcher {
                 let (data, status) = try await Self.download(remote.url, source: source, authorization: remote.authorization)
                 if let status, !(200..<300).contains(status) { throw SourceError(remote.failure(status: status)) }
                 documents.append((String(decoding: data, as: UTF8.self), Self.baseName(remote.url.lastPathComponent)))
+            } else if location.lowercased().hasPrefix("http://") || location.lowercased().hasPrefix("https://") {
+                // Not a usable URL; it may still hold a password, so say no more.
+                throw SourceError("ics URL is not valid")
             } else {
                 let path = CommandRunner.expandTilde(location, home: home)
                 var isDirectory: ObjCBool = false
@@ -405,12 +411,12 @@ public struct LiveFetcher: SourceFetcher {
 /// a preemptive Basic Authorization header, since URLSession's challenge
 /// handling is unreliable on Linux; the password then exists only in that
 /// header. `display` is the form for messages: the password is `***`.
-struct ICSLocation: Equatable {
-    var url: URL
-    var authorization: String?
-    var display: String
+public struct ICSLocation: Equatable {
+    public var url: URL
+    public var authorization: String?
+    public var display: String
 
-    init?(_ text: String) {
+    public init?(_ text: String) {
         guard let schemeEnd = text.range(of: "://") else { return nil }
         let scheme = text[..<schemeEnd.lowerBound].lowercased()
         guard scheme == "http" || scheme == "https" else { return nil }
@@ -443,7 +449,7 @@ struct ICSLocation: Equatable {
     }
 
     /// The error for a response that is not 2xx.
-    func failure(status: Int) -> String {
+    public func failure(status: Int) -> String {
         let hint = status == 401 || status == 403 ? ", check the credentials" : ""
         return "ics URL \(display) : HTTP \(status)\(hint)"
     }
