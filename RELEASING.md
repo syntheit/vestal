@@ -32,6 +32,10 @@ xcrun notarytool store-credentials notarytool --apple-id <apple id> --team-id 6N
 
 8. Check: `brew update && brew install --cask syntheit/vestal/vestal`.
 
+## The website
+
+The site (https://vestal.matv.io) is deployed by hand: Actions > Pages > Run workflow, after step 6 so it shows the release. First-time setup (DNS CNAME `vestal` -> `syntheit.github.io`, enabling Pages with the custom domain and HTTPS) is in `site/README.md` under "Go live".
+
 ## Notes
 
 - The release build uses the system toolchain, not Nix, so the binary links only `/usr/lib` and `/System/Library` (the script fails otherwise).

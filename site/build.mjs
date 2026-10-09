@@ -25,6 +25,19 @@ const root = resolve(here, "..");
 const cache = join(here, ".cache");
 const dist = join(here, "dist");
 const src = join(here, "src");
+const SITE = "https://vestal.matv.io";
+// The social tags a page carries: canonical URL, Open Graph and Twitter card.
+const socialTags = (path, title, description) => `<link rel="canonical" href="${SITE}/${path}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="vestal">
+<meta property="og:title" content="${title}">
+<meta property="og:description" content="${description}">
+<meta property="og:url" content="${SITE}/${path}">
+<meta property="og:image" content="${SITE}/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="${SITE}/og.png">`;
 const samplesDir = join(root, "Resources", "samples");
 
 // MARK: Arguments
@@ -464,7 +477,14 @@ writeFileSync(join(dist, "data.json"), dataText);
 for (const [path, code] of Object.entries(scripts)) writeFileSync(join(dist, path), versioned(code));
 for (const [path, css] of Object.entries(styles)) writeFileSync(join(dist, path), css);
 for (const [path, text] of Object.entries(docs.files)) writeFileSync(join(dist, path), text.replace(/\{\{build\}\}/g, BUILD));
+cpSync(join(src, "og.png"), join(dist, "og.png"));
+writeFileSync(join(dist, "CNAME"), "vestal.matv.io\n");
+const indexDescription = "vestal: a full-screen dashboard on one key, for macOS and Linux, from one JSON config your agent writes.";
+const urls = ["", ...Object.keys(docs.files).filter((f) => f.endsWith(".html")).map((f) => f.replace(/index\.html$/, ""))];
+writeFileSync(join(dist, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
+writeFileSync(join(dist, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE}/${u}</loc></url>`).join("\n")}\n</urlset>\n`);
 writeFileSync(join(dist, "index.html"), readFileSync(join(src, "index.html"), "utf8").replace(/\{\{version\}\}/g, version)
+  .replace("</head>", `${socialTags("", "vestal", indexDescription)}\n</head>`)
   .replace('href="site.css"', `href="site.css?v=${BUILD}"`).replace('src="site.js"', `src="site.js?v=${BUILD}"`));
 console.log(`site: ${widgets.length} widgets, ${starters.length} starters (${starters.filter((s) => s.real).length} from starter samples), ${backgrounds.length} backgrounds, data.json ${(dataText.length / 1024).toFixed(0)} KB`);
 console.log(`site: ${docs.pages} docs pages, llms.txt and llms-full.txt (${(docs.files["llms-full.txt"].length / 1024).toFixed(0)} KB)`);
@@ -671,7 +691,7 @@ function buildDocs() {
     return `<li><a href="${p.slug}.html"${here ? ' aria-current="page"' : ""}>${escHTML(p.label)}</a>${sub.length ? `<ul class="on-page">${sub.map((h) => `<li><a href="#${h.id}">${escHTML(h.text)}</a></li>`).join("")}</ul>` : ""}</li>`;
   }).join("")}</ul></div>`).join("");
 
-  const shell = ({ title, description, body, current, foot }) => `<!doctype html>
+  const shell = ({ title, description, body, current, foot, path }) => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -684,6 +704,7 @@ function buildDocs() {
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@100..800&family=Geist+Mono:wght@100..700&display=swap">
 <link rel="stylesheet" href="../site.css?v={{build}}">
 <link rel="stylesheet" href="docs.css?v={{build}}">
+${socialTags(path, escHTML(title), escHTML(description))}
 <link rel="alternate" type="text/markdown" href="${current ? `${current.slug}.md` : "../llms.txt"}">
 </head>
 <body class="docs">
@@ -731,7 +752,7 @@ ${body}
     files[`docs/${p.slug}.html`] = shell({
       title: `${p.label} · vestal docs`,
       description: (p.topic && topicSummaries[p.topic]) || `vestal documentation: ${p.title}`,
-      body: p.html, current: p,
+      body: p.html, current: p, path: `docs/${p.slug}.html`,
       foot: `<span>Source: ${sources}</span><a href="${p.slug}.md">This page as Markdown</a>${offline}<span>${escHTML(version)}</span>`,
     });
   }
@@ -749,13 +770,13 @@ ${body}
 <p>vestal is configured with one JSON file. Most people ask their agent to edit it; these pages are for doing it by hand, and for looking things up. The same text ships in the binary: <code>vestal docs</code> lists the topics and works offline.</p>
 ${groups.map((g) => `<h2 id="${g.name.toLowerCase().replace(/\s+/g, "-")}">${escHTML(g.name)}</h2>\n<div class="doc-cards">${g.pages.map((p) => card(p, blurb[p.slug] || topicSummaries[p.topic])).join("")}</div>`).join("\n")}
 <p>For agents on the web: <a href="../llms.txt">llms.txt</a> indexes these pages as Markdown, and <a href="../llms-full.txt">llms-full.txt</a> is all of them in one file.</p>`;
-  files["docs/index.html"] = shell({ title: "vestal docs", description: "vestal documentation: guides for configuring by hand, and the full reference.", body: index, current: null,
+  files["docs/index.html"] = shell({ title: "vestal docs", description: "vestal documentation: guides for configuring by hand, and the full reference.", body: index, current: null, path: "docs/",
     foot: `<span>Every page is generated from the Markdown in <a href="${content.repo}/tree/main/docs">docs/</a>.</span><span>${escHTML(version)}</span>` });
   files["docs/search.json"] = JSON.stringify(search);
   files["docs/recipes.json"] = JSON.stringify(recipeRenders);
 
   // llms.txt (https://llmstxt.org): a title, a summary, then links to the Markdown.
-  const entry = (p) => `- [${p.label}](docs/${p.slug}.md): ${blurb[p.slug] || topicSummaries[p.topic] || p.title}`;
+  const entry = (p) => `- [${p.label}](${SITE}/docs/${p.slug}.md): ${blurb[p.slug] || topicSummaries[p.topic] || p.title}`;
   files["llms.txt"] = `# vestal
 
 > vestal is a full-screen dashboard on one key, for macOS and Linux. Press the key and it covers the screen with widgets (time, agenda, your machines, reviews, builds, markets, music); press it again and it is gone. One JSON config (\`~/.config/vestal/config.json\`) drives the SwiftUI app on macOS and the GTK 4 layer-shell app on Linux, and the \`vestal\` binary checks, renders and screenshots a config headlessly, so an agent can write and verify it.
@@ -766,7 +787,7 @@ ${groups.map((g) => `## ${g.name === "For agents and UIs" ? "For agents" : g.nam
 
 ## Optional
 
-- [llms-full.txt](llms-full.txt): AGENTS.md, the configuration reference, every reference topic and the guides in one file
+- [llms-full.txt](${SITE}/llms-full.txt): AGENTS.md, the configuration reference, every reference topic and the guides in one file
 - [Source](${content.repo}): the repository
 `;
   const full = [
