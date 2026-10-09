@@ -348,7 +348,7 @@ This machine, with the same keys on macOS and Linux; a value the machine can't r
 
 ### `media`
 
-One music player: `{player, state, title, artist, album, artwork, position, duration, players}`. `artwork` is the cover for an `image` widget (a file path or an http(s) URL, or `null`): Spotify's image URL; for Music, a file vestal writes once per track under `artwork/` in its cache directory; on Linux, MPRIS's `mpris:artUrl` (a `file://` URL as a path). `state` is `playing`, `paused`, `stopped` or `off` (not running, or nothing loaded). `players` lists the players this machine can see now, which are the values `player` accepts.
+One music player: `{player, state, title, artist, album, artwork, position, duration, players}`. `artwork` is the cover for an `image` widget (a file path or an http(s) URL, or `null`): Spotify's image URL; for Music, a file vestal writes once per track under `artwork/` in its cache directory; on Linux, MPRIS's `mpris:artUrl` (a `file://` URL as a path). `state` is `playing`, `paused`, `stopped` or `off` (not running, or nothing loaded). `players` lists the players this machine can see now, which are the values `player` accepts. On macOS the dashboard follows Spotify's and Music's notifications: a change shows at once, and the player is asked over AppleScript only for a new track's cover and, while it plays, for its position every 5 seconds (a paused one not at all).
 
 | Key | Type | Default | |
 |---|---|---|---|

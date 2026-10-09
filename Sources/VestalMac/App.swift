@@ -140,6 +140,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
         // values, and with them the first frame, already have data.
         let runtime = AppRuntime(config: loaded.config, fetcher: LiveFetcher(platform: MacPlatform.sources), cache: cache)
         self.runtime = runtime
+        // Spotify and Music say when they change: the `media` sources read
+        // it at once while the dashboard is shown, instead of at their next
+        // poll (which answers from it too, without asking the player).
+        (MacPlatform.sources.media as? AppleScriptBackend)?.listen { [weak runtime] _ in
+            guard let runtime, runtime.isVisible else { return }
+            for key in runtime.keys where runtime.source(key)?.type == "media" {
+                Task { _ = await runtime.fetchNow(key) }
+            }
+        }
 
         let window = NSWindow(
             contentRect: Self.screenWithMouse()?.frame ?? NSRect(x: 0, y: 0, width: 1440, height: 900),

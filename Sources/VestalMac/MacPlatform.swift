@@ -219,15 +219,83 @@ final class AppleScriptMedia: MediaProvider {
 /// a running player is asked (a `tell` to an app that isn't installed would
 /// ask the user where it is). `players` lists the running ones of Spotify
 /// and Music.
-final class AppleScriptBackend: MediaBackend {
+///
+/// Once the app calls `listen`, Spotify's and Music's own notifications
+/// keep what each said (`MediaHeard`), and a read is answered from that
+/// while it holds: a playing track is asked again every few seconds for its
+/// position, a paused one not at all. Without `listen` (the command line),
+/// every read asks the player.
+final class AppleScriptBackend: MediaBackend, @unchecked Sendable {
+    /// The notifications and the player each one speaks for.
+    static let notices = [
+        "com.spotify.client.PlaybackStateChanged": "Spotify",
+        "com.apple.Music.playerInfo": "Music",
+        "com.apple.iTunes.playerInfo": "Music",
+    ]
+
+    private let lock = NSLock()
+    /// What each player said last, by lowercased name; only while listening.
+    private var heard: [String: MediaHeard] = [:]
+    private var listening = false
+    private var observers: [NSObjectProtocol] = []
+
     func read(_ wanted: [String]) async -> MediaReading {
         let players = MediaScript.autoPlayers.filter(SystemBridge.isRunning)
         guard let player = MediaScript.candidates(wanted).first(where: SystemBridge.isRunning) else {
             return MediaReading(player: nil, playing: .off, players: players)
         }
+        let key = player.lowercased()
+        let started = Date()
+        if let known = withLock({ listening ? heard[key]?.reading(at: started) : nil }) {
+            return MediaReading(player: player, playing: known, players: players)
+        }
         let directory = player.caseInsensitiveCompare("Music") == .orderedSame ? Self.artworkDirectory() : nil
         let playing = await SystemBridge.track(player: player, script: MediaScript.track(player: player, artworkDirectory: directory))
+        withLock {
+            // A notification that came while the script ran is newer.
+            if listening, (heard[key]?.at ?? .distantPast) <= started { heard[key] = MediaHeard(playing: playing, at: started) }
+        }
         return MediaReading(player: player, playing: playing, players: players)
+    }
+
+    /// Starts keeping what Spotify and Music say; `changed` runs (on the
+    /// main thread) after each of their notifications.
+    func listen(_ changed: @escaping @MainActor (String) -> Void) {
+        let first = withLock { () -> Bool in
+            if listening { return false }
+            listening = true
+            return true
+        }
+        guard first else { return }
+        let center = DistributedNotificationCenter.default()
+        for (name, player) in Self.notices {
+            observers.append(center.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { [weak self] note in
+                guard let self else { return }
+                let notice = Self.notice(note.userInfo)
+                let key = player.lowercased()
+                let changedNow = self.withLock { () -> Bool in
+                    guard let new = MediaHeard.hearing(notice, previous: self.heard[key], at: Date()) else { return false }
+                    self.heard[key] = new
+                    return true
+                }
+                if changedNow { MainActor.assumeIsolated { changed(player) } }
+            })
+        }
+    }
+
+    /// A notification's `userInfo` as plain values.
+    static func notice(_ info: [AnyHashable: Any]?) -> MediaNotice {
+        func number(_ key: String) -> Double? { (info?[key] as? NSNumber)?.doubleValue }
+        return MediaNotice(state: info?["Player State"] as? String, title: info?["Name"] as? String,
+                           artist: info?["Artist"] as? String, album: info?["Album"] as? String,
+                           durationMilliseconds: number("Duration") ?? number("Total Time"),
+                           position: number("Playback Position"))
+    }
+
+    private func withLock<T>(_ body: () -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return body()
     }
 
     /// Where Music's covers are written (one file per track, `MediaScript.track`):

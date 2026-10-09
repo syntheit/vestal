@@ -276,6 +276,8 @@ One music player.
 
 `state` is `playing`, `paused`, `stopped` or `off` (not running, or nothing loaded; the other fields are then empty or `null`). `artwork` is the cover for an `image` widget, a file path or an http(s) URL, or `null`: Spotify gives its image URL; Music has no URL, so vestal writes the picture once per track to `artwork/` in its cache directory (`~/Library/Caches/Vestal`, the 40 most recent kept) and gives that path; on Linux it is MPRIS's `mpris:artUrl` from `playerctl metadata`, a `file://` URL turned into a path or an http(s) URL as it is (the `nowPlaying` preset draws it). `players` lists the names this machine can see right now, which is how you find working `player` values: `vestal fetch media`. A name that exists on one OS only belongs in a `platform` block. The volume is in `system`'s `audio`.
 
+On macOS the dashboard follows Spotify's and Music's own notifications, so a change of track or a pause shows at once. Between them the player is asked over AppleScript only for what a notification doesn't carry: a new track's cover (and, for Music, its position), and while it plays its position every 5 seconds, which runs on in between; a paused or stopped player isn't asked at all. `vestal fetch media` always asks the player.
+
 ### `claude`
 
 The Claude plan's usage (Pro and Max), from Anthropic's usage endpoint or from `claude -p /usage`: `session` is the 5-hour window, `weekly` the week's (all models), `extra` the per-model weekly limits Claude Code lists (`label` is the name in parentheses). v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an info finding.
