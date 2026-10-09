@@ -20,7 +20,28 @@ A widget's `action` runs when it is clicked, and when its `key` is pressed. Key 
 | `close` | `true` | Closes the popup. | no |
 | `media` | `playPause`, `next` or `previous`; `source` (default: the widget's source) | Controls the player of a `media` source: AppleScript on macOS, `playerctl` on Linux. | no |
 | `audio` | `toggleMute`, `volumeUp` or `volumeDown` | The default output, in steps of 5: CoreAudio on macOS, `wpctl` on Linux. | no |
+| `timer` | `start`, `pause`, `toggle`, `reset` or `skip`; `source` (default: the widget's) | Controls the process's pomodoro timer (the `timer` source), then fetches that source. `reset` puts the phase back to its full length, and when it already is, starts the whole cycle over; `skip` moves to the next phase, running if this one was. | no |
+| `toggleTodo` | text: the markdown file. Siblings `line` (from 1), `match` (the task's text) and `hash` (the file's hash as it was read: `{{ $data.hash }}` of a `parse: "checklist"` file source) | Ticks the open task on that line off, `[ ]` to `[x]`, and fetches the source. It writes the file, narrowly (below). A refusal or failure is shown and logged. | no |
 | `hide` | `true` | Hides the dashboard. | |
+
+**`toggleTodo` writes a file of yours**, the only action that does, and only in this one way: the byte between `[` and `]` of one line changes from a space to `x`. Every other byte stays as it was. Nothing is written unless the file still has the size and SHA-256 `hash` said it had when it was read, and the line is still the open task named by `match`; otherwise the action stops, writes nothing and says why (`todo.md changed since it was read`). The new content is written to a temporary file in the same directory with the original's permissions, the original is compared once more, and the temporary file is renamed over it: a reader sees the old file or the new one, never half of one. A symbolic link is followed, the file it points to is replaced. The `todoFile` preset uses it (`vestal docs preset/todoFile`):
+
+```json
+{
+  "version": 1,
+  "sources": { "todo": { "type": "file", "path": "~/notes/todo.md", "parse": "checklist", "refresh": "10s" } },
+  "widgets": {
+    "tasks": {
+      "type": "list", "source": "todo", "items": ".items | map(select(.done | not)) | .[:5]", "rowId": ".line",
+      "row": {
+        "type": "text", "text": "{{ .text }}", "key": "auto",
+        "action": { "toggleTodo": "{{ $data.path }}", "line": "{{ .line }}", "match": "{{ .text }}", "hash": "{{ $data.hash }}" }
+      }
+    }
+  },
+  "views": { "main": { "children": ["tasks"] } }
+}
+```
 
 Every action also takes `hide` (a boolean) to override that default: `{"open": "…", "hide": false}`. Use a list for several effects:
 
@@ -331,7 +352,7 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 |---|---|
 | Containers | `stack`, `row`, `grid`, `list`, `table`, `switch` |
 | Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer`, and the charts `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
-| Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage`, `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and for developers `reviewQueue`, `ciStatus`, `commitActivity`, `flakeInputs`, and for a home server `containers`, `tailnet`, `uptimeMonitors`, `backups`, `transfers`, and for feeds and markets `headlines`, `cryptoTicker`, `watchlist`, `homeAssistant`, `nowPlaying` (GitHub ones read the `github` secret: `gh auth token` unless defined; `vestal docs presets`) |
+| Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage`, `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and for developers `reviewQueue`, `ciStatus`, `commitActivity`, `flakeInputs`, and for a home server `containers`, `tailnet`, `uptimeMonitors`, `backups`, `transfers`, and for feeds and markets `headlines`, `cryptoTicker`, `watchlist`, `homeAssistant`, `nowPlaying`, and for the day `dayTimeline`, `nextMeeting`, `focusTimer`, `todoFile`, `habits` (GitHub ones read the `github` secret: `gh auth token` unless defined; `vestal docs presets`) |
 
 Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` (`"fill"`), `spaceBefore`, `action`, `key`.
 
@@ -1388,6 +1409,7 @@ Arguments see the piped input, not the row: inside `now | fmt_time("HH:mm"; …)
 | `find(obj)` | array → the first element whose fields equal all of `obj`'s, else `null` | `find({casa: "blue"})` |
 | `where(obj)` | array → every such element | `where({state: "on"})` |
 | `uniq_by(f)` | like `unique_by`, but keeps the first of each and the order | `uniq_by(.label)` |
+| `meeting_link` | a calendar entry (`url`, `location`, `notes`) or text → the link that joins the meeting, or `null`. Links to Zoom, Google Meet, Microsoft Teams, Webex and a few other call services win, wherever they are, else the first `http(s)` link; fields are scanned in the order url, location, notes. | `{url: null, notes: "Join: https://us02web.zoom.us/j/123."} \| meeting_link` → `"https://us02web.zoom.us/j/123"` |
 | `pct(part; whole)` | `100 * part / whole`, `null` when `whole` is 0 | `pct(.used; .total)` |
 | `meta(name)` | a source's metadata, as `$meta`: `{name, fetchedAt, age, ok, error, stale, loaded}` | `meta("weather").age` |
 | `history(source; name)` | the same as `$history[source][name]` | `history("stats"; "cpu") \| last` |
@@ -1478,6 +1500,8 @@ Where bindings come from, highest precedence first:
 5. `left` and `right`, which go to the previous and next page, and `tab` and `shift+tab`, which cycle the pages (`vestal docs views`).
 
 `escape` (close the popup, else hide the dashboard) and `alt+i` (the info popup) are reserved: binding them is an error.
+
+A widget's key is bound only while that widget is drawn on the current view, and widget keys beat the view's `keys` and the top-level ones, so a preset can bind plain keys without taking them from other pages: `focusTimer` binds space, `R` and `N`, and a top-level `r` still works on every view without it. In a view that does have the widget, the widget wins.
 
 **`"key": "auto"`** gives a widget the first letter of its `keyHint` (letters only, in order) that no other binding took. Explicit keys are assigned first, then `auto` ones in tree order. `auto` never assigns `i` or `p` (v0.3's info and privacy keys). The `systemHealth` preset gives each host `auto` with its name as the hint, so `h` opens `harbor`.
 
@@ -2201,6 +2225,158 @@ Album art (72 points), the title, `artist — album`, a progress bar with the el
 programs.vestal.settings.widgets.nowPlaying = { type = "nowPlaying"; player = "auto"; };
 ```
 
+## Your day
+
+Calendar, a pomodoro timer and two small files, drawn as widgets with keys. They work on macOS and Linux. Samples: `vestal gallery --only dayTimeline nextMeeting focusTimer todoFile habits`.
+
+### `dayTimeline`
+
+Today's timed events on a strip with a line at now, so gaps and overlaps show without reading times. Events that overlap go on rows of their own, finished events are dimmed, and a line under the strip says how many there are and how many overlap another (`6 events · 3 overlap`) and what is next: `free until 11:00`, `busy until 12:45` while one is on, or `free for the rest of the day`. All-day events are not on the strip. Hidden when today has no events. Colours go by calendar: `calendarColors` names them, otherwise a hash of the calendar's name picks one of `palette`.
+
+The `calendar` source starts at now, so events that have ended are not in its data. Set `"includePast": true` on it to read from the start of today (the other calendar widgets filter on the end time and are not affected); without it the strip shows what is still to come.
+
+| Parameter | Default | |
+|---|---|---|
+| `source` | `calendar` | A `calendar` source, or any source with the same list. |
+| `hours` | `10` | How many hours the strip covers. |
+| `lead` | `3` | How many of them are before now. Late in the day the strip starts earlier so it ends at midnight, and it never starts before midnight. |
+| `height` | `56` | Points; 56 holds two rows. |
+| `palette` | `accent`, `cyan`, `orange`, `purple`, `teal`, `good` | Colours for calendars. |
+| `calendarColors` | none | `{"Work": "accent"}`. |
+| `hour12` | `false` | `1:46 PM` in the summary. |
+
+```json
+{
+  "version": 1,
+  "sources": { "calendar": { "type": "calendar", "includePast": true, "refresh": "5m" } },
+  "widgets": { "day": { "type": "dayTimeline", "calendarColors": { "Work": "accent", "Home": "orange" } } },
+  "views": { "main": { "children": ["day"] } }
+}
+```
+
+```nix
+programs.vestal.settings = {
+  sources.calendar.includePast = true;
+  widgets.day = { type = "dayTimeline"; calendarColors.Work = "accent"; };
+  views.main.children = [ "clock" "day" "systemBar" ];
+};
+```
+
+### `nextMeeting`
+
+The next timed event that has not ended, with the time left (`in 15m`, in the warning colour from `warn` minutes before it, `now` while it runs), its times, `video call` or its location, and the first line of its notes. When the event has a call link, a Join button and a copy hint show: `J` opens the link (and hides the dashboard) and `C` copies it. Without a link there are no buttons and the keys are free. Hidden when nothing is left today.
+
+The link is found by `meeting_link` (`vestal docs functions`) in the event's `url`, `location` and `notes`: a link to Zoom, Google Meet, Microsoft Teams, Webex and a few other call services wins wherever it is, else the first `https` link. The calendar's own fields give them: EventKit's URL and notes, `.ics` `URL`, `CONFERENCE`, `X-GOOGLE-CONFERENCE` and `DESCRIPTION`, the same through CalDAV, and Thunderbird's URL and description. Notes are kept to 4000 characters.
+
+| Parameter | Default | |
+|---|---|---|
+| `source` | `calendar` | A `calendar` source. |
+| `joinKey` | `j` | Opens the link. |
+| `copyKey` | `c` | Copies it. |
+| `warn` | `15` | Minutes before the start from which the countdown is `warn`-coloured. |
+| `hour12` | `false` | `1:46 PM`. |
+
+```json
+{ "type": "nextMeeting", "source": "calendar", "joinKey": "j", "copyKey": "c" }
+```
+
+```nix
+programs.vestal.settings.widgets.meeting = { type = "nextMeeting"; warn = 10; };
+```
+
+### `focusTimer`
+
+A pomodoro ring with the phase (`Focus`, `Break`, `Long break`), the round (`2 of 4`), a bar per round filling as it goes, the task and the keys. Space starts and pauses, `R` resets (when the phase is untouched, again: the whole cycle) and `N` skips to the next phase. These keys exist only while the widget is on the current view, and a widget key takes precedence over view and global `keys` (`vestal docs keys`), so a global `r` still works on every other page. The keys and the ring are clickable too.
+
+The state lives in the running vestal, in the built-in `timer` source (`vestal docs source/timer`): lengths, rounds and the task are that source's settings, and the state is not saved, so restarting vestal starts over. Nothing ticks while the dashboard is hidden: a running phase is an end time, the ring is computed from it when drawn, and a phase that ended meanwhile is settled when the dashboard is shown again; the next phase then waits, ready, unless the source has `autoStart`.
+
+Without `source` the preset brings a `timer` source with the usual 25m focus, 5m break and a 15m long break after 4 rounds; name your own to change them.
+
+| Parameter | Default | |
+|---|---|---|
+| `source` | a `timer` source | A `timer` source. |
+| `task` | the source's `task` | The task shown. |
+| `focusColor`, `breakColor` | `orange`, `good` | The ring. |
+| `toggleKey`, `resetKey`, `skipKey` | `space`, `r`, `n` | |
+
+```json
+{
+  "version": 1,
+  "sources": { "timer": { "type": "timer", "focus": "50m", "shortBreak": "10m", "rounds": 3, "task": "Writing: onboarding copy" } },
+  "widgets": { "focus": { "type": "focusTimer", "source": "timer" } },
+  "views": { "main": { "children": ["focus"] } }
+}
+```
+
+```nix
+programs.vestal.settings = {
+  sources.timer = { type = "timer"; focus = "50m"; task = "Write the report"; };
+  widgets.focus = { type = "focusTimer"; source = "timer"; };
+  views.focus.children = [ "focus" ];
+};
+```
+
+### `todoFile`
+
+The tasks of a markdown checklist: `- [ ] task` and `- [x] task` lines (also `*`, `+` and `1.` markers, and indented ones; lines inside code fences are skipped), with the file's path and the `## section` above them. Each open task gets a key (`asdfqwetyuzxvbm`, in order) shown as a chip; pressing it, or clicking the row, ticks the task off in the file. Ticked tasks follow, dimmed (`showDone: false` leaves them out). Under the list: `3 open · press a letter to tick it off`. A missing file shows the error under the path.
+
+`section` limits the list to the tasks under that heading, at any depth (`## Today` includes the tasks under `### Calls` within it). The file is read every `refresh` (10s) while the dashboard is shown, and again after a tick.
+
+**Ticking writes your file.** It is the one place vestal changes a file of yours, and does it narrowly: only `[ ]` becomes `[x]`, on the line pressed, and every other byte stays as it was (line endings, spacing, the rest of the line). It refuses, writing nothing and showing the reason, unless the file is still exactly what was read (size and SHA-256 compared) and the line is still that open task; so an edit made in between is never overwritten, and the list simply catches up. The new content goes to a temporary file in the same directory (permissions copied), the original is checked once more, and the temporary file is renamed over it, so a reader sees the old file or the new one. A symbolic link is followed: the file it points to is replaced, the link stays. The action is `toggleTodo` (`vestal docs actions`).
+
+| Parameter | Default | |
+|---|---|---|
+| `path` | `~/notes/todo.md` | The file. |
+| `section` | whole file | A heading's text: `Today`. |
+| `limit` | `8` | At most this many tasks. |
+| `showDone` | `true` | Also list ticked tasks. |
+| `keys` | `asdfqwetyuzxvbm` | Letters for the open tasks, in order. |
+| `refresh` | `10s` | Read interval while shown. |
+
+```json
+{ "type": "todoFile", "path": "~/notes/todo.md", "section": "Today", "limit": 6 }
+```
+
+```nix
+programs.vestal.settings.widgets.todo = { type = "todoFile"; path = "~/notes/todo.md"; section = "Today"; };
+```
+
+### `habits`
+
+One strip per habit: `weeks` (5) of days, ending today, a cell each, with the current streak after it (`4d`). A done day is filled in the habit's colour; today is outlined until it is done. The streak counts the days in a row up to today, or up to yesterday while today is still open. Colours: the habit's `color`, else `colors` in order. Hidden when the file is missing or has no habits.
+
+The file is JSON, written by anything that can write JSON, such as a phone shortcut:
+
+```jsonc
+{ "habits": [
+  { "name": "Run", "color": "good", "days": ["2026-09-24", "2026-09-26", "2026-09-27"] },
+  { "name": "Read 20 min", "days": ["2026-09-27"] }
+] }
+```
+
+`days` are local dates, `YYYY-MM-DD`. To mark a day done from a shell or a shortcut, append today's date to the habit (the file is read again every 30s while the dashboard is shown):
+
+```sh
+f=~/.local/share/vestal/habits.json
+jq --arg d "$(date +%F)" '(.habits[] | select(.name == "Run") | .days) |= ((. + [$d]) | unique)' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+```
+
+| Parameter | Default | |
+|---|---|---|
+| `path` | `~/.local/share/vestal/habits.json` | The file. |
+| `weeks` | `5` | Weeks shown. |
+| `nameWidth` | `116` | Width of the names column. |
+| `colors` | `good`, `accent`, `purple`, `orange`, `cyan`, `teal` | For habits without a `color`. |
+| `refresh` | `30s` | Read interval while shown. |
+
+```json
+{ "type": "habits", "path": "~/.local/share/vestal/habits.json", "weeks": 5 }
+```
+
+```nix
+programs.vestal.settings.widgets.habits = { type = "habits"; weeks = 8; };
+```
+
 ## Helpers
 
 ### `claudeItem`
@@ -2770,6 +2946,17 @@ A draft config (`--config` naming another file than the running instance's) neve
 |---|---|---|
 | `path` | required | A file, or a directory of `.json` files. A leading `~/` expands. |
 | `parse` | `json` | `json`, `raw`, `lines`, `feed`, or `exists`: `{"exists": true, "modified": 1790000000}`, which never fails. The others fail while the file is missing. |
+| `path` | required | A leading `~/` expands. |
+| `parse` | `json` | `json`, `raw`, `lines`, `feed`, `exists` or `checklist`. `exists` gives `{"exists": true, "modified": 1790000000}` and never fails. The others fail while the file is missing. |
+
+`checklist` reads a markdown task list (the `todoFile` preset, `vestal docs preset/todoFile`):
+
+```jsonc
+{ "path": "/home/me/notes/todo.md", "size": 214, "hash": "9f2c…", "modified": 1790000000,
+  "items": [ { "line": 5, "text": "Reply to the landlord", "done": false, "indent": 0, "section": "Today", "sections": ["Notes", "Today"] } ] }
+```
+
+An item is a line `- [ ] text` or `- [x] text` (also `*`, `+` and `1.` markers; the bracket must be followed by a space). `line` counts from 1, `section` is the nearest `#` heading above it and `sections` every heading it sits under, outermost first. Items inside code fences are skipped. `size` and `hash` (SHA-256 of the file, hex) identify the file as it was read: the `toggleTodo` action refuses a file that no longer matches them.
 
 A **directory** with `parse` `json` reads every `*.json` file in it (at most 500, by file name; hidden files and anything else are skipped) into a list of their contents. An object gets `_file` (the name without `.json`) and `_modified` (seconds since 1970) added, unless it has them; a file that is not valid JSON, such as one being written, is skipped. One small file per job or per transfer, each written by its own script, is the pattern (`backups`, `transfers`: `vestal docs presets`). Write to a name that does not end in `.json` and `mv` it into place so a half-written file is never read.
 
@@ -2778,12 +2965,16 @@ A **directory** with `parse` `json` reads every `*.json` file in it (at most 500
 Events of the next `days` days, today being the first:
 
 ```jsonc
-[ { "title": "Standup", "start": 1790000000, "end": 1790001800, "allDay": false, "calendar": "Work", "location": null } ]
+[ { "title": "Standup", "start": 1790000000, "end": 1790001800, "allDay": false, "calendar": "Work", "location": null,
+    "url": "https://example.zoom.us/j/1", "notes": "Agenda: ..." } ]
 ```
+
+`location`, `url` and `notes` are `null` when the event has none. `url` is the event's own URL (a call link, usually: EventKit's URL, `.ics` `URL`, `CONFERENCE` or `X-GOOGLE-CONFERENCE`) and `notes` its description, cut to 4000 characters. `meeting_link` finds the call link among `url`, `location` and `notes` (`vestal docs functions`).
 
 | Key | Default | |
 |---|---|---|
 | `days` | `1` | Days to read, today being the first. |
+| `includePast` | `false` | `true` reads from the start of today instead of from now, so events that already ended are in the data. The `dayTimeline` preset shows them dimmed; the agenda, next-meeting and other widgets that look ahead filter on the end time and don't change. |
 | `calendars` | all | Only calendars with these names. |
 | `ics` | none | A list (or one) of `.ics` files, directories of them (such as vdirsyncer's), or `http(s)` URLs. When set, it is used on both OSes. A URL may carry `user:password@`; vestal strips it and sends it as a Basic `Authorization` header, and shows the password as `***` in messages. For Radicale, whose collection URL returns the whole calendar: `"ics": ["https://me:{{ $secrets.dav }}@dav.example.com/me/calendar-uuid/"]` (percent-encode `@`, `/`, `:` in the password). The source's `headers` are sent too. |
 | `thunderbird` | none | Thunderbird's own calendars, with no extra sync: `true` for the default profile (from `profiles.ini`, in `~/.thunderbird` on Linux or `~/Library/Thunderbird` on macOS) or a profile directory such as `"~/.thunderbird/abcd1234.default"`. vestal reads the profile's calendar databases (`calendar-data/cache.sqlite`, the offline cache of network calendars, and `local.sqlite`) from a private copy, never writing to Thunderbird's files, and skips disabled calendars. Only calendars with **Offline support** enabled (Thunderbird, Calendar properties) are cached, and the cache is as fresh as Thunderbird's last sync, so Thunderbird must have run recently. Recurrence and time zones work as for `ics`. Like `ics`, it replaces EventKit; with several set, events are combined. `calendars` filters by name. |
@@ -2791,6 +2982,28 @@ Events of the next `days` days, today being the first:
 | `caldav` | none | A list (or one) of CalDAV URLs, read by vestal itself on both OSes: a calendar collection, or a server or principal URL whose event calendars are discovered (`current-user-principal`, then `calendar-home-set`; `/.well-known/caldav` is tried when the URL names no principal). `user:password@` works as for `ics` and is sent only to the entry's own host (for iCloud, also its `pNN-caldav.icloud.com` partitions). `calendars` filters by display name. The discovered list is cached in memory for a day. Radicale: `"caldav": ["http://me:{{ $secrets.dav }}@127.0.0.1:5232/"]`. Nextcloud: `"https://me:{{ $secrets.dav }}@cloud.example.com/remote.php/dav/"`. Fastmail (app password): `"https://me%40fastmail.com:{{ $secrets.dav }}@caldav.fastmail.com/dav/calendars/user/me@fastmail.com/"`. iCloud (app-specific password): `"https://me%40icloud.com:{{ $secrets.dav }}@caldav.icloud.com/"`. Google's CalDAV needs OAuth and is not supported: use Google's "Secret address in iCal format" with `ics`. |
 
 Without `ics`, `caldav` or `thunderbird`, macOS reads EventKit (the app asks for calendar access); with any of them, only they are read, and they combine. Linux yields `[]` with an info note: the default agenda then stays hidden. Recurring events are expanded for `FREQ` `DAILY`, `WEEKLY`, `MONTHLY` and `YEARLY` with `COUNT`, `UNTIL`, `INTERVAL`, `BYDAY`, `EXDATE`, `RDATE`, overridden instances and `VTIMEZONE`/`TZID` zones. An event using another rule (`BYSETPOS`, `BYWEEKNO`, …) is left out rather than guessed, and counted in the source's note. The calendar name comes from `X-WR-CALNAME` or the file name.
+
+### `timer`
+
+A pomodoro timer whose state lives in the running vestal. The data (the same on macOS and Linux) is:
+
+```jsonc
+{ "state": "running", "phase": "focus", "round": 2, "rounds": 4, "length": 1500,
+  "remaining": null, "endsAt": 1790001104, "completed": 1, "task": "Writing", "autoStart": false }
+```
+
+`state` is `running`, `paused` or `idle` (waiting to be started). `phase` is `focus`, `break` or `longBreak`; `round` counts focus rounds from 1 up to `rounds`, after which the long break comes and the cycle starts again. `length` is the phase's seconds. `endsAt` is when a running phase ends, in seconds since 1970; `remaining` the seconds left of a paused or idle phase (`null` while running, so the data does not change as time passes: a widget computes `endsAt - now`). `completed` counts the focus phases that ran to their end since the timer was started.
+
+| Key | Default | |
+|---|---|---|
+| `focus` | `25m` | Length of a focus phase. |
+| `shortBreak` | `5m` | Break after a focus phase. |
+| `longBreak` | `15m` | Break after the last round. |
+| `rounds` | `4` | Focus rounds before the long break. |
+| `task` | none | A label for the `focusTimer` preset to show. |
+| `autoStart` | `false` | `true`: the next phase starts by itself when one ends, counted from the end of the last. Otherwise it waits, ready, for the start key. |
+
+`refresh` is `1s` and `when` is `visible`, so the source is read only while the dashboard is shown and something on screen uses it (and the moment it is shown); a hidden dashboard costs nothing, and a phase that ended meanwhile is settled when it is read. `cache` is `false`: the state is not saved, restarting vestal starts over. There is one timer per vestal process: every `timer` source shows the same state, with its own lengths. It is changed by the `timer` action (`vestal docs actions`): `start`, `pause`, `toggle`, `reset` and `skip`; the `focusTimer` preset binds them to space, `R` and `N`.
 
 ### `system`
 
@@ -3323,7 +3536,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 | Containers | `stack` (top to bottom), `row` (left to right), `grid` (aligned columns), `list` (an array as rows), `table` (a list with aligned columns), `switch` (one child picked by a value) |
 | Primitives | `text`, `icon`, `progress` (bar), `gauge` (ring), `sparkline`, `keyValue`, `divider`, `spacer` |
 | Charts | `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
-| Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the system presets `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and the developer widgets `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`, and the homelab widgets `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers`, and `headlines`, `cryptoTicker`, `watchlist`, `homeAssistant` and `nowPlaying` (`vestal docs presets`) |
+| Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the system presets `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and the developer widgets `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`, and the homelab widgets `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers`, and `headlines`, `cryptoTicker`, `watchlist`, `dayTimeline`, `nextMeeting`, `focusTimer`, `todoFile`, `habits`, `homeAssistant` and `nowPlaying` (`vestal docs presets`) |
 | Your templates | any name under `templates` (`vestal docs templates`) |
 
 ## Fields every widget takes
@@ -3341,7 +3554,8 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 | `minWidth`, `maxWidth` | number | none | |
 | `padding` | number or `[top, right, bottom, left]` | `0` | |
 | `background` | colour | none | Painted behind the padded frame. |
-| `radius` | number | `0` | Corner radius of the background. |
+| `border` | object | none | `{"color": "accent@0.6", "width": 1}`: an outline along the padded frame, following `radius`. `color` defaults to `dim`, `width` to 1 (0 draws none); both may be `{"expr": …}`. |
+| `radius` | number | `0` | Corner radius of the background and the border. |
 | `opacity` | 0 to 1 | `1` | |
 | `clip` | boolean | `false` | Clip the children to the frame. |
 | `spaceBefore` | number | the parent's gap | Space before this child in a stack or row. Ignored on the first visible child. |

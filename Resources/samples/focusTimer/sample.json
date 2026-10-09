@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Focus timer",
+  "preset": "focusTimer",
+  "description": "A pomodoro ring with the round and the task, driven from the keyboard.",
+  "size": [
+    680,
+    150
+  ],
+  "at": "2026-09-27T10:30:00Z",
+  "tags": [
+    "time",
+    "focus"
+  ]
+}

@@ -283,15 +283,18 @@ Every source takes:
 | Key | Type | Default | |
 |---|---|---|---|
 | `path` | text | required | A file, or a directory of `.json` files; a leading `~/` expands. A directory is read as a list of the files' contents, sorted by name (at most 500; an object gets `_file`, the name without `.json`, and `_modified`, seconds since 1970; a file that is not valid JSON is skipped). |
-| `parse` | string | `"json"` | As for `http`, plus `"exists"`: `{"exists": true, "modified": <seconds since 1970>}` or `{"exists": false, "modified": null}`, which never fails. The other modes fail when the file is missing. |
+| `parse` | string | `"json"` | As for `http`, plus `"exists"`: `{"exists": true, "modified": <seconds since 1970>}` or `{"exists": false, "modified": null}`, which never fails; and `"checklist"` (below). The other modes fail when the file is missing. |
+
+`"checklist"` reads a markdown task list as `{path, size, hash, modified, items}`, each item `{line, text, done, indent, section, sections}`: the lines `- [ ] text` and `- [x] text` (also `*`, `+` and `1.` markers), `section` being the nearest `#` heading above and `sections` all of them, outermost first. Code fences are skipped. `size` and `hash` (SHA-256, hex) identify the file as read, which the [`toggleTodo` action](#actions) checks before it ticks a task off. The [`todoFile`](#todofile) preset draws it.
 
 ### `calendar`
 
-Events, as a list: `title`, `start` and `end` (seconds since 1970), `allDay`, `calendar` (the calendar's name) and `location` (or `null`).
+Events, as a list: `title`, `start` and `end` (seconds since 1970), `allDay`, `calendar` (the calendar's name), and `location`, `url` and `notes` (the event's URL, usually a call link, and its description cut to 4000 characters; each `null` when absent). The `meeting_link` function finds a call link among the last three.
 
 | Key | Type | Default | |
 |---|---|---|---|
 | `days` | integer, at least 1 | `1` | How many days to read: from now to the end of the `days`-th day, today being the first. |
+| `includePast` | boolean | `false` | `true` starts at the beginning of today instead of now, so events that already ended are in the data too (the [`dayTimeline`](#daytimeline) preset dims them). Widgets that look ahead filter on the end time and don't change. |
 | `calendars` | list of strings | all | Only calendars with these names. |
 | `ics` | list of text | none | `.ics` files, directories of them (such as vdirsyncer's) or `http(s)` URLs. When set, they are read on both macOS and Linux. The calendar's name is the file's `X-WR-CALNAME`, else the file's name (for a file in a directory, the directory's name). Recurring events are expanded (`RRULE` with `DAILY`, `WEEKLY`, `MONTHLY` or `YEARLY`, `COUNT`, `UNTIL`, `INTERVAL`, `BYDAY`, `BYMONTHDAY`, `BYMONTH`, `WKST`, and `EXDATE`, `RDATE`, moved or cancelled instances), in the event's own time zone (`TZID`, with its `VTIMEZONE`). An event whose rule uses anything else (`BYSETPOS`, `BYWEEKNO`, ...) is left out rather than guessed, and `vestal sources` says how many were. A URL may carry `user:password@`; vestal strips it and sends it as a Basic `Authorization` header, and shows the password as `***` in messages. For Radicale, whose collection URL returns the whole calendar: `"ics": ["https://me:{{ $secrets.dav }}@dav.example.com/me/calendar-uuid/"]` (percent-encode `@`, `/`, `:` in the password). The source's `headers` are sent too. |
 | `thunderbird` | `true` or text | none | Thunderbird's own calendars, with no extra sync: `true` for the default profile (from `profiles.ini`, in `~/.thunderbird` on Linux or `~/Library/Thunderbird` on macOS) or a profile directory such as `"~/.thunderbird/abcd1234.default"`. vestal reads the profile's calendar databases (`calendar-data/cache.sqlite`, the offline cache of network calendars, and `local.sqlite`) from a private copy, never writing to Thunderbird's files, and skips disabled calendars. Only calendars with **Offline support** enabled (Thunderbird, Calendar properties) are cached, and the cache is as fresh as Thunderbird's last sync, so Thunderbird must have run recently. Recurrence and time zones work as for `ics`. Like `ics`, it replaces EventKit; with several set, events are combined. `calendars` filters by name. |
@@ -299,6 +302,21 @@ Events, as a list: `title`, `start` and `end` (seconds since 1970), `allDay`, `c
 | `caldav` | list of text | none | CalDAV servers read by vestal itself, on both macOS and Linux. Each entry is a calendar collection URL, or a server or principal URL whose calendars are discovered (`current-user-principal`, `calendar-home-set`, then every calendar that holds events; `/.well-known/caldav` is tried when the URL names no principal). Credentials go in the URL as for `ics` (`https://me:{{ $secrets.dav }}@dav.example.com/`; percent-encode `@`, `/`, `:` in the password): vestal sends them as a Basic `Authorization` header, only to the entry's own host (for iCloud, also its `pNN-caldav.icloud.com` partitions), and shows the password as `***`. `calendars` then names calendars by their display name. The discovered list is kept in memory for a day. Recurring events are expanded as for `ics`. Examples: Radicale `http://me:{{ $secrets.dav }}@127.0.0.1:5232/`; Nextcloud `https://me:{{ $secrets.dav }}@cloud.example.com/remote.php/dav/`; Fastmail `https://me%40fastmail.com:{{ $secrets.dav }}@caldav.fastmail.com/dav/calendars/user/me@fastmail.com/` (app password); iCloud `https://me%40icloud.com:{{ $secrets.dav }}@caldav.icloud.com/` (app-specific password). Google Calendar's CalDAV needs OAuth and is not supported: use Google's "Secret address in iCal format" with `ics`. |
 
 Without `ics`, `caldav` or `thunderbird`, macOS reads the system calendar through EventKit (vestal asks for calendar access the first time); with any of them, only those are read, and `ics`, `caldav` and `thunderbird` entries combine. Linux has no system calendar: there a calendar source without them yields an empty list, and `vestal sources` notes "no calendar backend: set `ics`". An [`agendaList`](#agendalist) also reads a `command`, `http` or `file` source whose JSON is that same list.
+
+### `timer`
+
+A pomodoro timer with its state in the running vestal (not saved: restarting starts over). Nothing ticks by itself: a running phase is an end time and widgets compute `endsAt - now`, so a hidden dashboard costs nothing. `refresh` is `1s` and `when` is `visible`. The `timer` [action](#actions) changes it; the [`focusTimer`](#focustimer) preset draws it and binds the keys.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `focus` | duration | `"25m"` | A focus phase. |
+| `shortBreak` | duration | `"5m"` | The break after a focus phase. |
+| `longBreak` | duration | `"15m"` | The break after the last round. |
+| `rounds` | integer | `4` | Focus rounds before the long break. |
+| `task` | text | none | A label for the `focusTimer` preset. |
+| `autoStart` | boolean | `false` | The next phase starts by itself when one ends. |
+
+The data: `{state, phase, round, rounds, length, remaining, endsAt, completed, task, autoStart}`. `state` is `running`, `paused` or `idle`; `phase` is `focus`, `break` or `longBreak`; `endsAt` is the end of a running phase (seconds since 1970) and `remaining` the seconds left of a paused or idle one (`null` while running). One timer per process: every `timer` source shows the same state. `vestal docs source/timer` has the rest.
 
 ### `system`
 
@@ -448,6 +466,7 @@ The tables below give each type's main fields. `vestal docs config` lists every 
 | `width`, `height` | number, `"fill"` or `"fit"` | `"fit"` | Points; `fill` takes the space the parent offers. |
 | `minWidth`, `maxWidth` | number | none | |
 | `padding` | number or `[top, right, bottom, left]` | 0 | Inside the frame. |
+| `border` | object | none | `{"color": "accent@0.6", "width": 1}`: an outline along the padded frame, following `radius`. |
 | `background`, `radius`, `opacity`, `clip` | | none, 0, 1, false | A colour behind the padded frame, its corner radius, the subtree's opacity, clipping to the frame. |
 | `spaceBefore` | number | the parent's `gap` | Space before this child in a `stack` or `row`. |
 | `alignSelf` | `start`, `center`, `end`, `stretch` | the parent's `align` | |
@@ -647,6 +666,8 @@ A key is written like `hotkey`: `"h"`, `"2"`, `"tab"`, `"shift+tab"`, `"space"`,
 | `close` | `true` | Close the popup. | no |
 | `media` | `playPause`, `next` or `previous`; `source` (default: the widget's) | Through the `media` source's player: AppleScript or MPRIS. | no |
 | `audio` | `toggleMute`, `volumeUp` or `volumeDown` | The default output, in steps of 5 points: CoreAudio or `wpctl`. | no |
+| `timer` | `start`, `pause`, `toggle`, `reset` or `skip`; `source` (default: the widget's) | The pomodoro timer of the [`timer` source](#timer); `reset` puts the phase back, and again restarts the cycle; `skip` moves to the next phase. | no |
+| `toggleTodo` | text: the markdown file; `line`, `match`, `hash` | Ticks one open task of a [`checklist` file source](#file) off, `[ ]` to `[x]`: one byte of the file changes, and only if the file is still what was read (size and SHA-256 compared) and the line is still that task. Written through a temporary file and a rename. See `vestal docs actions`. | no |
 | `hide` | `true` | Hide the dashboard. | |
 
 Every action also takes `hide: true` or `false` to override the last column. `vestal check-config --commands` lists every `run` argv, so a person can review what a config executes.
@@ -942,6 +963,26 @@ Album art, title, `artist — album`, progress with times, and previous / pause 
 | `artSize` | number | `72` | The cover's side in points. |
 
 `vestal docs presets` has an example of each.
+
+### `dayTimeline`
+
+Today's timed events on a strip with a now line, overlaps on rows of their own, finished events dimmed, and a summary (`6 events · 3 overlap`, `free until 11:00`). Set `"includePast": true` on the [`calendar` source](#calendar) to see finished events. Parameters: `source` (`"calendar"`), `hours` (10), `lead` (3), `height` (56), `palette`, `calendarColors`, `hour12`. `vestal docs presets` has the details.
+
+### `nextMeeting`
+
+The next meeting with a countdown. With a call link (found by `meeting_link` in the event's URL, location and notes): `J` opens it, `C` copies it. Parameters: `source`, `joinKey`, `copyKey`, `warn` (15 minutes), `hour12`.
+
+### `focusTimer`
+
+A pomodoro ring, the round, the task and the keys space (start, pause), `R` (reset) and `N` (skip), bound only while it is on the current view. Reads a [`timer` source](#timer), by default one it brings. Parameters: `source`, `task`, `focusColor`, `breakColor`, `toggleKey`, `resetKey`, `skipKey`.
+
+### `todoFile`
+
+The tasks of a markdown checklist; a key per open task ticks it off in the file (see [`toggleTodo`](#actions) for exactly what is written). Parameters: `path` (`"~/notes/todo.md"`), `section`, `limit` (8), `showDone`, `keys`, `refresh`.
+
+### `habits`
+
+A strip of `weeks` (5) days per habit from a JSON file `{"habits": [{"name", "color", "days": ["2026-09-27", ...]}]}`, with the current streak; today is outlined until done. Parameters: `path` (`"~/.local/share/vestal/habits.json"`), `weeks`, `nameWidth`, `colors`, `refresh`.
 
 ### Helpers
 

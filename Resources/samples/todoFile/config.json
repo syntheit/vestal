@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "sources": {
+    "todo": {
+      "type": "file",
+      "path": "~/notes/todo.md",
+      "parse": "checklist"
+    }
+  },
+  "widgets": {
+    "todoFile": {
+      "type": "todoFile",
+      "source": "todo",
+      "path": "~/notes/todo.md",
+      "section": "Today"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "todoFile"
+      ],
+      "padding": 24
+    }
+  }
+}

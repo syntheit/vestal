@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Habits",
+  "preset": "habits",
+  "description": "Five weeks per habit and the current streak; the outlined cell is today.",
+  "size": [
+    680,
+    170
+  ],
+  "at": "2026-09-27T10:30:00Z",
+  "tags": [
+    "tasks",
+    "files"
+  ]
+}

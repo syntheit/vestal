@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "sources": {
+    "calendar": {
+      "type": "calendar",
+      "includePast": true
+    }
+  },
+  "widgets": {
+    "dayTimeline": {
+      "type": "dayTimeline",
+      "source": "calendar",
+      "calendarColors": {
+        "Work": "accent",
+        "Focus": "good",
+        "Personal": "orange"
+      }
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "dayTimeline"
+      ],
+      "padding": 24
+    }
+  }
+}

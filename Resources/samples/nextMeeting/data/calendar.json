@@ -1,0 +1,32 @@
+[
+  {
+    "title": "Standup",
+    "start": 1790499600,
+    "end": 1790500500,
+    "allDay": false,
+    "calendar": "Work",
+    "location": null,
+    "url": null,
+    "notes": null
+  },
+  {
+    "title": "Design review",
+    "start": 1790505900,
+    "end": 1790508600,
+    "allDay": false,
+    "calendar": "Work",
+    "location": null,
+    "url": "https://example.zoom.us/j/81234567890?pwd=sample",
+    "notes": "Agenda: onboarding flow, empty states, copy pass\n\nJoin Zoom Meeting\nhttps://example.zoom.us/j/81234567890?pwd=sample"
+  },
+  {
+    "title": "Lunch",
+    "start": 1790512200,
+    "end": 1790515800,
+    "allDay": false,
+    "calendar": "Personal",
+    "location": null,
+    "url": null,
+    "notes": null
+  }
+]

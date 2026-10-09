@@ -550,7 +550,7 @@ final class RenderPass {
             return nil
         }
         var merged = chosen
-        for field in ["width", "height", "minWidth", "maxWidth", "padding", "background", "radius", "opacity",
+        for field in ["width", "height", "minWidth", "maxWidth", "padding", "background", "border", "radius", "opacity",
                       "clip", "spaceBefore", "alignSelf", "span", "action", "key", "keyHint", "alt"]
         where merged[field] == nil && w[field] != nil {
             merged[field] = w[field]
@@ -855,6 +855,13 @@ final class RenderPass {
             break
         }
         if let background = w["background"] { node.background = color(background, id: id, field: "background", scope: scope, value: nil) }
+        if case .object(let border)? = w["border"] {
+            let width = number(border["width"], id: id, field: "border.width", scope: scope) ?? 1
+            if width > 0 {
+                let tint = color(border["color"] ?? .string("dim"), id: id, field: "border.color", scope: scope, value: nil) ?? "dim"
+                node.border = RenderBorder(color: tint, width: width)
+            }
+        }
         if let v = number(w["radius"], id: id, field: "radius", scope: scope) {
             switch node.content {
             case .bar, .stackedBar, .heatmap, .image: break

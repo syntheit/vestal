@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Next meeting",
+  "preset": "nextMeeting",
+  "description": "The next meeting with a countdown and keys that open or copy its call link.",
+  "size": [
+    680,
+    110
+  ],
+  "at": "2026-09-27T10:30:00Z",
+  "tags": [
+    "calendar",
+    "time"
+  ]
+}

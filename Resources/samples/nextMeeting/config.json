@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "sources": {
+    "calendar": {
+      "type": "calendar"
+    }
+  },
+  "widgets": {
+    "nextMeeting": {
+      "type": "nextMeeting",
+      "source": "calendar"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "nextMeeting"
+      ],
+      "padding": 24
+    }
+  }
+}

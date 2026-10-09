@@ -296,7 +296,9 @@ final class EventKitCalendar: CalendarProvider {
                 end: e.endDate,
                 allDay: e.isAllDay,
                 calendar: e.calendar?.title ?? "",
-                location: e.location.flatMap { $0.isEmpty ? nil : $0 }
+                location: e.location.flatMap { $0.isEmpty ? nil : $0 },
+                url: e.url?.absoluteString,
+                notes: e.notes
             )
         }
     }

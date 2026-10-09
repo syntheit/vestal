@@ -369,6 +369,14 @@ public final class RenderEngine {
         return view
     }
 
+    /// For action handlers: the settings of the `timer` source named `source`
+    /// (the defaults for a name that isn't one).
+    public func timerSettings(source: String?) -> TimerSettings {
+        guard let source else { return TimerSettings() }
+        let config = runtime.source(SourceListing.key(source)) ?? model.sources[source]
+        return config.map { TimerSettings($0) } ?? TimerSettings()
+    }
+
     /// For action handlers: fetch these sources now (`*`: all).
     public func refresh(_ names: [String]) {
         let keys = names.contains("*") ? runtime.keys : names.map(SourceListing.key)
@@ -556,6 +564,10 @@ public protocol RenderActionHandler: AnyObject {
 /// - `media`: the source's player (the one `auto` resolved to) through
 ///   `media` (AppleScript or playerctl).
 /// - `audio`: the default output through `audio` (CoreAudio or wpctl).
+/// - `timer`: the process's pomodoro timer (`TimerStore`), then the source
+///   is fetched.
+/// - `toggleTodo`: `TodoChecklist.toggle`, off the main actor, then the
+///   source is fetched.
 @MainActor
 public final class RenderActionRunner: RenderActionHandler {
     public nonisolated static let defaultTimeout: TimeInterval = 30
@@ -644,6 +656,28 @@ public final class RenderActionRunner: RenderActionHandler {
             case "volumeUp": audio.volumeUp()
             case "volumeDown": audio.volumeDown()
             default: engine.actionFinished(effect, error: "audio: unknown command \"\(command)\"")
+            }
+        case .timer(let command, let source):
+            guard TimerStore.commands.contains(command) else {
+                engine.actionFinished(effect, error: "timer: unknown command \"\(command)\"")
+                return
+            }
+            TimerStore.shared.apply(command, settings: engine.timerSettings(source: source), at: engine.now())
+            if let source { engine.refresh([source]) }
+        case .toggleTodo(let path, let line, let match, let hash, let source):
+            // Reads and writes a file: off the main actor.
+            Task { @MainActor [weak engine] in
+                let failure: String? = await Task.detached {
+                    do {
+                        try TodoChecklist.toggle(path: path, line: line, match: match, hash: hash)
+                        return nil
+                    } catch {
+                        return "\(error)"
+                    }
+                }.value
+                if let failure { engine?.actionFinished(effect, error: failure) }
+                // The list reads the file again, ticked or not.
+                if let source { engine?.refresh([source]) }
             }
         case .hide, .changed:
             break

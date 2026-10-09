@@ -156,6 +156,17 @@ A draft config (`--config` naming another file than the running instance's) neve
 |---|---|---|
 | `path` | required | A file, or a directory of `.json` files. A leading `~/` expands. |
 | `parse` | `json` | `json`, `raw`, `lines`, `feed`, or `exists`: `{"exists": true, "modified": 1790000000}`, which never fails. The others fail while the file is missing. |
+| `path` | required | A leading `~/` expands. |
+| `parse` | `json` | `json`, `raw`, `lines`, `feed`, `exists` or `checklist`. `exists` gives `{"exists": true, "modified": 1790000000}` and never fails. The others fail while the file is missing. |
+
+`checklist` reads a markdown task list (the `todoFile` preset, `vestal docs preset/todoFile`):
+
+```jsonc
+{ "path": "/home/me/notes/todo.md", "size": 214, "hash": "9f2c…", "modified": 1790000000,
+  "items": [ { "line": 5, "text": "Reply to the landlord", "done": false, "indent": 0, "section": "Today", "sections": ["Notes", "Today"] } ] }
+```
+
+An item is a line `- [ ] text` or `- [x] text` (also `*`, `+` and `1.` markers; the bracket must be followed by a space). `line` counts from 1, `section` is the nearest `#` heading above it and `sections` every heading it sits under, outermost first. Items inside code fences are skipped. `size` and `hash` (SHA-256 of the file, hex) identify the file as it was read: the `toggleTodo` action refuses a file that no longer matches them.
 
 A **directory** with `parse` `json` reads every `*.json` file in it (at most 500, by file name; hidden files and anything else are skipped) into a list of their contents. An object gets `_file` (the name without `.json`) and `_modified` (seconds since 1970) added, unless it has them; a file that is not valid JSON, such as one being written, is skipped. One small file per job or per transfer, each written by its own script, is the pattern (`backups`, `transfers`: `vestal docs presets`). Write to a name that does not end in `.json` and `mv` it into place so a half-written file is never read.
 
@@ -164,12 +175,16 @@ A **directory** with `parse` `json` reads every `*.json` file in it (at most 500
 Events of the next `days` days, today being the first:
 
 ```jsonc
-[ { "title": "Standup", "start": 1790000000, "end": 1790001800, "allDay": false, "calendar": "Work", "location": null } ]
+[ { "title": "Standup", "start": 1790000000, "end": 1790001800, "allDay": false, "calendar": "Work", "location": null,
+    "url": "https://example.zoom.us/j/1", "notes": "Agenda: ..." } ]
 ```
+
+`location`, `url` and `notes` are `null` when the event has none. `url` is the event's own URL (a call link, usually: EventKit's URL, `.ics` `URL`, `CONFERENCE` or `X-GOOGLE-CONFERENCE`) and `notes` its description, cut to 4000 characters. `meeting_link` finds the call link among `url`, `location` and `notes` (`vestal docs functions`).
 
 | Key | Default | |
 |---|---|---|
 | `days` | `1` | Days to read, today being the first. |
+| `includePast` | `false` | `true` reads from the start of today instead of from now, so events that already ended are in the data. The `dayTimeline` preset shows them dimmed; the agenda, next-meeting and other widgets that look ahead filter on the end time and don't change. |
 | `calendars` | all | Only calendars with these names. |
 | `ics` | none | A list (or one) of `.ics` files, directories of them (such as vdirsyncer's), or `http(s)` URLs. When set, it is used on both OSes. A URL may carry `user:password@`; vestal strips it and sends it as a Basic `Authorization` header, and shows the password as `***` in messages. For Radicale, whose collection URL returns the whole calendar: `"ics": ["https://me:{{ $secrets.dav }}@dav.example.com/me/calendar-uuid/"]` (percent-encode `@`, `/`, `:` in the password). The source's `headers` are sent too. |
 | `thunderbird` | none | Thunderbird's own calendars, with no extra sync: `true` for the default profile (from `profiles.ini`, in `~/.thunderbird` on Linux or `~/Library/Thunderbird` on macOS) or a profile directory such as `"~/.thunderbird/abcd1234.default"`. vestal reads the profile's calendar databases (`calendar-data/cache.sqlite`, the offline cache of network calendars, and `local.sqlite`) from a private copy, never writing to Thunderbird's files, and skips disabled calendars. Only calendars with **Offline support** enabled (Thunderbird, Calendar properties) are cached, and the cache is as fresh as Thunderbird's last sync, so Thunderbird must have run recently. Recurrence and time zones work as for `ics`. Like `ics`, it replaces EventKit; with several set, events are combined. `calendars` filters by name. |
@@ -177,6 +192,28 @@ Events of the next `days` days, today being the first:
 | `caldav` | none | A list (or one) of CalDAV URLs, read by vestal itself on both OSes: a calendar collection, or a server or principal URL whose event calendars are discovered (`current-user-principal`, then `calendar-home-set`; `/.well-known/caldav` is tried when the URL names no principal). `user:password@` works as for `ics` and is sent only to the entry's own host (for iCloud, also its `pNN-caldav.icloud.com` partitions). `calendars` filters by display name. The discovered list is cached in memory for a day. Radicale: `"caldav": ["http://me:{{ $secrets.dav }}@127.0.0.1:5232/"]`. Nextcloud: `"https://me:{{ $secrets.dav }}@cloud.example.com/remote.php/dav/"`. Fastmail (app password): `"https://me%40fastmail.com:{{ $secrets.dav }}@caldav.fastmail.com/dav/calendars/user/me@fastmail.com/"`. iCloud (app-specific password): `"https://me%40icloud.com:{{ $secrets.dav }}@caldav.icloud.com/"`. Google's CalDAV needs OAuth and is not supported: use Google's "Secret address in iCal format" with `ics`. |
 
 Without `ics`, `caldav` or `thunderbird`, macOS reads EventKit (the app asks for calendar access); with any of them, only they are read, and they combine. Linux yields `[]` with an info note: the default agenda then stays hidden. Recurring events are expanded for `FREQ` `DAILY`, `WEEKLY`, `MONTHLY` and `YEARLY` with `COUNT`, `UNTIL`, `INTERVAL`, `BYDAY`, `EXDATE`, `RDATE`, overridden instances and `VTIMEZONE`/`TZID` zones. An event using another rule (`BYSETPOS`, `BYWEEKNO`, …) is left out rather than guessed, and counted in the source's note. The calendar name comes from `X-WR-CALNAME` or the file name.
+
+### `timer`
+
+A pomodoro timer whose state lives in the running vestal. The data (the same on macOS and Linux) is:
+
+```jsonc
+{ "state": "running", "phase": "focus", "round": 2, "rounds": 4, "length": 1500,
+  "remaining": null, "endsAt": 1790001104, "completed": 1, "task": "Writing", "autoStart": false }
+```
+
+`state` is `running`, `paused` or `idle` (waiting to be started). `phase` is `focus`, `break` or `longBreak`; `round` counts focus rounds from 1 up to `rounds`, after which the long break comes and the cycle starts again. `length` is the phase's seconds. `endsAt` is when a running phase ends, in seconds since 1970; `remaining` the seconds left of a paused or idle phase (`null` while running, so the data does not change as time passes: a widget computes `endsAt - now`). `completed` counts the focus phases that ran to their end since the timer was started.
+
+| Key | Default | |
+|---|---|---|
+| `focus` | `25m` | Length of a focus phase. |
+| `shortBreak` | `5m` | Break after a focus phase. |
+| `longBreak` | `15m` | Break after the last round. |
+| `rounds` | `4` | Focus rounds before the long break. |
+| `task` | none | A label for the `focusTimer` preset to show. |
+| `autoStart` | `false` | `true`: the next phase starts by itself when one ends, counted from the end of the last. Otherwise it waits, ready, for the start key. |
+
+`refresh` is `1s` and `when` is `visible`, so the source is read only while the dashboard is shown and something on screen uses it (and the moment it is shown); a hidden dashboard costs nothing, and a phase that ended meanwhile is settled when it is read. `cache` is `false`: the state is not saved, restarting vestal starts over. There is one timer per vestal process: every `timer` source shows the same state, with its own lengths. It is changed by the `timer` action (`vestal docs actions`): `start`, `pause`, `toggle`, `reset` and `skip`; the `focusTimer` preset binds them to space, `R` and `N`.
 
 ### `system`
 

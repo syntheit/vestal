@@ -226,6 +226,19 @@ public enum VestalFunctions {
             let zone = try zone(args[0], "tz_offset", context)
             return .number(Double(zone.secondsFromGMT(for: Date(timeIntervalSince1970: t))))
         },
+        f("meeting_link", 0) { input, _, _ in
+            // A calendar entry (url, location, notes), or text.
+            var fields: [String] = []
+            switch input {
+            case .string(let text): fields = [text]
+            case .object(let members):
+                for name in ["url", "location", "notes"] {
+                    if case .string(let text)? = members[name] { fields.append(text) }
+                }
+            default: break
+            }
+            return MeetingLink.link(in: fields).map { .string($0) } ?? .null
+        },
         f("sun_context", 2) { _, args, context in
             var calendar = Calendar(identifier: .gregorian)
             calendar.timeZone = context.timeZone

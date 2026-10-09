@@ -150,13 +150,13 @@ public enum ThunderbirdCalendar {
             recurrence[calID + "\u{0}" + id, default: []].append(line)
         }
 
-        // LOCATION is the only property read; a profile without the table
-        // simply has none.
-        var locations: [String: String] = [:]
-        try? database.query("SELECT cal_id, item_id, recurrence_id, value FROM cal_properties WHERE key = 'LOCATION'") { row in
+        // LOCATION, URL and DESCRIPTION are the properties read; a profile
+        // without the table simply has none.
+        var properties: [String: [String: String]] = [:]
+        try? database.query("SELECT cal_id, item_id, recurrence_id, value, key FROM cal_properties WHERE key IN ('LOCATION', 'URL', 'DESCRIPTION')") { row in
             guard let calID = row.text(0), calendars.contains(calID), let id = row.text(1),
-                  let value = row.text(3), !value.isEmpty else { return }
-            locations[calID + "\u{0}" + id + "\u{0}" + (row.int(2).map(String.init) ?? "")] = value
+                  let value = row.text(3), !value.isEmpty, let name = row.text(4) else { return }
+            properties[calID + "\u{0}" + id + "\u{0}" + (row.int(2).map(String.init) ?? ""), default: [:]][name] = value
         }
 
         // A cancelled item takes its exceptions with it.
@@ -176,9 +176,11 @@ public enum ThunderbirdCalendar {
                 let to = Double((item.end ?? first) / 1_000_000)
                 if to < low || from > high { continue }
             }
-            let location = locations[key + "\u{0}" + (item.recurrenceID.map(String.init) ?? "")]
-                ?? (isException ? locations[key + "\u{0}"] : nil)
-            blocks[item.calID, default: []].append(vevent(item, rules: isException ? [] : rules, location: location))
+            let own = properties[key + "\u{0}" + (item.recurrenceID.map(String.init) ?? "")] ?? [:]
+            let master = isException ? properties[key + "\u{0}"] ?? [:] : [:]
+            func property(_ name: String) -> String? { own[name] ?? master[name] }
+            blocks[item.calID, default: []].append(vevent(item, rules: isException ? [] : rules, location: property("LOCATION"),
+                                                          url: property("URL"), notes: property("DESCRIPTION")))
         }
         return (blocks, unreadable)
     }
@@ -199,11 +201,13 @@ public enum ThunderbirdCalendar {
         }
     }
 
-    static func vevent(_ item: Item, rules: [String], location: String?) -> String {
+    static func vevent(_ item: Item, rules: [String], location: String?, url: String? = nil, notes: String? = nil) -> String {
         let allDay = item.flags & flagAllDay != 0
         var lines = ["BEGIN:VEVENT", "UID:\(item.id.filter { !$0.isNewline })"]
         lines.append("SUMMARY:" + escape(item.title))
         if let location { lines.append("LOCATION:" + escape(location)) }
+        if let url, !url.contains(where: \.isNewline) { lines.append("URL:" + url) }
+        if let notes { lines.append("DESCRIPTION:" + escape(String(notes.prefix(CalendarEntry.maxNotes)))) }
         if isCancelled(item.status) { lines.append("STATUS:CANCELLED") }
         if let start = item.start {
             lines.append(dateLine("DTSTART", start, zone: item.startZone, allDay: allDay))

@@ -104,7 +104,7 @@ final class AgendaTests: XCTestCase {
         let data = try CalendarEntry.encodeList([entry])
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
         XCTAssertEqual(json.count, 1)
-        XCTAssertEqual(Set(json[0].keys), ["title", "start", "end", "allDay", "calendar", "location"])
+        XCTAssertEqual(Set(json[0].keys), ["title", "start", "end", "allDay", "calendar", "location", "url", "notes"])
         XCTAssertTrue(json[0]["location"] is NSNull, "location is written as null when absent")
         XCTAssertEqual(json[0]["start"] as? Double, 1_790_069_400, "seconds since 1970")
         XCTAssertEqual(json[0]["end"] as? Double, 1_790_071_200)

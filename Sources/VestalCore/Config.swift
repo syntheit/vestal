@@ -124,7 +124,7 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 // common `refresh`, `when`, `transform`, `history`, `maxAge` and `cache`):
 //   http      url, also, parse, method, headers, body, timeout
 //   command   argv, timeout, parse, env
-//   calendar  days, calendars, ics, caldav, thunderbird, timeout   ("eventkit" is an alias)
+//   calendar  days, includePast, calendars, ics, caldav, thunderbird, timeout   ("eventkit" is an alias)
 //   file      path, parse
 //   system    disks, interfaces, processes
 //   media     player
@@ -132,6 +132,7 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 //   codex     argv
 //   astro     latitude, longitude
 //   flake     path, behind, headers, argv, timeout
+//   timer     focus, shortBreak, longBreak, rounds, task, autoStart
 
 public struct SourceConfig: Codable, Equatable, Sendable {
     /// Keys every type accepts.
@@ -140,8 +141,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public static let keysByType = SchemaRegistry.keysByType(SchemaRegistry.sourceTypes)
     public static let aliases = SchemaRegistry.aliases(SchemaRegistry.sourceTypes)
     public static let parseModes = ["json", "raw", "lines", "feed"]
-    /// `file` also takes `exists`.
-    public static let fileParseModes = parseModes + ["exists"]
+    /// `file` also takes `exists` and `checklist`.
+    public static let fileParseModes = parseModes + ["exists", "checklist"]
     public static let whenValues = ["always", "visible"]
     public static let methods = ["GET", "POST"]
     /// claude: where the numbers come from (`auto`: the API, else the CLI).
@@ -163,6 +164,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         case "file": return "30s"
         case "claude", "codex": return "5m"
         case "flake": return "1h"
+        case "timer": return "1s"
         default: return defaultRefresh
         }
     }
@@ -171,7 +173,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     /// while the dashboard is shown, everything else always.
     public static func defaultWhen(for type: String) -> String {
         switch canonicalType(type) {
-        case "system", "media", "claude", "codex", "astro", "flake": return "visible"
+        case "system", "media", "claude", "codex", "astro", "flake", "timer": return "visible"
         default: return "always"
         }
     }
@@ -181,6 +183,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     /// passed: `claude` and `codex`, whose refresh is long, after a minute.
     /// Nil: only `refresh` counts.
     public var showRefreshSeconds: TimeInterval? {
+        if type == "timer" { return 0 }
         type == "claude" || type == "codex" || type == "astro" ? min(60, refreshSeconds) : nil
     }
 
@@ -216,11 +219,19 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public var longitude: Double?           // astro (required): degrees east
     public var behind: Bool?                // flake: also ask GitHub how far behind each input is
     public var also: [String]?              // http: more URLs fetched with `url`; the data is then a list of the answers
+    public var includePast: Bool?           // calendar: start at the beginning of today, not now (nil: false)
+    public var focus: String?               // timer: focus length (duration; nil: 25m)
+    public var shortBreak: String?          // timer: short break (nil: 5m)
+    public var longBreak: String?           // timer: long break after the last round (nil: 15m)
+    public var rounds: Int?                 // timer: focus rounds before the long break (nil: 4)
+    public var task: String?                // timer: the task label shown
+    public var autoStart: Bool?             // timer: start the next phase by itself (nil: false)
 
     enum CodingKeys: String, CodingKey {
         case type, url, refresh, parse, argv, timeout, env, days, calendars
         case when, transform, history, maxAge, cache, method, headers, body, path
         case disks, interfaces, player, ics, thunderbird, backend, caldav, processes, latitude, longitude, behind, also
+        case includePast, focus, shortBreak, longBreak, rounds, task, autoStart
     }
 
     public init(
@@ -253,7 +264,14 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         latitude: Double? = nil,
         longitude: Double? = nil,
         behind: Bool? = nil,
-        also: [String]? = nil
+        also: [String]? = nil,
+        includePast: Bool? = nil,
+        focus: String? = nil,
+        shortBreak: String? = nil,
+        longBreak: String? = nil,
+        rounds: Int? = nil,
+        task: String? = nil,
+        autoStart: Bool? = nil
     ) {
         let type = Self.canonicalType(type)
         self.type = type
@@ -269,6 +287,9 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         self.latitude = latitude; self.longitude = longitude
         self.behind = behind
         self.also = also
+        self.includePast = includePast
+        self.focus = focus; self.shortBreak = shortBreak; self.longBreak = longBreak
+        self.rounds = rounds; self.task = task; self.autoStart = autoStart
         fillDefaults()
     }
 
@@ -294,7 +315,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         history   = c.lenientEntries(HistorySpec.self, .history)
         if history?.isEmpty == true { history = nil }
         maxAge    = c.lenient(String.self, .maxAge)
-        cache     = c.lenient(Bool.self, .cache) ?? true
+        cache     = c.lenient(Bool.self, .cache) ?? (canonical != "timer")
         method    = c.lenient(String.self, .method).map { $0.uppercased() } ?? "GET"
         headers   = c.lenient([String: String].self, .headers)
         body      = c.lenient(AnyJSON.self, .body)
@@ -313,6 +334,13 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         latitude  = c.lenient(Double.self, .latitude)
         longitude = c.lenient(Double.self, .longitude)
         behind    = c.lenient(Bool.self, .behind)
+        includePast = c.lenient(Bool.self, .includePast)
+        focus     = c.lenient(String.self, .focus)
+        shortBreak = c.lenient(String.self, .shortBreak)
+        longBreak = c.lenient(String.self, .longBreak)
+        rounds    = c.lenientPositive(.rounds)
+        task      = c.lenient(String.self, .task)
+        autoStart = c.lenient(Bool.self, .autoStart)
         fillDefaults()
     }
 

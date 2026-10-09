@@ -20,7 +20,7 @@ public enum WidgetTypes {
     /// Fields every widget takes. `span` places a grid child.
     public static let commonFields: Set<String> = [
         "type", "id", "source", "input", "vars", "when", "loading", "style", "width", "height", "minWidth",
-        "maxWidth", "padding", "background", "radius", "opacity", "clip", "spaceBefore", "alignSelf",
+        "maxWidth", "padding", "background", "border", "radius", "opacity", "clip", "spaceBefore", "alignSelf",
         "action", "key", "keyHint", "alt", "span",
     ]
 

@@ -145,8 +145,8 @@ private struct ICSExpander {
                 }
                 let timing = try self.timing(of: event, fallback: nil)
                 let walls = try occurrences(of: event, timing: timing, overrides: own)
-                let location = event.location
-                entries += walls.compactMap { entry(at: $0, timing, title: title, location: location) }
+                let location = event.location, url = event.link, notes = event.notes
+                entries += walls.compactMap { entry(at: $0, timing, title: title, location: location, url: url, notes: notes) }
 
                 guard let uid, settled.insert(uid).inserted else { continue }
                 for override in own where !override.isCancelled {
@@ -300,12 +300,13 @@ private struct ICSExpander {
         let fallback = master.map { (days: $0.timing.days, seconds: $0.timing.seconds) }
         let timing = try self.timing(of: event, fallback: fallback)
         let title = event.first("SUMMARY")?.text ?? master?.title ?? ""
-        return entry(at: timing.wall, timing, title: title, location: event.location)
+        return entry(at: timing.wall, timing, title: title, location: event.location, url: event.link, notes: event.notes)
     }
 
     /// The entry for one occurrence, or nil when it misses the range. A
     /// zero-length occurrence counts when it starts inside the range.
-    func entry(at wall: Int, _ t: ICSTiming, title: String, location: String?) -> CalendarEntry? {
+    func entry(at wall: Int, _ t: ICSTiming, title: String, location: String?, url: String? = nil,
+               notes: String? = nil) -> CalendarEntry? {
         let start = t.zone.utc(fromWall: wall)
         let dayEnd = t.days != 0 ? t.zone.utc(fromWall: wall + t.days * 86_400) : start
         let end = max(dayEnd + t.seconds, start)
@@ -319,7 +320,9 @@ private struct ICSExpander {
             end: Date(timeIntervalSince1970: e),
             allDay: t.allDay,
             calendar: calendar,
-            location: location)
+            location: location,
+            url: url,
+            notes: notes)
     }
 }
 
@@ -812,6 +815,22 @@ private struct ICSComponent {
     var location: String? {
         guard let text = first("LOCATION")?.text, !text.isEmpty else { return nil }
         return text
+    }
+
+    /// The event's link: URL, else a conference property (RFC 7986
+    /// CONFERENCE, or the Google and Microsoft ones).
+    var link: String? {
+        for name in ["URL", "CONFERENCE", "X-GOOGLE-CONFERENCE", "X-MICROSOFT-SKYPETEAMSMEETINGURL"] {
+            if let text = first(name)?.text.trimmingCharacters(in: .whitespaces), !text.isEmpty,
+               text.lowercased().hasPrefix("http") {
+                return text
+            }
+        }
+        return nil
+    }
+
+    var notes: String? {
+        first("DESCRIPTION").flatMap { CalendarEntry.trimmedNotes($0.text) }
     }
 }
 

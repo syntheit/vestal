@@ -424,7 +424,7 @@ final class VestalFunctionsTests: XCTestCase {
                      "fmt_percent/0", "fmt_percent/1", "fmt_bytes/0", "fmt_rate/0", "fmt_duration/0", "fmt_duration/1",
                      "fmt_uptime/0", "fmt_uptime_long/0", "fmt_relative/0", "starts_in/0", "fmt_time/1", "fmt_time/2",
                      "fmt_localized/1", "fmt_localized/2", "clock24/0", "capitalize/0", "titlecase/0", "truncate/1",
-                     "step/1", "color_mix/3", "alpha/1", "to_epoch/0", "tz_valid/0", "tz_offset/1", "sun_context/2", "find/1", "where/1",
+                     "step/1", "color_mix/3", "alpha/1", "to_epoch/0", "tz_valid/0", "tz_offset/1", "meeting_link/0", "sun_context/2", "find/1", "where/1",
                      "uniq_by/1", "pct/2", "meta/1", "history/2", "history_times/2", "path_get/1", "kv_legacy/2",
                      "weather_legacy/2", "foyer_health/0", "host_health/2", "fmt_legacy/1"] {
             XCTAssertTrue(signatures.contains(name), name)
