@@ -17,7 +17,7 @@ final class SchemaTests: XCTestCase {
             "file": common.union(["path", "parse"]),
             "system": common.union(["disks", "interfaces"]),
             "media": common.union(["player"]),
-            "claude": common.union(["argv", "path", "fiveHourLimit", "weeklyLimit"]),
+            "claude": common.union(["argv", "path", "fiveHourLimit", "weeklyLimit", "backend"]),
             "codex": common.union(["argv"]),
         ])
         XCTAssertEqual(SourceConfig.aliases, ["eventkit": "calendar"])
@@ -56,7 +56,7 @@ final class SchemaTests: XCTestCase {
         }
         let source = SourceConfig(
             type: "command", url: "u", argv: ["a"], env: [:], calendars: [], transform: ".", history: [:], maxAge: "1h",
-            headers: [:], body: .null, path: "p", disks: [], interfaces: [], player: [], ics: [])
+            headers: [:], body: .null, path: "p", disks: [], interfaces: [], player: [], ics: [], backend: "auto")
         // The v0.3 Claude options are declared (accepted, then ignored) but
         // not decoded; a source's `path` is still the file source's.
         let ignored: Set<String> = ["path", "fiveHourLimit", "weeklyLimit"]
@@ -87,7 +87,8 @@ final class SchemaTests: XCTestCase {
             let decoded = try JSONDecoder().decode(SourceConfig.self, from: Data(#"{"type": "\#(type.name)"}"#.utf8))
             let encoded = try JSONDecoder().decode(AnyJSON.self, from: JSONEncoder().encode(decoded)).objectValue ?? [:]
             for key in type.keys {
-                guard let value = key.defaultValue else { continue }
+                // An absent backend decodes to nil, which means "auto".
+                guard let value = key.defaultValue, key.name != "backend" else { continue }
                 XCTAssertEqual(encoded[key.name], value, "\(type.name).\(key.name)")
             }
         }

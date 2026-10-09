@@ -60,7 +60,9 @@ enum ConfigValidator {
     /// A URL an http source can fetch (LiveFetcher checks the same).
     static func isHTTPURL(_ string: String) -> Bool {
         guard let url = URL(string: string), let scheme = url.scheme?.lowercased() else { return false }
-        return (scheme == "http" || scheme == "https") && url.host != nil
+        guard scheme == "http" || scheme == "https", let host = url.host, !host.isEmpty else { return false }
+        // Foundation on Linux accepts an unterminated IPv6 literal.
+        return !string.contains("[") || string.contains("]")
     }
 }
 
