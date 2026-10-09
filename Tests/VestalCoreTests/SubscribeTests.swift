@@ -183,7 +183,8 @@ final class SubscribeTests: XCTestCase {
         let tree = RenderNode(id: "main", .stack(.init(children: [RenderNode(id: "main/0", .text(.init(text: "hi")))])))
         XCTAssertEqual(RenderDowngrade.node(tree, toMinor: RenderProtocol.minor), tree)
         XCTAssertEqual(Set(RenderDowngrade.nodeTypeMinor.keys),
-                       ["stack", "grid", "text", "icon", "bar", "ring", "spark", "divider", "spacer"])
+                       ["stack", "grid", "text", "icon", "bar", "ring", "spark", "divider", "spacer",
+                        "bars", "stackedBar", "heatmap", "timeline", "image"])
     }
 
     // MARK: The protocol against a live engine

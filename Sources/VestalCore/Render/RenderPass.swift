@@ -60,8 +60,8 @@ final class RenderPass {
     private var diagnosticKeys: Set<String> = []
     private var actions: [String: RenderActionBinding] = [:]
     private var keys: [KeyCandidate] = []
-    private var sources: Set<String> = []
-    private var usesNow = false
+    var sources: Set<String> = []
+    var usesNow = false
 
     init(model: RenderConfigModel, data: RenderData, now: Date, view: String,
          timeZone: TimeZone = .current, locale: Locale = .current, os: String = RenderPass.currentOS) {
@@ -269,12 +269,17 @@ final class RenderPass {
         case "keyValue": node = keyValue(w, id: id, scope: scope)
         case "divider": node = divider(w, id: id, scope: scope)
         case "spacer": node = spacer(w, id: id, scope: scope, axis: axis)
+        case "bars": node = bars(w, id: id, scope: scope)
+        case "stackedBar": node = stackedBar(w, id: id, scope: scope)
+        case "heatmap": node = heatmap(w, id: id, scope: scope)
+        case "timeline": node = timeline(w, id: id, scope: scope)
+        case "image": node = image(w, id: id, scope: scope)
         default:
             report(id: id, field: "type", severity: "error", code: "unknown-type", message: "unknown widget type \"\(type)\"")
             return nil
         }
         guard var built = node else { return nil }
-        box(w, into: &built, scope: scope, sizesBar: type == "progress")
+        box(w, into: &built, scope: scope, sizesBar: ["progress", "bars", "stackedBar"].contains(type))
         bind(w, node: &built, scope: scope)
         propagateFill(&built)
         return built
@@ -820,7 +825,7 @@ final class RenderPass {
 
     /// Box fields. A progress widget's `width` and `height`
     /// size its bar instead.
-    private func box(_ w: [String: AnyJSON], into node: inout RenderNode, scope: Scope, sizesBar: Bool) {
+    func box(_ w: [String: AnyJSON], into node: inout RenderNode, scope: Scope, sizesBar: Bool) {
         let id = node.id
         if !sizesBar {
             if let width = length(w["width"], id: id, field: "width", scope: scope) { node.width = width }
@@ -842,7 +847,10 @@ final class RenderPass {
         }
         if let background = w["background"] { node.background = color(background, id: id, field: "background", scope: scope, value: nil) }
         if let v = number(w["radius"], id: id, field: "radius", scope: scope) {
-            if case .bar = node.content {} else { node.radius = v }
+            switch node.content {
+            case .bar, .stackedBar, .heatmap, .image: break
+            default: node.radius = v
+            }
         }
         if let v = number(w["opacity"], id: id, field: "opacity", scope: scope) { node.opacity = Swift.min(Swift.max(v, 0), 1) }
         if let v = bool(w["clip"], id: id, field: "clip", scope: scope) { node.clip = v }
@@ -893,7 +901,7 @@ final class RenderPass {
     // MARK: Styles
 
     /// `style` over the inherited one. Fields may be `{"expr"}`.
-    private func style(_ value: AnyJSON?, over base: TextStyle, id: String, scope: Scope, value current: JQValue?) -> TextStyle {
+    func style(_ value: AnyJSON?, over base: TextStyle, id: String, scope: Scope, value current: JQValue?) -> TextStyle {
         guard case .object(let fields)? = value else { return base }
         var style = base
         var s = scope
@@ -979,21 +987,21 @@ final class RenderPass {
         return value
     }
 
-    private func number(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> Double? {
+    func number(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> Double? {
         literal(value, id: id, field: field, scope: scope).flatMap(TextStyle.size)
     }
 
-    private func bool(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> Bool? {
+    func bool(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> Bool? {
         if case .bool(let b)? = literal(value, id: id, field: field, scope: scope) { return b }
         return nil
     }
 
-    private func string(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> String? {
+    func string(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> String? {
         literal(value, id: id, field: field, scope: scope)?.stringValue
     }
 
     /// An expr-or-literal number field (`value`, `min`, `max`, `overlay`).
-    private func numeric(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> Double? {
+    func numeric(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> Double? {
         switch value {
         case .string(let expression)?:
             return eval(expression, id: id, field: field, scope: scope).flatMap(Self.number)
@@ -1006,7 +1014,7 @@ final class RenderPass {
 
     /// A `width` or `height`: `fill`, fit (nil), or a fixed size, which
     /// `theme.scale` and `style.scale` multiply like text and icons.
-    private func length(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> RenderLength? {
+    func length(_ value: AnyJSON?, id: String, field: String, scope: Scope) -> RenderLength? {
         switch literal(value, id: id, field: field, scope: scope) {
         case .string("fill")?: return .fill
         case .string("fit")?, nil: return nil
@@ -1163,7 +1171,7 @@ final class RenderPass {
 
     // MARK: Diagnostics
 
-    private func report(id: String?, field: String?, severity: String, code: String, message: String) {
+    func report(id: String?, field: String?, severity: String, code: String, message: String) {
         let key = "\(id ?? "")|\(field ?? "")|\(code)|\(message)"
         guard diagnosticKeys.insert(key).inserted else { return }
         diagnostics.append(RenderDiagnostic(id: id, field: field, severity: severity, code: code, message: message))

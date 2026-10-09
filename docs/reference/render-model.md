@@ -7,7 +7,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 ## Versions
 
 - `protocol` is the major version, `1`. A breaking change bumps it.
-- `minor` counts additive changes (new optional fields, new node types); it is `0`.
+- `minor` counts additive changes (new optional fields, new node types); it is `1`. Minor 1 added the node types `bars`, `stackedBar`, `heatmap`, `timeline` and `image`.
 - Clients must ignore fields they don't know.
 - A subscriber that declares an older `minor` gets newer node types as `text` nodes carrying their `alt`.
 
@@ -17,7 +17,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 {
   "type": "snapshot",
   "protocol": 1,
-  "minor": 0,
+  "minor": 1,
   "seq": 1,
   "view": "main",
   "views": [ { "name": "main", "key": "1" }, { "name": "focus", "title": "Focus", "key": "2" } ],
@@ -86,8 +86,17 @@ Keys are sorted and defaults are left out, so output is deterministic.
 | `spark` | `values`, `min`, `max`, `color`, `fill`, `strokeWidth` (1.5), `dot` (false) | A polyline, x evenly spaced, y scaled to `min`…`max`; fewer than two values draw nothing. |
 | `divider` | `axis` (`h`), `thickness` (0.5), `color` (`dim`) | A rule filling the width (`h`) or the height (`v`). |
 | `spacer` | `min` (0) | Nothing. |
+| `bars` | `values` (one number per column), `max` (1), `colors` (one per column), `barWidth` (columns share the width), `gap` (3) | Columns from the left edge on the bottom line, each `value / max` tall (clamped, at least 1 when above 0), corners rounded by 2. |
+| `stackedBar` | `segments` (`[{ "value": 0…1, "color" }]`), `trackColor` (`track`), `radius` (4) | A track and the segments from the leading edge, each `value` of the width, all inside one rounded shape. |
+| `heatmap` | `cells` (a colour or `null` per cell), `rows` (7), `direction` (`columns`), `cell` (8), `gap` (2), `radius` (2), `trackColor` (`track`) | Square cells. `columns`: cell `i` is at column `i / rows`, row `i % rows`. `rows`: row-major with `ceil(count / rows)` columns. `null` draws a `trackColor` cell; positions past the last cell draw nothing. |
+| `timeline` | `items` (`[{ "start", "end", "label", "color", "lane" }]`), `ticks` (`[{ "at", "label" }]`), `lanes` (1), `now`, `nowColor` (`accent`) | A time axis, everything as fractions 0…1 of the width (`end` absent: a point marker). The bottom 12 points are tick labels (dim, 9); above them a faint line at each tick, the items on `lanes` equal rows 2 apart (a bar at least 3 wide, corners 3; a point is a dot at most 8 across), then a 1.5 wide `nowColor` line at `now`. An item's `label` is drawn inside its bar (10, medium, in `bg`) only when it fits with 4 either side and the lane is 12 or taller; a tick label only when it clears the previous one by 4. |
+| `image` | `path`, `fit` (`cover`), `radius` (6) | The picture in the file at `path`, scaled to `cover` the frame (cropped) or to be `contained` in it, clipped to a rounded rectangle. No `path`, or a file that can't be read: an empty rounded rectangle in `track`. |
 
-Config types map onto these: `row` → `stack` h; `list` and `table` → `stack` or `grid`; `progress` → a `stack` h of `text`, `bar`, `text`; `gauge` → a `stack` v of `ring` and `text`; `sparkline` → `spark`; `switch` → the chosen case. Templates disappear.
+Config types map onto these: `row` → `stack` h; `list` and `table` → `stack` or `grid`; `progress` → a `stack` h of `text`, `bar`, `text`; `gauge` → a `stack` v of `ring` and `text`; `sparkline` → `spark`; `switch` → the chosen case; `bars` (vertical) → `bars`, or a `stack` v of `bars` and a `stack` h of `text` labels; `bars` (horizontal) → a `grid` of `text`, `bar`, `text` rows; `stackedBar` → `stackedBar`, or a `stack` v of it and a `stack` h of dot (`bar`) and `text` entries; `heatmap`, `timeline` and `image` → themselves. Templates disappear.
+
+`image.path` is a path on the machine running vestal, never bytes. For a local `src` it is the file itself (`~` expanded). For an http(s) `src` vestal fetches the picture (at most 5 MB, off the UI's thread) into its cache directory, in `images/` named by the SHA-256 of the URL, and `path` is that file; until it arrives `path` is absent and a patch brings it. A client that draws the model on the same machine reads the file; one that can't reach it draws the empty state.
+
+The core can't measure text, so the label of a timeline item and its tick labels are drawn by the UI, which decides what fits. Every other label of these types is a `text` node.
 
 ## Layout
 

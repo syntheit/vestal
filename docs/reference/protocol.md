@@ -19,14 +19,14 @@ Any vestal instance serves subscribers, including a Linux `vestal daemon` with n
 ## Subscribing
 
 ```jsonc
-{"cmd": "subscribe", "role": "ui", "protocol": [1], "minor": 0, "client": "my-ui/0.1", "capabilities": ["copy", "notify"], "whileHidden": false, "control": false, "view": null}
+{"cmd": "subscribe", "role": "ui", "protocol": [1], "minor": 1, "client": "my-ui/0.1", "capabilities": ["copy", "notify"], "whileHidden": false, "control": false, "view": null}
 ```
 
 | Field | Default | |
 |---|---|---|
 | `role` | `observer` | `ui` draws the dashboard; `observer` watches (status bars, debuggers); `control` is an observer with `control: true`. |
 | `protocol` | `[1]` | The major versions the client speaks. Without `1`: an `error` message, and the connection closes. |
-| `minor` | `0` | The minor version the client understands; newer node types come as `text` with their `alt`. |
+| `minor` | `0` | The minor version the client understands (the current one is `1`); newer node types come as `text` with their `alt`. A client that draws `bars`, `stackedBar`, `heatmap`, `timeline` and `image` asks for `1`. |
 | `client` | none | A name for logs. |
 | `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise vestal's own UI takes it (macOS), or the headless daemon runs `wl-copy`. (`screenshot` delegation is specified but not implemented yet.) |
 | `whileHidden` | `false` | Keep evaluating and sending patches while the dashboard is hidden (debugging). |
@@ -39,7 +39,7 @@ The connection then stays open. The server writes one JSON message per line; the
 
 | Message | |
 |---|---|
-| `{"type": "hello", "protocol": 1, "minor": 0, "server": "0.4.0 (abc1234)", "os": "linux", "role": "observer", "primary": false}` | First, after `subscribe`. `primary` says whether this subscriber is the primary UI. |
+| `{"type": "hello", "protocol": 1, "minor": 1, "server": "0.4.0 (abc1234)", "os": "linux", "role": "observer", "primary": false}` | First, after `subscribe`. `primary` says whether this subscriber is the primary UI. |
 | `snapshot` | The whole model (`vestal docs render-model`), with this connection's `seq` (1 for the first; every later snapshot or patch adds 1). `visible` in it is `false` for a `whileHidden` subscriber while the dashboard is hidden. |
 | `patch` | Changes since `base` (`vestal docs render-model`). At most one per 50 ms per subscriber; a patch bigger than half a snapshot is sent as a snapshot. |
 | `{"type": "visibility", "visible": true, "view": "main"}` | Show or hide the window. The core decides: `vestal toggle`, Escape and actions all go through it. |

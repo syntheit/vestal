@@ -9,7 +9,7 @@ import Foundation
 /// The render model's protocol version.
 public enum RenderProtocol {
     public static let version = 1
-    public static let minor = 0
+    public static let minor = 1
 }
 
 /// JSON coding for the render model: sorted keys, so output is deterministic.

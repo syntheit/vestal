@@ -137,6 +137,11 @@ public struct RenderNode: Equatable, Sendable, Codable {
         case spark(Spark)
         case divider(Divider)
         case spacer(Spacer)
+        case bars(Bars)
+        case stackedBar(StackedBar)
+        case heatmap(Heatmap)
+        case timeline(Timeline)
+        case image(Image)
         /// A type this build doesn't know (a newer `minor`); drawn as `alt`.
         case unknown(type: String)
     }
@@ -175,6 +180,11 @@ public struct RenderNode: Equatable, Sendable, Codable {
         case .spark: return "spark"
         case .divider: return "divider"
         case .spacer: return "spacer"
+        case .bars: return "bars"
+        case .stackedBar: return "stackedBar"
+        case .heatmap: return "heatmap"
+        case .timeline: return "timeline"
+        case .image: return "image"
         case .unknown(let type): return type
         }
     }
@@ -409,6 +419,160 @@ public struct RenderNode: Equatable, Sendable, Codable {
         public init(min: Double = 0) { self.min = min }
     }
 
+    /// Vertical columns from the left edge, bottom-aligned.
+    public struct Bars: Equatable, Sendable {
+        /// One per column; the column is `value / max` tall, clamped.
+        public var values: [Double] = []
+        /// The value of a full-height column.
+        public var max: Double = 1
+        /// One per column.
+        public var colors: [String] = []
+        /// A column's width; nil: the columns share the width.
+        public var barWidth: Double?
+        /// Between columns.
+        public var gap: Double = 3
+
+        public init(values: [Double] = [], max: Double = 1, colors: [String] = [], barWidth: Double? = nil, gap: Double = 3) {
+            self.values = values
+            self.max = max
+            self.colors = colors
+            self.barWidth = barWidth
+            self.gap = gap
+        }
+    }
+
+    /// One horizontal bar split into segments, left to right; what the
+    /// segments leave is the track.
+    public struct StackedBar: Equatable, Sendable {
+        public struct Segment: Equatable, Sendable, Codable {
+            /// The segment's share of the whole bar, 0...1.
+            public var value: Double
+            public var color: String
+
+            public init(value: Double, color: String) {
+                self.value = value
+                self.color = color
+            }
+        }
+
+        public var segments: [Segment] = []
+        public var trackColor: String = "track"
+        /// The bar's corner radius.
+        public var radius: Double = 4
+
+        public init(segments: [Segment] = [], trackColor: String = "track", radius: Double = 4) {
+            self.segments = segments
+            self.trackColor = trackColor
+            self.radius = radius
+        }
+    }
+
+    /// A grid of square cells.
+    public struct Heatmap: Equatable, Sendable {
+        /// One entry per cell in fill order, resolved to a colour; nil is an
+        /// empty cell, drawn in `trackColor`.
+        public var cells: [String?] = []
+        public var rows: Int = 7
+        /// `columns`: cell `i` is at column `i / rows`, row `i % rows`.
+        /// `rows`: row-major with `ceil(count / rows)` columns.
+        public var direction: String = "columns"
+        public var cell: Double = 8
+        public var gap: Double = 2
+        public var radius: Double = 2
+        public var trackColor: String = "track"
+
+        public init(cells: [String?] = [], rows: Int = 7, direction: String = "columns", cell: Double = 8,
+                    gap: Double = 2, radius: Double = 2, trackColor: String = "track") {
+            self.cells = cells
+            self.rows = rows
+            self.direction = direction
+            self.cell = cell
+            self.gap = gap
+            self.radius = radius
+            self.trackColor = trackColor
+        }
+
+        /// The number of columns the cells fill.
+        public var columns: Int {
+            let rows = Swift.max(self.rows, 1)
+            return cells.isEmpty ? 0 : (cells.count + rows - 1) / rows
+        }
+
+        /// Where cell `index` is: its column and row.
+        public func position(of index: Int) -> (column: Int, row: Int) {
+            let rows = Swift.max(self.rows, 1)
+            if direction == "rows" {
+                let columns = Swift.max(self.columns, 1)
+                return (index % columns, index / columns)
+            }
+            return (index / rows, index % rows)
+        }
+    }
+
+    /// A time axis from the node's left edge (`from`) to its right (`to`),
+    /// everything as fractions 0...1 of its width.
+    public struct Timeline: Equatable, Sendable {
+        public struct Item: Equatable, Sendable, Codable {
+            public var start: Double
+            /// Nil: a point marker.
+            public var end: Double?
+            public var label: String?
+            public var color: String
+            /// Overlapping items go on separate lanes, from 0 (the top).
+            public var lane: Int
+
+            public init(start: Double, end: Double? = nil, label: String? = nil, color: String, lane: Int = 0) {
+                self.start = start
+                self.end = end
+                self.label = label
+                self.color = color
+                self.lane = lane
+            }
+        }
+
+        public struct Tick: Equatable, Sendable, Codable {
+            public var at: Double
+            public var label: String
+
+            public init(at: Double, label: String) {
+                self.at = at
+                self.label = label
+            }
+        }
+
+        public var items: [Item] = []
+        public var ticks: [Tick] = []
+        public var lanes: Int = 1
+        /// The current time; nil outside the range or when `now` is off.
+        public var now: Double?
+        public var nowColor: String = "accent"
+
+        public init(items: [Item] = [], ticks: [Tick] = [], lanes: Int = 1, now: Double? = nil, nowColor: String = "accent") {
+            self.items = items
+            self.ticks = ticks
+            self.lanes = lanes
+            self.now = now
+            self.nowColor = nowColor
+        }
+    }
+
+    /// A picture from a file on this machine.
+    public struct Image: Equatable, Sendable {
+        /// The local file to draw: the `src` path, or for a URL its copy in
+        /// vestal's cache. Nil: nothing to draw (an empty `track` rectangle).
+        public var path: String?
+        /// `cover` fills the frame and crops; `contain` shows the whole picture.
+        public var fit: String = "cover"
+        /// The picture's corner radius.
+        public var radius: Double = 6
+
+        public init(path: String? = nil, fit: String = "cover", radius: Double = 6) {
+            self.path = path
+            self.fit = fit
+            self.radius = radius
+        }
+    }
+
     // MARK: Coding
 
     private struct Key: CodingKey {
@@ -518,6 +682,43 @@ public struct RenderNode: Equatable, Sendable, Codable {
                 color: try opt("color") ?? "dim"))
         case "spacer":
             content = .spacer(Spacer(min: try opt("min") ?? 0))
+        case "bars":
+            content = .bars(Bars(
+                values: try opt("values") ?? [],
+                max: try opt("max") ?? 1,
+                colors: try opt("colors") ?? [],
+                barWidth: try opt("barWidth"),
+                gap: try opt("gap") ?? 3))
+        case "stackedBar":
+            content = .stackedBar(StackedBar(
+                segments: try opt("segments") ?? [],
+                trackColor: try opt("trackColor") ?? "track",
+                radius: try opt("radius") ?? 4))
+            // The corner is the bar's own, as for `bar`.
+            radius = 0
+        case "heatmap":
+            content = .heatmap(Heatmap(
+                cells: try opt("cells") ?? [],
+                rows: Swift.max(1, (try opt("rows", Int.self)) ?? 7),
+                direction: lenient("direction", "columns") == "rows" ? "rows" : "columns",
+                cell: try opt("cell") ?? 8,
+                gap: try opt("gap") ?? 2,
+                radius: try opt("radius") ?? 2,
+                trackColor: try opt("trackColor") ?? "track"))
+            radius = 0
+        case "timeline":
+            content = .timeline(Timeline(
+                items: try opt("items") ?? [],
+                ticks: try opt("ticks") ?? [],
+                lanes: Swift.max(1, (try opt("lanes", Int.self)) ?? 1),
+                now: try opt("now"),
+                nowColor: try opt("nowColor") ?? "accent"))
+        case "image":
+            content = .image(Image(
+                path: try opt("path"),
+                fit: lenient("fit", "cover") == "contain" ? "contain" : "cover",
+                radius: try opt("radius") ?? 6))
+            radius = 0
         default:
             content = .unknown(type: type)
         }
@@ -615,6 +816,36 @@ public struct RenderNode: Equatable, Sendable, Codable {
         case .spacer(let s):
             try put("radius", radius, default: 0)
             try put("min", s.min, default: 0)
+        case .bars(let b):
+            try put("radius", radius, default: 0)
+            try put("values", b.values, default: [])
+            try put("max", b.max, default: 1)
+            try put("colors", b.colors, default: [])
+            try put("barWidth", b.barWidth)
+            try put("gap", b.gap, default: 3)
+        case .stackedBar(let b):
+            try put("segments", b.segments, default: [])
+            try put("trackColor", b.trackColor, default: "track")
+            try put("radius", b.radius, default: 4)
+        case .heatmap(let h):
+            try put("cells", h.cells, default: [])
+            try put("rows", h.rows, default: 7)
+            try put("direction", h.direction, default: "columns")
+            try put("cell", h.cell, default: 8)
+            try put("gap", h.gap, default: 2)
+            try put("radius", h.radius, default: 2)
+            try put("trackColor", h.trackColor, default: "track")
+        case .timeline(let t):
+            try put("radius", radius, default: 0)
+            try put("items", t.items, default: [])
+            try put("ticks", t.ticks, default: [])
+            try put("lanes", t.lanes, default: 1)
+            try put("now", t.now)
+            try put("nowColor", t.nowColor, default: "accent")
+        case .image(let i):
+            try put("path", i.path)
+            try put("fit", i.fit, default: "cover")
+            try put("radius", i.radius, default: 6)
         case .unknown:
             try put("radius", radius, default: 0)
         }

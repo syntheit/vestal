@@ -330,7 +330,7 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 | Group | Types |
 |---|---|
 | Containers | `stack`, `row`, `grid`, `list`, `table`, `switch` |
-| Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer` |
+| Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer`, and the charts `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
 | Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` |
 
 Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` (`"fill"`), `spaceBefore`, `action`, `key`.
@@ -1596,14 +1596,14 @@ Any vestal instance serves subscribers, including a Linux `vestal daemon` with n
 ## Subscribing
 
 ```jsonc
-{"cmd": "subscribe", "role": "ui", "protocol": [1], "minor": 0, "client": "my-ui/0.1", "capabilities": ["copy", "notify"], "whileHidden": false, "control": false, "view": null}
+{"cmd": "subscribe", "role": "ui", "protocol": [1], "minor": 1, "client": "my-ui/0.1", "capabilities": ["copy", "notify"], "whileHidden": false, "control": false, "view": null}
 ```
 
 | Field | Default | |
 |---|---|---|
 | `role` | `observer` | `ui` draws the dashboard; `observer` watches (status bars, debuggers); `control` is an observer with `control: true`. |
 | `protocol` | `[1]` | The major versions the client speaks. Without `1`: an `error` message, and the connection closes. |
-| `minor` | `0` | The minor version the client understands; newer node types come as `text` with their `alt`. |
+| `minor` | `0` | The minor version the client understands (the current one is `1`); newer node types come as `text` with their `alt`. A client that draws `bars`, `stackedBar`, `heatmap`, `timeline` and `image` asks for `1`. |
 | `client` | none | A name for logs. |
 | `capabilities` | `[]` | What a `ui` can do: `copy` (set the clipboard), `notify` (show a transient message). A `copy` goes to the primary UI only when it lists `copy`; otherwise vestal's own UI takes it (macOS), or the headless daemon runs `wl-copy`. (`screenshot` delegation is specified but not implemented yet.) |
 | `whileHidden` | `false` | Keep evaluating and sending patches while the dashboard is hidden (debugging). |
@@ -1616,7 +1616,7 @@ The connection then stays open. The server writes one JSON message per line; the
 
 | Message | |
 |---|---|
-| `{"type": "hello", "protocol": 1, "minor": 0, "server": "0.4.0 (abc1234)", "os": "linux", "role": "observer", "primary": false}` | First, after `subscribe`. `primary` says whether this subscriber is the primary UI. |
+| `{"type": "hello", "protocol": 1, "minor": 1, "server": "0.4.0 (abc1234)", "os": "linux", "role": "observer", "primary": false}` | First, after `subscribe`. `primary` says whether this subscriber is the primary UI. |
 | `snapshot` | The whole model (`vestal docs render-model`), with this connection's `seq` (1 for the first; every later snapshot or patch adds 1). `visible` in it is `false` for a `whileHidden` subscriber while the dashboard is hidden. |
 | `patch` | Changes since `base` (`vestal docs render-model`). At most one per 50 ms per subscriber; a patch bigger than half a snapshot is sent as a snapshot. |
 | `{"type": "visibility", "visible": true, "view": "main"}` | Show or hide the window. The core decides: `vestal toggle`, Escape and actions all go through it. |
@@ -1676,7 +1676,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 ## Versions
 
 - `protocol` is the major version, `1`. A breaking change bumps it.
-- `minor` counts additive changes (new optional fields, new node types); it is `0`.
+- `minor` counts additive changes (new optional fields, new node types); it is `1`. Minor 1 added the node types `bars`, `stackedBar`, `heatmap`, `timeline` and `image`.
 - Clients must ignore fields they don't know.
 - A subscriber that declares an older `minor` gets newer node types as `text` nodes carrying their `alt`.
 
@@ -1686,7 +1686,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 {
   "type": "snapshot",
   "protocol": 1,
-  "minor": 0,
+  "minor": 1,
   "seq": 1,
   "view": "main",
   "views": [ { "name": "main", "key": "1" }, { "name": "focus", "title": "Focus", "key": "2" } ],
@@ -1755,8 +1755,17 @@ Keys are sorted and defaults are left out, so output is deterministic.
 | `spark` | `values`, `min`, `max`, `color`, `fill`, `strokeWidth` (1.5), `dot` (false) | A polyline, x evenly spaced, y scaled to `min`…`max`; fewer than two values draw nothing. |
 | `divider` | `axis` (`h`), `thickness` (0.5), `color` (`dim`) | A rule filling the width (`h`) or the height (`v`). |
 | `spacer` | `min` (0) | Nothing. |
+| `bars` | `values` (one number per column), `max` (1), `colors` (one per column), `barWidth` (columns share the width), `gap` (3) | Columns from the left edge on the bottom line, each `value / max` tall (clamped, at least 1 when above 0), corners rounded by 2. |
+| `stackedBar` | `segments` (`[{ "value": 0…1, "color" }]`), `trackColor` (`track`), `radius` (4) | A track and the segments from the leading edge, each `value` of the width, all inside one rounded shape. |
+| `heatmap` | `cells` (a colour or `null` per cell), `rows` (7), `direction` (`columns`), `cell` (8), `gap` (2), `radius` (2), `trackColor` (`track`) | Square cells. `columns`: cell `i` is at column `i / rows`, row `i % rows`. `rows`: row-major with `ceil(count / rows)` columns. `null` draws a `trackColor` cell; positions past the last cell draw nothing. |
+| `timeline` | `items` (`[{ "start", "end", "label", "color", "lane" }]`), `ticks` (`[{ "at", "label" }]`), `lanes` (1), `now`, `nowColor` (`accent`) | A time axis, everything as fractions 0…1 of the width (`end` absent: a point marker). The bottom 12 points are tick labels (dim, 9); above them a faint line at each tick, the items on `lanes` equal rows 2 apart (a bar at least 3 wide, corners 3; a point is a dot at most 8 across), then a 1.5 wide `nowColor` line at `now`. An item's `label` is drawn inside its bar (10, medium, in `bg`) only when it fits with 4 either side and the lane is 12 or taller; a tick label only when it clears the previous one by 4. |
+| `image` | `path`, `fit` (`cover`), `radius` (6) | The picture in the file at `path`, scaled to `cover` the frame (cropped) or to be `contained` in it, clipped to a rounded rectangle. No `path`, or a file that can't be read: an empty rounded rectangle in `track`. |
 
-Config types map onto these: `row` → `stack` h; `list` and `table` → `stack` or `grid`; `progress` → a `stack` h of `text`, `bar`, `text`; `gauge` → a `stack` v of `ring` and `text`; `sparkline` → `spark`; `switch` → the chosen case. Templates disappear.
+Config types map onto these: `row` → `stack` h; `list` and `table` → `stack` or `grid`; `progress` → a `stack` h of `text`, `bar`, `text`; `gauge` → a `stack` v of `ring` and `text`; `sparkline` → `spark`; `switch` → the chosen case; `bars` (vertical) → `bars`, or a `stack` v of `bars` and a `stack` h of `text` labels; `bars` (horizontal) → a `grid` of `text`, `bar`, `text` rows; `stackedBar` → `stackedBar`, or a `stack` v of it and a `stack` h of dot (`bar`) and `text` entries; `heatmap`, `timeline` and `image` → themselves. Templates disappear.
+
+`image.path` is a path on the machine running vestal, never bytes. For a local `src` it is the file itself (`~` expanded). For an http(s) `src` vestal fetches the picture (at most 5 MB, off the UI's thread) into its cache directory, in `images/` named by the SHA-256 of the URL, and `path` is that file; until it arrives `path` is absent and a patch brings it. A client that draws the model on the same machine reads the file; one that can't reach it draws the empty state.
+
+The core can't measure text, so the label of a timeline item and its tick labels are drawn by the UI, which decides what fits. Every other label of these types is a `text` node.
 
 ## Layout
 
@@ -2339,6 +2348,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 |---|---|
 | Containers | `stack` (top to bottom), `row` (left to right), `grid` (aligned columns), `list` (an array as rows), `table` (a list with aligned columns), `switch` (one child picked by a value) |
 | Primitives | `text`, `icon`, `progress` (bar), `gauge` (ring), `sparkline`, `keyValue`, `divider`, `spacer` |
+| Charts | `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
 | Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, and `aiUsage` (Claude and Codex plan usage) (`vestal docs presets`) |
 | Your templates | any name under `templates` (`vestal docs templates`) |
 
@@ -2540,6 +2550,56 @@ Flexible space along the parent's axis: in a row it pushes the rest to the end. 
 
 ```json
 { "type": "spacer", "height": 12 }
+```
+
+## Charts
+
+Five primitives draw many values at once. They share `sparkline`'s conventions: data is an expression (or a literal array), colours are palette names, `name@alpha`, `{"steps": …}` or `{"expr": …}`, and sizes are points (`theme.scale` multiplies them). A `null` data field draws an empty chart of the same size, or shows the widget's `placeholder` text when it has one; an empty array is data, not null, and draws an empty chart. Every chart has an `alt` (a summary of its values) for `vestal render --format tree` and for clients older than render-model minor 1 (`vestal docs render-model`).
+
+### `bars`
+
+A bar chart. `values` is an expression (or a literal array) giving numbers, or objects `{"value", "label", "color"}`; a `null` value is an empty slot. `max` is the value of a full bar (a number or an expression; default the largest value). `color` is one colour for every bar, or `{"steps": …}` applied to each bar's value; an object's own `color` wins.
+
+`orientation: "vertical"` (default) draws columns, 160 wide and 48 tall unless `width` and `height` say otherwise (`height` is the columns' height). The columns share the width, `gap` (3) apart, or are `barWidth` wide, in which case the widget is as wide as they are. With `labels: true` (default `false`) each `label` is drawn small and dim under its column; an empty label draws nothing, and a label wider than its column is cut with `…`, so label every Nth bar for a long series. `orientation: "horizontal"` draws a row per bar: its `label` before the bar, the bar (`barWidth` thick, 6; `gap` between rows, 6), and its value after it, rounded, or through `format` (a text format name, as on `text`). `labels` defaults to `true` there; `labelWidth` fixes the label column's width (default the widest label). Horizontal bars fill the width.
+
+```json
+{ "type": "bars", "source": "system", "values": "[{value: .cpu.load[0], label: \"1m\"}, {value: .cpu.load[1], label: \"5m\"}, {value: .cpu.load[2], label: \"15m\"}]", "labels": true, "barWidth": 24, "gap": 8, "height": 48, "color": { "steps": [[0, "good"], [2, "warn"], [4, "bad"]] } }
+```
+
+```json
+{ "type": "bars", "source": "system", "orientation": "horizontal", "values": "[.disks[] | {value: .percent, label: .mount}]", "max": 100, "format": "percent", "color": { "steps": [[0, "good"], [80, "warn"], [95, "bad"]] } }
+```
+
+### `stackedBar`
+
+One bar split into coloured segments. `segments` is an expression (or a literal array) giving objects `{"value", "label", "color"}`; segments whose value is not above 0 are dropped. `total` (a number or an expression; default the segments' sum) is the whole bar: what the segments leave is drawn in `trackColor` (`track`); segments that add up to more than `total` share the bar. A segment without a `color` takes the widget's `color` (which may use `steps` of its value), else a cycle of palette colours (`accent`, `purple`, `cyan`, `teal`, `orange`, `good`, `warn`, `bad`). `height` is 8 and the width fills; `radius` defaults to half the height. With `legend: true` a row of colour dots and labels (segments with no label are left out) goes under the bar.
+
+```json
+{ "type": "stackedBar", "source": "system", "legend": true, "segments": "[{value: .disks[0].used, label: \"Used \\(.disks[0].used | fmt_bytes)\", color: \"accent\"}, {value: .disks[0].free, label: \"Free \\(.disks[0].free | fmt_bytes)\", color: \"good@0.5\"}]" }
+```
+
+### `heatmap`
+
+A grid of square cells, as GitHub draws contributions. `values` is an expression (or a literal array) giving numbers; `null` is an empty cell, drawn in `trackColor` (`track`). They fill `rows` (7) cells down a column and then the next column (`direction: "columns"`, default), or across a row and then the next row (`"rows"`, with `rows` rows). `cell` (8) is a cell's size, `gap` (2) the space between cells, `radius` (2) a cell's corner; the widget is as large as its cells. Colours: `scale` is two colours, low and high (default `["accent@0.2", "accent"]`), mixed by where a value is between `min` and `max` (default the smallest and largest value; all equal is the high colour); or `steps` is `[[threshold, colour], …]`, a value taking the last stop at or below it, the first when below all.
+
+```json
+{ "type": "heatmap", "values": [0, 2, 5, 1, 0, 0, 0, 3, 4, 8, 6, 2, 0, 1, 0, 1, 2, 3, 1, 0, 0, 0, 5, 9, 12, 7, 3, 0, null, null, null], "scale": ["good@0.2", "good"], "cell": 10, "gap": 3 }
+```
+
+### `timeline`
+
+A horizontal time axis with items. `from` and `to` are the times at its edges: epoch seconds, ISO 8601 (as written, or an expression giving one; without an offset it is UTC, as in `to_epoch`); the default is today, midnight to midnight in the config's time zone. `items` is an expression (or a literal array) giving objects `{"start", "end", "label", "color"}` with times like `from`; no `end` is a point marker. Items outside the range are dropped and the rest cut at its edges; overlapping items go on separate rows. `color` is the colour of items without their own (`accent`). Under the axis go tick labels at a sensible step (5 minutes to a week, at most nine of them) in the clock's 12 or 24 hour setting (`fmt_localized`). Height is 36 and the width fills. A label is drawn inside its bar when it fits, else left out. With `now` (default `true`) a thin `nowColor` (`accent`) line marks the current time, to the minute, and the dashboard redraws as time passes.
+
+```json
+{ "type": "timeline", "source": "calendar", "from": "now | fmt_time(\"yyyy-MM-dd'T'08:00:00xxx\") | to_epoch", "to": "now | fmt_time(\"yyyy-MM-dd'T'20:00:00xxx\") | to_epoch", "items": "[.[] | select(.allDay | not) | {start, end, label: .title}]", "height": 44 }
+```
+
+### `image`
+
+A picture. `src` is a file path (`~` expanded) or an http(s) URL; it is text, so `{{ }}` holes work (`"src": "{{ .artUrl }}"`), and so does `{"expr": …}`. `width` and `height` default to 48, `fit` is `cover` (default: fill the frame, cropping) or `contain` (the whole picture), and `radius` (6) rounds the picture. A URL is fetched once, off the UI's thread, at most 5 MB, into vestal's cache directory (`~/Library/Caches/Vestal/images` on macOS, `$XDG_CACHE_HOME/vestal/images` or `~/.cache/vestal/images` on Linux), named by a hash of the URL, and fetched again only if the URL changes; `vestal render` never fetches. While it has no picture, because the file is missing or unreadable, the fetch is still running or it failed (tried again after five minutes), the widget draws an empty rounded rectangle in the `track` colour, never an error. The render model carries the local file's path, not the picture (`vestal docs render-model`).
+
+```json
+{ "type": "image", "src": "~/Pictures/avatar.png", "width": 64, "height": 64, "radius": 12 }
 ```
 
 """#,

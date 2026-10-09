@@ -134,7 +134,8 @@ final class SchemaTests: XCTestCase {
         let refs = widget.compactMap { $0.objectValue?["$ref"]?.stringValue }
         XCTAssertEqual(refs, (SchemaRegistry.allWidgetTypes.map(\.name).sorted() + ["template", "override"]).map { "#/$defs/widget.\($0)" })
         for type in ["stack", "row", "grid", "list", "table", "switch", "text", "icon", "progress", "gauge", "sparkline",
-                     "keyValue", "divider", "spacer", "section", "stat", "badge", "claudeItem", "hostDetail", "aiWindow", "aiUsage"] {
+                     "keyValue", "divider", "spacer", "bars", "stackedBar", "heatmap", "timeline", "image", "section", "stat", "badge",
+                     "claudeItem", "hostDetail", "aiWindow", "aiUsage"] {
             XCTAssertNotNil(defs["widget.\(type)"], type)
         }
         // Common fields on every type, v0.3 presets included; computed literals take {"expr"}.

@@ -11,7 +11,10 @@ import Foundation
 /// The widget types the render engine draws itself.
 public enum WidgetTypes {
     public static let containers: [String] = ["stack", "row", "grid", "list", "table", "switch"]
-    public static let primitives: [String] = ["text", "icon", "progress", "gauge", "sparkline", "keyValue", "divider", "spacer"]
+    public static let primitives: [String] = [
+        "text", "icon", "progress", "gauge", "sparkline", "keyValue", "divider", "spacer",
+        "bars", "stackedBar", "heatmap", "timeline", "image",
+    ]
     public static let all: Set<String> = Set(containers + primitives)
 
     /// Fields every widget takes. `span` places a grid child.
