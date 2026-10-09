@@ -87,7 +87,8 @@ struct HeatmapDrawing: View {
 // MARK: - Timeline
 
 /// Items on lanes above a time axis with tick labels, and a line at the
-/// current time. An item's label is drawn inside its bar only when it fits;
+/// current time. An item's label is drawn inside its bar, cut with an ellipsis when it
+/// doesn't fit and omitted when not even a letter does;
 /// a tick label only when it clears the previous one.
 struct TimelineDrawing: View {
     let timeline: RenderNode.Timeline
@@ -124,12 +125,22 @@ struct TimelineDrawing: View {
                 let barWidth = max(CGFloat(end) * width - x0, 3)
                 let rect = CGRect(x: x0, y: top, width: barWidth, height: laneHeight)
                 context.fill(RoundedRectangle(cornerRadius: min(3, laneHeight / 2, barWidth / 2)).path(in: rect), with: .color(color))
-                if let label = item.label, !label.isEmpty, laneHeight >= 12 {
-                    let text = context.resolve(Text(label).font(style.font(role: "sans", size: 10, weight: 500))
-                        .foregroundStyle(style.color("bg")))
-                    let measured = text.measure(in: CGSize(width: CGFloat.infinity, height: CGFloat.infinity))
-                    if measured.width + 8 <= barWidth {
-                        context.draw(text, at: CGPoint(x: x0 + 4, y: top + laneHeight / 2), anchor: .leading)
+                let room = barWidth - 12
+                if let label = item.label, !label.isEmpty, laneHeight >= 12, room >= 14 {
+                    // Whole when it fits, else cut with an ellipsis at the bar's padding.
+                    let font = style.font(role: "sans", size: 10, weight: 500)
+                    func resolved(_ string: String) -> (GraphicsContext.ResolvedText, CGFloat) {
+                        let text = context.resolve(Text(string).font(font).foregroundStyle(style.color("bg")))
+                        return (text, text.measure(in: CGSize(width: CGFloat.infinity, height: CGFloat.infinity)).width)
+                    }
+                    var (text, measured) = resolved(label)
+                    var characters = Array(label)
+                    while measured > room, characters.count > 1 {
+                        characters.removeLast()
+                        (text, measured) = resolved(String(characters).trimmingCharacters(in: .whitespaces) + "…")
+                    }
+                    if measured <= room {
+                        context.draw(text, at: CGPoint(x: x0 + 6, y: top + laneHeight / 2), anchor: .leading)
                     }
                 }
             }

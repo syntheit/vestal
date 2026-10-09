@@ -138,12 +138,14 @@ extension NodeView {
             let barWidth = max(end * width - x0, 3)
             fillRounded(snapshot, Rect(x: box.x + x0, y: box.y + top, width: barWidth, height: laneHeight),
                         radius: min(3, laneHeight / 2, barWidth / 2), color: color)
-            if let label = item.label, !label.isEmpty, laneHeight >= 12, let layout = chartLayout(label, size: 10, weight: 500) {
-                if chartLayoutSize(layout).width + 8 <= barWidth {
-                    drawChartLayout(snapshot, layout, x: box.x + x0 + 4, centerY: box.y + top + laneHeight / 2, color: theme.color("bg"))
-                } else {
-                    g_object_unref(UnsafeMutableRawPointer(layout))
+            let room = barWidth - 12
+            if let label = item.label, !label.isEmpty, laneHeight >= 12, room >= 14, let layout = chartLayout(label, size: 10, weight: 500) {
+                // Whole when it fits, else cut with an ellipsis at the bar's padding.
+                if chartLayoutSize(layout).width > room {
+                    pango_layout_set_width(layout, Int32(room * Double(PANGO_SCALE)))
+                    pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END)
                 }
+                drawChartLayout(snapshot, layout, x: box.x + x0 + 6, centerY: box.y + top + laneHeight / 2, color: theme.color("bg"))
             }
         }
 
