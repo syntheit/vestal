@@ -19,7 +19,7 @@ public enum SystemLocale {
     }
 
     /// `en_GB.UTF-8@euro` → `en_GB`; nil for empty, `C` and `POSIX`.
-    static func identifier(posix value: String?) -> String? {
+    public static func identifier(posix value: String?) -> String? {
         guard var text = value, !text.isEmpty else { return nil }
         if let at = text.firstIndex(of: "@") { text = String(text[..<at]) }
         if let dot = text.firstIndex(of: ".") { text = String(text[..<dot]) }
