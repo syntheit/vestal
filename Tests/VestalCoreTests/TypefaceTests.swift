@@ -7,13 +7,13 @@ import XCTest
 final class TypefaceTests: XCTestCase {
     static let at = Date(timeIntervalSince1970: 1_790_527_598)  // 2026-09-27T16:46:38Z
 
-    private func snapshot(_ config: String, locale: String = "en_US@hours=h23") throws -> RenderSnapshot {
+    private func snapshot(_ config: String, locale: String = "en_US@hours=h23", now: Date = TypefaceTests.at) throws -> RenderSnapshot {
         guard case .success(let tree) = AnyJSON.parse(Data(config.utf8)) else { throw XCTSkip("bad JSON") }
         let model = RenderConfigModel(expanded: ConfigExpansion.expand(tree))
         let session = RenderSession(model: model)
         session.timeZone = try XCTUnwrap(TimeZone(identifier: "America/Argentina/Buenos_Aires"))
         session.locale = Locale(identifier: locale)
-        return session.render(data: RenderData(sources: [:], metas: [:], names: model.sourceNames), now: Self.at)
+        return session.render(data: RenderData(sources: [:], metas: [:], names: model.sourceNames), now: now)
     }
 
     private func clock(_ params: String, theme: String = "{}", locale: String = "en_US@hours=h23") throws -> RenderSnapshot {
@@ -157,6 +157,25 @@ final class TypefaceTests: XCTestCase {
         XCTAssertEqual(texts(try clock(#""hour12": "auto""#, locale: "en_GB")).first?.text, "13:46:38")
         XCTAssertEqual(texts(try clock(#""hour12": "auto""#, locale: "en_US@hours=h23")).first?.text, "13:46:38")
         XCTAssertEqual(texts(try clock(#""hour12": false"#, locale: "en_US")).first?.text, "13:46:38")
+    }
+
+    /// Every text face, in both densities, resolves "auto" the same way.
+    func testHourTwelveAutoInEveryFaceAndDensity() throws {
+        let at = Date(timeIntervalSince1970: 1_790_539_382)  // 2026-09-27T20:03:02Z, 17:03 in Buenos Aires
+        for density in ["comfortable", "compact"] {
+            for face in ["mono", "thin", "serif", "condensed", "rounded"] {
+                for (locale, expected) in [("en_US@hours=h23", "17:03"), ("en_US", "5:03")] {
+                    let config = """
+                    { "theme": { "density": "\(density)" },
+                      "widgets": { "c": { "type": "clock", "face": "\(face)", "hour12": "auto", "seconds": false } },
+                      "views": { "main": { "children": ["c"] } } }
+                    """
+                    let all = try texts(snapshot(config, locale: locale, now: at)).map(\.text)
+                    XCTAssertTrue(all.contains { $0.hasPrefix(expected) },
+                                  "\(density) \(face) \(locale): \(all)")
+                }
+            }
+        }
     }
 
     func testPosixLocaleNames() {
