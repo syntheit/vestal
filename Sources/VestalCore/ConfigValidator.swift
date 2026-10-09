@@ -321,6 +321,7 @@ private struct Walker {
         case "system":
             _ = strings(source["disks"], "\(path).disks")
             _ = strings(source["interfaces"], "\(path).interfaces")
+            atLeastOne(source["processes"], "\(path).processes", default: 0)
         case "media":
             if case .string? = source["player"] {} else { _ = strings(source["player"], "\(path).player") }
         case "claude", "codex":

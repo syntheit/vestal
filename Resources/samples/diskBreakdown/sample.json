@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Disk breakdown",
+  "description": "What fills the main volume by category, and the other mounted volumes.",
+  "preset": "diskBreakdown",
+  "size": [
+    680,
+    230
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "system"
+  ]
+}

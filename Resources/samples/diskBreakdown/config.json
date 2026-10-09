@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "widgets": {
+    "diskBreakdown": {
+      "type": "diskBreakdown",
+      "usage": "usage"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "diskBreakdown"
+      ],
+      "padding": 24
+    }
+  },
+  "sources": {
+    "usage": {
+      "type": "diskUsage",
+      "paths": [
+        {
+          "label": "Developer",
+          "path": "~/Developer"
+        },
+        {
+          "label": "Apps",
+          "path": "/Applications"
+        },
+        {
+          "label": "Documents",
+          "path": "~/Documents"
+        },
+        {
+          "label": "Nix store",
+          "path": "/nix"
+        }
+      ]
+    }
+  }
+}

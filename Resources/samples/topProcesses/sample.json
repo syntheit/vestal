@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "Top processes",
+  "description": "The five busiest processes by CPU, with their memory.",
+  "preset": "topProcesses",
+  "size": [
+    680,
+    200
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "system"
+  ]
+}

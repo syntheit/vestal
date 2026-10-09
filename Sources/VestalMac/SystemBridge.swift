@@ -114,13 +114,19 @@ enum SystemBridge {
     }
 
     static func getTemp() -> Int {
+        smcValue(["Tp09", "Tp02"]).map { Int($0.rounded()) } ?? 0
+    }
+
+    /// The first of these SMC keys that reads (floats and fixed-point
+    /// only), or nil.
+    static func smcValue(_ keys: [String]) -> Double? {
         let svc = IOServiceGetMatchingService(
             kIOMainPortDefault, IOServiceMatching("AppleSMCKeysEndpoint"))
-        guard svc != 0 else { return 0 }
+        guard svc != 0 else { return nil }
         defer { IOObjectRelease(svc) }
         var conn: io_connect_t = 0
         let K: UInt32 = 2
-        guard IOServiceOpen(svc, mach_task_self_, K, &conn) == KERN_SUCCESS else { return 0 }
+        guard IOServiceOpen(svc, mach_task_self_, K, &conn) == KERN_SUCCESS else { return nil }
         defer { IOServiceClose(conn) }
 
         func readKey(_ key: String) -> Double? {
@@ -149,8 +155,10 @@ enum SystemBridge {
             return nil
         }
 
-        if let v = readKey("Tp09") ?? readKey("Tp02") { return Int(v.rounded()) }
-        return 0
+        for key in keys {
+            if let v = readKey(key) { return v }
+        }
+        return nil
     }
 
     // MARK: - Battery (via IOKit Power Sources)

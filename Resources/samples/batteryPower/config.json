@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "widgets": {
+    "batteryPower": {
+      "type": "batteryPower"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "batteryPower"
+      ],
+      "padding": 24
+    }
+  }
+}

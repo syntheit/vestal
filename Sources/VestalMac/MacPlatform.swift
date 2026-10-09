@@ -27,7 +27,9 @@ enum MacPlatform {
     /// lifetime.
     static let sources = SourcePlatform(
         calendar: calendar,
-        system: SystemSampler(stats: MacSystemStats(), audio: CoreAudioOutput()),
+        system: SystemSampler(stats: MacSystemStats(), audio: CoreAudioOutput(),
+                              stateDirectory: SnapshotCache.platformDirectory() + "/state",
+                              makeStats: { MacSystemStats() }),
         media: AppleScriptBackend())
 }
 
@@ -85,7 +87,76 @@ final class MacSystemStats: SystemStatsProvider {
         var seen = Set<String>()
         return mountpoints.compactMap { mount in
             guard seen.insert(mount).inserted, let usage = SystemBridge.getDisk(mountpoint: mount) else { return nil }
-            return MountUsage(mountpoint: mount, totalBytes: usage.totalBytes, freeBytes: usage.freeBytes)
+            return MountUsage(mountpoint: mount, totalBytes: usage.totalBytes, freeBytes: usage.freeBytes,
+                              name: SystemBridge.getVolumeName(mount))
+        }
+    }
+
+    // The detail fields
+
+    private var lastCores: [CPUTicks]?
+    private var lastProcesses: (time: TimeInterval, cpu: [Int32: UInt64])?
+
+    /// Efficiency cores come first in the kernel's order; the output lists
+    /// performance cores first.
+    func cpuCoreLoads() -> [CoreLoad]? {
+        guard let now = SystemBridge.getPerCoreTicks(), !now.isEmpty else { return nil }
+        defer { lastCores = now }
+        let levels = SystemBridge.getCoreLevels()
+        let loads: [(index: Int, load: CoreLoad)] = now.enumerated().map { index, ticks in
+            var percent = ticks.total > 0 ? Int(ticks.busy * 100 / ticks.total) : 0
+            if let prev = lastCores, prev.count == now.count {
+                let dt = ticks.total - prev[index].total
+                percent = dt > 0 ? min(100, max(0, Int((ticks.busy - prev[index].busy) * 100 / dt))) : 0
+            }
+            var kind: String?
+            if let levels, levels.efficiency + levels.performance == now.count {
+                kind = index < levels.efficiency ? "efficiency" : "performance"
+            }
+            return (index, CoreLoad(percent: percent, kind: kind))
+        }
+        func rank(_ load: CoreLoad) -> Int { load.kind == "efficiency" ? 1 : 0 }
+        return loads.sorted { (rank($0.load), $0.index) < (rank($1.load), $1.index) }.map { $0.load }
+    }
+
+    func memoryParts() -> MemoryParts? { SystemBridge.getMemoryParts() }
+    func swapUsage() -> SwapUsage? { SystemBridge.getSwap() }
+    func memoryState() -> String? { SystemBridge.getMemoryState() }
+    func batteryDetail() -> BatteryDetail? { SystemBridge.getBatteryDetail() }
+
+    /// Same interfaces as `interfaceRates`: a list as given, else all but
+    /// loopback that have carried traffic.
+    func networkCounters(_ names: [String]?) -> NetworkCounters? {
+        guard let totals = SystemBridge.getInterfaceTotals64() ?? SystemBridge.getInterfaceTotals() else { return nil }
+        let selected: Set<String>
+        if let names {
+            selected = Set(names)
+        } else {
+            selected = Set(totals.filter { $0.key != "lo0" && ($0.value.bytesIn > 0 || $0.value.bytesOut > 0) }.keys)
+        }
+        let chosen = totals.filter { selected.contains($0.key) }
+        return NetworkCounters(bytesIn: chosen.values.reduce(0) { $0 + $1.bytesIn },
+                               bytesOut: chosen.values.reduce(0) { $0 + $1.bytesOut })
+    }
+
+    func topProcesses(_ count: Int) -> [ProcessUsage]? {
+        let samples = SystemBridge.getProcessSamples()
+        guard !samples.isEmpty else { return nil }
+        let now = Date().timeIntervalSince1970
+        let previous = lastProcesses
+        lastProcesses = (now, Dictionary(samples.map { ($0.pid, $0.cpuNanoseconds) }, uniquingKeysWith: { first, _ in first }))
+        let elapsed = previous.map { now - $0.time } ?? 0
+        let ranked = samples.map { sample -> (sample: SystemBridge.ProcessSample, cpu: Double?) in
+            guard let before = previous?.cpu[sample.pid], elapsed > 0.1, sample.cpuNanoseconds >= before else { return (sample, nil) }
+            return (sample, Double(sample.cpuNanoseconds - before) / 1e9 / elapsed * 100)
+        }.sorted { a, b in
+            if (a.cpu ?? 0) != (b.cpu ?? 0) { return (a.cpu ?? 0) > (b.cpu ?? 0) }
+            if a.sample.resident != b.sample.resident { return a.sample.resident > b.sample.resident }
+            return a.sample.pid < b.sample.pid
+        }
+        return ranked.prefix(count).map { item in
+            ProcessUsage(pid: Int(item.sample.pid), name: SystemBridge.getProcessName(item.sample.pid),
+                         cpu: item.cpu, memory: item.sample.resident)
         }
     }
 

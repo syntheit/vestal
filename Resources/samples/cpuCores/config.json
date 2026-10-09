@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "widgets": {
+    "cpuCores": {
+      "type": "cpuCores"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "cpuCores"
+      ],
+      "padding": 24
+    }
+  }
+}

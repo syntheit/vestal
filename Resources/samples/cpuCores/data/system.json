@@ -1,0 +1,168 @@
+{
+  "host": "workstation",
+  "os": "macos",
+  "uptime": 273600,
+  "cpu": {
+    "percent": 34,
+    "cores": 10,
+    "load": [
+      2.41,
+      1.98,
+      1.77
+    ],
+    "perCore": [
+      {
+        "percent": 64,
+        "kind": "performance"
+      },
+      {
+        "percent": 58,
+        "kind": "performance"
+      },
+      {
+        "percent": 71,
+        "kind": "performance"
+      },
+      {
+        "percent": 49,
+        "kind": "performance"
+      },
+      {
+        "percent": 22,
+        "kind": "efficiency"
+      },
+      {
+        "percent": 18,
+        "kind": "efficiency"
+      },
+      {
+        "percent": 9,
+        "kind": "efficiency"
+      },
+      {
+        "percent": 31,
+        "kind": "efficiency"
+      },
+      {
+        "percent": 12,
+        "kind": "efficiency"
+      },
+      {
+        "percent": 6,
+        "kind": "efficiency"
+      }
+    ]
+  },
+  "memory": {
+    "percent": 81,
+    "pressure": 14,
+    "compressed": 14,
+    "psi": null,
+    "used": 15354508082,
+    "total": 25769803776,
+    "parts": {
+      "app": 10522669875,
+      "wired": 3328599654,
+      "compressed": 1503238553,
+      "cached": 5583457484,
+      "free": 4831838210
+    },
+    "swap": {
+      "used": 536870912,
+      "total": 4294967296
+    },
+    "state": "normal"
+  },
+  "temperature": {
+    "cpu": 61
+  },
+  "battery": {
+    "percent": 82,
+    "charging": false,
+    "ac": false,
+    "remaining": 18720,
+    "power": 9.4,
+    "health": 91,
+    "cycles": 212,
+    "temperature": 31.2
+  },
+  "disks": [
+    {
+      "mount": "/",
+      "name": "Macintosh HD",
+      "total": 1067299373056,
+      "free": 272730423296,
+      "used": 794568949760,
+      "percent": 74.4
+    },
+    {
+      "mount": "/Volumes/Media",
+      "name": "Media",
+      "total": 5497558138880,
+      "free": 934155386880,
+      "used": 4507568177152,
+      "percent": 83.0
+    },
+    {
+      "mount": "/Volumes/Scratch",
+      "name": "Scratch",
+      "total": 2199023255552,
+      "free": 107374182400,
+      "used": 2088427847680,
+      "percent": 95.1
+    }
+  ],
+  "network": {
+    "rx": 5033164,
+    "tx": 421888,
+    "interfaces": [
+      {
+        "name": "en0",
+        "rx": 5033164,
+        "tx": 421888
+      }
+    ],
+    "today": {
+      "rx": 19542101196,
+      "tx": 1503238553
+    }
+  },
+  "processes": [
+    {
+      "pid": 4021,
+      "name": "Xcode",
+      "cpu": 84.0,
+      "memory": 3435973836
+    },
+    {
+      "pid": 8817,
+      "name": "node",
+      "cpu": 41.0,
+      "memory": 1181116006
+    },
+    {
+      "pid": 412,
+      "name": "WindowServer",
+      "cpu": 18.0,
+      "memory": 671088640
+    },
+    {
+      "pid": 5530,
+      "name": "Firefox",
+      "cpu": 12.0,
+      "memory": 2576980377
+    },
+    {
+      "pid": 311,
+      "name": "nix-daemon",
+      "cpu": 9.0,
+      "memory": 220200960
+    }
+  ],
+  "audio": {
+    "volume": 42,
+    "muted": false
+  },
+  "gpu": null,
+  "services": {}
+}

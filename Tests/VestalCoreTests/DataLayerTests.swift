@@ -330,27 +330,30 @@ final class BuiltinShapeTests: XCTestCase {
             .read(SourceConfig(type: "system"))
         XCTAssertEqual(keys(mac), keys(linux))
         XCTAssertEqual(keys(mac), [
-            "audio", "audio.muted", "audio.volume", "battery", "battery.ac", "battery.charging", "battery.percent",
-            "battery.remaining", "cpu", "cpu.cores", "cpu.load", "cpu.percent", "disks", "gpu", "host", "memory",
-            "memory.compressed", "memory.percent", "memory.pressure", "memory.psi", "memory.total", "memory.used",
-            "network", "network.interfaces", "network.rx", "network.tx", "os", "services", "temperature",
-            "temperature.cpu", "uptime",
+            "audio", "audio.muted", "audio.volume", "battery", "battery.ac", "battery.charging", "battery.cycles",
+            "battery.health", "battery.percent", "battery.power", "battery.remaining", "battery.temperature", "cpu",
+            "cpu.cores", "cpu.load", "cpu.percent", "cpu.perCore", "disks", "gpu", "host", "memory",
+            "memory.compressed", "memory.parts", "memory.percent", "memory.pressure", "memory.psi", "memory.state",
+            "memory.swap", "memory.total", "memory.used", "network", "network.interfaces", "network.rx",
+            "network.today", "network.tx", "os", "processes", "services", "temperature", "temperature.cpu", "uptime",
         ])
         let expected: AnyJSON = .object([
             "host": .string("swift"), "os": .string("macos"), "uptime": .int(273_600),
-            "cpu": .object(["percent": .int(12), "cores": .int(10), "load": .array([.double(1.21), .double(1.43), .double(1.5)])]),
+            "cpu": .object(["percent": .int(12), "cores": .int(10), "load": .array([.double(1.21), .double(1.43), .double(1.5)]),
+                            "perCore": .null]),
             "memory": .object(["percent": .int(61), "pressure": .int(12), "compressed": .int(12), "psi": .null,
-                               "used": .int(6), "total": .int(10)]),
+                               "used": .int(6), "total": .int(10), "parts": .null, "swap": .null, "state": .null]),
             "temperature": .object(["cpu": .int(54)]),
-            "battery": .object(["percent": .int(81), "charging": .bool(false), "ac": .bool(false), "remaining": .int(14_700)]),
-            "disks": .array([.object(["mount": .string("/"), "total": .int(1000), "free": .int(264),
+            "battery": .object(["percent": .int(81), "charging": .bool(false), "ac": .bool(false), "remaining": .int(14_700),
+                                 "power": .null, "health": .null, "cycles": .null, "temperature": .null]),
+            "disks": .array([.object(["mount": .string("/"), "name": .null, "total": .int(1000), "free": .int(264),
                                       "used": .int(736), "percent": .double(73.6)])]),
             "network": .object(["rx": .int(12350), "tx": .int(680), "interfaces": .array([
                 .object(["name": .string("en0"), "rx": .int(12345), "tx": .int(678)]),
                 .object(["name": .string("en1"), "rx": .int(5), "tx": .int(2)]),
-            ])]),
+            ]), "today": .null]),
             "audio": .object(["volume": .int(42), "muted": .bool(false)]),
-            "gpu": .null, "services": .object([:]),
+            "processes": .array([]), "gpu": .null, "services": .object([:]),
         ])
         XCTAssertEqual(mac, expected)
         // Linux: pressure is PSI, compressed is null; audio fields null.

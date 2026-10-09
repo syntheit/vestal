@@ -1,0 +1,14 @@
+{
+  "kind": "widget",
+  "title": "CPU cores",
+  "description": "Load per core, performance and efficiency cores apart, to spot one pinned thread that the average hides.",
+  "preset": "cpuCores",
+  "size": [
+    680,
+    150
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "system"
+  ]
+}

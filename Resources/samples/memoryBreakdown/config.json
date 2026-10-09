@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "widgets": {
+    "memoryBreakdown": {
+      "type": "memoryBreakdown"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "memoryBreakdown"
+      ],
+      "padding": 24
+    }
+  }
+}

@@ -110,14 +110,25 @@ public enum CapabilitiesCommand {
         let system = fetchLocal(SourceConfig(type: "system"))
         var unreadable: [String] = []
         if let top = system?.objectValue {
-            let checks: [(String, AnyJSON?)] = [
+            var checks: [(String, AnyJSON?)] = [
                 ("temperature.cpu", top["temperature"]?.objectValue?["cpu"]),
                 ("battery", top["battery"]),
                 ("memory.pressure", top["memory"]?.objectValue?["pressure"]),
+                ("memory.parts", top["memory"]?.objectValue?["parts"]),
+                ("memory.state", top["memory"]?.objectValue?["state"]),
+                ("cpu.perCore", top["cpu"]?.objectValue?["perCore"]),
+                ("cpu.perCore[].kind", top["cpu"]?.objectValue?["perCore"]?.arrayValue?.first?.objectValue?["kind"]),
+                ("network.today", top["network"]?.objectValue?["today"]),
                 ("audio.volume", top["audio"]?.objectValue?["volume"]),
                 ("gpu", top["gpu"]),
             ]
+            // A machine without a battery has its details null as a matter of course.
+            if let battery = top["battery"]?.objectValue {
+                for key in ["power", "health", "cycles", "temperature"] { checks.append(("battery.\(key)", battery[key])) }
+            }
             unreadable = checks.filter { $0.1 == nil || $0.1 == .null }.map(\.0)
+            let processes = fetchLocal(SourceConfig(type: "system", processes: 1))?.objectValue?["processes"]?.arrayValue ?? []
+            if processes.isEmpty { unreadable.append("processes") }
         }
         sources["system"] = entry(
             backend: linux ? "/proc and /sys" : "Mach, IOKit and SMC",

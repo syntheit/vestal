@@ -15,7 +15,7 @@ final class SchemaTests: XCTestCase {
             "command": common.union(["argv", "timeout", "parse", "env"]),
             "calendar": common.union(["days", "calendars", "ics", "caldav", "thunderbird", "timeout"]),
             "file": common.union(["path", "parse"]),
-            "system": common.union(["disks", "interfaces"]),
+            "system": common.union(["disks", "interfaces", "processes"]),
             "media": common.union(["player"]),
             "claude": common.union(["argv", "path", "fiveHourLimit", "weeklyLimit", "backend"]),
             "codex": common.union(["argv"]),
@@ -56,7 +56,7 @@ final class SchemaTests: XCTestCase {
         }
         let source = SourceConfig(
             type: "command", url: "u", argv: ["a"], env: [:], calendars: [], transform: ".", history: [:], maxAge: "1h",
-            headers: [:], body: .null, path: "p", disks: [], interfaces: [], player: [], ics: [], thunderbird: "", backend: "auto", caldav: [])
+            headers: [:], body: .null, path: "p", disks: [], interfaces: [], player: [], ics: [], thunderbird: "", backend: "auto", caldav: [], processes: 1)
         // The v0.3 Claude options are declared (accepted, then ignored) but
         // not decoded; a source's `path` is still the file source's.
         let ignored: Set<String> = ["path", "fiveHourLimit", "weeklyLimit"]

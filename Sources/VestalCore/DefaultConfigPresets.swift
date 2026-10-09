@@ -584,6 +584,7 @@ public enum DefaultPresets {
     /// The templates as JSON.
     public static let tree: AnyJSON = {
         guard case .success(let tree) = AnyJSON.parse(Data(expandedJSON.utf8)) else { return .object([:]) }
-        return tree
+        // The presets of the other files, merged in.
+        return .object((tree.objectValue ?? [:]).merging(systemTree.objectValue ?? [:]) { first, _ in first })
     }()
 }

@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "widgets": {
+    "topProcesses": {
+      "type": "topProcesses"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "topProcesses"
+      ],
+      "padding": 24
+    }
+  }
+}

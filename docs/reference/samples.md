@@ -61,7 +61,7 @@ A minimal config: the preset (or page) alone in `views.main`, with the sources i
 
 ### `data/`
 
-What `vestal render --data` reads: `<source name>.json` for each source (`.txt` for `raw` ones), `<type>.json` for an inline source such as `media` or `claude`, and `<source name>.error` for a source whose last fetch failed. A source with no file reads as having no data yet, which draws placeholders: if the image shows dashes, the data does not match what the config reads. `vestal fetch <name> --shape` shows the shape a real source has.
+What `vestal render --data` reads: `<source name>.json` for each source (`.txt` for `raw` ones), `<type>.json` for an inline source such as `media` or `claude`, `<source name>.error` for a source whose last fetch failed, and `<source name>.history.json` for the histories a sparkline records: an object of number lists (oldest first) keyed by the history's `value` expression (`".network.rx"`) or its name, the last sample being at the render's time and the others one `every` (the source's refresh) apart. A source with no file reads as having no data yet, which draws placeholders: if the image shows dashes, the data does not match what the config reads. `vestal fetch <name> --shape` shows the shape a real source has.
 
 Keep the data realistic and generic: no personal names, hosts or places beyond a generic city, and nothing copied from a real machine.
 

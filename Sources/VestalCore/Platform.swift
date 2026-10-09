@@ -98,6 +98,30 @@ public protocol SystemStatsProvider {
     /// on Linux); a list means exactly those, in that order, where they
     /// exist. Nil if the counters can't be read.
     func interfaceRates(_ names: [String]?) -> [InterfaceRate]?
+
+    // What the widgets that show more than a number read. Each has a default
+    // too: a provider that can't read it reports it unknown.
+
+    /// Each logical core's busy share since this method's previous call (the
+    /// average since boot on the first), performance cores first. Nil if
+    /// unknown.
+    func cpuCoreLoads() -> [CoreLoad]?
+    /// Where the RAM goes, in bytes; nil if unknown.
+    func memoryParts() -> MemoryParts?
+    /// Swap in use and in total; nil if unknown.
+    func swapUsage() -> SwapUsage?
+    /// "normal", "warning" or "critical"; nil if unknown.
+    func memoryState() -> String?
+    /// Power draw, health, cycles and temperature of the battery; nil
+    /// without a battery or when none of them can be read.
+    func batteryDetail() -> BatteryDetail?
+    /// Bytes since boot (the counters behind `interfaceRates`) over the
+    /// same interfaces, for the day's totals; nil if unknown.
+    func networkCounters(_ names: [String]?) -> NetworkCounters?
+    /// The `count` busiest processes by CPU since this method's previous
+    /// call (the first call has no CPU yet and ranks by memory). Nil if
+    /// unknown. Only called when a source asks for processes.
+    func topProcesses(_ count: Int) -> [ProcessUsage]?
 }
 
 extension SystemStatsProvider {
@@ -119,6 +143,104 @@ extension SystemStatsProvider {
     }
 
     public func interfaceRates(_ names: [String]?) -> [InterfaceRate]? { nil }
+    public func cpuCoreLoads() -> [CoreLoad]? { nil }
+    public func memoryParts() -> MemoryParts? { nil }
+    public func swapUsage() -> SwapUsage? { nil }
+    public func memoryState() -> String? { nil }
+    public func batteryDetail() -> BatteryDetail? { nil }
+    public func networkCounters(_ names: [String]?) -> NetworkCounters? { nil }
+    public func topProcesses(_ count: Int) -> [ProcessUsage]? { nil }
+}
+
+/// One logical core's load. `kind` is "performance" or "efficiency" where
+/// the OS says (Apple silicon, Intel hybrid, Arm big.LITTLE), else nil.
+public struct CoreLoad: Codable, Equatable, Sendable {
+    public var percent: Int
+    public var kind: String?
+
+    public init(percent: Int, kind: String? = nil) {
+        self.percent = percent
+        self.kind = kind
+    }
+}
+
+/// RAM split into parts that add up to the total, in bytes. macOS: `app`
+/// (anonymous memory), `wired`, `compressed`, `cached` (file cache and
+/// purgeable) and `free`. Linux, mapped onto the same five: `wired` is the
+/// kernel's unreclaimable memory (slab, stacks, page tables), `compressed`
+/// zswap and zram, `cached` the page cache, buffers and reclaimable slab,
+/// `free` MemFree, and `app` the rest.
+public struct MemoryParts: Codable, Equatable, Sendable {
+    public var app: Int64
+    public var wired: Int64
+    public var compressed: Int64
+    public var cached: Int64
+    public var free: Int64
+
+    public init(app: Int64, wired: Int64, compressed: Int64, cached: Int64, free: Int64) {
+        self.app = app
+        self.wired = wired
+        self.compressed = compressed
+        self.cached = cached
+        self.free = free
+    }
+}
+
+public struct SwapUsage: Codable, Equatable, Sendable {
+    public var used: Int64
+    public var total: Int64
+
+    public init(used: Int64, total: Int64) {
+        self.used = used
+        self.total = total
+    }
+}
+
+/// What the battery reports beyond its charge; each nil where unknown.
+public struct BatteryDetail: Codable, Equatable, Sendable {
+    /// Watts flowing out of the battery (discharging) or into it (charging),
+    /// always positive.
+    public var power: Double?
+    /// Full-charge capacity as a percentage of the design capacity.
+    public var health: Int?
+    public var cycles: Int?
+    /// °C.
+    public var temperature: Double?
+
+    public init(power: Double? = nil, health: Int? = nil, cycles: Int? = nil, temperature: Double? = nil) {
+        self.power = power
+        self.health = health
+        self.cycles = cycles
+        self.temperature = temperature
+    }
+}
+
+/// Bytes in and out since boot.
+public struct NetworkCounters: Codable, Equatable, Sendable {
+    public var bytesIn: Int64
+    public var bytesOut: Int64
+
+    public init(bytesIn: Int64, bytesOut: Int64) {
+        self.bytesIn = bytesIn
+        self.bytesOut = bytesOut
+    }
+}
+
+/// One process. `cpu` is percent of one core (a busy multi-threaded process
+/// goes above 100, as in `top`), nil on the first reading; `memory` is the
+/// resident set in bytes.
+public struct ProcessUsage: Codable, Equatable, Sendable {
+    public var pid: Int
+    public var name: String
+    public var cpu: Double?
+    public var memory: Int64
+
+    public init(pid: Int, name: String, cpu: Double?, memory: Int64) {
+        self.pid = pid
+        self.name = name
+        self.cpu = cpu
+        self.memory = memory
+    }
 }
 
 /// RAM in bytes.

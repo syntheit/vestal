@@ -66,11 +66,14 @@ public struct MountUsage: Codable, Equatable, Sendable {
     /// Available to unprivileged users (statvfs f_bavail), as macOS's
     /// "free" is.
     public var freeBytes: Int64
+    /// The volume's name where the OS has one (macOS); nil otherwise.
+    public var name: String?
 
-    public init(mountpoint: String, totalBytes: Int64, freeBytes: Int64) {
+    public init(mountpoint: String, totalBytes: Int64, freeBytes: Int64, name: String? = nil) {
         self.mountpoint = mountpoint
         self.totalBytes = totalBytes
         self.freeBytes = freeBytes
+        self.name = name
     }
 }
 
@@ -84,19 +87,30 @@ public final class LinuxSystemStats: SystemStatsProvider {
     /// name; separate from `networkRate`'s, so each is a rate since its own
     /// previous call.
     private var lastInterfaces: (time: TimeInterval, counters: [String: LinuxProc.InterfaceCounters])?
+    private var lastCores: [Int: LinuxProc.CPUTimes] = [:]
+    private var coreKinds: [Int: String]?
+    private var lastProcesses: (time: TimeInterval, ticks: [Int: (start: Int64, ticks: Int64)])?
+    private let clockTicks: Double
+    private let pageSize: Int64
 
     /// - Parameters:
     ///   - files: where /proc and /sys are read.
     ///   - clock: seconds, for the network rate; a monotonic clock by default.
     ///   - fileSystemUsage: a mount point's size (statvfs by default).
+    ///   - clockTicks: /proc's clock ticks per second, for process CPU.
+    ///   - pageSize: bytes per page, for process memory.
     public init(
         files: LinuxFiles = LiveLinuxFiles(),
         clock: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
-        fileSystemUsage: @escaping (String) -> DiskUsage? = LinuxSystemStats.statvfsUsage
+        fileSystemUsage: @escaping (String) -> DiskUsage? = LinuxSystemStats.statvfsUsage,
+        clockTicks: Double = Double(max(1, sysconf(Int32(_SC_CLK_TCK)))),
+        pageSize: Int64 = Int64(max(1, sysconf(Int32(_SC_PAGESIZE))))
     ) {
         self.files = files
         self.clock = clock
         self.fileSystemUsage = fileSystemUsage
+        self.clockTicks = clockTicks
+        self.pageSize = pageSize
     }
 
     public func cpuPercent() -> Int {
@@ -236,6 +250,94 @@ public final class LinuxSystemStats: SystemStatsProvider {
         return selected.map { counter in
             LinuxProc.interfaceRate(from: previous?.counters[counter.name], to: counter,
                                     elapsed: previous.map { now - $0.time } ?? 0)
+        }
+    }
+
+    // MARK: The `system` source's detail values
+
+    /// Performance cores first (Intel hybrid, Arm big.LITTLE), each with
+    /// its load since the previous call.
+    public func cpuCoreLoads() -> [CoreLoad]? {
+        guard let stat = files.read("/proc/stat") else { return nil }
+        let now = LinuxProc.perCoreTimes(stat: stat)
+        guard !now.isEmpty else { return nil }
+        defer { lastCores = now }
+        if coreKinds == nil {
+            var capacities: [Int: Int] = [:]
+            for index in now.keys {
+                if let text = files.read("/sys/devices/system/cpu/cpu\(index)/cpu_capacity"), let value = Int(trimmed(text)) {
+                    capacities[index] = value
+                }
+            }
+            coreKinds = LinuxProc.coreKinds(cpuCore: files.read("/sys/devices/cpu_core/cpus"),
+                                            cpuAtom: files.read("/sys/devices/cpu_atom/cpus"), capacities: capacities)
+        }
+        return LinuxProc.coreLoads(previous: lastCores, now: now, kinds: coreKinds ?? [:])
+    }
+
+    private func zramBytes() -> Int64 {
+        var zram: Int64 = 0
+        for device in files.list("/sys/block") where device.hasPrefix("zram") {
+            zram += files.read("/sys/block/\(device)/mm_stat").flatMap(LinuxProc.zramMemoryUsed(mmStat:)) ?? 0
+        }
+        return zram
+    }
+
+    public func memoryParts() -> MemoryParts? {
+        LinuxProc.memoryParts(meminfo: LinuxProc.meminfo(files.read("/proc/meminfo") ?? ""), zramBytes: zramBytes())
+    }
+
+    public func swapUsage() -> SwapUsage? {
+        LinuxProc.swapUsage(meminfo: LinuxProc.meminfo(files.read("/proc/meminfo") ?? ""))
+    }
+
+    public func memoryState() -> String? {
+        LinuxProc.memoryState(psi: memoryPSI())
+    }
+
+    public func batteryDetail() -> BatteryDetail? {
+        var supplies: [String: [String: String]] = [:]
+        for name in files.list("/sys/class/power_supply") {
+            guard let text = files.read("/sys/class/power_supply/\(name)/uevent") else { continue }
+            supplies[name] = LinuxProc.uevent(text)
+        }
+        return LinuxProc.batteryDetail(supplies: supplies)
+    }
+
+    public func networkCounters(_ names: [String]?) -> NetworkCounters? {
+        guard let text = files.read("/proc/net/dev") else { return nil }
+        let selected = LinuxProc.selectInterfaces(LinuxProc.netDev(text), names: names, virtual: virtualInterfaces())
+        return NetworkCounters(bytesIn: selected.reduce(0) { $0 + $1.bytesIn }, bytesOut: selected.reduce(0) { $0 + $1.bytesOut })
+    }
+
+    /// Every process's /proc/<pid>/stat, read once per call (a few hundred
+    /// small files); kernel threads (no resident memory) are left out. CPU
+    /// is the ticks since the previous call, over the time between them.
+    public func topProcesses(_ count: Int) -> [ProcessUsage]? {
+        let now = clock()
+        var stats: [LinuxProc.ProcessStat] = []
+        for entry in files.list("/proc") where Int(entry) != nil {
+            guard let text = files.read("/proc/\(entry)/stat"), let stat = LinuxProc.processStat(text),
+                  stat.rssPages > 0 else { continue }
+            stats.append(stat)
+        }
+        guard !stats.isEmpty else { return nil }
+        let previous = lastProcesses
+        lastProcesses = (now, Dictionary(stats.map { ($0.pid, ($0.start, $0.ticks)) }, uniquingKeysWith: { first, _ in first }))
+        let elapsed = previous.map { now - $0.time } ?? 0
+        let usages = stats.map { stat -> (stat: LinuxProc.ProcessStat, cpu: Double?) in
+            guard let before = previous?.ticks[stat.pid], before.start == stat.start, elapsed > 0.1 else { return (stat, nil) }
+            return (stat, max(0, Double(stat.ticks - before.ticks) / clockTicks / elapsed * 100))
+        }
+        let ranked = usages.sorted { a, b in
+            if (a.cpu ?? 0) != (b.cpu ?? 0) { return (a.cpu ?? 0) > (b.cpu ?? 0) }
+            if a.stat.rssPages != b.stat.rssPages { return a.stat.rssPages > b.stat.rssPages }
+            return a.stat.pid < b.stat.pid
+        }
+        return ranked.prefix(count).map { item in
+            let cmdline = files.read("/proc/\(item.stat.pid)/cmdline")
+            return ProcessUsage(pid: item.stat.pid, name: LinuxProc.processName(comm: item.stat.comm, cmdline: cmdline),
+                                cpu: item.cpu, memory: item.stat.rssPages * pageSize)
         }
     }
 

@@ -307,18 +307,22 @@ This machine, with the same keys on macOS and Linux; a value the machine can't r
 |---|---|
 | `host`, `os`, `uptime` | Host name, `"macos"` or `"linux"`, seconds since boot. |
 | `cpu.percent`, `cpu.cores`, `cpu.load` | CPU use 0–100 since the previous read, core count, the 1/5/15-minute load averages. |
+| `cpu.perCore[]` | `{percent, kind}` for each logical core, performance cores first; `kind` is `"performance"`, `"efficiency"` or `null` (cores all alike). |
 | `memory.percent`, `memory.used`, `memory.total` | Memory in use. |
+| `memory.parts`, `memory.swap`, `memory.state` | `{app, wired, compressed, cached, free}` in bytes (adding up to `total`, the same five names on both OSes), `{used, total}` of swap, and `"normal"`, `"warning"` or `"critical"`. |
 | `memory.pressure` | How hard memory is squeezed, 0–100: compressed memory on macOS (`memory.compressed`), PSI `some avg10` on Linux (`memory.psi`). Not comparable across the two. |
 | `temperature.cpu` | °C, or `null` without a sensor. |
-| `battery` | `{percent, charging, ac, remaining}` (`remaining` in seconds), or `null` without a battery. |
-| `disks[]` | `{mount, total, free, used, percent}` for each of `disks`. |
-| `network` | `{rx, tx, interfaces: [{name, rx, tx}]}` in bytes per second. |
+| `battery` | `{percent, charging, ac, remaining, power, health, cycles, temperature}` (`remaining` in seconds, `power` in watts, `health` a percentage of the design capacity, `temperature` in °C; each `null` when unreported), or `null` without a battery. |
+| `disks[]` | `{mount, name, total, free, used, percent}` for each of `disks` (`name`: the volume's name on macOS, `null` on Linux). |
+| `network` | `{rx, tx, interfaces: [{name, rx, tx}], today: {rx, tx}}`: bytes per second, and the bytes since local midnight. |
+| `processes[]` | `{pid, name, cpu, memory}` of the busiest processes, only with `processes` below; otherwise `[]`. |
 | `audio` | `{volume, muted}` of the default output (`null` fields without one). |
 
 | Key | Type | Default | |
 |---|---|---|---|
 | `disks` | list of strings | `["/"]` | Mount points to report. |
 | `interfaces` | list of strings | all but loopback | Network interfaces to report and sum (on Linux the default leaves out virtual ones: bridges, containers, VPNs). |
+| `processes` | integer, at most 20 | none | Report this many of the busiest processes by CPU as `processes[]` and read the process table to do it; without it nothing is read. macOS shows only the current user's processes. |
 
 ### `media`
 
@@ -351,7 +355,7 @@ Codex plan usage, in the same shape as [`claude`](#claude), with `source` `"code
 
 ### Source templates
 
-A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in one is **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). Any other health agent can be mapped the same way with a template of your own. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
+A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in one is **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). **`diskUsage`** reads the size of each of a list of paths with `du -sk`, once a day, for `diskBreakdown`: `{"type": "diskUsage", "paths": [{"label": "Developer", "path": "~/Developer"}]}` (`vestal docs source/diskUsage`; it runs `sh` and `du`). Any other health agent can be mapped the same way with a template of your own. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
 
 ## Secrets
 
@@ -800,6 +804,10 @@ Claude and Codex plan usage in one row: for each, the 5-hour and weekly windows 
 ### Helpers
 
 `claudeItem` (an icon and `session% / weekly%` of a `claude` or `codex` source), `aiWindow` (one of `aiUsage`'s cells) and `hostDetail` (a host's popup: CPU, RAM, GPU, pools or mounts, network and services) are the presets' building blocks; `foyer` is the source template described under [sources](#source-templates).
+
+### System presets
+
+Six presets draw the detail fields of the [`system` source](#system) (`vestal docs presets` has their parameters; `vestal docs samples` lists their samples): `cpuCores` (load per core, performance and efficiency apart), `memoryBreakdown` (app, wired, compressed, cached, free, and the pressure state), `diskBreakdown` (the mounted volumes, and what fills the first by category when given a `diskUsage` source as `usage`), `networkRates` (down and up with three minutes of history and today's totals), `topProcesses` (the busiest processes by CPU; it reads its own `system` source with `processes` set) and `batteryPower` (charge, time left, watts over time, health, cycles, temperature). A widget whose data the machine can't give is hidden. `diskUsage` is a source template, described under [sources](#source-templates).
 
 ## Changes in 0.4
 
