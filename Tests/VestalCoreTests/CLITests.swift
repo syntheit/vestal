@@ -24,6 +24,12 @@ final class CLITests: XCTestCase {
         XCTAssertEqual(CLI.parse(["docs", "cli"]), .command(.docs(["cli"])))
         XCTAssertEqual(CLI.parse(["show", "focus"]), .command(.sendRequest(IPCRequest(.show, view: "focus"))))
         XCTAssertEqual(CLI.parse(["toggle", "main"]), .command(.sendRequest(IPCRequest(.toggle, view: "main"))))
+        XCTAssertEqual(CLI.parse(["login-item", "on"]), .command(.loginItem(.on)))
+        XCTAssertEqual(CLI.parse(["login-item", "off"]), .command(.loginItem(.off)))
+        XCTAssertEqual(CLI.parse(["login-item", "status"]), .command(.loginItem(.status)))
+        for bad in [["login-item"], ["login-item", "maybe"], ["login-item", "on", "off"]] {
+            guard case .usageError = CLI.parse(bad) else { return XCTFail("\(bad) should be a usage error") }
+        }
         // LaunchServices may add a process serial number.
         XCTAssertEqual(CLI.parse(["-psn_0_12345"]), .command(.start(hidden: false)))
         XCTAssertEqual(CLI.parse(["--headless"]), .command(.start(hidden: false, headless: true)))

@@ -31,6 +31,7 @@ import Foundation
 //   vestal capabilities     what this machine supports (CapabilitiesCommand)
 //   vestal screenshot       render a view to a PNG (ScreenshotCommand)
 //   vestal gallery          render every sample to a PNG (GalleryCommand)
+//   vestal login-item       start at login (macOS app bundles; LoginItemCommand)
 //
 // Exit codes: 0 ok, 1 error or not running,
 // 2 usage, 3 the config has errors, 4 not found (a view, a docs topic, a
@@ -80,6 +81,9 @@ public enum CLI {
         case screenshot([String])
         /// `vestal gallery ...` (GalleryCommand).
         case gallery([String])
+        /// `vestal login-item on|off|status`: the action is parsed here, carried
+        /// out by the macOS app (SMAppService).
+        case loginItem(LoginItemCommand.Action)
     }
 
     public enum Parsed: Equatable, Sendable {
@@ -120,6 +124,11 @@ public enum CLI {
         case "press": return .command(.press(rest))
         case "screenshot": return .command(.screenshot(rest))
         case "gallery": return .command(.gallery(rest))
+        case "login-item":
+            switch LoginItemCommand.parse(rest) {
+            case .success(let action): return .command(.loginItem(action))
+            case .failure(let error): return .usageError(error.message)
+            }
         case "show" where !rest.isEmpty, "toggle" where !rest.isEmpty:
             guard rest.count == 1, !rest[0].hasPrefix("-") else { return .usageError("'\(name)' takes one view at most") }
             return .command(.sendRequest(IPCRequest(IPCCommand(rawValue: name)!, view: rest[0])))
@@ -200,6 +209,10 @@ public enum CLI {
                                Render every sample (`docs samples`) to <dir>/<name>.png
                                with index.json and README.md; without a screen, only
                                validate them and write index.json with "image": null
+          login-item on|off|status
+                               macOS, from the app bundle (DMG or Homebrew): start
+                               vestal at login, hidden. Off until you turn it on;
+                               a Nix launch agent is separate
           press <key> [--dry-run]
                                Send a key to the running dashboard, as if typed on
                                it; --dry-run says what it is bound to instead (local,

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Calendar events for the agenda (EventKit). Without this, the hardened
+	     runtime denies the access before macOS can even ask. -->
+	<key>com.apple.security.personal-information.calendars</key>
+	<true/>
+	<!-- Apple Events to the media player (NSAppleScript). -->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+	<!-- Not needed, so not requested: the app is not sandboxed, so network
+	     access (com.apple.security.network.client) is not restricted, and
+	     nothing here needs JIT, unsigned memory or disabled library
+	     validation (the one dlopen is an Apple-signed system framework). -->
+</dict>
+</plist>
