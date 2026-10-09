@@ -46,8 +46,8 @@ extension DefaultPresets {
               "small": "{{ if $seconds then (now | fmt_time(\"ss\")) else \"\" end }}" },
             { "type": "row", "gap": 12, "align": "baseline", "children": [
               { "type": "text", "text": "{{ now | fmt_localized(\"EEEEMMMMdy\") }}", "style": { "size": 14, "weight": "medium", "color": "subtle" } },
-              { "type": "text", "when": "$hour12", "text": "{{ now | fmt_time(\"a\") | upper }}", "background": "text@0.1", "radius": 4,
-                "padding": [3, 6, 3, 6], "style": { "size": 11, "weight": "bold", "tracking": 1.1 } }
+              { "type": "text", "when": "$hour12", "text": "{{ now | fmt_time(\"a\") }}", "background": "text@0.1", "radius": 4,
+                "padding": [3, 6, 3, 6], "style": { "size": 11, "weight": "bold", "tracking": 1.1, "case": "upper" } }
             ] }
           ]
         }

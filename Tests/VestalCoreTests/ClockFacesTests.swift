@@ -326,8 +326,8 @@ final class ClockFacesTests: XCTestCase {
 
     func testFlipTileColorsComeFromThePalette() {
         let f = flip(node(render(#"{ "type": "flip", "text": "1" }"#), "main/w"))
-        XCTAssertEqual(f.tile, "#2a2d3dff", "bg #1a1c26 with 7% white")
-        XCTAssertEqual(f.tileBottom, "#1e202bff", "bg with 2% white")
+        XCTAssertEqual(f.tile, "#2a2c35ff", "bg #1a1c26 with 7% white")
+        XCTAssertEqual(f.tileBottom, "#1f212aff", "bg with 2% white")
         let own = flip(node(render(##"{ "type": "flip", "text": "1", "tileColor": "#336699" }"##), "main/w"))
         XCTAssertEqual(own.tile, "#336699ff")
         XCTAssertNotEqual(own.tileBottom, own.tile)

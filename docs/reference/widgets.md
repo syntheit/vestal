@@ -171,7 +171,7 @@ A horizontal bar: `(value − min) / (max − min)`, clamped. Optional `label` b
 A ring with center `text` (default `"{{ $value | round }}"`) and an optional `label` under it. `sweep` is the arc in degrees, with the gap at the bottom; 360 closes the ring and starts it at the top. `dot` (with `dotColor`, default `text`) draws a dot on the fill's end; `ticks` marks the outside (that many marks, every fourth longer, the ring moves in to make room); `labels` (up to four texts, with `{{ }}` holes) sit inside the ring at the quarters of the sweep. `center` is a widget drawn in the middle instead of `text`. The `clock` preset's `ring` face is a gauge with all of these.
 
 ```json
-{ "type": "gauge", "size": 272, "thickness": 5, "sweep": 360, "ticks": 24, "dot": true, "value": "$fraction", "min": 0, "max": 1,
+{ "type": "gauge", "size": 272, "thickness": 5, "sweep": 360, "ticks": 24, "dot": true, "value": "(now | fmt_time(\"H\") | tonumber) / 24", "min": 0, "max": 1,
   "labels": ["00", "06", "12", "18"], "center": { "type": "text", "text": "{{ now | fmt_time(\"HH:mm\") }}" } }
 ```
 

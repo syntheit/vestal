@@ -664,13 +664,13 @@ public struct RenderNode: Equatable, Sendable, Codable {
         /// The characters.
         public var color: String = "text"
         /// A tile's top half and its bottom half.
-        public var tile: String = "#2a2d3dff"
-        public var tileBottom: String = "#1e202bff"
+        public var tile: String = "#2a2c35ff"
+        public var tileBottom: String = "#1f212aff"
         /// Fold changing tiles over; false: swap them.
         public var animate: Bool = true
 
         public init(text: String = "", small: String = "", size: Double = 90, smallSize: Double = 40, color: String = "text",
-                    tile: String = "#2a2d3dff", tileBottom: String = "#1e202bff", animate: Bool = true) {
+                    tile: String = "#2a2c35ff", tileBottom: String = "#1f212aff", animate: Bool = true) {
             self.text = text
             self.small = small
             self.size = size
@@ -860,8 +860,8 @@ public struct RenderNode: Equatable, Sendable, Codable {
                 size: try opt("size") ?? 90,
                 smallSize: try opt("smallSize") ?? 40,
                 color: try opt("color") ?? "text",
-                tile: try opt("tile") ?? "#2a2d3dff",
-                tileBottom: try opt("tileBottom") ?? "#1e202bff",
+                tile: try opt("tile") ?? "#2a2c35ff",
+                tileBottom: try opt("tileBottom") ?? "#1f212aff",
                 animate: try opt("animate") ?? true))
         default:
             content = .unknown(type: type)
@@ -1018,8 +1018,8 @@ public struct RenderNode: Equatable, Sendable, Codable {
             try put("size", f.size, default: 90)
             try put("smallSize", f.smallSize, default: 40)
             try put("color", f.color, default: "text")
-            try put("tile", f.tile, default: "#2a2d3dff")
-            try put("tileBottom", f.tileBottom, default: "#1e202bff")
+            try put("tile", f.tile, default: "#2a2c35ff")
+            try put("tileBottom", f.tileBottom, default: "#1f212aff")
             try put("animate", f.animate, default: true)
         case .unknown:
             try put("radius", radius, default: 0)
