@@ -204,7 +204,9 @@ public struct LiveFetcher: SourceFetcher {
 
     /// One HTTP request with `source`'s method, headers, body and timeout.
     /// Returns the body (at most `maxBytes`) and the status.
-    static func download(_ url: URL, source: SourceConfig) async throws -> (Data, Int?) {
+    /// `authorization`, when given, is sent as the Authorization header
+    /// before the source's own `headers`, which can override it.
+    static func download(_ url: URL, source: SourceConfig, authorization: String? = nil) async throws -> (Data, Int?) {
         var request = URLRequest(url: url, timeoutInterval: source.timeoutSeconds)
         // wttr.in rejects an empty User-Agent. A stable one also helps with
         // upstream rate limits.
@@ -218,6 +220,7 @@ public struct LiveFetcher: SourceFetcher {
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             }
         }
+        if let authorization { request.setValue(authorization, forHTTPHeaderField: "Authorization") }
         for (name, value) in source.headers ?? [:] { request.setValue(value, forHTTPHeaderField: name) }
         let (data, response) = try await URLSession.vestalData(for: request, limit: maxBytes)
         return (data, (response as? HTTPURLResponse)?.statusCode)
@@ -296,11 +299,11 @@ public struct LiveFetcher: SourceFetcher {
         var skipped: [String] = []
         for location in locations {
             var documents: [(text: String, name: String)] = []
-            if let url = Self.httpURL(location) {
+            if let remote = ICSLocation(location) {
                 guard allowNetwork else { throw SourceError("not loaded (--no-network)") }
-                let (data, status) = try await Self.download(url, source: source)
-                if let status, !(200..<300).contains(status) { throw SourceError("\(location): HTTP \(status)") }
-                documents.append((String(decoding: data, as: UTF8.self), Self.baseName(url.lastPathComponent)))
+                let (data, status) = try await Self.download(remote.url, source: source, authorization: remote.authorization)
+                if let status, !(200..<300).contains(status) { throw SourceError(remote.failure(status: status)) }
+                documents.append((String(decoding: data, as: UTF8.self), Self.baseName(remote.url.lastPathComponent)))
             } else {
                 let path = CommandRunner.expandTilde(location, home: home)
                 var isDirectory: ObjCBool = false
@@ -388,6 +391,57 @@ public struct LiveFetcher: SourceFetcher {
     /// v0.3's name for `parsed`, for the JSON and raw modes.
     static func checked(_ data: Data, parse: String) throws -> Data {
         try parsed(data, parse: parse)
+    }
+}
+
+// MARK: - ICS URLs
+
+/// An `http(s)` entry of a calendar source's `ics`. Userinfo
+/// (`https://user:password@host/path/`) is taken out of the URL and sent as
+/// a preemptive Basic Authorization header, since URLSession's challenge
+/// handling is unreliable on Linux; the password then exists only in that
+/// header. `display` is the form for messages: the password is `***`.
+struct ICSLocation: Equatable {
+    var url: URL
+    var authorization: String?
+    var display: String
+
+    init?(_ text: String) {
+        guard let schemeEnd = text.range(of: "://") else { return nil }
+        let scheme = text[..<schemeEnd.lowerBound].lowercased()
+        guard scheme == "http" || scheme == "https" else { return nil }
+        let prefix = String(text[..<schemeEnd.upperBound])
+        let rest = text[schemeEnd.upperBound...]
+        // The authority ends at the first / ? or #; the userinfo at its last @,
+        // so an @ in a password that was not percent-encoded still parses.
+        let authorityEnd = rest.firstIndex { "/?#".contains($0) } ?? rest.endIndex
+        let authority = rest[..<authorityEnd]
+        var remainder = String(rest)
+        var credentials: (user: String, password: String)?
+        if let at = authority.lastIndex(of: "@") {
+            let userinfo = authority[..<at]
+            let split = userinfo.firstIndex(of: ":")
+            let rawUser = split.map { String(userinfo[..<$0]) } ?? String(userinfo)
+            let rawPassword = split.map { String(userinfo[userinfo.index(after: $0)...]) } ?? ""
+            credentials = (rawUser.removingPercentEncoding ?? rawUser, rawPassword.removingPercentEncoding ?? rawPassword)
+            remainder = String(rest[rest.index(after: at)...])
+        }
+        guard ConfigValidator.isHTTPURL(prefix + remainder), let url = URL(string: prefix + remainder) else { return nil }
+        self.url = url
+        if let credentials {
+            authorization = "Basic " + Data("\(credentials.user):\(credentials.password)".utf8).base64EncodedString()
+            let user = credentials.user.addingPercentEncoding(withAllowedCharacters: .urlUserAllowed) ?? credentials.user
+            display = "\(prefix)\(user):***@\(remainder)"
+        } else {
+            authorization = nil
+            display = prefix + remainder
+        }
+    }
+
+    /// The error for a response that is not 2xx.
+    func failure(status: Int) -> String {
+        let hint = status == 401 || status == 403 ? ", check the credentials" : ""
+        return "ics URL \(display) : HTTP \(status)\(hint)"
     }
 }
 
