@@ -74,10 +74,18 @@ function syncLeaf(node, frame, rctx, el, type) {
   const box = leafBox(el, node, frame);
   const p = padding(node);
   const iw = Math.max(0, frame.w - p.h), ih = Math.max(0, frame.h - p.v);
-  if (type === "text") textLeaf(box, rctx.layout.textNode(node), iw, rctx);
-  else if (type === "icon") iconLeaf(box, node, rctx);
-  else if (type === "image") imageLeaf(box, node, rctx);
-  else if (DRAWERS[type]) drawingLeaf(box, node, type, iw, ih, rctx);
+  try {
+    if (type === "text") textLeaf(box, rctx.layout.textNode(node), iw, rctx);
+    else if (type === "icon") iconLeaf(box, node, rctx);
+    else if (type === "image") imageLeaf(box, node, rctx);
+    else if (DRAWERS[type]) drawingLeaf(box, node, type, iw, ih, rctx);
+  } catch (err) {
+    // One node that can't be drawn is an empty rounded box; the rest of the screen draws.
+    box.replaceChildren();
+    box.style.background = rctx.pal.css("track");
+    box.style.borderRadius = "4px";
+    console.warn(`vestal: could not draw ${node.id} (${node.type})`, err);
+  }
   el.insertBefore(box, el.firstChild);
   el.__leaf = box;
 }
