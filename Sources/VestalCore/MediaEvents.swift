@@ -47,7 +47,9 @@ public struct MediaHeard: Equatable, Sendable {
     public var complete: Bool
 
     /// How often a playing track's position is read again, in seconds.
-    public static let positionRefresh: TimeInterval = 5
+    /// In between, it runs on from the last reading; a notification
+    /// resets it (seek, pause, a new track).
+    public static let positionRefresh: TimeInterval = 30
 
     public init(playing: NowPlaying, at: Date, complete: Bool = true) {
         self.playing = playing

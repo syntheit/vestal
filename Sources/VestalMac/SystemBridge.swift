@@ -412,11 +412,56 @@ enum SystemBridge {
     /// name it shows or its bundle's file name, ignoring case.
     /// NSRunningApplication's properties are safe to read off the main thread.
     static func isRunning(_ name: String) -> Bool {
-        NSWorkspace.shared.runningApplications.contains { app in
-            app.localizedName?.caseInsensitiveCompare(name) == .orderedSame
-                || app.bundleURL?.deletingPathExtension().lastPathComponent
-                    .caseInsensitiveCompare(name) == .orderedSame
+        RunningApps.contains(name)
+    }
+}
+
+// MARK: - Running apps
+
+/// The names of the running apps (the shown name and the bundle's file
+/// name, lowercased). Listing them asks LaunchServices about every app,
+/// so once `watch()` ran the list is kept until an app launches or quits;
+/// before (the command line), every question lists them again.
+enum RunningApps {
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var names: Set<String>?
+    nonisolated(unsafe) private static var watching = false
+
+    static func contains(_ name: String) -> Bool {
+        let key = name.lowercased()
+        lock.lock()
+        defer { lock.unlock() }
+        if let names { return names.contains(key) }
+        let fresh = scan()
+        if watching { names = fresh }
+        return fresh.contains(key)
+    }
+
+    /// Keeps the list from now on, dropping it when an app launches or
+    /// quits. Call on the main thread, once the app runs.
+    static func watch() {
+        lock.lock()
+        let first = !watching
+        watching = true
+        lock.unlock()
+        guard first else { return }
+        let center = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
+            _ = center.addObserver(forName: name, object: nil, queue: nil) { _ in
+                lock.lock()
+                names = nil
+                lock.unlock()
+            }
         }
+    }
+
+    private static func scan() -> Set<String> {
+        var out = Set<String>()
+        for app in NSWorkspace.shared.runningApplications {
+            if let name = app.localizedName { out.insert(name.lowercased()) }
+            if let file = app.bundleURL?.deletingPathExtension().lastPathComponent { out.insert(file.lowercased()) }
+        }
+        return out
     }
 }
 #endif

@@ -17,6 +17,9 @@ final class MediaEventsTests: XCTestCase {
         XCTAssertEqual(heard.reading(at: t0)?.position, 10)
         XCTAssertEqual(heard.reading(at: t0.addingTimeInterval(3))?.position, 13)
         XCTAssertEqual(heard.reading(at: t0.addingTimeInterval(3))?.artwork, "https://i.scdn.co/a")
+        // The player is asked again at most every half minute.
+        XCTAssertEqual(heard.reading(at: t0.addingTimeInterval(25))?.position, 35)
+        XCTAssertGreaterThanOrEqual(MediaHeard.positionRefresh, 30)
         XCTAssertNil(heard.reading(at: t0.addingTimeInterval(MediaHeard.positionRefresh)))
         // Never past the end.
         let ending = MediaHeard(playing: NowPlaying(title: "S", artist: "B", state: "playing", position: 199, duration: 200), at: t0)

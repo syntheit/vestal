@@ -222,7 +222,7 @@ final class AppleScriptMedia: MediaProvider {
 ///
 /// Once the app calls `listen`, Spotify's and Music's own notifications
 /// keep what each said (`MediaHeard`), and a read is answered from that
-/// while it holds: a playing track is asked again every few seconds for its
+/// while it holds: a playing track is asked again every half minute for its
 /// position, a paused one not at all. Without `listen` (the command line),
 /// every read asks the player.
 final class AppleScriptBackend: MediaBackend, @unchecked Sendable {
@@ -278,6 +278,7 @@ final class AppleScriptBackend: MediaBackend, @unchecked Sendable {
             return true
         }
         guard first else { return }
+        RunningApps.watch()
         let center = DistributedNotificationCenter.default()
         for (name, player) in Self.notices {
             observers.append(center.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { [weak self] note in
