@@ -110,6 +110,7 @@ in
       ./Resources/icons/Phosphor-Fill.ttf
       ./Resources/icons/LICENSE
       ./Resources/samples
+      ./Resources/starters
       ./Resources/shaders
     ];
   };
@@ -179,6 +180,7 @@ in
         install -Dm644 Resources/icons/LICENSE "$app/Contents/Resources/Fonts/LICENSE-Phosphor"
         # The sample of every preset, which `vestal gallery` draws.
         cp -r Resources/samples "$app/Contents/Resources/samples"
+        cp -r Resources/starters "$app/Contents/Resources/starters"
         # The background shaders (GLSL), embedded in the binary too.
         cp -r Resources/shaders "$app/Contents/Resources/shaders"
         makeBinaryWrapper "$app/Contents/MacOS/vestal" "$out/bin/vestal"
@@ -193,6 +195,7 @@ in
           "$out/share/vestal/icons/"
         # The sample of every preset, which `vestal gallery` draws.
         cp -r Resources/samples "$out/share/vestal/samples"
+        cp -r Resources/starters "$out/share/vestal/starters"
         # The background shaders (GLSL), embedded in the binary too.
         cp -r Resources/shaders "$out/share/vestal/shaders"
         makeBinaryWrapper "$out/libexec/vestal/vestal" "$out/bin/vestal" \

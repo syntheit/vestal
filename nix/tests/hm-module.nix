@@ -246,6 +246,21 @@ let
     signingIdentity = identity;
     package = fake;
   };
+  # A starter with settings over it: objects merge, lists replace, null stays.
+  starterSettings = {
+    hotkey = "f3";
+    theme.background = "blur";
+    pages.order = [ "main" ];
+    views.main.gap = 10;
+    widgets.clock = null;
+  };
+  darwinStarter = evaluate "aarch64-darwin" {
+    starter = "developer";
+    settings = starterSettings;
+  };
+  darwinStarterOnly = evaluate "aarch64-darwin" { starter = "minimal"; };
+  starterOf = c: builtins.fromJSON c.xdg.configFile."vestal/config.json".source.value;
+  starterFile = id: builtins.fromJSON (builtins.readFile "${self}/Resources/starters/${id}/config.json");
   darwinSignedNoAgent = evaluate "aarch64-darwin" {
     signingIdentity = identity;
     launchAtLogin = false;
@@ -410,6 +425,18 @@ let
     "signed: settings written with version 1" =
       builtins.fromJSON darwinSigned.xdg.configFile."vestal/config.json".source.value
       == settings // { version = 1; };
+    "starter: alone it is the starter's config with version 1" =
+      starterOf darwinStarterOnly == (starterFile "minimal") // { version = 1; };
+    "starter: settings override scalars" =
+      (starterOf darwinStarter).hotkey == "f3" && (starterOf darwinStarter).theme.background == "blur";
+    "starter: settings merge objects" =
+      (starterOf darwinStarter).theme.density == (starterFile "developer").theme.density
+      && (starterOf darwinStarter).views.main.gap == 10
+      && (starterOf darwinStarter).views.main.children == (starterFile "developer").views.main.children
+      && (starterOf darwinStarter).views.reviews == (starterFile "developer").views.reviews;
+    "starter: settings replace lists" = (starterOf darwinStarter).pages.order == [ "main" ];
+    "starter: null is kept for vestal to apply" = (starterOf darwinStarter).widgets.clock == null;
+    "starter: assertions pass" = passes darwinStarter && passes darwinStarterOnly;
     "signed: agent runs the signed copy" =
       builtins.head (agent darwinSigned).ProgramArguments
       == "${home}/Applications/Vestal.app/Contents/MacOS/vestal";

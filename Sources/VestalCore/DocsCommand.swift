@@ -42,6 +42,7 @@ public enum DocsCommand {
         "widgets": "Containers and primitives, the fields every widget takes, and layout",
         "templates": "Defining your own parameterised widgets and sources",
         "presets": "The built-in templates: section, stat, badge, the v0.3 widgets and the system, time, developer, homelab, feed and personal widgets",
+        "starters": "Eight complete dashboards to start from: `vestal init`, `programs.vestal.starter`, what each needs",
         "samples": "The sample every preset ships, its format, and `vestal gallery`, which draws them all",
         "styling": "Theme, palettes and colours, text style, fonts",
         "icons": "The bundled Phosphor icons, sf: names on macOS, the font files",

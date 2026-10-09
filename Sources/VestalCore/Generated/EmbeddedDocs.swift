@@ -161,6 +161,8 @@ $ vestal fetch prs --config /tmp/vestal-draft.json --allow-commands --shape
 
 ### Step 3: write the config
 
+**Start from a starter, then customise.** For a user with no config yet, `vestal init --list` shows eight complete dashboards (default, minimal, developer, homelab, markets, focus, media, agentops); `vestal init --starter <id>` writes one to the config path (under Nix: `programs.vestal.starter = "<id>";`, with `programs.vestal.settings` merged over it). Read what it needs from the user, then change it with the loop below (`vestal docs starters`).
+
 A complete config is a JSON object with `"version": 1`, merged over the defaults. The parts: `sources` (data), `widgets` (named widgets), `views` (which widgets show, in order), plus `templates`, `functions`, `secrets`, `keys`, `pages` (order, slide or fade, dots and swipe between views; `views.<name>.enabled: false` turns a view off), `theme`, `platform` when needed. Every recipe in section 5 is a complete file you can start from.
 
 The three kinds of field (`vestal docs expressions`):
@@ -1153,6 +1155,12 @@ The same render as `vestal render`, drawn by the dashboard's own renderer. macOS
 
 Draws every sample (`vestal docs samples`) as `vestal screenshot` would, from the sample's own config and data at its time, in UTC: `<dir>/<name>.png` (default `<dir>` is `vestal-gallery`, `--scale` 2), `index.json` (each sample's metadata, image, and counts of config errors, diagnostics, clipped and truncated nodes) and `README.md`. Where nothing can be drawn (Linux without Wayland) the samples are still checked and `index.json` has `"image": null`; exit 0. Exit 1 when a sample has config errors or diagnostics, 4 for an unknown name. See `vestal docs samples`.
 
+## Starting a config
+
+`vestal init [--starter <id>] [--list] [--print] [--force] [--path <file>]`
+
+Writes a starter dashboard's config (`vestal docs starters`) to the config path: `$VESTAL_CONFIG`, else `$XDG_CONFIG_HOME/vestal/config.json`, else `~/.config/vestal/config.json`; `--path` names another file. Without `--starter` it writes `default`. It prints what you must provide (a login, coordinates, a token) and how to edit the result with your agent (`vestal docs agents`). `--list` prints each starter's id, title and pitch; `--print` prints the config and writes nothing. An existing file is not replaced unless `--force`, which first copies it to `<file>.bak-<timestamp>`. A config that is a link into `/nix/store` is never touched: `init` prints `programs.vestal.starter = "<id>";` instead. Exit 4 for an unknown starter (with a did-you-mean), 1 when it refuses or can't write.
+
 ## Documentation
 
 `vestal docs [topic] [--list] [--json] [--search <text>] [--legacy]`
@@ -1498,12 +1506,12 @@ This installs `Vestal.app` and puts a `vestal` wrapper on the PATH. `brew upgrad
 
 ## macOS or Linux: Nix
 
-The flake provides the package and a Home Manager module (`programs.vestal`), which writes the config, starts vestal at login and signs the app on your machine. See the README and `nix/hm-module.nix`. Nix users do not need the DMG.
+The flake provides the package and a Home Manager module (`programs.vestal`), which writes the config, starts vestal at login and signs the app on your machine. See the README and `nix/hm-module.nix`. Nix users do not need the DMG. `programs.vestal.starter = "developer";` starts from a starter, with `programs.vestal.settings` merged over it (`vestal docs starters`); `vestal init` refuses to touch a config that Nix owns.
 
 ## First run
 
-- **Config.** With no config file vestal runs on built-in defaults. Create `~/.config/vestal/config.json` (or `$XDG_CONFIG_HOME/vestal/config.json`); `examples/` in the repository has complete files, `vestal docs agents` explains the format, and `vestal check-config` checks a file. There is no `vestal init`; copy an example. The file is watched, and `vestal reload` reads it at once.
-- **Hotkey.** None by default. Set `"hotkey": "f3"` (or `"cmd+shift+space"`) in the config. The key is taken from every app. Until then, `vestal toggle` (from a shell, skhd or Shortcuts) shows and hides the dashboard.
+- **Config.** With no config file vestal runs on built-in defaults, with no hotkey. Run `vestal init` to write a starter dashboard to `~/.config/vestal/config.json` (or `$XDG_CONFIG_HOME/vestal/config.json`); `vestal init --list` shows the eight (`vestal docs starters`) and `vestal init --starter developer` picks one. It prints what that starter needs from you. Then change it with your agent (`vestal docs agents`); `vestal check-config` checks a file, and `examples/` in the repository has more complete ones. The file is watched, and `vestal reload` reads it at once.
+- **Hotkey.** Every starter sets `"hotkey": "cmd+shift+space"` (macOS 14 and 15 leave it unbound; Spotlight is `cmd+space`), so after `vestal init` press it to show the dashboard. The built-in defaults set none, so with no config use `vestal toggle` (from a shell, skhd or Shortcuts) or set `"hotkey": "f3"`. The key is taken from every app.
 - **Calendar.** The first time the agenda source reads your calendars, macOS asks whether Vestal may access Calendar. Allow it (Full Access: it reads events only). Change it later in System Settings > Privacy & Security > Calendars.
 - **Automation.** The first time the media widget talks to Music, Spotify or another player, macOS asks whether Vestal may control it. Allow it. Change it in System Settings > Privacy & Security > Automation.
 - **Nothing else.** The screenshot command and the trackpad pinch gesture need no permission.
@@ -3277,6 +3285,224 @@ Hacker News through Algolia rather than the Firebase API or `hnrss.org`: Firebas
 **`yahooQuotes`.** Today's quotes from Yahoo Finance's chart endpoint, `https://query1.finance.yahoo.com/v8/finance/spark`, for all symbols in one request every 5 minutes. Keys: `symbols` (tickers in the order to show, default `["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA"]`; a symbol Yahoo doesn't know is left out) and `interval` (`1m`, `2m`, `5m`, `15m`; default `5m`). Data: `[{symbol, last, previousClose, change, history, time}]`: `last` the latest price, `change` the day's change in percent against the previous close, `history` the session's prices so far, `time` the epoch time of the last one. The endpoint is not an official API (it needs no key or sign-up, and has worked unchanged for years, but Yahoo may change or block it) and quotes can be delayed by up to 15 minutes. Daily-only sources (Stooq) draw no intraday line, and the keyed ones (Finnhub, Alpha Vantage, Twelve Data) need a sign-up and have free tiers of a few calls a minute or a day, one call per symbol: to use one, write a source of your own (`http` with `{{ $secrets.x }}` in the URL, and a `transform` to this shape) and give it to `watchlist` as its `source`.
 
 **`haStates`.** Home Assistant's `GET <url>/api/states` with a long-lived access token, sent as `Authorization: Bearer <token>` from the secret named `homeAssistant` (the name is fixed; for another, write an `http` source of your own). Keys: `url` (required, the base URL, such as `http://homeassistant.local:8123`) and `entities` (ids, or objects with an `id`, to keep; empty keeps every entity). Refreshes every 30 seconds while shown. Data: an object by entity id of `{state, attributes, lastChanged}` (epoch seconds), such as `.["lock.front_door"].state`. Create the token in Home Assistant under your profile (Security, Long-lived access tokens) and keep it in a file: `"secrets": { "homeAssistant": { "file": "~/.config/vestal/secrets/home-assistant.token" } }`. Read by `homeAssistant`.
+
+"""#,
+        "starters": #"""
+# Starters
+
+A starter is a complete, forkable config: pick one, write it with `vestal init`, then change it with your agent (`vestal docs agents`). Each is a whole dashboard of several pages built from the presets (`vestal docs presets`); none holds personal data, and every secret is declared under `secrets` (the GitHub ones run `gh auth token`, so log in once with `gh auth login`).
+
+```text
+vestal init --list                  # id, title and pitch of every starter
+vestal init --starter developer     # write it to the config path
+vestal init --starter developer --print     # just print it
+vestal init --starter developer --force     # replace a file you have; it is copied to config.json.bak-<timestamp> first
+vestal init --path ~/vestal.json    # write somewhere else
+```
+
+Without `--starter`, `init` writes `default`. The file goes to `$VESTAL_CONFIG`, else `$XDG_CONFIG_HOME/vestal/config.json` (`~/.config/vestal/config.json`), and an existing file is never replaced without `--force`. When that file is a link into `/nix/store` (Home Manager owns it), `init` changes nothing and prints the Nix line below instead. `init` also prints what you must provide (each starter's "needs", below) and how to edit it with your agent.
+
+Under Nix, `programs.vestal.starter = "<id>";` makes the starter the base of the config file, and `programs.vestal.settings` merges over it with vestal's own rules: objects merge key by key, lists and scalars replace, `null` removes a key.
+
+```nix
+programs.vestal = {
+  enable = true;
+  starter = "developer";
+  settings = {
+    hotkey = "f3";                       # replaces the starter's
+    theme.background = "blur";           # one key of an object
+    pages.order = [ "main" "builds" ];   # a list replaces the starter's
+  };
+};
+```
+
+**The hotkey.** Every starter sets `"hotkey": "cmd+shift+space"`; vestal's built-in defaults have none. Spotlight is `cmd+space` and macOS 14 and 15 bind nothing to `cmd+shift+space` by default (the input source shortcuts are `ctrl+space` and `ctrl+opt+space`), so it works out of the box; change `hotkey` if another app has it. On Linux, Wayland has no global hotkeys: bind `vestal toggle` in the compositor (with Home Manager, `programs.vestal.hyprland.enable` turns this same key into a Hyprland bind, `SUPER SHIFT, space`).
+
+A starter can also be a page or a single widget block (`kind` in its `starter.json`); today all eight are dashboards. Each has a sample (`starter-<id>`) that `vestal gallery --only starter-<id>` draws with fixture data, and the gallery README lists them under dashboards.
+
+## `default`: Default
+
+Today's dashboard: time, this machine, music, agenda, your hosts, rates and weather. Background: `aurora`.
+
+Pages: **Main** (key 1), **Focus** (key 2).
+
+You provide:
+
+- Calendar access (macOS asks the first time; on Linux set an `ics` or `caldav` calendar source)
+- Optional: your own hosts under `systems` (`vestal docs preset/systemHealth`)
+- Optional: a location for the weather (wttr.in guesses it from your IP)
+- Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)
+
+Screenshot: `vestal gallery --only starter-default --out <dir>` writes `<dir>/starter-default.png`.
+
+```sh
+vestal init --starter default
+```
+
+```nix
+programs.vestal.starter = "default";
+```
+
+## `minimal`: Minimal
+
+A big clock, the date and the next event. Nothing to read twice. Background: `sky`.
+
+Pages: **Main** (key 1).
+
+You provide:
+
+- Calendar access (macOS asks the first time; on Linux set an `ics` or `caldav` calendar source)
+- Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)
+
+Screenshot: `vestal gallery --only starter-minimal --out <dir>` writes `<dir>/starter-minimal.png`.
+
+```sh
+vestal init --starter minimal
+```
+
+```nix
+programs.vestal.starter = "minimal";
+```
+
+## `developer`: Developer
+
+Reviews waiting on you, CI per repo, plan usage and your commit rhythm. Background: `topo`.
+
+Pages: **Main** (key 1), **Reviews** (key 2), **Builds** (key 3).
+
+You provide:
+
+- GitHub login (`gh auth login`); the `github` secret runs `gh auth token`
+- Your repositories: replace `acme/*` in the `ci` widgets and the paths in `commits`
+- Optional: the Nix flake to watch in `flake` (needs `nix` on the PATH)
+- Claude Code or Codex logins for the plan usage rows (`vestal docs ai-usage`)
+- Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)
+
+Screenshot: `vestal gallery --only starter-developer --out <dir>` writes `<dir>/starter-developer.png`.
+
+```sh
+vestal init --starter developer
+```
+
+```nix
+programs.vestal.starter = "developer";
+```
+
+## `homelab`: Homelab
+
+Hosts, monitors, containers, backups and the tailnet, two columns wide. Background: `aurora`.
+
+Pages: **Overview** (key 1), **nas** (key 2), **Network** (key 3).
+
+You provide:
+
+- Hosts running foyer (or a source in its shape) for `systems`; replace `nas.example.com`
+- An Uptime Kuma status page URL and slug in the `status` source (or switch to `healthchecks`)
+- Docker or Podman on the machine or over ssh (`ssh://nas`, key without a prompt)
+- Backup status files from your backup wrappers (`vestal docs preset/backups`)
+- Tailscale CLI (`tailscale`) on the PATH
+- Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)
+
+Screenshot: `vestal gallery --only starter-homelab --out <dir>` writes `<dir>/starter-homelab.png`.
+
+```sh
+vestal init --starter homelab
+```
+
+```nix
+programs.vestal.starter = "homelab";
+```
+
+## `markets`: Markets
+
+A watchlist, crypto and exchange rates with intraday lines. Background: `mesh`.
+
+Pages: **Markets** (key 1), **Main** (key 2).
+
+You provide:
+
+- Nothing to sign in to: Yahoo Finance, CoinGecko and open.er-api.com need no key
+- Your own tickers in `quotes` and coins in `coins`
+- Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)
+
+Screenshot: `vestal gallery --only starter-markets --out <dir>` writes `<dir>/starter-markets.png`.
+
+```sh
+vestal init --starter markets
+```
+
+```nix
+programs.vestal.starter = "markets";
+```
+
+## `focus`: Focus
+
+A timer, the one task, today's list and habits. Tab away to everything else. Background: `grain`.
+
+Pages: **Focus** (key 1), **Main** (key 2).
+
+You provide:
+
+- A markdown checklist at `~/notes/todo.md` with a `## Today` heading (`- [ ] task`); ticking writes that file
+- Optional: `~/.local/share/vestal/habits.json` (`vestal docs preset/habits`)
+- Calendar access for the next-event line (macOS asks the first time)
+- Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)
+
+Screenshot: `vestal gallery --only starter-focus --out <dir>` writes `<dir>/starter-focus.png`.
+
+```sh
+vestal init --starter focus
+```
+
+```nix
+programs.vestal.starter = "focus";
+```
+
+## `media`: Media
+
+Now playing, large. The background takes the album's colours. Background: `artmesh`.
+
+Pages: **Now playing** (key 1), **Main** (key 2).
+
+You provide:
+
+- A music player: Spotify or Music on macOS (allow Automation the first time), any MPRIS player with `playerctl` on Linux
+- Optional: a player name in the `player` of the `now` widget
+- Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)
+
+Screenshot: `vestal gallery --only starter-media --out <dir>` writes `<dir>/starter-media.png`.
+
+```sh
+vestal init --starter media
+```
+
+```nix
+programs.vestal.starter = "media";
+```
+
+## `agentops`: Agent ops
+
+Plan headroom, running agents and what needs you, for a day of delegated work. Background: `flow`.
+
+Pages: **Ops** (key 1), **Main** (key 2), **Reviews** (key 3).
+
+You provide:
+
+- Claude Code and/or Codex logged in on this machine (`vestal docs ai-usage`)
+- An agents file at `~/.local/state/vestal/agents.json`: a JSON list of {id, state (running, input, done, failed), repo, task, note, elapsed} that your agent hooks write
+- GitHub login (`gh auth login`); the `github` secret runs `gh auth token`
+- Your repositories: replace `acme/*` in the `ci` widgets
+- Linux: Wayland has no global hotkeys, so bind `vestal toggle` in your compositor (Hyprland: bind = SUPER SHIFT, space, exec, vestal toggle; Home Manager: programs.vestal.hyprland.enable)
+
+Screenshot: `vestal gallery --only starter-agentops --out <dir>` writes `<dir>/starter-agentops.png`.
+
+```sh
+vestal init --starter agentops
+```
+
+```nix
+programs.vestal.starter = "agentops";
+```
 
 """#,
         "styling": #"""

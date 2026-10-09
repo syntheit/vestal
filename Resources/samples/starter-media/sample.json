@@ -1,7 +1,7 @@
 {
   "kind": "dashboard",
   "title": "Media starter",
-  "description": "The Media starter dashboard: Now playing, large, with the queue. The background takes the album's colours.",
+  "description": "The Media starter dashboard: Now playing, large. The background takes the album's colours.",
   "size": [
     760,
     700

@@ -176,6 +176,9 @@ case .command(.gallery(let arguments)):
     emit(GalleryCommand.run(arguments, platform: sourcePlatform, shoot: GalleryCommand.selfShooter, fixedSize: false))
     #endif
 
+case .command(.initConfig(let arguments)):
+    emit(InitCommand.run(arguments))
+
 case .command(.loginItem(let action)):
     #if os(macOS)
     emit(MacLoginItem.run(action))
