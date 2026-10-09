@@ -153,9 +153,10 @@ final class DevWidgetsTests: XCTestCase {
         let bad = ConfigLoader.load(data: Data(#"{ "version": 1, "sources": { "f": { "type": "flake", "behind": "yes", "url": "x" } } }"#.utf8),
                                     platform: .linux)
         let messages = bad.warnings.map(\.message)
+        let paths = bad.warnings.map(\.path)
         XCTAssertTrue(messages.contains { $0.contains("missing \"path\"") }, "\(messages)")
-        XCTAssertTrue(messages.contains { $0.contains("behind") }, "\(messages)")
-        XCTAssertTrue(messages.contains { $0.contains("url") }, "\(messages)")
+        XCTAssertTrue(paths.contains("sources.f.behind"), "\(paths)")
+        XCTAssertTrue(paths.contains("sources.f.url"), "\(paths)")
     }
 
     // MARK: The token
@@ -253,7 +254,8 @@ final class DevWidgetsTests: XCTestCase {
         XCTAssertEqual(source.refresh, "10m")
         XCTAssertTrue(source.body?.stringValue?.contains("team-review-requested:acme/core") == true)
         let text = try render(loaded, source: source, data: try fixture("reviews.json"))
-        XCTAssertTrue(text.contains("api#1482") && text.contains("web#977"), text)
+        XCTAssertTrue(text.contains("api#12 ") && text.contains("api#1482"), text)
+        XCTAssertFalse(text.contains("web#977"), "limit")
         XCTAssertFalse(text.contains("infra#311"), "limit")
     }
 
@@ -308,7 +310,7 @@ final class DevWidgetsTests: XCTestCase {
         let lines = try fixture("commits.json")
         let counts = try XCTUnwrap(try transformed(lines, by: source).objectValue?["days"]?.objectValue)
         XCTAssertEqual(counts["20723"], .int(3), "2026-09-27")
-        XCTAssertEqual(counts["20719"], .int(7), "2026-09-19")
+        XCTAssertEqual(counts["20715"], .int(7), "2026-09-19")
         XCTAssertEqual(counts.values.reduce(0) { $0 + Self.number($1) }, 34, "the line that is not a date is skipped")
     }
 

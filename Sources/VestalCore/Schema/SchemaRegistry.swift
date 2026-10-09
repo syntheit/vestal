@@ -417,7 +417,7 @@ public enum SchemaRegistry {
                          "The inputs a Nix flake has locked (name, revision, lock time) from `nix flake metadata`, and optionally how far behind GitHub each one is.", keys: [
             SchemaKey("path", .string, kind: .text, required: true, examples: [.string("~/config")],
                       "The flake: a directory or a flake reference. A leading ~/ expands."),
-            SchemaKey("behind", .boolean, default: .bool(false), since: "0.4", examples: [.bool(true)],
+            SchemaKey("behind", .boolean, since: "0.4", examples: [.bool(true)],
                       "Also ask GitHub (one GraphQL request) how many commits each GitHub input's branch has gained since "
                       + "its locked revision. Needs a token in headers.Authorization; without one, or when GitHub fails, "
                       + "`behind` stays null and the source says why."),

@@ -2017,7 +2017,6 @@
           "x-vestal-since": "0.4"
         },
         "behind": {
-          "default": false,
           "description": "Also ask GitHub (one GraphQL request) how many commits each GitHub input's branch has gained since its locked revision. Needs a token in headers.Authorization; without one, or when GitHub fails, `behind` stays null and the source says why.",
           "examples": [
             true
