@@ -169,7 +169,7 @@ const starters = content.starters.map((st) => {
     nix: `programs.vestal.starter = "${st.id}";`,
   };
   if (real) {
-    return { ...common, real: true, name: st.name || real.title, pitch: real.description || st.pitch,
+    return { ...common, real: true, name: st.name || real.title, pitch: st.pitch || real.description,
       background: real.snapshot.theme.background || st.background, snapshot: real.snapshot, views: real.views, pages: pagesOf(real.snapshot) };
   }
   const r = compose(st, `starter-${st.id}`);
