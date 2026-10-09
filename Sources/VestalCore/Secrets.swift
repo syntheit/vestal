@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Secrets and load-time text
 //
 // A source definition's text fields (`url`, `argv[]`, `env.*`, `headers.*`,
-// `path`, `ics[]`, `caldav[]`) are evaluated once before the source is fetched, with
+// `path`, `ics[]`, `caldav[]`, `also[]`, and the strings of an http `body`) are evaluated once before the source is fetched, with
 // `$secrets` and `$env` in scope. A secret is
 // read from a file, an environment variable or a command the first time a
 // source asks for it after a (re)load, trimmed of surrounding whitespace, and
@@ -221,8 +221,29 @@ public final class SecretStore: @unchecked Sendable {
         resolved.path = try await text(source.path)
         resolved.ics = try await texts(source.ics)
         resolved.caldav = try await texts(source.caldav)
-        if case .string(let body)? = source.body { resolved.body = .string(try await LoadTimeText.evaluate(body, lookup: lookup)) }
+        resolved.also = try await texts(source.also)
+        if let body = source.body {
+            resolved.body = try await Self.resolveBody(body) { try await LoadTimeText.evaluate($0, lookup: lookup) }
+        }
         return resolved
+    }
+
+    /// A body's text, or every string inside a JSON body, evaluated.
+    private static func resolveBody(_ body: AnyJSON, _ evaluate: (String) async throws -> String) async throws -> AnyJSON {
+        switch body {
+        case .string(let text):
+            return .string(try await evaluate(text))
+        case .array(let items):
+            var out: [AnyJSON] = []
+            for item in items { out.append(try await resolveBody(item, evaluate)) }
+            return .array(out)
+        case .object(let members):
+            var out: [String: AnyJSON] = [:]
+            for (key, value) in members { out[key] = try await resolveBody(value, evaluate) }
+            return .object(out)
+        default:
+            return body
+        }
     }
 
     /// Synchronous, so the async functions above can use it (NSLock is

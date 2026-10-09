@@ -139,6 +139,25 @@ public enum ConfigCommands {
         }
     }
 
+    /// The widgets and views of an expanded config that read the source `name`, as the path of each
+    /// (`["widgets", "containers"]`) and a label for messages.
+    static func widgetsReading(_ name: String, in top: [String: AnyJSON]) -> [(segments: [String], label: String)] {
+        func reads(_ value: AnyJSON) -> Bool {
+            switch value {
+            case .object(let object): return object["source"]?.stringValue == name || object.values.contains(where: reads)
+            case .array(let items): return items.contains(where: reads)
+            default: return false
+            }
+        }
+        var found: [(segments: [String], label: String)] = []
+        for (key, noun) in [("widgets", "widget"), ("views", "view")] {
+            for (entry, value) in (top[key]?.objectValue ?? [:]).sorted(by: { $0.key < $1.key }) where reads(value) {
+                found.append(([key, entry], "\(noun) \"\(entry)\""))
+            }
+        }
+        return found
+    }
+
     /// Every argv the merged config can run on `platform`, as written (text
     /// holes are never evaluated), in pointer order.
     public static func commandEntries(user: [String: AnyJSON], platform: ConfigPlatform,

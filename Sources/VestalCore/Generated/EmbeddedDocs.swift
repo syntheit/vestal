@@ -331,7 +331,7 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 |---|---|
 | Containers | `stack`, `row`, `grid`, `list`, `table`, `switch` |
 | Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer`, and the charts `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
-| Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage`, `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and for developers `reviewQueue`, `ciStatus`, `commitActivity`, `flakeInputs` (GitHub ones read the `github` secret: `gh auth token` unless defined; `vestal docs presets`) |
+| Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage`, `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and for developers `reviewQueue`, `ciStatus`, `commitActivity`, `flakeInputs`, and for a home server `containers`, `tailnet`, `uptimeMonitors`, `backups`, `transfers` (GitHub ones read the `github` secret: `gh auth token` unless defined; `vestal docs presets`) |
 
 Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` (`"fill"`), `spaceBefore`, `action`, `key`.
 
@@ -883,6 +883,7 @@ User: *"List my Docker containers; clicking one restarts it."*
 - `docker ps --format json` prints one JSON object per line: `parse: "lines"` then `transform: "map(fromjson)"`. The source is `visible`: docker is only asked while the dashboard is shown.
 - The row's `run` action restarts the container without a shell. `optimistic` shows it as restarting at once (it replaces the source's data until the next fetch), and the source is fetched again when `docker restart` exits.
 - Tell the user: a click restarts a container (there is no confirmation); `docker` must be on the daemon's PATH.
+- To only watch them, with state, CPU and memory, use the `containers` preset (`vestal docs presets`): `{"type": "containers"}`.
 
 ### Recipe `ai-usage`: Claude and Codex plan usage
 
@@ -942,6 +943,7 @@ User: *"A table of my disks: used, free and size, red when nearly full."*
 ## 6. Going further
 
 - **More widgets and fields:** `vestal docs widgets`, then `vestal docs widget/<type>` for each field's kind and default.
+- **A home server:** `vestal docs presets` (the `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers` presets, their data packs and the status-file formats; each needs a program or a server, and stays hidden without it).
 - **Your own reusable widget or health agent:** `vestal docs templates` (a source template that maps Glances or netdata to the `system` shape works in `systemHealth`).
 - **Look:** `vestal docs styling` (palettes, fonts, `theme.scale`), `vestal docs icons`.
 - **Keys, views and popups:** `vestal docs keys`, `vestal docs views`, `vestal docs actions`.
@@ -1089,7 +1091,7 @@ Checks a config file (default: the one vestal loads; `-` reads stdin) after merg
 
 - `--json`: `{"file", "status", "counts": {"error", "warning", "info"}, "diagnostics": [...]}`. Each diagnostic has `severity`, `code`, `pointer`, `layer` (`user`, `platform.macos`, `platform.linux` or `defaults`), `message`, and where they apply `suggestion` (the best) and `suggestions` (up to 3), `expected` and `found`, `line` and `column`, `exprOffset`, and `platform` (for a finding only the other OS's block causes).
 - `--platform macos|linux`: check as that OS loads the file. The default, `all`, checks this OS and also the other OS's block.
-- `--commands`: list every program the config can run: `command` sources (named, inline, or from a source template), `command` secrets, `run` actions in widgets, views, global keys and templates, the `systemBar` privacy toggle and `systemHealth` foyer hosts. For each: where it is defined (pointer), what triggers it, the environment keys it adds, whether the program is on this machine's `PATH`, and the argv as written (text holes are never evaluated). Exit 0.
+- `--commands`: list every program the config can run: `command` sources (named, inline, from a source template, or made by a preset such as `containers`), `command` secrets, `run` actions in widgets, views, global keys and templates, the `systemBar` privacy toggle and `systemHealth` foyer hosts. For each: where it is defined (pointer), what triggers it, the environment keys it adds, whether the program is on this machine's `PATH`, and the argv as written (text holes are never evaluated). Exit 0.
 
 Severities: **error** (that part won't work; the rest still runs), **warning** (ignored or defaulted), **info** (advice, such as `legacy` notes about v0.3 widgets).
 
@@ -1870,6 +1872,198 @@ Claude and Codex plan windows, one full-width bar each: the label (`5 hours`, `W
 
 Under Home Manager: `programs.vestal.settings.widgets.plan = { type = "aiPlan"; claudePlan = "Max"; };`
 
+## Homelab
+
+Widgets for a home server or a few machines. Each reads a source (a "data pack", described under [Sources](#sources) below) and turns it into rows with the same look as the rest of the dashboard. A widget whose data has not arrived stays hidden, so a machine without Docker or Tailscale shows nothing where they would be; `vestal capabilities` lists the programs a config runs that are not on `PATH`, and `vestal sources` shows each source's last error.
+
+### `containers`
+
+The containers of a Docker or Podman host: a badge for how many are running, unhealthy and exited (red when one exited with an error), then a row each with the name, the state (`up 12d`, `exited (1) 2h ago`, coloured by health), CPU and memory. It runs `docker ps -a --format json` every 15 seconds while the dashboard is shown, and `docker stats --no-stream --format json` for the last two columns (`stats: false` skips it; a stopped container shows `–`). When `limit` cuts the list, failed, unhealthy and restarting containers are kept first and `+ N more` says how many are not shown. Podman needs `program: "podman"` and nothing else.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `title` | string | none | A label before the badges, such as the host's name. |
+| `program` | string | `docker` | `docker`, `podman` or the path of either. |
+| `host` | string | none | Another machine: a Docker host URL such as `ssh://nas`, set as `DOCKER_HOST` (and `CONTAINER_HOST` for Podman) in the program's environment. No shell is involved, and ssh needs a key that works without a prompt. Default: this machine. |
+| `stats` | boolean | `true` | The CPU and memory columns. |
+| `limit` | integer | `10` | Rows shown. |
+
+```json
+{ "type": "containers", "title": "nas", "host": "ssh://nas", "limit": 8 }
+```
+
+```nix
+programs.vestal.settings.widgets.containers = { type = "containers"; title = "nas"; host = "ssh://nas"; };
+programs.vestal.extraPackages = [ pkgs.docker-client ];
+```
+
+### `tailnet`
+
+Your Tailscale devices from `tailscale status --json`: a dot (green online, dim offline), the name, the Tailscale IPv4 address and a status (`this device`, `active`, `idle 14m` since the last traffic, `last seen 26d`), with badges for the roles: `exit node` (the device offers to be one; `exit node in use` when you route through it), `subnet` (it advertises subnet routes) and `key expired`. This device comes first, then the online ones, then the offline ones (dimmed), each group by name. When Tailscale is stopped or logged out the widget says so.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `program` | string | `tailscale` | The CLI. With the macOS app and no CLI installed: `/Applications/Tailscale.app/Contents/MacOS/Tailscale`. |
+| `showOffline` | boolean | `true` | List devices that are offline. |
+| `limit` | integer | `12` | Devices shown. |
+
+```json
+{ "type": "tailnet", "showOffline": false }
+```
+
+```nix
+programs.vestal.settings.widgets.tailnet = { type = "tailnet"; limit = 8; };
+programs.vestal.extraPackages = [ pkgs.tailscale ];
+```
+
+### `uptimeMonitors`
+
+One row per monitored service: a status dot, the name, 45 small bars (green good, yellow degraded, red down, empty no data), the uptime and, under the rows, the latest incident (`Mail: down 41 min, Tuesday 03:12`) with what the bars cover on the right. The dot is red while the service is down, yellow when it is degraded or its uptime is under `warnBelow`, green otherwise and dim when the state is unknown or paused. The widget reads a source in the monitors shape, which two data packs produce: `uptimeKuma` and `healthchecks` (below, with what each API can tell).
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `limit` | integer | `12` | Services shown. |
+| `warnBelow` | number | `99.5` | Uptime percent under which the dot turns yellow. |
+
+```json
+{
+  "version": 1,
+  "sources": { "status": { "type": "uptimeKuma", "url": "https://status.example.com", "slug": "main" } },
+  "widgets": { "monitors": { "type": "uptimeMonitors", "source": "status" } },
+  "views": { "main": { "children": ["monitors"] } }
+}
+```
+
+```nix
+programs.vestal.settings = {
+  sources.status = { type = "uptimeKuma"; url = "https://status.example.com"; slug = "main"; };
+  widgets.monitors = { type = "uptimeMonitors"; source = "status"; };
+};
+```
+
+The shape, for a source of your own (any `transform` that produces it works):
+
+```jsonc
+{
+  "notice": null,                 // or {"text": "Planned maintenance tonight", "at": 1790000000}: shown in place of the incident line
+  "window": "last 45 checks",     // what the bars cover, drawn at the right of the last line; or null
+  "services": [
+    { "name": "Website",
+      "state": "up",              // up, degraded, down, maintenance, paused, unknown
+      "days": ["good", "good", "warn", "bad", "none"],   // 45 bars, oldest first; null for none (a pinged-at line replaces them)
+      "uptime": 99.98,            // percent, or null
+      "lastPing": 1790000000,     // epoch seconds, shown when days is null; optional
+      "incident": { "status": "down", "at": 1790000000, "seconds": 2460, "ongoing": false } }   // or null; seconds may be null
+  ]
+}
+```
+
+### `backups`
+
+One row per backup job: a tick, a warning or a cross; the name and the tool; a line saying how long ago it ran and, for a failure, why (`failed 26h ago · lock held by pid 4410`); and when it runs next. Failed jobs come first, then late ones, then the rest. The data is a directory of small JSON files, one per job, which a wrapper around your backup tool writes (below); a job that did not run within `expectEvery` is late (`2d ago · late by 1d`).
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `dir` | string | `~/.local/state/vestal/backups` | The directory of status files. |
+| `expectEvery` | string | `1d` | How long a job may go without running: `26h`, `1d`, `7d`. A file's own `expectEvery` (a number of seconds or the same text) wins. |
+| `limit` | integer | `8` | Jobs shown. |
+
+A status file:
+
+| Key | |
+|---|---|
+| `name` | Shown for the job; the file name without `.json` when absent. |
+| `tool` | `restic`, `borg`, `local`, anything: shown small after the name. Optional. |
+| `lastRun` | When the job last finished: epoch seconds or an ISO 8601 time. The file's modification time when absent. |
+| `ok` | `false` marks the job failed; anything else, or absent, is success. |
+| `message` | Why it failed (or any note): shown in the second line. Optional. |
+| `size` | A number of bytes, or text such as `"640 GB free"`. Optional; shown for a successful job. |
+| `next` | When it runs next: epoch seconds or ISO 8601 (shown as `next 02:00` while in the future), or text such as `hourly`. Optional. |
+| `expectEvery` | This job's own limit. Optional. |
+
+Wrappers: a script that runs the tool and writes the file. Write to a temporary name and `mv` it, so vestal never reads half a file. One script, `vestal-backup`, serves restic and borg:
+
+```sh
+#!/bin/sh
+# vestal-backup <file> <name> <tool> -- <command...>
+dir=${VESTAL_BACKUPS:-$HOME/.local/state/vestal/backups}; mkdir -p "$dir"
+file=$1 name=$2 tool=$3; shift 4
+out=$("$@" 2>&1); status=$?
+jq -n --arg name "$name" --arg tool "$tool" --arg msg "$(printf '%s' "$out" | tail -n 1)" --argjson st "$status" \
+  '{name: $name, tool: $tool, lastRun: (now | floor), ok: ($st == 0)} + (if $st == 0 then {} else {message: $msg} end)' \
+  > "$dir/$file.tmp" && mv "$dir/$file.tmp" "$dir/$file.json"
+exit $status
+```
+
+```sh
+vestal-backup home-b2 "Home to B2" restic -- restic backup ~
+vestal-backup photos "Photos to nas" borg -- borg create nas:photos::'{now}' ~/Photos
+```
+
+Time Machine runs by itself; a periodic job (a launchd agent, hourly) reads the time of its latest backup. The folder name `tmutil latestbackup` prints is the backup's time (`2026-09-27-120311`); running `tmutil` from launchd needs Full Disk Access for the shell or script:
+
+```sh
+b=$(tmutil latestbackup 2>/dev/null) && t=$(date -j -f %Y-%m-%d-%H%M%S "$(basename "$b" .backup)" +%s) \
+  && printf '{"name":"Time Machine","tool":"tmutil","lastRun":%s,"ok":true,"next":"hourly"}\n' "$t" > ~/.local/state/vestal/backups/tm.json
+```
+
+```json
+{ "type": "backups", "expectEvery": "26h" }
+```
+
+```nix
+programs.vestal.settings.widgets.backups = { type = "backups"; expectEvery = "26h"; };
+```
+
+### `transfers`
+
+Downloads and long jobs: for each, an icon, the name, the percentage, a bar, and a line with a detail on the left (the speed) and a note on the right (the time left). The widget reads any source whose data is a list of `{name, percent, detail, right}`; the `aria2` data pack makes that from aria2's JSON-RPC, and a file written by a script makes it for anything else.
+
+| Key | Type | Default | |
+|---|---|---|---|
+| `limit` | integer | `6` | Rows shown. |
+
+The progress shape, one object per transfer:
+
+| Key | |
+|---|---|
+| `name` | The transfer's name, shown in mono. Also its identity. |
+| `percent` | 0 to 100, or `null` when unknown (an empty bar). |
+| `detail`, `right` | Text on the left and the right of the line under the bar. Either may be empty. |
+| `icon` | A Phosphor icon name (`vestal icons`). Default `download`. |
+| `color` | A colour. Default `accent`, `good` at 100. |
+
+```json
+{
+  "version": 1,
+  "sources": { "downloads": { "type": "aria2", "auth": "token:{{ $secrets.aria2 }}" } },
+  "secrets": { "aria2": { "file": "~/.config/vestal/secrets/aria2.token" } },
+  "widgets": { "transfers": { "type": "transfers", "source": "downloads" } },
+  "views": { "main": { "children": ["transfers"] } }
+}
+```
+
+```nix
+programs.vestal.settings = {
+  secrets.aria2.file = "/run/secrets/aria2-rpc";
+  sources.downloads = { type = "aria2"; auth = "token:{{ $secrets.aria2 }}"; };
+  widgets.transfers = { type = "transfers"; source = "downloads"; };
+};
+```
+
+Anything else: a script writes a file, and a `file` source reads it. One file with a list, or (to let several scripts each own their transfer) a directory with one object per file, which a `file` source reads as a list:
+
+```json
+{ "sources": { "jobs": { "type": "file", "path": "~/.local/state/vestal/transfers" } } }
+```
+
+```sh
+# a nix build wrapper: the file exists while the build runs
+f=~/.local/state/vestal/transfers/nix-build.json; mkdir -p "${f%/*}"
+printf '{"name":"nix build","percent":null,"detail":"building","right":"","icon":"snowflake","color":"cyan"}\n' > "$f"
+nix build "$@"; rm -f "$f"
+```
+
 ## Helpers
 
 ### `claudeItem`
@@ -1906,6 +2100,41 @@ A source template for [Open-Meteo](https://open-meteo.com/) (free, no key): `{"t
 ### `github`
 
 A source template for GitHub's GraphQL API with the `github` secret's token: `{"type": "github", "query": "{ viewer { login } }"}`. The developer widgets use it; `vestal docs source/github` has its parameters and the token.
+
+### Data packs
+
+Source templates that make the [homelab widgets](#homelab) work, usable on their own under `sources` (`vestal docs templates`). Each turns a program's or a server's answer into one small shape, so a widget does not depend on a tool's field names; `vestal fetch <name>` shows it. Their programs are listed by `vestal check-config --commands` and `vestal capabilities`.
+
+### `dockerPs`
+
+`{"type": "dockerPs"}` runs `docker ps -a --format json` every 15 seconds while shown. Parameters `program` (`docker`, `podman` or a path) and `host` (a Docker host URL such as `ssh://nas`, set as `DOCKER_HOST` and `CONTAINER_HOST`). Docker's one object per line and Podman's array both read. The data is a list of containers:
+
+```jsonc
+[ { "name": "jellyfin", "image": "jellyfin/jellyfin:10.10", "state": "running",
+    "kind": "up",                // up, starting, unhealthy, restarting, paused, exited, failed (exited with an error), created
+    "code": null,                // the exit code of an exited container
+    "text": "up 12d" } ]         // the status, shortened: "up ~1h", "up 45s (unhealthy)", "exited (1) 2h ago"
+```
+
+### `dockerStats`
+
+`docker stats --no-stream --format json`, every 15 seconds while shown, with the same parameters. Data: `[{"name": "jellyfin", "cpu": 14.02, "mem": 1288490188}]`, percent and bytes, for running containers (Podman's `cpu_percent` and `mem_usage` read too). `containers` reads it once per row.
+
+### `tailscaleStatus`
+
+`tailscale status --json` every 10 seconds while shown; parameter `program` (default `tailscale`). Data: `{"state": "Running", "tailnet": "user@example.com", "devices": [...]}` with, per device, `name` (the first label of its MagicDNS name), `ip` (IPv4), `os`, `online`, `self`, `active`, `exitNode` (offers one), `usingExit`, `subnet` (advertises routes), `expired`, `tags`, `since` (the last traffic, epoch seconds) and `lastSeen`. This device is first, then the online ones, each group by name. `devices` is empty unless `state` is `Running`.
+
+### `uptimeKuma`
+
+`{"type": "uptimeKuma", "url": "https://status.example.com", "slug": "main"}` reads a public status page of an Uptime Kuma server: `/api/status-page/<slug>` for the monitors' names and any pinned incident (`notice`), and `/api/status-page/heartbeat/<slug>` for their beats, fetched together (the `also` key of `http`, `vestal docs sources`) every minute while shown. No login is needed, and only the monitors on that page are visible. Limits of the API: it returns the last 100 heartbeats of each monitor and the uptime of the last 24 hours, nothing longer. So the 45 bars are the last 45 heartbeats (a check each, a few hours with a one-minute interval; `window` says `last 45 checks`), and `uptime` is the 24-hour figure. If the page shows a heartbeat bar in days (a newer Kuma option), each entry is a day and `window` says `45 days`. Pending and maintenance beats are yellow. The incident is the latest run of failed beats in what the API returns.
+
+### `healthchecks`
+
+`{"type": "healthchecks", "key": "{{ $secrets.healthchecks }}"}` lists the checks of a Healthchecks.io project (`/api/v3/checks/`, with the project's API key in `X-Api-Key`; a read-only key is enough); `url` points at a self-hosted server. The list endpoint has no history: there are no bars and no uptime percentage, and a row shows when the check last pinged (`pinged 3h ago`) instead. A check that is late (`grace`) is yellow and one that is down is red, each with an incident line from when it was due. Per-day history needs one request per check (`/api/v3/checks/<uuid>/flips/`), which a single source cannot make.
+
+### `aria2`
+
+`{"type": "aria2"}` asks aria2's JSON-RPC (`http://localhost:6800/jsonrpc`, set `url` for another) for `aria2.tellActive` and `aria2.tellWaiting` in one batch request every 3 seconds while shown. With an `rpc-secret`, `auth` is `"token:{{ $secrets.aria2 }}"`. The data is the progress shape of [`transfers`](#transfers): active downloads first (speed, time left; `seeding` once a torrent is complete), then queued and paused ones. The name is the torrent's name or the file name. An RPC error (a wrong secret) fails the fetch and `vestal sources` shows its message. Finished and failed downloads are not listed. Enable the RPC server with `aria2c --enable-rpc`.
 
 """#,
         "protocol": #"""
@@ -2301,7 +2530,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 
 **Inline sources.** Wherever a widget takes `source`, it may give a definition instead of a name: `"source": {"type": "file", "path": "~/notes/today.md", "parse": "lines"}`. Identical definitions share one fetch. Its name in `vestal sources` and the cache is `inline:<8 hex digits>`.
 
-**Load-time text.** `url`, `argv`, `env`, `headers`, `path`, `ics`, `caldav` and a text `body` are text fields evaluated once when the config loads, with only `$env` (the environment), `$secrets` and template parameters in scope: `"url": "https://api.example.com/v1?key={{ $secrets.apiKey }}"`. There is no data and no `now` there, so one source can't depend on another's data: to chain fetches, write a `command` source. In `argv` and `path`, a leading `~/` expands to the home directory.
+**Load-time text.** `url`, `also`, `argv`, `env`, `headers`, `path`, `ics`, `caldav`, a text `body` and the strings of a JSON `body` are text fields evaluated once when the config loads, with only `$env` (the environment), `$secrets` and template parameters in scope: `"url": "https://api.example.com/v1?key={{ $secrets.apiKey }}"`. There is no data and no `now` there, so one source can't depend on another's data: to chain fetches, write a `command` source. In `argv` and `path`, a leading `~/` expands to the home directory.
 
 **Failures.** A failed fetch keeps the last good data on screen and retries after `refresh` or 60 seconds, whichever is shorter. `$meta` (`vestal docs expressions`) tells a widget whether its data is current: `{{ if $meta.stale then "(old)" else "" end }}`.
 
@@ -2362,9 +2591,10 @@ Fetches a URL; the answer must have a 2xx status.
 | Key | Default | |
 |---|---|---|
 | `url` | required | `http://` or `https://`. Text: may use `{{ $secrets.x }}` and `{{ $env.X }}`. |
+| `also` | none | More URLs (a list, or one), fetched at the same time as `url` with the same method, headers and body. The data is then a list of the answers, `url`'s first, in order (each read with `parse`); if any fails, the fetch fails (`HTTP 404 from also[0]`). For an API that spreads what one widget needs over two endpoints: join them with `transform` (`.[0]`, `.[1]`). |
 | `method` | `GET` | `GET` or `POST`. |
 | `headers` | none | Object of text: `{"Authorization": "Bearer {{ $secrets.token }}"}`. |
-| `body` | none | The POST body: text (may use `{{ $secrets.x }}`), or a JSON value sent as `application/json` as written. |
+| `body` | none | The POST body: text (may use `{{ $secrets.x }}`), or a JSON value sent as `application/json`. Every string inside a JSON value is load-time text too (`{"auth": "token:{{ $secrets.x }}"}`); `{{{{` writes a literal `{{`. |
 | `timeout` | `10s` | |
 | `parse` | `json` | `json`, `raw` (the body as a string), `lines` (a list of lines, the final newline dropped), `feed` (below). |
 
@@ -2397,8 +2627,10 @@ A draft config (`--config` naming another file than the running instance's) neve
 
 | Key | Default | |
 |---|---|---|
-| `path` | required | A leading `~/` expands. |
+| `path` | required | A file, or a directory of `.json` files. A leading `~/` expands. |
 | `parse` | `json` | `json`, `raw`, `lines`, `feed`, or `exists`: `{"exists": true, "modified": 1790000000}`, which never fails. The others fail while the file is missing. |
+
+A **directory** with `parse` `json` reads every `*.json` file in it (at most 500, by file name; hidden files and anything else are skipped) into a list of their contents. An object gets `_file` (the name without `.json`) and `_modified` (seconds since 1970) added, unless it has them; a file that is not valid JSON, such as one being written, is skipped. One small file per job or per transfer, each written by its own script, is the pattern (`backups`, `transfers`: `vestal docs presets`). Write to a name that does not end in `.json` and `mv` it into place so a half-written file is never read.
 
 ### `calendar`
 
@@ -2915,7 +3147,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 | Containers | `stack` (top to bottom), `row` (left to right), `grid` (aligned columns), `list` (an array as rows), `table` (a list with aligned columns), `switch` (one child picked by a value) |
 | Primitives | `text`, `icon`, `progress` (bar), `gauge` (ring), `sparkline`, `keyValue`, `divider`, `spacer` |
 | Charts | `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
-| Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the system presets `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and the developer widgets `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs` (`vestal docs presets`) |
+| Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the system presets `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and the developer widgets `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`, and the homelab widgets `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers` (`vestal docs presets`) |
 | Your templates | any name under `templates` (`vestal docs templates`) |
 
 ## Fields every widget takes

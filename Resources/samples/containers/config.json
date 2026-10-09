@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "widgets": {
+    "containers": {
+      "type": "containers",
+      "title": "nas",
+      "host": "ssh://nas",
+      "limit": 5
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "containers"
+      ],
+      "padding": 24
+    }
+  }
+}

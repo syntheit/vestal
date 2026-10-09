@@ -274,7 +274,7 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 |---|---|
 | Containers | `stack`, `row`, `grid`, `list`, `table`, `switch` |
 | Primitives | `text`, `icon`, `progress`, `gauge`, `sparkline`, `keyValue`, `divider`, `spacer`, and the charts `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
-| Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage`, `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and for developers `reviewQueue`, `ciStatus`, `commitActivity`, `flakeInputs` (GitHub ones read the `github` secret: `gh auth token` unless defined; `vestal docs presets`) |
+| Presets | `section`, `stat`, `badge`, `clock`, `systemBar`, `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage`, `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and for developers `reviewQueue`, `ciStatus`, `commitActivity`, `flakeInputs`, and for a home server `containers`, `tailnet`, `uptimeMonitors`, `backups`, `transfers` (GitHub ones read the `github` secret: `gh auth token` unless defined; `vestal docs presets`) |
 
 Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` (`"fill"`), `spaceBefore`, `action`, `key`.
 
@@ -826,6 +826,7 @@ User: *"List my Docker containers; clicking one restarts it."*
 - `docker ps --format json` prints one JSON object per line: `parse: "lines"` then `transform: "map(fromjson)"`. The source is `visible`: docker is only asked while the dashboard is shown.
 - The row's `run` action restarts the container without a shell. `optimistic` shows it as restarting at once (it replaces the source's data until the next fetch), and the source is fetched again when `docker restart` exits.
 - Tell the user: a click restarts a container (there is no confirmation); `docker` must be on the daemon's PATH.
+- To only watch them, with state, CPU and memory, use the `containers` preset (`vestal docs presets`): `{"type": "containers"}`.
 
 ### Recipe `ai-usage`: Claude and Codex plan usage
 
@@ -885,6 +886,7 @@ User: *"A table of my disks: used, free and size, red when nearly full."*
 ## 6. Going further
 
 - **More widgets and fields:** `vestal docs widgets`, then `vestal docs widget/<type>` for each field's kind and default.
+- **A home server:** `vestal docs presets` (the `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers` presets, their data packs and the status-file formats; each needs a program or a server, and stays hidden without it).
 - **Your own reusable widget or health agent:** `vestal docs templates` (a source template that maps Glances or netdata to the `system` shape works in `systemHealth`).
 - **Look:** `vestal docs styling` (palettes, fonts, `theme.scale`), `vestal docs icons`.
 - **Keys, views and popups:** `vestal docs keys`, `vestal docs views`, `vestal docs actions`.

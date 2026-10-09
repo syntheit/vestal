@@ -669,6 +669,7 @@ struct V04Checker {
         }
         let scope = Scope(variables: params.union(["secrets", "env", "params"]))
         for field in ConfigExpansion.loadTimeFields { text(source[field], path: "\(path).\(field)", scope: scope) }
+        if case .string? = source["body"] {} else { jsonText(source["body"], path: "\(path).body", scope: scope) }
         for field in ConfigExpansion.loadTimeLists {
             if case .array(let items)? = source[field] {
                 for (i, item) in items.enumerated() { text(item, path: "\(path).\(field)[\(i)]", scope: scope) }
@@ -689,6 +690,20 @@ struct V04Checker {
     mutating func expr(_ value: AnyJSON?, path: String, scope: Scope, inTemplate: Bool = false, checkVariables: Bool = true) {
         guard case .string(let source)? = value else { return }
         compile(source, path: path, offset: 0, scope: scope, checkVariables: checkVariables, legacyHint: true)
+    }
+
+    /// The strings inside a JSON `body` (a plain-text body is a text field).
+    mutating func jsonText(_ value: AnyJSON?, path: String, scope: Scope) {
+        switch value {
+        case .string?:
+            text(value, path: path, scope: scope)
+        case .array(let items)?:
+            for (i, item) in items.enumerated() { jsonText(item, path: "\(path)[\(i)]", scope: scope) }
+        case .object(let members)?:
+            for key in members.keys.sorted() { jsonText(members[key], path: "\(path).\(key)", scope: scope) }
+        default:
+            break
+        }
     }
 
     /// A text field: its `{{ }}` holes compiled.

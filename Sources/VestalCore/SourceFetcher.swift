@@ -217,9 +217,42 @@ public struct LiveFetcher: SourceFetcher {
     private func fetchHTTP(_ source: SourceConfig) async throws -> Data {
         guard allowNetwork else { throw SourceError("not loaded (--no-network)") }
         guard let url = Self.httpURL(source.url) else { throw SourceError("needs an http(s) \"url\"") }
-        let (data, status) = try await Self.download(url, source: source)
-        if let status, !(200..<300).contains(status) { throw SourceError("HTTP \(status)") }
-        return try Self.parsed(data, parse: source.parse)
+        guard let also = source.also, !also.isEmpty else {
+            let (data, status) = try await Self.download(url, source: source)
+            if let status, !(200..<300).contains(status) { throw SourceError("HTTP \(status)") }
+            return try Self.parsed(data, parse: source.parse)
+        }
+        // `also`: every URL at once; the data is the list of the answers.
+        var urls = [url]
+        for (i, text) in also.enumerated() {
+            guard let extra = Self.httpURL(text) else { throw SourceError("also[\(i)] needs an http(s) URL") }
+            urls.append(extra)
+        }
+        var answers = [Data?](repeating: nil, count: urls.count)
+        try await withThrowingTaskGroup(of: (Int, Data).self) { group in
+            for (index, target) in urls.enumerated() {
+                group.addTask {
+                    let (data, status) = try await Self.download(target, source: source)
+                    if let status, !(200..<300).contains(status) {
+                        throw SourceError(index == 0 ? "HTTP \(status)" : "HTTP \(status) from also[\(index - 1)]")
+                    }
+                    return (index, data)
+                }
+            }
+            for try await (index, data) in group { answers[index] = data }
+        }
+        var values: [AnyJSON] = []
+        for answer in answers {
+            let parsed = try Self.parsed(answer ?? Data(), parse: source.parse)
+            if source.parse == "raw" {
+                values.append(.string(String(decoding: parsed, as: UTF8.self)))
+            } else if case .success(let value) = AnyJSON.parse(parsed) {
+                values.append(value)
+            } else {
+                throw SourceError("not valid JSON")
+            }
+        }
+        return AnyJSON.array(values).canonicalData()
     }
 
     /// One HTTP request with `source`'s method, headers, body and timeout.
@@ -329,10 +362,49 @@ public struct LiveFetcher: SourceFetcher {
             return AnyJSON.object(["exists": .bool(attributes != nil), "modified": modified ?? .null]).canonicalData()
         }
         guard let attributes else { throw SourceError("no such file: \(path)") }
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue {
+            guard source.parse == "json" else { throw SourceError("\(path) is a directory: only parse \"json\" reads one") }
+            return try Self.readJSONDirectory(path)
+        }
         if let size = (attributes[.size] as? NSNumber)?.intValue, size > Self.maxBytes {
             throw SourceError("\(path) is larger than 10 MiB")
         }
         return try Self.parsed(try Self.readLimited(path), parse: source.parse)
+    }
+
+    /// At most this many files of a directory are read.
+    static let maxDirectoryFiles = 500
+
+    /// A directory of JSON files as a list, sorted by file name: each file's
+    /// value, in which an object gains `_file` (the name without `.json`)
+    /// and `_modified` (epoch seconds) unless it has them. Files that are not
+    /// valid JSON (half written, say) are skipped; the total is limited like
+    /// any file.
+    static func readJSONDirectory(_ path: String) throws -> Data {
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: path) else { throw SourceError("can't read \(path)") }
+        let files = names.filter { $0.lowercased().hasSuffix(".json") && !$0.hasPrefix(".") }
+            .sorted()
+            .prefix(maxDirectoryFiles)
+        var values: [AnyJSON] = []
+        var total = 0
+        for file in files {
+            let full = path.hasSuffix("/") ? path + file : path + "/" + file
+            guard let data = try? readLimited(full), case .success(var value) = AnyJSON.parse(data) else { continue }
+            total += data.count
+            if total > maxBytes { throw SourceError("\(path) holds more than 10 MiB of JSON") }
+            if case .object(var members) = value {
+                let stem = String(file.dropLast(".json".count))
+                if members["_file"] == nil { members["_file"] = .string(stem) }
+                if members["_modified"] == nil,
+                   let date = (try? FileManager.default.attributesOfItem(atPath: full))?[.modificationDate] as? Date {
+                    members["_modified"] = .int(Int(date.timeIntervalSince1970))
+                }
+                value = .object(members)
+            }
+            values.append(value)
+        }
+        return AnyJSON.array(values).canonicalData()
     }
 
     /// The file's bytes, failing past `maxBytes` as they are read: the size

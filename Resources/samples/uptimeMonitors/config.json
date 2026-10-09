@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "sources": {
+    "status": {
+      "type": "uptimeKuma",
+      "url": "https://status.example.com",
+      "slug": "main"
+    }
+  },
+  "widgets": {
+    "monitors": {
+      "type": "uptimeMonitors",
+      "source": "status"
+    }
+  },
+  "views": {
+    "main": {
+      "children": [
+        "monitors"
+      ],
+      "padding": 24
+    }
+  }
+}

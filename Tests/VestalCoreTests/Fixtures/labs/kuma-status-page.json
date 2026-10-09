@@ -1,0 +1,59 @@
+{
+  "config": {
+    "slug": "status",
+    "title": "Status",
+    "description": null,
+    "icon": "/icon.svg",
+    "theme": "auto",
+    "published": true,
+    "showTags": false,
+    "domainNameList": [],
+    "customCSS": "",
+    "footerText": null,
+    "showPoweredBy": true,
+    "googleAnalyticsId": null,
+    "showCertificateExpiry": false
+  },
+  "incident": null,
+  "publicGroupList": [
+    {
+      "id": 1,
+      "name": "Services",
+      "weight": 1,
+      "monitorList": [
+        {
+          "id": 11,
+          "name": "Website",
+          "sendUrl": 0,
+          "type": "http"
+        },
+        {
+          "id": 12,
+          "name": "API",
+          "sendUrl": 0,
+          "type": "http"
+        },
+        {
+          "id": 13,
+          "name": "Status page",
+          "sendUrl": 0,
+          "type": "http"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Infrastructure",
+      "weight": 2,
+      "monitorList": [
+        {
+          "id": 14,
+          "name": "Mail",
+          "sendUrl": 0,
+          "type": "port"
+        }
+      ]
+    }
+  ],
+  "maintenanceList": []
+}

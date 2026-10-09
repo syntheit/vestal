@@ -1,0 +1,15 @@
+{
+  "kind": "widget",
+  "title": "Uptime monitors",
+  "description": "Status dots, the last 45 heartbeats as bars, uptime and the latest incident of each service on an Uptime Kuma status page.",
+  "preset": "uptimeMonitors",
+  "size": [
+    680,
+    190
+  ],
+  "at": "2026-09-27T17:03:22Z",
+  "tags": [
+    "network",
+    "monitoring"
+  ]
+}

@@ -189,7 +189,7 @@ final class SourceRuntimeTests: XCTestCase {
                        "the definition keeps the name, never the value")
     }
 
-    func testATextBodyGetsItsSecretsAndAJSONBodyStaysAsWritten() async throws {
+    func testATextBodyAndTheStringsOfAJSONBodyGetTheirSecrets() async throws {
         let store = SecretStore(["token": SecretConfig(env: "TOKEN")], environment: ["TOKEN": "hunter22"])
         var source = http("https://a.example")
         source.body = .string("token={{ $secrets.token }}")
@@ -197,7 +197,10 @@ final class SourceRuntimeTests: XCTestCase {
         XCTAssertEqual(text.body, .string("token=hunter22"))
         source.body = .object(["token": .string("{{ $secrets.token }}")])
         let json = try await store.resolve(source)
-        XCTAssertEqual(json.body, source.body)
+        XCTAssertEqual(json.body, .object(["token": .string("hunter22")]))
+        source.body = .array([.object(["params": .array([.string("token:{{ $secrets.token }}"), .int(1)])])])
+        let nested = try await store.resolve(source)
+        XCTAssertEqual(nested.body, .array([.object(["params": .array([.string("token:hunter22"), .int(1)])])]))
     }
 
     @MainActor

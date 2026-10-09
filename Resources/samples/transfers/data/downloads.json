@@ -1,0 +1,23 @@
+[
+  {
+    "name": "ubuntu-26.04-desktop-amd64.iso",
+    "percent": 62,
+    "detail": "41M/s",
+    "right": "1m 10s left"
+  },
+  {
+    "name": "nix build .#darwinConfigurations.atlas",
+    "percent": 33,
+    "detail": "112 / 340 derivations",
+    "right": "building llvm",
+    "icon": "snowflake",
+    "color": "cyan"
+  },
+  {
+    "name": "brew upgrade",
+    "percent": 100,
+    "detail": "14 packages",
+    "right": "done 2 min ago",
+    "icon": "package"
+  }
+]

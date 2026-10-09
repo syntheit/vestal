@@ -283,6 +283,14 @@ private struct Walker {
             } else if isAbsent(source["url"]) {
                 add(.missingKey, path, "missing \"url\"; the source never fetches")
             }
+            let alsoList: [String]?
+            if case .string(let one)? = source["also"] { alsoList = [one] } else { alsoList = strings(source["also"], "\(path).also") }
+            for (i, entry) in (alsoList ?? []).enumerated() {
+                if !LoadTimeText.hasHoles(entry) && !ConfigValidator.isHTTPURL(entry) {
+                    add(.invalidValue, "\(path).also[\(i)]", "not an http(s) URL")
+                }
+                secretLiteral(entry, "\(path).also[\(i)]")
+            }
             if let method = string(source["method"], "\(path).method"),
                !SourceConfig.methods.contains(method.uppercased()) {
                 add(.invalidValue, "\(path).method",

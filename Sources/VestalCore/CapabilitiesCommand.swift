@@ -271,7 +271,9 @@ public enum CapabilitiesCommand {
     static func programsRun(by loaded: LoadedConfig) -> [String: Set<String>] {
         var programs: [String: Set<String>] = [:]
         for (name, source) in loaded.expanded.sources where SourceConfig.canonicalType(source.type) == "command" {
-            if let program = source.argv?.first, !program.isEmpty { programs[program, default: []].insert("source \(name)") }
+            // An inline source is named by a hash: say which widget reads it.
+            let user = name.hasPrefix("inline:") ? ConfigCommands.widgetsReading(name, in: loaded.expanded.top).first?.label : nil
+            if let program = source.argv?.first, !program.isEmpty { programs[program, default: []].insert(user ?? "source \(name)") }
         }
         for (name, source) in loaded.expanded.sources where SourceConfig.canonicalType(source.type) == "flake" {
             let program = source.argv?.first ?? FlakeInputs.defaultArgv[0]

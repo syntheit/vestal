@@ -122,7 +122,7 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
 //
 // One flat struct for every type; `type` says which keys apply (besides the
 // common `refresh`, `when`, `transform`, `history`, `maxAge` and `cache`):
-//   http      url, parse, method, headers, body, timeout
+//   http      url, also, parse, method, headers, body, timeout
 //   command   argv, timeout, parse, env
 //   calendar  days, calendars, ics, caldav, thunderbird, timeout   ("eventkit" is an alias)
 //   file      path, parse
@@ -215,11 +215,12 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public var latitude: Double?            // astro (required): degrees north
     public var longitude: Double?           // astro (required): degrees east
     public var behind: Bool?                // flake: also ask GitHub how far behind each input is
+    public var also: [String]?              // http: more URLs fetched with `url`; the data is then a list of the answers
 
     enum CodingKeys: String, CodingKey {
         case type, url, refresh, parse, argv, timeout, env, days, calendars
         case when, transform, history, maxAge, cache, method, headers, body, path
-        case disks, interfaces, player, ics, thunderbird, backend, caldav, processes, latitude, longitude, behind
+        case disks, interfaces, player, ics, thunderbird, backend, caldav, processes, latitude, longitude, behind, also
     }
 
     public init(
@@ -251,7 +252,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         processes: Int? = nil,
         latitude: Double? = nil,
         longitude: Double? = nil,
-        behind: Bool? = nil
+        behind: Bool? = nil,
+        also: [String]? = nil
     ) {
         let type = Self.canonicalType(type)
         self.type = type
@@ -266,6 +268,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         self.processes = processes
         self.latitude = latitude; self.longitude = longitude
         self.behind = behind
+        self.also = also
         fillDefaults()
     }
 
@@ -301,6 +304,8 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         player    = c.lenient([String].self, .player) ?? c.lenient(String.self, .player).map { [$0] }
         ics       = c.lenient([String].self, .ics) ?? c.lenient(String.self, .ics).map { [$0] }
         caldav    = c.lenient([String].self, .caldav) ?? c.lenient(String.self, .caldav).map { [$0] }
+        also      = c.lenient([String].self, .also) ?? c.lenient(String.self, .also).map { [$0] }
+        if also?.isEmpty == true { also = nil }
         thunderbird = c.lenient(String.self, .thunderbird).map { $0.trimmingCharacters(in: .whitespaces) }
             ?? (c.lenient(Bool.self, .thunderbird) == true ? "" : nil)
         processes = c.lenientPositive(.processes).map { min($0, Self.maxProcesses) }

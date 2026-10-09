@@ -1,0 +1,8 @@
+{
+  "name": "Photos to nas",
+  "tool": "borg",
+  "lastRun": 1790434800,
+  "ok": false,
+  "message": "lock held by pid 4410",
+  "next": 1790529480
+}

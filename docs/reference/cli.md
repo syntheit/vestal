@@ -69,7 +69,7 @@ Checks a config file (default: the one vestal loads; `-` reads stdin) after merg
 
 - `--json`: `{"file", "status", "counts": {"error", "warning", "info"}, "diagnostics": [...]}`. Each diagnostic has `severity`, `code`, `pointer`, `layer` (`user`, `platform.macos`, `platform.linux` or `defaults`), `message`, and where they apply `suggestion` (the best) and `suggestions` (up to 3), `expected` and `found`, `line` and `column`, `exprOffset`, and `platform` (for a finding only the other OS's block causes).
 - `--platform macos|linux`: check as that OS loads the file. The default, `all`, checks this OS and also the other OS's block.
-- `--commands`: list every program the config can run: `command` sources (named, inline, or from a source template), `command` secrets, `run` actions in widgets, views, global keys and templates, the `systemBar` privacy toggle and `systemHealth` foyer hosts. For each: where it is defined (pointer), what triggers it, the environment keys it adds, whether the program is on this machine's `PATH`, and the argv as written (text holes are never evaluated). Exit 0.
+- `--commands`: list every program the config can run: `command` sources (named, inline, from a source template, or made by a preset such as `containers`), `command` secrets, `run` actions in widgets, views, global keys and templates, the `systemBar` privacy toggle and `systemHealth` foyer hosts. For each: where it is defined (pointer), what triggers it, the environment keys it adds, whether the program is on this machine's `PATH`, and the argv as written (text holes are never evaluated). Exit 0.
 
 Severities: **error** (that part won't work; the rest still runs), **warning** (ignored or defaulted), **info** (advice, such as `legacy` notes about v0.3 widgets).
 

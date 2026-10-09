@@ -240,7 +240,7 @@ Every source takes:
 
 **Histories** keep past values for sparklines: `"history": {"price": {"value": ".bitcoin.usd", "size": 288, "every": "5m"}}`. Each successful fetch evaluates `value` (jq, against the transformed data) and appends the number, at most one sample per `every` (default: `refresh`), keeping the last `size` (default 120, at most 10000); a non-number is skipped. Widgets read them as `$history.<source>.<name>`. They are kept in the cache's `history/` directory across restarts, and start over when `value` changes. A visible-only source samples only while the dashboard is shown; to keep a CPU history while hidden, define a named copy of `system` with `"when": "always"`. A `sparkline` with `value` and `history` sets one up by itself.
 
-**Text in a source definition** (`url`, `argv`, `env`, `headers`, `path`, `ics`, `caldav`, and `body` when it is text) may use `{{ $secrets.<name> }}` (see [secrets](#secrets)) and `{{ $env.<NAME> }}`, and a source template's parameters. It is filled in before the source is fetched; there is no data and no `now` in scope, so a source can't depend on another source's data (use a `command` source to chain fetches). `{{{{` writes a literal `{{`.
+**Text in a source definition** (`url`, `also`, `argv`, `env`, `headers`, `path`, `ics`, `caldav`, and `body`, as text or as the strings of a JSON value) may use `{{ $secrets.<name> }}` (see [secrets](#secrets)) and `{{ $env.<NAME> }}`, and a source template's parameters. It is filled in before the source is fetched; there is no data and no `now` in scope, so a source can't depend on another source's data (use a `command` source to chain fetches). `{{{{` writes a literal `{{`.
 
 ```json
 {
@@ -262,9 +262,10 @@ Every source takes:
 | Key | Type | Default | |
 |---|---|---|---|
 | `url` | text | required | An `http://` or `https://` URL, fetched with a `vestal/<version>` User-Agent. The answer must have a 2xx status. |
+| `also` | list of text | none | More URLs, fetched at the same time as `url` with the same method, headers and body. The data is then a list of the answers, `url`'s first, in order; if any fails, the fetch fails. Join them with `transform`. |
 | `method` | string | `"GET"` | `"GET"` or `"POST"`. |
 | `headers` | object of text | none | Request headers, such as `{"Authorization": "Bearer {{ $secrets.token }}"}`. |
-| `body` | text or JSON | none | The `POST` body. A JSON value is sent as `application/json`. |
+| `body` | text or JSON | none | The `POST` body. A JSON value is sent as `application/json`; the strings inside it may use `{{ $secrets.<name> }}` like any source text. |
 | `timeout` | duration | `"10s"` | The request fails after this long. |
 | `parse` | string | `"json"` | `"json"`: the body must be valid JSON. `"raw"`: the body as it is. `"lines"`: a list of its lines. `"feed"`: an RSS 2.0, Atom 1.0 or JSON Feed 1.1 document, read into `{title, url, items: [{id, title, url, date, author, summary}]}` (the first 500 items; `date` in epoch seconds or `null`; `summary` as plain text of at most 500 characters). |
 
@@ -281,7 +282,7 @@ Every source takes:
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `path` | text | required | A file; a leading `~/` expands. |
+| `path` | text | required | A file, or a directory of `.json` files; a leading `~/` expands. A directory is read as a list of the files' contents, sorted by name (at most 500; an object gets `_file`, the name without `.json`, and `_modified`, seconds since 1970; a file that is not valid JSON is skipped). |
 | `parse` | string | `"json"` | As for `http`, plus `"exists"`: `{"exists": true, "modified": <seconds since 1970>}` or `{"exists": false, "modified": null}`, which never fails. The other modes fail when the file is missing. |
 
 ### `calendar`
@@ -378,7 +379,7 @@ The inputs a Nix flake has locked, from `nix flake metadata --json <path>` (the 
 
 ### Source templates
 
-A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in ones are **`openMeteo`** (`{"type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric"}`: an [Open-Meteo](https://open-meteo.com/) forecast, free and keyless, for the `forecast` preset) and **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). **`diskUsage`** reads the size of each of a list of paths with `du -sk`, once a day, for `diskBreakdown`: `{"type": "diskUsage", "paths": [{"label": "Developer", "path": "~/Developer"}]}` (`vestal docs source/diskUsage`; it runs `sh` and `du`). Any other health agent can be mapped the same way with a template of your own. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
+A template with a `source` body (see [templates](#templates)) is a source type of its own. The built-in ones are the data packs of the [homelab presets](#homelab-presets) (`dockerPs`, `dockerStats`, `tailscaleStatus`, `uptimeKuma`, `healthchecks`, `aria2`), **`openMeteo`** (`{"type": "openMeteo", "latitude": 38.72, "longitude": -9.14, "units": "metric"}`: an [Open-Meteo](https://open-meteo.com/) forecast, free and keyless, for the `forecast` preset) and **`foyer`**: `{"type": "foyer", "url": "https://box.example.com"}` runs `foyer-api --host <url> /api/health` every 5 seconds while the dashboard is shown and maps the answer to the `system` shape (`transform: foyer_health`). **`diskUsage`** reads the size of each of a list of paths with `du -sk`, once a day, for `diskBreakdown`: `{"type": "diskUsage", "paths": [{"label": "Developer", "path": "~/Developer"}]}` (`vestal docs source/diskUsage`; it runs `sh` and `du`). Any other health agent can be mapped the same way with a template of your own. An instance may also set the common keys (`refresh`, `when`, `timeout`, `transform`, `history`, `maxAge`, `cache`), which override the template's.
 
 ## Secrets
 
@@ -895,6 +896,54 @@ New in 0.4: `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`. The f
 ### System presets
 
 Six presets draw the detail fields of the [`system` source](#system) (`vestal docs presets` has their parameters; `vestal docs samples` lists their samples): `cpuCores` (load per core, performance and efficiency apart), `memoryBreakdown` (app, wired, compressed, cached, free, and the pressure state), `diskBreakdown` (the mounted volumes, and what fills the first by category when given a `diskUsage` source as `usage`), `networkRates` (down and up with three minutes of history and today's totals), `topProcesses` (the busiest processes by CPU; it reads its own `system` source with `processes` set) and `batteryPower` (charge, time left, watts over time, health, cycles, temperature). A widget whose data the machine can't give is hidden. `diskUsage` is a source template, described under [sources](#source-templates).
+
+### Homelab presets
+
+Five widgets for a home server or a few machines, each reading a data pack (a built-in source template). A widget whose program is missing, or whose server doesn't answer, stays hidden; `vestal check-config --commands` and `vestal capabilities` list the programs they run. `vestal docs presets` has the details, the formats and wrappers for backup tools; each has a sample (`vestal gallery --only containers tailnet uptimeMonitors backups transfers`).
+
+| Preset | Shows | Data |
+|---|---|---|
+| `containers` | Docker or Podman containers: badges for running and exited, then name, state (`up 12d`, `exited (1) 2h ago`), CPU and memory | `docker ps -a --format json` (`dockerPs`) and `docker stats --no-stream --format json` (`dockerStats`), every 15 s while shown |
+| `tailnet` | Tailscale devices: dot, name, IPv4, `this device` / `active` / `idle 14m` / `last seen 26d`, badges for `exit node`, `subnet` and `key expired`; offline ones dimmed, last | `tailscale status --json` (`tailscaleStatus`) |
+| `uptimeMonitors` | Per service: a dot, 45 bars, uptime and the latest incident | `uptimeKuma` (status page API) or `healthchecks` (Healthchecks.io API); the bars are the last 45 Kuma heartbeats, and Healthchecks has no history |
+| `backups` | Per job: result, how long ago, why it failed, late or not, next run | A directory of small JSON status files, one per job |
+| `transfers` | Downloads and long jobs: a bar, the percentage, speed and time left | `aria2` (JSON-RPC), or any file of `{name, percent, detail, right}` |
+
+| Preset | Key | Type | Default | |
+|---|---|---|---|---|
+| `containers` | `title` | string | none | A label before the badges, such as the host's name. |
+| | `program` | string | `"docker"` | `docker`, `podman` or a path. |
+| | `host` | string | none | Another machine's Docker host URL, such as `"ssh://nas"`, set as `DOCKER_HOST` (and `CONTAINER_HOST` for Podman); no shell. |
+| | `stats` | boolean | `true` | The CPU and memory columns (`docker stats`). |
+| | `limit` | integer | `10` | Rows; failed and unhealthy containers are kept first. |
+| `tailnet` | `program` | string | `"tailscale"` | The CLI (macOS app: `/Applications/Tailscale.app/Contents/MacOS/Tailscale`). |
+| | `showOffline` | boolean | `true` | Also list offline devices. |
+| | `limit` | integer | `12` | Devices shown. |
+| `uptimeMonitors` | `limit` | integer | `12` | Services shown. |
+| | `warnBelow` | number | `99.5` | Uptime percent under which the dot is yellow. |
+| `backups` | `dir` | string | `"~/.local/state/vestal/backups"` | The directory of status files `{name, tool, lastRun, ok, message, size, next, expectEvery}`. |
+| | `expectEvery` | string | `"1d"` | A job not run for longer than this is late (`"26h"`, `"7d"`). |
+| | `limit` | integer | `8` | Jobs shown, failed first. |
+| `transfers` | `limit` | integer | `6` | Rows shown. |
+
+```json
+{
+  "version": 1,
+  "secrets": { "aria2": { "file": "~/.config/vestal/secrets/aria2.token" } },
+  "sources": {
+    "status": { "type": "uptimeKuma", "url": "https://status.example.com", "slug": "main" },
+    "downloads": { "type": "aria2", "auth": "token:{{ $secrets.aria2 }}" }
+  },
+  "widgets": {
+    "containers": { "type": "containers", "title": "nas", "host": "ssh://nas" },
+    "tailnet": { "type": "tailnet" },
+    "monitors": { "type": "uptimeMonitors", "source": "status" },
+    "backups": { "type": "backups", "expectEvery": "26h" },
+    "transfers": { "type": "transfers", "source": "downloads" }
+  },
+  "views": { "main": { "children": ["containers", "tailnet", "monitors", "backups", "transfers"] } }
+}
+```
 
 ## Changes in 0.4
 

@@ -1,0 +1,7 @@
+{
+  "name": "Postgres dump",
+  "tool": "cron",
+  "lastRun": 1790301600,
+  "ok": true,
+  "expectEvery": "1d"
+}
