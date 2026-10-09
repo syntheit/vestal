@@ -292,6 +292,9 @@ public struct LiveFetcher: SourceFetcher {
         if let ics = source.ics, !ics.isEmpty {
             return try await readICS(ics, source: source, range: range)
         }
+        if source.thunderbird != nil {
+            return try await readICS([], source: source, range: range)
+        }
         guard let calendar = platform.calendar else {
             return FetchResult(data: try CalendarEntry.encodeList([]), info: Self.noCalendarBackend)
         }
@@ -340,6 +343,11 @@ public struct LiveFetcher: SourceFetcher {
                 entries += result.entries
                 skipped += result.skipped
             }
+        }
+        if let profile = source.thunderbird {
+            let result = try await ThunderbirdCalendar.events(profile: profile, home: home, from: range.start, to: range.end)
+            entries += result.entries
+            skipped += result.skipped
         }
         if let names = source.calendars { entries = entries.filter { names.contains($0.calendar) } }
         let info = skipped.isEmpty ? nil

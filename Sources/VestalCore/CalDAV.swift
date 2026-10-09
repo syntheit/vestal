@@ -525,8 +525,8 @@ extension LiveFetcher {
             notes.append("\(skipped.count) event\(skipped.count == 1 ? "" : "s") left out: " + skipped.prefix(3).joined(separator: "; ")
                          + (skipped.count > 3 ? "; …" : ""))
         }
-        if let ics = source.ics, !ics.isEmpty {
-            let more = try await readICS(ics, source: source, range: range)
+        if !(source.ics ?? []).isEmpty || source.thunderbird != nil {
+            let more = try await readICS(source.ics ?? [], source: source, range: range)
             entries += try CalendarEntry.decodeList(more.data)
             if let info = more.info { notes.append(info) }
         }

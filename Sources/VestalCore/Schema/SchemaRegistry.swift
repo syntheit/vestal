@@ -361,7 +361,7 @@ public enum SchemaRegistry {
                       "Added to the command's environment."),
         ] + common("30m", "always") + [parse("stdout")]),
         SchemaEntityType("calendar", aliases: ["eventkit"],
-                         "Events: EventKit on macOS, or .ics files, directories and URLs (ics) and CalDAV servers (caldav) on both OSes.", keys: [
+                         "Events: EventKit on macOS, or .ics files, directories and URLs (ics), CalDAV servers (caldav) or Thunderbird's calendars (thunderbird) on both OSes.", keys: [
             SchemaKey("days", .integer(minimum: 1), default: .int(SourceConfig.defaultDays), examples: [.int(2)],
                       "How many days to read, today being the first."),
             SchemaKey("calendars", .list(.string), examples: [.array([.string("Work"), .string("Home")])],
@@ -375,6 +375,11 @@ public enum SchemaRegistry {
                       "A list (or one) of CalDAV URLs: a calendar collection, or a server or principal URL whose calendars are "
                       + "discovered (RFC 4791, /.well-known/caldav). user:password@ in the URL is sent as Basic authentication. "
                       + "Like ics, it replaces the platform's calendar, and the two combine. `calendars` filters by display name."),
+            SchemaKey("thunderbird", .any, kind: .text, since: "0.4",
+                      examples: [.bool(true)],
+                      "true for Thunderbird's default profile, or a profile directory such as ~/.thunderbird/abcd1234.default: its "
+                      + "calendars with Offline support enabled, read from the profile's local databases. Replaces EventKit like ics, "
+                      + "and adds to ics and caldav when set."),
             timeout("For ics and caldav URLs."),
         ] + common("30m", "always")),
         SchemaEntityType("file", since: "0.4", "Reads a file.", keys: [

@@ -1070,7 +1070,7 @@
     },
     "source.calendar": {
       "additionalProperties": false,
-      "description": "Events: EventKit on macOS, or .ics files, directories and URLs (ics) and CalDAV servers (caldav) on both OSes.",
+      "description": "Events: EventKit on macOS, or .ics files, directories and URLs (ics), CalDAV servers (caldav) or Thunderbird's calendars (thunderbird) on both OSes.",
       "properties": {
         "cache": {
           "default": true,
@@ -1199,6 +1199,14 @@
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
+        },
+        "thunderbird": {
+          "description": "true for Thunderbird's default profile, or a profile directory such as ~/.thunderbird/abcd1234.default: its calendars with Offline support enabled, read from the profile's local databases. Replaces EventKit like ics, and adds to ics and caldav when set.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
         },
         "timeout": {
           "anyOf": [
@@ -2827,6 +2835,14 @@
           ],
           "x-vestal-kind": "literal",
           "x-vestal-since": "0.3"
+        },
+        "thunderbird": {
+          "description": "true for Thunderbird's default profile, or a profile directory such as ~/.thunderbird/abcd1234.default: its calendars with Offline support enabled, read from the profile's local databases. Replaces EventKit like ics, and adds to ics and caldav when set.",
+          "examples": [
+            true
+          ],
+          "x-vestal-kind": "text",
+          "x-vestal-since": "0.4"
         },
         "timeout": {
           "anyOf": [

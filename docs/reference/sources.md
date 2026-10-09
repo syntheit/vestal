@@ -44,7 +44,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 | `http` | `30m` | `always` | the network |
 | `command` | `30m` | `always` | a program's output |
 | `file` | `30s` | `always` | a file |
-| `calendar` | `30m` | `always` | EventKit (macOS), `.ics` or CalDAV (both) |
+| `calendar` | `30m` | `always` | EventKit (macOS), `.ics`, CalDAV or Thunderbird (both) |
 | `system` | `3s` | `visible` | this machine |
 | `media` | `3s` | `visible` | a music player |
 | `claude` | `5m` | `visible` | the Claude plan's usage, from the usage endpoint or `claude -p /usage` |
@@ -166,10 +166,11 @@ Events of the next `days` days, today being the first:
 | `days` | `1` | Days to read, today being the first. |
 | `calendars` | all | Only calendars with these names. |
 | `ics` | none | A list (or one) of `.ics` files, directories of them (such as vdirsyncer's), or `http(s)` URLs. When set, it is used on both OSes. A URL may carry `user:password@`; vestal strips it and sends it as a Basic `Authorization` header, and shows the password as `***` in messages. For Radicale, whose collection URL returns the whole calendar: `"ics": ["https://me:{{ $secrets.dav }}@dav.example.com/me/calendar-uuid/"]` (percent-encode `@`, `/`, `:` in the password). The source's `headers` are sent too. |
+| `thunderbird` | none | Thunderbird's own calendars, with no extra sync: `true` for the default profile (from `profiles.ini`, in `~/.thunderbird` on Linux or `~/Library/Thunderbird` on macOS) or a profile directory such as `"~/.thunderbird/abcd1234.default"`. vestal reads the profile's calendar databases (`calendar-data/cache.sqlite`, the offline cache of network calendars, and `local.sqlite`) from a private copy, never writing to Thunderbird's files, and skips disabled calendars. Only calendars with **Offline support** enabled (Thunderbird, Calendar properties) are cached, and the cache is as fresh as Thunderbird's last sync, so Thunderbird must have run recently. Recurrence and time zones work as for `ics`. Like `ics`, it replaces EventKit; with several set, events are combined. `calendars` filters by name. |
 | `timeout` | `10s` | For `ics` and `caldav` URLs. |
 | `caldav` | none | A list (or one) of CalDAV URLs, read by vestal itself on both OSes: a calendar collection, or a server or principal URL whose event calendars are discovered (`current-user-principal`, then `calendar-home-set`; `/.well-known/caldav` is tried when the URL names no principal). `user:password@` works as for `ics` and is sent only to the entry's own site. `calendars` filters by display name. The discovered list is cached in memory for a day. Radicale: `"caldav": ["http://me:{{ $secrets.dav }}@127.0.0.1:5232/"]`. Nextcloud: `"https://me:{{ $secrets.dav }}@cloud.example.com/remote.php/dav/"`. Fastmail (app password): `"https://me%40fastmail.com:{{ $secrets.dav }}@caldav.fastmail.com/dav/calendars/user/me@fastmail.com/"`. iCloud (app-specific password): `"https://me%40icloud.com:{{ $secrets.dav }}@caldav.icloud.com/"`. Google's CalDAV needs OAuth and is not supported: use Google's "Secret address in iCal format" with `ics`. |
 
-Without `ics` or `caldav`, macOS reads EventKit (the app asks for calendar access); with either, only they are read, and the two combine. Linux yields `[]` with an info note: the default agenda then stays hidden. Recurring events are expanded for `FREQ` `DAILY`, `WEEKLY`, `MONTHLY` and `YEARLY` with `COUNT`, `UNTIL`, `INTERVAL`, `BYDAY`, `EXDATE`, `RDATE`, overridden instances and `VTIMEZONE`/`TZID` zones. An event using another rule (`BYSETPOS`, `BYWEEKNO`, …) is left out rather than guessed, and counted in the source's note. The calendar name comes from `X-WR-CALNAME` or the file name.
+Without `ics`, `caldav` or `thunderbird`, macOS reads EventKit (the app asks for calendar access); with any of them, only they are read, and they combine. Linux yields `[]` with an info note: the default agenda then stays hidden. Recurring events are expanded for `FREQ` `DAILY`, `WEEKLY`, `MONTHLY` and `YEARLY` with `COUNT`, `UNTIL`, `INTERVAL`, `BYDAY`, `EXDATE`, `RDATE`, overridden instances and `VTIMEZONE`/`TZID` zones. An event using another rule (`BYSETPOS`, `BYWEEKNO`, …) is left out rather than guessed, and counted in the source's note. The calendar name comes from `X-WR-CALNAME` or the file name.
 
 ### `system`
 
