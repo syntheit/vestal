@@ -14,7 +14,6 @@ import VestalCore
 //                      [--screenshot <out.png>] [--frames <out.json>]
 //                      [--size <w>x<h>] [--scale <n>] [--background solid|transparent]
 //                      [--icons native|phosphor]
-//   vestal render-file --legacy <data.json> [--config <config.json>] [--popup <host>] --screenshot <out.png> ...
 //
 // The model is a snapshot message or a bare node (drawn with the default
 // theme). The patches are applied in order before the render. The picture is
@@ -23,11 +22,6 @@ import VestalCore
 // Linux screenshots. `--frames` writes every node's frame with `clipped` and
 // `truncated`.
 //
-// `--legacy` draws the v0.3 dashboard instead, for `config` (default
-// examples/full.json) with the fixed values of `data.json`, for the parity
-// check, with `host`'s popup open if asked. The data's `timeZone` becomes the
-// process's, for the world clocks.
-//
 // `--interval`, `--exit-after` and `--hidden` (on-screen options on Linux)
 // are accepted and ignored.
 
@@ -35,7 +29,6 @@ public enum MacRenderFileCommand {
     static let usage = """
     usage: vestal render-file <model.json> [--patch <patch.json>]... [--screenshot <out.png>] [--frames <out.json>]
                               [--size <w>x<h>] [--scale <n>] [--background solid|transparent] [--icons native|phosphor]
-           vestal render-file --legacy <data.json|fixture dir> [--at <time>] [--config <config.json>] [--popup <host>] [--screenshot <out.png>] [--size …] [--scale …]
     """
 
     struct Options {
@@ -48,11 +41,6 @@ public enum MacRenderFileCommand {
         var scale = 2.0
         var transparent = false
         var icons: String?
-        var legacy: String?
-        var config = "examples/full.json"
-        var popup: String?
-        /// `--at`: the time for `--legacy <fixture dir>`.
-        var at: Date?
     }
 
     static func parse(_ arguments: [String]) -> Options? {
@@ -83,10 +71,6 @@ public enum MacRenderFileCommand {
             case "--icons":
                 guard let v = value(), v == "native" || v == "phosphor" else { return nil }
                 o.icons = v
-            case "--legacy": guard let v = value() else { return nil }; o.legacy = v
-            case "--config": guard let v = value() else { return nil }; o.config = v
-            case "--popup": guard let v = value() else { return nil }; o.popup = v
-            case "--at": guard let v = value().flatMap(RenderCommands.parseTime) else { return nil }; o.at = v
             case "--interval", "--exit-after": guard value() != nil else { return nil }
             case "--hidden": break
             case let arg where arg.hasPrefix("-"): return nil
@@ -96,9 +80,7 @@ public enum MacRenderFileCommand {
             }
             i += 1
         }
-        if o.legacy == nil && o.model.isEmpty { return nil }
-        // v0.3's views have no node ids to report frames for.
-        if o.legacy != nil && o.frames != nil { return nil }
+        if o.model.isEmpty { return nil }
         // At most 16384 pixels a side (ImageRenderer allocates the bitmap).
         if o.width * o.scale > 16_384 || o.height * o.scale > 16_384 { return nil }
         return o
@@ -125,9 +107,7 @@ public enum MacRenderFileCommand {
         guard options.screenshot != nil || options.frames != nil else {
             return fail("nothing to do: macOS renders offscreen only; give --screenshot or --frames", status: 2)
         }
-        return MainActor.assumeIsolated {
-            options.legacy != nil ? runLegacy(options) : runModel(options)
-        }
+        return MainActor.assumeIsolated { runModel(options) }
     }
 
     @MainActor
@@ -186,42 +166,6 @@ public enum MacRenderFileCommand {
             }
         }
         return frames
-    }
-
-    @MainActor
-    private static func runLegacy(_ options: Options) -> Int32 {
-        guard let dataPath = options.legacy else { return 2 }
-        var data: LegacyDashboardData
-        var isDirectory: ObjCBool = false
-        let fixtures = FileManager.default.fileExists(atPath: dataPath, isDirectory: &isDirectory) && isDirectory.boolValue
-        if fixtures {
-            // A render fixture directory: the v0.3 model's values derived
-            // from it, at --at, in the process's zone (TZ).
-            let config = ConfigLoader.load(path: options.config).config
-            do { data = try LegacyDashboardData.fromFixtures(dataPath, config: config, now: options.at ?? Date()) } catch {
-                return fail("\(error)")
-            }
-        } else {
-            do { data = try LegacyDashboardData.load(dataPath) } catch { return fail("\(dataPath): \(error)") }
-        }
-        if let host = options.popup { data.popup = host }
-        if let zone = data.timeZone {
-            setenv("TZ", zone.identifier, 1)
-            tzset()
-            NSTimeZone.resetSystemTimeZone()
-            NSTimeZone.default = zone
-        }
-        let loaded = ConfigLoader.load(path: options.config)
-        for warning in loaded.warnings { FileHandle.standardError.write(Data("vestal render-file: \(options.config): \(warning)\n".utf8)) }
-        var status: Int32 = 0
-        let background = options.transparent ? Color.clear : Palette.named(loaded.config.theme.paletteName).background
-        let content = LegacySnapshot.view(config: loaded.config, data: data)
-            // The fixture's date format, with a 24-hour clock.
-            .environment(\.locale, Locale(identifier: "en_US@hours=h23"))
-            .frame(width: CGFloat(options.width), height: CGFloat(options.height))
-            .background(background)
-        _ = render(content, options: options, status: &status)
-        return status
     }
 
     /// Writes the PNG, if asked. False on failure (status set).

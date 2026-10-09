@@ -81,11 +81,11 @@ final class ViewsKeysActionsTests: XCTestCase {
                 return await MainActor.run { log.result }
             }
             if observe {
-                resident.engine?.observe { [weak self] update in self?.updates.append(update) }
+                resident.engine.observe { [weak self] update in self?.updates.append(update) }
             }
         }
 
-        var engine: RenderEngine { resident.engine! }
+        var engine: RenderEngine { resident.engine }
 
         func text(_ id: String) -> String? {
             guard case .text(let t)? = engine.snapshot?.root.node(withId: id)?.content else { return nil }

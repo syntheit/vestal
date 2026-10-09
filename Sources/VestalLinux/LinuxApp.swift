@@ -133,7 +133,7 @@ final class LinuxSurface: ResidentSurface {
     /// Starts drawing `resident`'s engine.
     func attach(_ resident: Resident) {
         self.resident = resident
-        guard let engine = resident.engine else { return uiLog("linux ui: the resident has no render engine") }
+        let engine = resident.engine
         engine.observe { [weak self] update in
             guard let self else { return }
             switch update {

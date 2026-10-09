@@ -93,25 +93,17 @@ private final class LaunchOutcome: @unchecked Sendable {
 /// drawn by the generic renderer (Render/): `RenderStore` observes the
 /// engine, clicks and every key go back to it, and the core decides what
 /// they do (Escape, popups, host letters, `p`, views). The window, the blur,
-/// the aurora, the fades and the hotkey are as in v0.3. With
-/// `VESTAL_LEGACY_UI=1` the v0.3 widget views draw instead, from
-/// `DashboardModel`, with v0.3's key handling (they go
-/// in 0.4.1).
+/// the aurora, the fades and the hotkey are as in v0.3.
 final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
     private let loaded: LoadedConfig
     private let startHidden: Bool
     private let server: IPCServer
-    /// `VESTAL_LEGACY_UI=1`: the v0.3 views.
-    private let legacy = ProcessInfo.processInfo.environment["VESTAL_LEGACY_UI"] == "1"
 
     private var window: NSWindow?
     /// The dashboard, faded in and out over the blur (or the solid color).
     private var hosting: NSView?
-    /// The v0.3 views' model (legacy only), kept current by the runtime;
-    /// replaced on reload.
-    private var model: DashboardModel?
-    /// The render model as the views observe it (not legacy); kept across
-    /// reloads, the engine sends it a fresh snapshot.
+    /// The render model as the views observe it; kept across reloads, the
+    /// engine sends it a fresh snapshot.
     private var store: RenderStore?
     /// A show waits for the engine's first snapshot before it fades in, so
     /// the first frame is complete (no rows appearing a moment later).
@@ -186,12 +178,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
         let resident = Resident(loaded: loaded, runtime: runtime, surface: self,
                                 hotkeys: hotkeys, gestures: gestures, watcher: watcher,
                                 stats: { SystemStatsSample.read(statusStats, volume: MacPlatform.audio.volume()) },
-                                render: !legacy,
                                 actions: RenderActionRunner(media: MacPlatform.sources.media, audio: MacPlatform.audio))
         self.resident = resident
-        if let engine = resident.engine { attach(engine) }
+        attach(resident.engine)
         buildDashboard(loaded)
-        if legacy { installLegacyKeyMonitor() } else { installKeyMonitor() }
+        installKeyMonitor()
         resident.start(hidden: startHidden)
         ResidentInbox.shared.attach(resident)
     }
@@ -224,7 +215,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         setAuroraPaused(false)
-        guard !legacy, resident?.engine != nil, !onScreen else { return fadeIn(hosting) }
+        guard !onScreen else { return fadeIn(hosting) }
         // The engine's snapshot for this show arrives in a moment (it
         // evaluates off the main actor); fade in when it has been drawn,
         // or after 0.25 s whatever happens.
@@ -276,7 +267,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
     /// Nothing draws while hidden (the runtime stops the tickers; the aurora
     /// pauses).
     func hide() {
-        closePopups()
         fadeInPending = false
         guard let window, let hosting, window.isVisible else { return }
         fade += 1
@@ -313,20 +303,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
     /// The window's content for `loaded`: the blur (or the palette's color
     /// for `theme.background: "none"`) and the dashboard over it.
     private func buildDashboard(_ loaded: LoadedConfig) {
-        guard let window, let runtime else { return }
+        guard let window else { return }
         Palette.current = Palette.named(loaded.config.theme.paletteName)
         let style = loaded.config.theme.backgroundStyle
-        let content: AnyView
-        if legacy {
-            model?.detach()
-            let model = DashboardModel(runtime: runtime, config: loaded.config, cache: cache)
-            self.model = model
-            content = AnyView(DashboardView(model: model))
-        } else if let store {
-            content = AnyView(RenderDashboardView(store: store, aurora: style == .aurora))
-        } else {
-            return
-        }
+        guard let store else { return }
+        let content = RenderDashboardView(store: store, aurora: style == .aurora)
 
         let frame = NSRect(origin: .zero, size: window.frame.size)
         let background: NSView
@@ -355,10 +336,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
         // never has to undo a full-alpha view it never faded.
         hosting.alphaValue = (window.isVisible && !isHiding) ? 1 : 0
         background.addSubview(hosting)
-        // The new view starts without popups (v0.3 views; the engine closes
-        // its own on reload).
-        DashboardExpansionState.shared.isOpen = false
-        DashboardExpansionState.shared.infoOpen = false
 
         window.contentView = background
         self.hosting = hosting
@@ -416,59 +393,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
         }
     }
 
-    /// v0.3's key handling, for the v0.3 views (`VESTAL_LEGACY_UI=1`).
-    private func installLegacyKeyMonitor() {
-        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            if event.keyCode == 53 { // Escape: a popup first, then the dashboard
-                if DashboardExpansionState.shared.infoOpen {
-                    NotificationCenter.default.post(name: .dashboardCloseInfo, object: nil)
-                    return nil
-                }
-                if DashboardExpansionState.shared.isOpen {
-                    NotificationCenter.default.post(name: .dashboardCloseExpanded, object: nil)
-                    return nil
-                }
-                self?.resident?.hide()
-                return nil
-            }
-            // Option+I → toggle info popup. Modifier-augmented so it doesn't
-            // collide with a future host whose name starts with 'i' (ionian).
-            if event.modifierFlags.contains(.option),
-               event.charactersIgnoringModifiers == "i"
-            {
-                NotificationCenter.default.post(name: .dashboardToggleInfo, object: nil)
-                return nil
-            }
-            // Host and privacy shortcuts are plain letters. Any modifier other
-            // than Shift or Caps Lock (Cmd, Ctrl, Option, Fn/Globe, ...) means
-            // the keystroke belongs to the system or another app. Shift is
-            // fine: charactersIgnoringModifiers keeps it, so lowercase.
-            let held = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-            guard held.subtracting([.shift, .capsLock]).isEmpty,
-                  let key = event.charactersIgnoringModifiers?.lowercased().first
-            else { return event }
-            // Letters from the config's host `key`s, or assigned (HostKeys).
-            if let host = self?.model?.hostKeys[key] {
-                NotificationCenter.default.post(
-                    name: .dashboardExpandHost, object: nil,
-                    userInfo: ["host": host]
-                )
-                return nil
-            }
-            if key == "p" {
-                self?.model?.togglePrivacyShortcut()
-                return nil
-            }
-            return event
-        }
-    }
-
     // MARK: Helpers
-
-    private func closePopups() {
-        NotificationCenter.default.post(name: .dashboardCloseExpanded, object: nil)
-        NotificationCenter.default.post(name: .dashboardCloseInfo, object: nil)
-    }
 
     /// The Metal aurora draws only while the window is on screen. A view
     /// made later (a reload) starts in the right state by itself

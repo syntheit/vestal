@@ -102,9 +102,8 @@ public final class Resident {
     /// Whether the dashboard is on screen.
     public private(set) var isVisible = false
     public let runtime: AppRuntime
-    /// The render engine the UI observes; nil for the v0.3 views
-    /// (`VESTAL_LEGACY_UI=1` on macOS), which draw from the runtime.
-    public let engine: RenderEngine?
+    /// The render engine the UI observes.
+    public let engine: RenderEngine
 
     private weak var surface: ResidentSurface?
     private let hotkeys: HotkeyRegistrar?
@@ -134,7 +133,6 @@ public final class Resident {
     ///   - load: reads the config again, for a reload.
     ///   - watchedPath: the config file to watch.
     ///   - stats: this machine's stats for `vestal status`; nil reports none.
-    ///   - render: whether to run the render engine (`engine`).
     ///   - actions: runs the engine's actions; nil: a `RenderActionRunner`
     ///     without media or audio providers.
     public init(
@@ -148,7 +146,6 @@ public final class Resident {
         load: @escaping () -> LoadedConfig = { ConfigLoader.load() },
         watchedPath: @escaping () -> String = { ConfigLoader.watchedPath() },
         stats: (@MainActor () -> SystemStatsSample)? = nil,
-        render: Bool = true,
         actions: RenderActionHandler? = nil
     ) {
         self.loaded = loaded
@@ -161,9 +158,9 @@ public final class Resident {
         self.load = load
         self.watchedPath = watchedPath
         self.stats = stats
-        engine = render ? RenderEngine(runtime: runtime, loaded: loaded) : nil
-        engine?.actions = actions ?? RenderActionRunner()
-        engine?.onHide = { [weak self] in self?.hide() }
+        engine = RenderEngine(runtime: runtime, loaded: loaded)
+        engine.actions = actions ?? RenderActionRunner()
+        engine.onHide = { [weak self] in self?.hide() }
     }
 
     // MARK: Lifecycle
@@ -348,10 +345,8 @@ public final class Resident {
         // Whatever went stale while hidden refreshes at once; `system` and
         // `file` sources are read now, so the first frame is complete.
         runtime.setVisible(true)
-        if let engine {
-            runtime.readNow()
-            engine.show(view: view)
-        }
+        runtime.readNow()
+        engine.show(view: view)
         return true
     }
 
@@ -359,7 +354,7 @@ public final class Resident {
     public func hide() {
         guard !stopped else { return }
         isVisible = false
-        engine?.setVisible(false)
+        engine.setVisible(false)
         // Nothing polls during the fade-out.
         runtime.setVisible(false)
         surface?.hide()
@@ -408,7 +403,7 @@ public final class Resident {
     /// The hotkey and `vestal toggle`. With a view: hides the dashboard
     /// when it is shown on that view, else shows that view.
     public func toggle(view: String? = nil) {
-        if let view, let engine, isVisible, engine.view != view {
+        if let view, isVisible, engine.view != view {
             show(view: view)
         } else {
             isVisible ? hide() : show(view: view)
@@ -419,7 +414,6 @@ public final class Resident {
     /// dashboard, which has to be shown.
     private func press(_ key: String?, reply: @escaping IPCReply) {
         guard let key, !key.isEmpty else { return reply(.failure("press needs a key")) }
-        guard let engine else { return reply(.failure("keys go to the v0.3 views directly (VESTAL_LEGACY_UI)")) }
         guard isVisible else { return reply(.failure("the dashboard is hidden; run `vestal show` first")) }
         engine.key(key)
         reply(.ok)
@@ -428,8 +422,7 @@ public final class Resident {
     /// A failure reply for a view the config doesn't have (exit 4), or nil.
     private func unknownView(_ view: String?) -> IPCResponse? {
         guard let view else { return nil }
-        let known = engine.map { $0.hasView(view) } ?? (loaded.config.views[view] != nil)
-        guard !known else { return nil }
+        guard !engine.hasView(view) else { return nil }
         return IPCResponse(ok: false, error: "no view named \"\(view)\"", code: IPCResponse.notFound)
     }
 
@@ -477,7 +470,7 @@ public final class Resident {
         vestalLog("config reloaded from \(fresh.path ?? "the built-in defaults"): \(fresh.warnings.count) warnings")
         for warning in fresh.warnings { vestalLog("config warning: \(warning)") }
         runtime.apply(fresh.config)
-        engine?.apply(fresh)
+        engine.apply(fresh)
         if hotkeyChanged || hotkeyProblem != nil { registerHotkey() }
         if gestureChanged || gestureProblem != nil { registerGesture() }
         surface?.apply(fresh)
@@ -558,7 +551,7 @@ public final class Resident {
             warnings: warnings,
             sources: sources,
             stats: stats?(),
-            view: isVisible ? engine?.view : nil)
+            view: isVisible ? engine.view : nil)
     }
 }
 
@@ -592,7 +585,7 @@ public final class ResidentInbox {
     /// `subscribe` streams its render engine (SubscriptionHub).
     public func attach(_ resident: Resident) {
         self.resident = resident
-        if self === ResidentInbox.shared, let engine = resident.engine { SubscriptionHub.shared.attach(engine) }
+        if self === ResidentInbox.shared { SubscriptionHub.shared.attach(resident.engine) }
         let queued = waiting
         waiting = []
         for item in queued { resident.handle(item.request, reply: item.reply) }
