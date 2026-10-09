@@ -355,7 +355,7 @@ public struct IPCSourceStatus: Codable, Equatable, Sendable {
 /// The payload of a `status` reply. Every key is optional on the wire.
 public struct IPCStatus: Codable, Equatable, Sendable {
     public var pid: Int32
-    /// Version and build, e.g. "0.3.0 (abc1234)".
+    /// Version and build, e.g. "0.5.0 (abc1234)".
     public var version: String
     /// Whether the dashboard is on screen.
     public var visible: Bool

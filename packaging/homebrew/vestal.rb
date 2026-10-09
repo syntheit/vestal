@@ -1,5 +1,5 @@
 cask "vestal" do
-  version "0.3.0"
+  version "0.5.0"
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
 
   url "https://github.com/syntheit/vestal/releases/download/v#{version}/Vestal-#{version}.dmg"

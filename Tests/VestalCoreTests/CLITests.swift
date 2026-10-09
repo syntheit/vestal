@@ -118,7 +118,7 @@ final class CLITests: XCTestCase {
 
     func testStatusIsPrinted() {
         let now = Date(timeIntervalSince1970: 1_758_000_000)
-        let status = IPCStatus(pid: 42, version: "0.3.0 (abc1234)", visible: false,
+        let status = IPCStatus(pid: 42, version: "0.5.0 (abc1234)", visible: false,
                                configPath: "/home/u/.config/vestal/config.json", hotkey: "f3",
                                warnings: ["zzz: unknown key"],
                                sources: [IPCSourceStatus(name: "weather", type: "http",
@@ -130,7 +130,7 @@ final class CLITests: XCTestCase {
         XCTAssertEqual(output.status, 0)
         XCTAssertEqual(output.stdout, """
             running: pid 42, hidden
-            build: 0.3.0 (abc1234)
+            build: 0.5.0 (abc1234)
             config: /home/u/.config/vestal/config.json
             hotkey: f3
             warnings: 1
@@ -179,19 +179,19 @@ final class CLITests: XCTestCase {
     }
 
     func testDaemonLeavesTheSameBuildAlone() {
-        let client = ScriptedClient([.reply(.status(IPCStatus(pid: 9, version: "0.3.0 (abc)", visible: false)))])
-        let startup = CLI.claim(hidden: true, build: "0.3.0 (abc)",
+        let client = ScriptedClient([.reply(.status(IPCStatus(pid: 9, version: "0.5.0 (abc)", visible: false)))])
+        let startup = CLI.claim(hidden: true, build: "0.5.0 (abc)",
                                 start: { throw IPCError.alreadyRunning(path: "/s") }, client: client.send)
         XCTAssertEqual(startup, .exit(CLI.Output(status: 0, stderr: "vestal: already running (pid 9)\n")))
         XCTAssertEqual(client.sent, [.status])
     }
 
     func testDaemonReplacesAnotherBuild() {
-        let client = ScriptedClient([.reply(.status(IPCStatus(pid: 9, version: "0.3.0 (old)", visible: true))), .ok])
+        let client = ScriptedClient([.reply(.status(IPCStatus(pid: 9, version: "0.5.0 (old)", visible: true))), .ok])
         var attempts = 0
         var waited: TimeInterval = 0
         let startup = CLI.claim(
-            hidden: true, build: "0.3.0 (new)",
+            hidden: true, build: "0.5.0 (new)",
             start: {
                 attempts += 1
                 // Taken until the old instance has let go, a few tries later.

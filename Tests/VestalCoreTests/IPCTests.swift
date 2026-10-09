@@ -1186,7 +1186,7 @@ final class IPCTests: XCTestCase {
     private func sampleStatus() -> IPCStatus {
         IPCStatus(
             pid: 4242,
-            version: "0.3.0 (abc1234)",
+            version: "0.5.0 (abc1234)",
             visible: true,
             configPath: "/home/u/.config/vestal/config.json",
             hotkey: "f3",

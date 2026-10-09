@@ -87,7 +87,7 @@ final class HeadlessTests: XCTestCase {
     }
 
     func testStatusTextAndJSON() throws {
-        var status = IPCStatus(pid: 42, version: "0.3.0 (abc)", visible: false, stats: Self.sample)
+        var status = IPCStatus(pid: 42, version: "0.5.0 (abc)", visible: false, stats: Self.sample)
         let now = Date(timeIntervalSince1970: 1_790_000_000)
         let text = CLI.send(.status, client: { _ in .status(status) }, launch: {}, now: now).stdout
         XCTAssertTrue(text.hasSuffix("""
