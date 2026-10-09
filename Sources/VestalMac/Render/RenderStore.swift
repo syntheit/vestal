@@ -91,6 +91,9 @@ public final class RenderStore: ObservableObject {
     @Published private(set) var root: NodeHandle?
     @Published private(set) var popup: PopupState?
     @Published private(set) var style = RenderStyle.default
+    /// The theme for the library background, which follows data that
+    /// `style` does not (see `setTheme`).
+    @Published private(set) var background = RenderStyle.default.theme
     /// The pages and the current one (two or more), for the dots.
     @Published private(set) var pages: RenderPages?
     /// A change of page being drawn: the old page leaving while the new one
@@ -207,7 +210,15 @@ public final class RenderStore: ObservableObject {
     }
 
     private func setTheme(_ theme: RenderTheme) {
-        style = RenderStyle(theme, iconMode: iconMode.flatMap(RenderIconMode.init(rawValue:)))
+        // What a library background reads from a source changes every few
+        // seconds (the load); it must not redraw the nodes, which only the
+        // look of the theme does.
+        if background != theme { background = theme }
+        var rest = theme
+        rest.backgroundParams = style.theme.backgroundParams
+        if rest != style.theme || snapshot == nil {
+            style = RenderStyle(theme, iconMode: iconMode.flatMap(RenderIconMode.init(rawValue:)))
+        }
     }
 
     private func setPopup(_ new: RenderPopup?) {

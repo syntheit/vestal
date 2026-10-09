@@ -21,6 +21,8 @@ public final class RenderConfigModel: @unchecked Sendable {
     public let keys: [String: AnyJSON]
     public let palette: RenderPalette
     public let theme: RenderTheme
+    /// `theme.background` when it is a library background that reads data.
+    let backgroundSpec: BackgroundSpec?
     public let environment: ExprEnvironment
     public let sources: [String: SourceConfig]
     public let sourceNames: Set<String>
@@ -75,15 +77,21 @@ public final class RenderConfigModel: @unchecked Sendable {
         let fonts = themeObject["fonts"]?.objectValue ?? [:]
         var icons = RenderTheme.Icons()
         if let mode = themeObject["icons"]?.stringValue { icons.mode = mode }
+        let background = ThemeConfig.backgroundName(themeObject["background"]) ?? "aurora"
+        let spec = BackgroundSpec(themeObject["background"], palette: palette)
+        backgroundSpec = spec
         theme = RenderTheme(
-            background: themeObject["background"]?.stringValue.flatMap { ThemeConfig.backgrounds.contains($0) ? $0 : nil } ?? "aurora",
+            background: background,
             colors: palette.colors,
             fonts: RenderTheme.Fonts(sans: fonts["sans"]?.stringValue ?? themeObject["font"]?.stringValue,
                                      mono: fonts["mono"]?.stringValue, rounded: fonts["rounded"]?.stringValue),
             icons: icons,
             dim: RenderTheme.dim(themeObject["dim"]),
             backdrop: RenderTheme.backdrop(themeObject["backdrop"]),
-            blur: RenderTheme.blur(themeObject["blur"]))
+            blur: RenderTheme.blur(themeObject["blur"]),
+            backgroundParams: spec.map { RenderBackground(colors: $0.colors.isEmpty ? nil : $0.colors) },
+            backgroundFPS: Backgrounds.fps(themeObject["backgroundFPS"]),
+            backgroundResolution: Backgrounds.resolution(themeObject["backgroundResolution"]))
         environment = ExprEnvironment.forFunctions(ExprEnvironment.userFunctions(of: expanded.tree))
         sources = expanded.sources
         sourceNames = Set(top["sources"]?.objectValue?.keys.map { $0 } ?? [])

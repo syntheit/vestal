@@ -9,14 +9,16 @@ import VestalCore
 //   vestal screenshot <out.png> [--view <name>] [--config <path>|-] [--cached|--fetch|--data <dir>]
 //                     [--at <time>] [--press <key>]... [--size <w>x<h>] [--scale <n>]
 //                     [--background solid|transparent] [--frames <file.json>] [--json]
-//                     [--allow-commands] [--no-network] [--timeout <duration>]
+//                     [--allow-commands] [--no-network] [--timeout <duration>] [--background-time <seconds>]
 //
 // Renders the view the way `vestal render --format json` does (the running
 // instance's data for its own config, else the data modes), then
 // draws that snapshot offscreen with the app's SwiftUI renderer
 // (ImageRenderer, as `vestal render-file`). No window, no NSApplication and
 // no screen-recording permission; the desktop blur and the aurora can't be
-// captured, so the background is the palette's `bg` or transparent.
+// captured, so the background is the palette's `bg` or transparent, with a
+// background of the library (theme.background: mesh, sky, ...) drawn over it
+// at `--background-time` seconds (14), `sky` at the hour of `--at`.
 // `--size` defaults to the main screen's size in points (1512x982 without
 // one), `--scale` to 2. `<out.png>` may be `-` with `--frames` (no PNG).
 // Prints the path, or with `--json` {path, width, height, scale, clipped,
@@ -28,6 +30,7 @@ public enum MacScreenshotCommand {
     usage: vestal screenshot <out.png|-> [--view <name>] [--config <path>|-] [--cached|--fetch|--data <dir>] [--at <time>]
                              [--press <key>]... [--size <w>x<h>] [--scale <n>] [--background solid|transparent]
                              [--frames <file.json>] [--json] [--strict] [--allow-commands] [--no-network]
+                             [--background-time <seconds>]
     """
 
     static func fail(_ message: String, status: Int32 = 1) -> Int32 {
@@ -66,6 +69,11 @@ public enum MacScreenshotCommand {
                 case "transparent": draw.transparent = true
                 default: return fail("--background takes solid or transparent\n\(usage)", status: 2)
                 }
+            case "--background-time":
+                guard let v = value().flatMap(Double.init), v >= 0, v < 1_000_000 else {
+                    return fail("--background-time takes seconds\n\(usage)", status: 2)
+                }
+                draw.backgroundTime = v
             case "--frames":
                 guard let v = value() else { return fail("--frames needs a file\n\(usage)", status: 2) }
                 draw.frames = v
@@ -114,6 +122,7 @@ public enum MacScreenshotCommand {
             var status: Int32 = 0
             let store = RenderStore { _ in }
             store.apply(prepared.snapshot)
+            draw.hour = Backgrounds.hour(of: prepared.now)
             let frames = MacRenderFileCommand.draw(store, options: draw, collect: json, status: &status)
             guard status == 0 else { return status }
             if json {

@@ -99,7 +99,7 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
     }
 
     public var palette: String = "tokyo-night"
-    public var background: String = "aurora" // "aurora" | "blur" | "none"
+    public var background: String = "aurora" // a name of `Backgrounds.names`; an object's `type`
 
     enum CodingKeys: String, CodingKey { case palette, background }
     public init(palette: String = "tokyo-night", background: String = "aurora") {
@@ -109,7 +109,16 @@ public struct ThemeConfig: Codable, Equatable, Sendable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         palette    = c.lenient(String.self, .palette) ?? "tokyo-night"
-        background = c.lenient(String.self, .background) ?? "aurora"
+        background = c.lenient(String.self, .background) ?? c.lenient(BackgroundObject.self, .background)?.type ?? "aurora"
+    }
+
+    /// `theme.background` written as an object; the render engine reads the rest.
+    private struct BackgroundObject: Decodable {
+        var type: String?
+        init(from decoder: Decoder) throws {
+            type = try? decoder.container(keyedBy: Key.self).decodeIfPresent(String.self, forKey: .type)
+        }
+        enum Key: String, CodingKey { case type }
     }
 }
 

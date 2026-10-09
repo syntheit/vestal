@@ -170,11 +170,93 @@ private struct Walker {
         for problem in RenderPalette(theme: value).problems where problem.hasPrefix("colour") {
             add(.invalidValue, "theme.colors", problem, code: "unknown-color")
         }
-        oneOf(theme["background"], "theme.background", ThemeConfig.backgrounds)
+        themeBackground(theme)
         oneOf(theme["backdrop"], "theme.backdrop", ThemeConfig.backdrops)
         oneOf(theme["density"], "theme.density", ThemeConfig.densities)
         themeDim(theme)
         themeBlur(theme)
+    }
+
+    /// The parameters each library background reads.
+    private static let backgroundKeys: [String: Set<String>] = [
+        "mesh": ["colors"], "artmesh": ["colors", "source", "artwork"], "load": ["source", "value"], "weather": ["source", "condition"],
+    ]
+
+    /// `theme.background`: a name, or an object with `type` and the
+    /// parameters of that background; `backgroundFPS` and
+    /// `backgroundResolution`.
+    private mutating func themeBackground(_ theme: [String: AnyJSON]) {
+        if let value = theme["backgroundFPS"], value != .null {
+            switch value {
+            case .int(let n) where !Backgrounds.fpsRange.contains(n):
+                add(.invalidValue, "theme.backgroundFPS", "must be between 1 and 60; using \(n < 1 ? 1 : 60)",
+                    expected: "a whole number from 1 to 60", found: "\(n)")
+            case .int: break
+            default: wrongType(value, "theme.backgroundFPS", expected: "a whole number")
+            }
+        }
+        if let value = theme["backgroundResolution"], value != .null {
+            let number: Double?
+            switch value {
+            case .int(let n): number = Double(n)
+            case .double(let d): number = d
+            default: number = nil
+            }
+            if let number {
+                if !(Backgrounds.resolutionRange ~= number) {
+                    add(.invalidValue, "theme.backgroundResolution", "must be between 0.1 and 1; using \(number < 0.1 ? "0.1" : "1")",
+                        expected: "a number from 0.1 to 1", found: "\(number)")
+                }
+            } else {
+                wrongType(value, "theme.backgroundResolution", expected: "a number")
+            }
+        }
+        guard let value = theme["background"], value != .null else { return }
+        switch value {
+        case .string:
+            oneOf(value, "theme.background", Backgrounds.names)
+        case .object(let members):
+            let path = "theme.background"
+            checkKeys(members, keys("background"), path, for: path)
+            guard let type = requiredString(members, "type", path, dropped: "the aurora is used") else { return }
+            oneOf(members["type"], "\(path).type", Backgrounds.names)
+            let used = Self.backgroundKeys[type] ?? []
+            for key in members.keys.sorted() where key != "type" && keys("background").contains(key) && !used.contains(key) {
+                add(.invalidValue, "\(path).\(key)", "has no effect on the \(type) background", code: "ignored")
+            }
+            if case .array(let colors)? = members["colors"] {
+                for (i, entry) in colors.enumerated() {
+                    guard let text = entry.stringValue else {
+                        wrongType(entry, "\(path).colors[\(i)]", expected: "a string", "ignored")
+                        continue
+                    }
+                    if v04.palette.hexValue(text) == nil {
+                        add(.invalidValue, "\(path).colors[\(i)]", "unknown colour \"\(text)\"; ignored", code: "unknown-color", found: text)
+                    }
+                }
+                if colors.count > 4 { add(.invalidValue, "\(path).colors", "only the first four colours are used", code: "ignored") }
+            } else if let colors = members["colors"], colors != .null {
+                wrongType(colors, "\(path).colors", expected: "a list")
+            }
+            if let source = string(members["source"], "\(path).source"), !v04.sourceNames.contains(source) {
+                add(.missingReference, "\(path).source", "no source named \"\(source)\"", code: "unknown-source",
+                    suggestions: DidYouMean.suggestions(for: source, among: Array(v04.sourceNames)))
+            }
+            for key in ["value", "condition", "artwork"] {
+                guard let entry = members[key], entry != .null else { continue }
+                if case .string(let text) = entry {
+                    // A weather condition written as is isn't an expression.
+                    if key == "condition", Backgrounds.conditions.contains(text.trimmingCharacters(in: .whitespaces)) { continue }
+                    v04.expr(entry, path: "\(path).\(key)", scope: V04Checker.baseScope)
+                } else if key == "value", TextStyle.size(entry) != nil {
+                    continue
+                } else {
+                    wrongType(entry, "\(path).\(key)", expected: "an expression (a string)", "ignored")
+                }
+            }
+        default:
+            wrongType(value, "theme.background", expected: "a name or an object", "the aurora is used")
+        }
     }
 
     /// `theme.blur`: a number, clamped to `RenderTheme.blurRange`.

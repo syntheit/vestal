@@ -1169,6 +1169,90 @@ final class RenderPass {
         }
     }
 
+    // MARK: Background
+
+    /// What the library background reads from its source, at this moment
+    /// (`load`'s 0 to 100 as 0 to 1, `weather`'s condition, `artmesh`'s
+    /// picture), with the problems found. Nothing is read from a source
+    /// that has no data yet.
+    func renderBackground(_ spec: BackgroundSpec) -> (params: RenderBackground, diagnostics: [RenderDiagnostic]) {
+        begin()
+        let id = "theme.background"
+        var scope = baseScope()
+        if let source = spec.source {
+            if !model.sourceNames.contains(source) {
+                report(id: nil, field: id + ".source", severity: "error", code: "unknown-source",
+                       message: "no source named \"\(source)\"")
+            }
+            let value = data.data(source)
+            scope.source = source
+            scope.dot = value ?? .null
+            scope.vars["data"] = value ?? .null
+            scope.vars["meta"] = data.meta(source) ?? .null
+            sources.insert(source)
+        }
+        var params = RenderBackground(colors: spec.colors.isEmpty ? nil : spec.colors)
+        let loaded = scope.dot != .null
+        switch spec.type {
+        case "load":
+            if loaded, let percent = numeric(spec.value, id: id, field: "value", scope: scope) {
+                params.load = min(max(percent / 100, 0), 1)
+            }
+        case "weather":
+            if loaded, let condition = backgroundCondition(spec.condition, scope: scope) { params.condition = condition }
+        case "artmesh":
+            if loaded, case .string(let text)? = spec.artwork.flatMap({ literalOrExpression($0, field: "artwork", scope: scope) }) {
+                params.artwork = artworkPath(text)
+            }
+        default:
+            break
+        }
+        return (params, diagnostics)
+    }
+
+    /// A string field that is an expression (a `{"expr"}` wrapper also works).
+    private func literalOrExpression(_ value: AnyJSON, field: String, scope: Scope) -> AnyJSON? {
+        switch value {
+        case .string(let expression):
+            return eval(expression, id: "theme.background", field: field, scope: scope)?.anyJSON
+        default:
+            return literal(value, id: "theme.background", field: field, scope: scope)
+        }
+    }
+
+    /// `weather`'s condition: a word that already is one, else the
+    /// expression's result read as a condition, a description or a code.
+    private func backgroundCondition(_ value: AnyJSON?, scope: Scope) -> String? {
+        guard let value else { return nil }
+        if case .string(let text) = value, Backgrounds.conditions.contains(text.trimmingCharacters(in: .whitespaces)) {
+            return text.trimmingCharacters(in: .whitespaces)
+        }
+        guard let result = literalOrExpression(value, field: "condition", scope: scope), result != .null else { return nil }
+        guard let condition = Backgrounds.condition(result) else {
+            report(id: nil, field: "theme.background.condition", severity: "warning", code: "invalid-value",
+                   message: "\"\(result.canonicalText())\" is not a condition: use clear, rain, snow or storm, a description, or a WMO or wttr.in code")
+            return nil
+        }
+        return condition
+    }
+
+    /// The local file of a picture named by path or URL (a URL is fetched
+    /// once, and the background renders again when it lands, as for `image`).
+    private func artworkPath(_ text: String) -> String? {
+        let source = text.trimmingCharacters(in: .whitespaces)
+        guard !source.isEmpty else { return nil }
+        if ImageCache.isRemote(source) {
+            let cache = ImageCache.shared
+            if let path = cache.cachedPath(for: source) { return path }
+            sources.insert(ImageCache.sourcePrefix + ImageCache.key(for: source))
+            cache.request(source)
+            return nil
+        }
+        let expanded = ImageCache.expandedPath(source)
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: expanded, isDirectory: &isDirectory) && !isDirectory.boolValue ? expanded : nil
+    }
+
     // MARK: Diagnostics
 
     func report(id: String?, field: String?, severity: String, code: String, message: String) {

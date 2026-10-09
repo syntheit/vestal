@@ -5,7 +5,7 @@ import VestalCore
 // MARK: - Dashboard (v0.4)
 //
 // The window's content since v0.4: the aurora (for `theme.background:
-// "aurora"`) over the window's blur (tinted by `theme.dim` when set) or
+// "aurora"`) or a background of the library (BackgroundView) over the window's blur (tinted by `theme.dim` when set) or
 // solid colour, exactly as v0.3's
 // DashboardView draws it, and the render engine's model over that
 // (RenderStageView: the view's root centred, the popup with its scrim).
@@ -26,6 +26,9 @@ struct RenderDashboardView: View {
             }
             if aurora {
                 AuroraView()
+                    .allowsHitTesting(false)
+            } else if Backgrounds.isLibrary(store.background.background) {
+                BackgroundView(theme: store.background)
                     .allowsHitTesting(false)
             }
             RenderStageView(store: store)

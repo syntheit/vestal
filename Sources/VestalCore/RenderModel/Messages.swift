@@ -38,7 +38,8 @@ public struct RenderViewInfo: Equatable, Sendable, Codable {
 
 /// `theme` in a snapshot: the resolved palette, font families and icon fonts.
 public struct RenderTheme: Equatable, Sendable, Codable {
-    /// `aurora`, `blur` or `none`.
+    /// `aurora`, `blur`, `none` or a background of the shader library
+    /// (`Backgrounds.names`).
     public var background: String
     /// Every colour name a node may use, as `#rrggbbaa`.
     public var colors: [String: String]
@@ -59,6 +60,14 @@ public struct RenderTheme: Equatable, Sendable, Codable {
     /// `theme.blur`: the radius, in points, of `self`'s blur. Nil
     /// (omitted): `linuxBlur`.
     public var blur: Double?
+    /// What the library background reads from the engine's data (see
+    /// `RenderBackground`). Omitted when it has nothing.
+    public var backgroundParams: RenderBackground?
+    /// `theme.backgroundFPS`. Nil (omitted): `Backgrounds.defaultFPS`.
+    public var backgroundFPS: Int?
+    /// `theme.backgroundResolution`. Nil (omitted): the background's own
+    /// (`Backgrounds.defaultResolution`).
+    public var backgroundResolution: Double?
 
     public struct Fonts: Equatable, Sendable, Codable {
         public var sans: String?
@@ -100,7 +109,11 @@ public struct RenderTheme: Equatable, Sendable, Codable {
 
     public init(background: String = "aurora", colors: [String: String] = RenderTheme.tokyoNight,
                 fonts: Fonts = Fonts(), icons: Icons = Icons(), dim: Double? = nil, backdrop: String? = nil,
-                blur: Double? = nil) {
+                blur: Double? = nil, backgroundParams: RenderBackground? = nil, backgroundFPS: Int? = nil,
+                backgroundResolution: Double? = nil) {
+        self.backgroundParams = backgroundParams
+        self.backgroundFPS = backgroundFPS
+        self.backgroundResolution = backgroundResolution
         self.background = background
         self.colors = colors
         self.fonts = fonts
@@ -110,7 +123,9 @@ public struct RenderTheme: Equatable, Sendable, Codable {
         self.blur = blur
     }
 
-    private enum CodingKeys: String, CodingKey { case background, colors, fonts, icons, dim, backdrop, blur }
+    private enum CodingKeys: String, CodingKey {
+        case background, colors, fonts, icons, dim, backdrop, blur, backgroundParams, backgroundFPS, backgroundResolution
+    }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -121,6 +136,11 @@ public struct RenderTheme: Equatable, Sendable, Codable {
         dim = try c.decodeIfPresent(Double.self, forKey: .dim).map(Self.clampDim)
         backdrop = try c.decodeIfPresent(String.self, forKey: .backdrop).flatMap { ThemeConfig.backdrops.contains($0) ? $0 : nil }
         blur = try c.decodeIfPresent(Double.self, forKey: .blur).map(Self.clampBlur)
+        backgroundParams = try c.decodeIfPresent(RenderBackground.self, forKey: .backgroundParams)
+        backgroundFPS = try c.decodeIfPresent(Int.self, forKey: .backgroundFPS).map { min(max($0, Backgrounds.fpsRange.lowerBound), Backgrounds.fpsRange.upperBound) }
+        backgroundResolution = try c.decodeIfPresent(Double.self, forKey: .backgroundResolution).map {
+            min(max($0, Backgrounds.resolutionRange.lowerBound), Backgrounds.resolutionRange.upperBound)
+        }
     }
 
     /// The `tokyo-night` palette, resolved to `#rrggbbaa`.
