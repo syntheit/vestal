@@ -1,6 +1,6 @@
 # Expression engine (jq)
 
-`VestalCore/Expr` is a jq interpreter written in Swift (Foundation only, no dependencies). It evaluates every data expression in the config: widget values, labels, colours, filters. It follows **jq 1.7.1**. `Tests/VestalCoreTests/Fixtures/expr-cases.json` holds about 1000 cases whose expected output came from the real jq binary; `ExprFixtureTests` replays them.
+`VestalCore/Expr` is a jq interpreter written in Swift (Foundation only, no dependencies). It evaluates every data expression in the config: widget values, labels, colors, filters. It follows **jq 1.7.1**. `Tests/VestalCoreTests/Fixtures/expr-cases.json` holds about 1000 cases whose expected output came from the real jq binary; `ExprFixtureTests` replays them.
 
 ## API
 
@@ -83,7 +83,7 @@ Added from jq 1.6 and 1.8: `leaf_paths`, `ascii`, `add(f)`, `trim`, `ltrim`, `rt
 - **Numbers are doubles.** jq 1.7 prints number literals as written (`1.000`, `1E+2`); vestal prints the canonical form (`1`, `100`). Computed values print the same way in both, including `1e+17`, `1e-05` and `0.30000000000000004`. A computed `-0` prints as `0` in both.
 - **String offsets are code points.** `index`, `rindex` and `indices` on strings return code point offsets. jq 1.7.1 returns byte offsets for non-ASCII text, which do not work with slicing. Global empty regex matches also step by character; jq 1.7.1 steps inside multi-byte characters.
 - **Regexes use NSRegularExpression (ICU), not Oniguruma.** Common syntax is the same: classes, quantifiers, anchors, lookaround, `\d \w \s \b`, named groups `(?<name>...)` (including names with `_`, which are rewritten internally), `\k<name>`, and inline flags. The flags map as follows: `g` global, `i` case-insensitive, `x` extended, `n` skip empty matches, `p` makes `.` match newlines, and `s` and `l` are accepted and do nothing. Known differences: `$` also matches before a final newline, Oniguruma-only syntax such as `\h` and `(?~...)` is not supported, and the text of regex compile errors differs.
-- **`strptime`** is vestal's own C-locale parser. It supports `%Y %m %d %e %H %M %S %y %C %j %b %B %h %a %A %p %I %z %Z %s %T %D %F %R %r %c %x %X %n %t %%`. Results are normalised through `timegm` (`%z` offsets are converted to UTC, as jq does on macOS). A format without a date gives 1900-01-01, where jq gives day 0. `strftime` is also locale-independent: `%Z` is `UTC`, and names are English.
+- **`strptime`** is vestal's own C-locale parser. It supports `%Y %m %d %e %H %M %S %y %C %j %b %B %h %a %A %p %I %z %Z %s %T %D %F %R %r %c %x %X %n %t %%`. Results are normalized through `timegm` (`%z` offsets are converted to UTC, as jq does on macOS). A format without a date gives 1900-01-01, where jq gives day 0. `strftime` is also locale-independent: `%Z` is `UTC`, and names are English.
 - **Error text** matches jq's for runtime errors, including the truncated value dumps. The exceptions are JSON parse errors from `fromjson`/`tonumber` and regex compile errors, which are worded similarly but not identically. Syntax and compile errors are vestal's own, with a position and a suggestion.
 - **Not reproduced:** jq's literal-number preservation, locale-dependent `strftime` output, and platform-specific `strptime` quirks.
 

@@ -235,12 +235,12 @@ extension DefaultPresets {
       },
 
       "homeAssistant": {
-        "description": "A grid of Home Assistant entities as tiles: icon, label, state with unit, a second line, coloured by state or thresholds",
+        "description": "A grid of Home Assistant entities as tiles: icon, label, state with unit, a second line, colored by state or thresholds",
         "params": {
           "entities": { "type": "array", "required": true, "description": "[{id, label, icon, attribute, attributeUnit, attributeLabel, since, precision, unit, thresholds, colors, color}]" },
           "url": { "type": "string", "default": "http://homeassistant.local:8123", "description": "Home Assistant's base URL" },
           "columns": { "type": "integer", "default": 3 },
-          "stateColors": { "type": "object", "default": { "on": "warn", "open": "warn", "unlocked": "warn", "locked": "good", "closed": "good", "home": "good", "playing": "accent", "heat": "orange", "cool": "cyan", "unavailable": "dim", "unknown": "dim" }, "description": "State word to colour, for entities without numbers" }
+          "stateColors": { "type": "object", "default": { "on": "warn", "open": "warn", "unlocked": "warn", "locked": "good", "closed": "good", "home": "good", "playing": "accent", "heat": "orange", "cool": "cyan", "unavailable": "dim", "unknown": "dim" }, "description": "State word to color, for entities without numbers" }
         },
         "widget": {
           "type": "list", "direction": "grid", "columns": { "param": "columns" }, "gap": 10, "width": "fill",

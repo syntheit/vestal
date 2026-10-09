@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Builtins
 //
 // Natives are written in Swift (jq's C builtins); the rest is the prelude,
-// jq definitions taken from jq 1.7.1's src/builtin.jq (MIT licence) so
+// jq definitions taken from jq 1.7.1's src/builtin.jq (MIT license) so
 // their semantics match jq exactly, including generator order and errors.
 
 enum JQBuiltins {

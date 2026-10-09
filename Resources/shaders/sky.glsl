@@ -1,6 +1,6 @@
-// sky: the sky colour, sun or moon, and stars at night, from the clock.
+// sky: the sky color, sun or moon, and stars at night, from the clock.
 // p.xy the sun or moon's position (0 to 1, y up), p.z the stars' strength,
-// p.w the brightness; c0 the colour overhead, c1 at the horizon, c2 the
+// p.w the brightness; c0 the color overhead, c1 at the horizon, c2 the
 // sun or moon.
 vec4 background() {
     float asp = resolution.x / resolution.y;

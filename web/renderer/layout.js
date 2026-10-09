@@ -5,7 +5,7 @@
 // Text is the one thing the core can't measure, so the caller passes a
 // measurer: `measureText(node, maxWidth)` -> { width, height, baseline } for the
 // node's text laid out at most `maxWidth` wide (null: unbounded, one line per
-// "\n"), honouring `lines`. Everything else is arithmetic.
+// "\n"), honoring `lines`. Everything else is arithmetic.
 //
 //   const lay = new Layout(root, { measureText });
 //   const frames = lay.place(root, { x, y, width, height });   // Map node -> frame
@@ -70,7 +70,7 @@ export function heatmapPosition(node, index) {
   return { column: Math.floor(index / rows), row: index % rows };
 }
 
-/** Grid cells' row, first column and span, honouring `span`. */
+/** Grid cells' row, first column and span, honoring `span`. */
 export function gridCells(children, columnCount) {
   const cells = [];
   let row = 0, column = 0;
@@ -496,7 +496,7 @@ export class Layout {
     return out;
   }
 
-  /** The root's frame on a stage: `min(maxWidth, stage width)` wide, centred, top-aligned when too tall. */
+  /** The root's frame on a stage: `min(maxWidth, stage width)` wide, centered, top-aligned when too tall. */
   rootFrame(root, stageW, stageH) {
     let w;
     w = isNum(root.width) ? clampW(root, root.width) : clampW(root, stageW);
@@ -510,7 +510,7 @@ export class Layout {
   }
 }
 
-/** The popup card's frame: `min(width, stage)` wide, fit tall (at most the stage), centred. */
+/** The popup card's frame: `min(width, stage)` wide, fit tall (at most the stage), centered. */
 export function popupFrame(layout, node, popupWidth, stageW, stageH) {
   const w = Math.min(popupWidth, stageW);
   const h = Math.min(layout.fitHeight(node, w), stageH);

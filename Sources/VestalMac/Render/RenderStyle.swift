@@ -5,12 +5,12 @@ import VestalCore
 
 // MARK: - Render style
 //
-// Colours and fonts for the render model's nodes: palette
+// Colors and fonts for the render model's nodes: palette
 // names resolved through the snapshot's `theme.colors`, font roles mapped to
 // the system font's designs (or `theme.fonts`), and the icon mode. The GTK
 // UI's ThemeState does the same for Pango.
 
-/// An sRGB colour with alpha, parsed from the model's `#rrggbbaa`.
+/// An sRGB color with alpha, parsed from the model's `#rrggbbaa`.
 struct RenderRGBA: Equatable {
     var r: Double, g: Double, b: Double, a: Double
 
@@ -69,9 +69,9 @@ struct RenderStyle {
 
     static let `default` = RenderStyle(RenderTheme())
 
-    // MARK: Colours
+    // MARK: Colors
 
-    /// A node colour: a palette name, `#hex`, or either with `@alpha`. An
+    /// A node color: a palette name, `#hex`, or either with `@alpha`. An
     /// unknown name draws as `text`, as check-config promises.
     func rgba(_ spec: String?, default fallback: String = "text") -> RenderRGBA {
         let spec = spec ?? fallback

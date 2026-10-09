@@ -95,21 +95,21 @@ extension V04Checker {
                         color(colour, path: "\(path).scale[\(index)]", scope: scope, inTemplate: inTemplate)
                     }
                 } else {
-                    add(.invalidValue, "\(path).scale", "scale needs two colours, [low, high]", code: "invalid-value", severity: .error)
+                    add(.invalidValue, "\(path).scale", "scale needs two colors, [low, high]", code: "invalid-value", severity: .error)
                 }
             }
             if let steps = w["steps"], !skipped(steps) {
                 if case .array(let stops) = steps {
                     for (index, stop) in stops.enumerated() {
                         guard case .array(let pair) = stop, pair.count == 2, TextStyle.size(pair[0]) != nil else {
-                            add(.invalidValue, "\(path).steps[\(index)]", "a step is [threshold, colour]", code: "invalid-value",
+                            add(.invalidValue, "\(path).steps[\(index)]", "a step is [threshold, color]", code: "invalid-value",
                                 severity: .error)
                             continue
                         }
                         color(pair[1], path: "\(path).steps[\(index)][1]", scope: scope, inTemplate: inTemplate)
                     }
                 } else {
-                    add(.wrongType, "\(path).steps", "expected a list of [threshold, colour], found \(steps.kindDescription)",
+                    add(.wrongType, "\(path).steps", "expected a list of [threshold, color], found \(steps.kindDescription)",
                         severity: .error, expected: "array", found: steps.jsonTypeName)
                 }
             }

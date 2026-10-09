@@ -3,7 +3,7 @@ import Foundation
 // MARK: - JQExpression
 //
 // A jq expression, compiled once and evaluated many times. It powers every
-// data expression in vestal's config: widget values, labels, colours and
+// data expression in vestal's config: widget values, labels, colors and
 // filters.
 //
 //     let e = try JQExpression(".items[] | select(.enabled) | .name")

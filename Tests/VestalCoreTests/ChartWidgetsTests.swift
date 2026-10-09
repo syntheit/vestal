@@ -199,7 +199,7 @@ final class ChartWidgetsTests: XCTestCase {
               "segments": [ { "value": 50, "label": "A", "color": "bad" }, { "value": 25, "label": "B" }, { "value": 0, "label": "gone" }, { "value": null } ] }
             """#)
         let n = node(s)
-        XCTAssertEqual(stackedBar(n).segments.map(\.color), ["bad", "purple"], "zero and null segments are dropped; the cycle colours the rest")
+        XCTAssertEqual(stackedBar(n).segments.map(\.color), ["bad", "purple"], "zero and null segments are dropped; the cycle colors the rest")
         XCTAssertEqual(stackedBar(n).segments[0].value, 0.25, accuracy: 1e-9)
         XCTAssertEqual(stackedBar(n).segments[1].value, 0.125, accuracy: 1e-9)
         XCTAssertEqual(stackedBar(n).trackColor, "track")
@@ -233,8 +233,8 @@ final class ChartWidgetsTests: XCTestCase {
         XCTAssertEqual(stackedBar(node(s, "main/w/0")).segments.count, 3)
         XCTAssertEqual(node(s, "main/w/0").width, .fill)
         let legend = node(s, "main/w/1")
-        XCTAssertEqual(legend.children.count, 2, "only labelled segments")
-        // A dot and a label per entry, in the segment's colour.
+        XCTAssertEqual(legend.children.count, 2, "only labeled segments")
+        // A dot and a label per entry, in the segment's color.
         let first = legend.children[0]
         guard case .bar(let dot) = first.children[0].content else { return XCTFail("no dot") }
         XCTAssertEqual(dot.color, "accent")
@@ -243,7 +243,7 @@ final class ChartWidgetsTests: XCTestCase {
         XCTAssertEqual(text(first.children[1])?.text, "Used")
         XCTAssertEqual(text(first.children[1])?.color, "subtle")
         guard case .bar(let second) = legend.children[1].children[0].content else { return XCTFail("no dot") }
-        XCTAssertEqual(second.color, "cyan", "the third segment's colour: the dot matches its segment")
+        XCTAssertEqual(second.color, "cyan", "the third segment's color: the dot matches its segment")
         XCTAssertEqual(stackedBar(node(s, "main/w/0")).segments[2].color, "cyan")
     }
 
@@ -706,7 +706,7 @@ final class ChartWidgetsTests: XCTestCase {
         XCTAssertNotNil(find(diagnostics(#"{"type": "heatmap", "values": "[]", "rows": 2.5}"#), "/widgets/w/rows"))
         XCTAssertNotNil(find(diagnostics(#"{"type": "heatmap", "values": "[]", "rows": 400}"#), "/widgets/w/rows"))
         let one = try XCTUnwrap(find(diagnostics(#"{"type": "heatmap", "values": "[]", "scale": ["good"]}"#), "/widgets/w/scale"))
-        XCTAssertEqual(one.message, "scale needs two colours, [low, high]")
+        XCTAssertEqual(one.message, "scale needs two colors, [low, high]")
         let unknown = try XCTUnwrap(find(diagnostics(#"{"type": "heatmap", "values": "[]", "scale": ["good", "gren"]}"#), "/widgets/w/scale/1"))
         XCTAssertEqual(unknown.code, "unknown-color")
         XCTAssertNotNil(find(diagnostics(#"{"type": "heatmap", "values": "[]", "steps": [[0, "good"], ["x"]]}"#), "/widgets/w/steps/1"))

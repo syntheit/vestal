@@ -33,7 +33,7 @@ public enum Format {
         return String(format: format, arguments: arguments)
     }
 
-    /// A CSS colour, `rgba(r, g, b, a)`, from channels in 0...1.
+    /// A CSS color, `rgba(r, g, b, a)`, from channels in 0...1.
     public static func cssRGBA(red: Double, green: Double, blue: Double, alpha: Double) -> String {
         func byte(_ c: Double) -> Int { Int((min(max(c, 0), 1) * 255).rounded()) }
         return "rgba(\(byte(red)), \(byte(green)), \(byte(blue)), \(printf("%.3f", min(max(alpha, 0), 1))))"

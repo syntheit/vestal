@@ -1,4 +1,4 @@
-// Palette names and `#rrggbbaa` colours, resolved as the native renderers do:
+// Palette names and `#rrggbbaa` colors, resolved as the native renderers do:
 // a name is looked up in `theme.colors` (a value may name another), `@alpha`
 // multiplies the alpha, an unknown name draws as `text`.
 

@@ -64,7 +64,7 @@ That is a whole config:
 
 Save the file. vestal watches it and redraws at once. Press the hotkey: a clock in the middle of the screen.
 
-Anything you leave out comes from vestal's built-in defaults: the background, the colours, and the built-in data sources (`system`, `media`, `calendar`, `weather`).
+Anything you leave out comes from vestal's built-in defaults: the background, the colors, and the built-in data sources (`system`, `media`, `calendar`, `weather`).
 
 ## 4. Add widgets
 
@@ -185,7 +185,7 @@ The background is part of the `theme`. Add this key next to `widgets`:
 }
 ```
 
-`aurora` is the default. The others are `blur`, `none`, `mesh`, `topo`, `stars`, `flow`, `rain`, `plasma`, `grain`, `sky` (follows the time of day), `weather`, `load` and `artmesh` (takes the colours of the album playing). The site's background gallery shows each one; `vestal docs styling` explains their options.
+`aurora` is the default. The others are `blur`, `none`, `mesh`, `topo`, `stars`, `flow`, `rain`, `plasma`, `grain`, `sky` (follows the time of day), `weather`, `load` and `artmesh` (takes the colors of the album playing). The site's background gallery shows each one; `vestal docs styling` explains their options.
 
 ## Where next
 

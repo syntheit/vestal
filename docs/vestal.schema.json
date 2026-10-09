@@ -5,7 +5,7 @@
       "description": "A library background with parameters; theme.background takes this or just a name.",
       "properties": {
         "artwork": {
-          "description": "artmesh: an expression over the source giving a picture's path or URL, whose colours the mesh takes. Default .artwork. Without a picture the mesh keeps its default colours.",
+          "description": "artmesh: an expression over the source giving a picture's path or URL, whose colors the mesh takes. Default .artwork. Without a picture the mesh keeps its default colors.",
           "examples": [
             ".artwork"
           ],
@@ -17,7 +17,7 @@
           "x-vestal-since": "0.4"
         },
         "colors": {
-          "description": "mesh (and artmesh without artwork): up to four colours (hex or palette names); fewer repeat.",
+          "description": "mesh (and artmesh without artwork): up to four colors (hex or palette names); fewer repeat.",
           "examples": [
             [
               "#1e2a62",
@@ -293,7 +293,7 @@
     },
     "item": {
       "additionalProperties": false,
-      "description": "A labelled value of a keyValueList. It needs pick or picks.",
+      "description": "A labeled value of a keyValueList. It needs pick or picks.",
       "properties": {
         "format": {
           "description": "int (alias integer): a whole number. decimal (alias %.2f): two decimals. Absent: as is.",
@@ -389,7 +389,7 @@
               "$ref": "#/$defs/computed"
             }
           ],
-          "description": "The value's colour.",
+          "description": "The value's color.",
           "examples": [
             "accent"
           ],
@@ -689,7 +689,7 @@
             ]
           },
           "default": {},
-          "description": "Parameterised widgets and sources, used like a type. Built-in templates (the presets) are separate; a user template with a built-in's name needs \"override\": true.",
+          "description": "Parameterized widgets and sources, used like a type. Built-in templates (the presets) are separate; a user template with a built-in's name needs \"override\": true.",
           "examples": [
             {
               "metric": {
@@ -964,7 +964,7 @@
               "null"
             ]
           },
-          "description": "Colours added or overridden.",
+          "description": "Colors added or overridden.",
           "examples": [
             {
               "accent": "#ff9e64"
@@ -6748,7 +6748,7 @@
             }
           ],
           "default": "text",
-          "description": "The text colour.",
+          "description": "The text color.",
           "examples": [
             "accent"
           ],
@@ -6769,7 +6769,7 @@
               "$ref": "#/$defs/computed"
             }
           ],
-          "description": "strong: weight +200 and text colour; muted: subtle; faint: dim.",
+          "description": "strong: weight +200 and text color; muted: subtle; faint: dim.",
           "examples": [
             "muted"
           ],
@@ -6885,7 +6885,7 @@
               "$ref": "#/$defs/computed"
             }
           ],
-          "description": "The cells' colour; may use $value.",
+          "description": "The cells' color; may use $value.",
           "examples": [
             "accent"
           ],
@@ -6966,7 +6966,7 @@
         "description": {
           "description": "Shown by vestal docs and in the schema.",
           "examples": [
-            "A labelled percentage bar"
+            "A labeled percentage bar"
           ],
           "type": [
             "string",
@@ -7235,7 +7235,7 @@
               "null"
             ]
           },
-          "description": "Colours added to or overriding the chosen palette: name → colour (hex, a palette name, or name@alpha).",
+          "description": "Colors added to or overriding the chosen palette: name → color (hex, a palette name, or name@alpha).",
           "examples": [
             {
               "brand": "#e01e5a"
@@ -7327,7 +7327,7 @@
         },
         "palette": {
           "default": "tokyo-night",
-          "description": "The colour palette: tokyo-night, or a key of palettes. An unknown name falls back to tokyo-night.",
+          "description": "The color palette: tokyo-night, or a key of palettes. An unknown name falls back to tokyo-night.",
           "examples": [
             "tokyo-night"
           ],
@@ -7540,7 +7540,7 @@
         },
         "maxWidth": {
           "default": 680,
-          "description": "The root is at most this wide, centred on screen.",
+          "description": "The root is at most this wide, centered on screen.",
           "examples": [
             1100
           ],
@@ -7962,7 +7962,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -8273,7 +8273,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -8422,7 +8422,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -8797,7 +8797,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -8933,7 +8933,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -9265,7 +9265,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -9401,7 +9401,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -9724,7 +9724,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -9860,7 +9860,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -9901,7 +9901,7 @@
         },
         "color": {
           "default": "accent",
-          "description": "The bar's colour below 90%",
+          "description": "The bar's color below 90%",
           "examples": [
             "accent"
           ],
@@ -10166,7 +10166,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -10314,7 +10314,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -10746,7 +10746,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -10919,7 +10919,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -11243,7 +11243,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -11379,7 +11379,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -11685,7 +11685,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -11834,7 +11834,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -11903,7 +11903,7 @@
             }
           ],
           "default": "accent",
-          "description": "One colour for every bar, or steps of each bar's value. A value's own color wins.",
+          "description": "One color for every bar, or steps of each bar's value. A value's own color wins.",
           "examples": [
             "accent"
           ],
@@ -12288,7 +12288,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -12451,7 +12451,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -12745,7 +12745,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -12822,7 +12822,7 @@
     },
     "widget.ciStatus": {
       "additionalProperties": false,
-      "description": "The latest GitHub Actions results per repository and branch: a state icon, the last results as coloured cells and how long the newest took",
+      "description": "The latest GitHub Actions results per repository and branch: a state icon, the last results as colored cells and how long the newest took",
       "properties": {
         "action": {
           "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
@@ -12881,7 +12881,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -13209,7 +13209,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -13345,7 +13345,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -13643,7 +13643,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -13779,7 +13779,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -14089,7 +14089,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -14238,7 +14238,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -14625,7 +14625,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -14807,7 +14807,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -15140,7 +15140,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -15315,7 +15315,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -15639,7 +15639,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -15775,7 +15775,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -16074,7 +16074,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -16223,7 +16223,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -16588,7 +16588,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -16737,7 +16737,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -17073,7 +17073,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -17222,7 +17222,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -17534,7 +17534,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -17670,7 +17670,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -17951,7 +17951,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -17994,7 +17994,7 @@
         },
         "warn": {
           "default": 70,
-          "description": "Cores at or above this percentage are drawn in the warn colour",
+          "description": "Cores at or above this percentage are drawn in the warn color",
           "examples": [
             70
           ],
@@ -18100,7 +18100,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -18411,7 +18411,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -18547,7 +18547,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -18568,7 +18568,7 @@
         },
         "calendarColors": {
           "default": {},
-          "description": "A colour per calendar name: {\"Work\": \"accent\"}",
+          "description": "A color per calendar name: {\"Work\": \"accent\"}",
           "examples": [
             {}
           ],
@@ -18801,7 +18801,7 @@
             "teal",
             "good"
           ],
-          "description": "Colours given to calendars, by a hash of their name",
+          "description": "Colors given to calendars, by a hash of their name",
           "examples": [
             [
               "accent",
@@ -18898,7 +18898,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -19034,7 +19034,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -19315,7 +19315,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -19488,7 +19488,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -19538,7 +19538,7 @@
             }
           ],
           "default": "dim",
-          "description": "The rule's colour.",
+          "description": "The rule's color.",
           "examples": [
             "accent"
           ],
@@ -19791,7 +19791,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -19888,7 +19888,7 @@
     },
     "widget.flakeInputs": {
       "additionalProperties": false,
-      "description": "How old each locked input of a Nix flake is, coloured by age, and with behind: true how many commits each GitHub input has gained since",
+      "description": "How old each locked input of a Nix flake is, colored by age, and with behind: true how many commits each GitHub input has gained since",
       "properties": {
         "action": {
           "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
@@ -19947,7 +19947,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -20326,7 +20326,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -20495,7 +20495,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -20849,7 +20849,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -21014,7 +21014,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -21343,7 +21343,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -21505,7 +21505,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -21812,7 +21812,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -21889,7 +21889,7 @@
     },
     "widget.gauge": {
       "additionalProperties": false,
-      "description": "A ring with centre text.",
+      "description": "A ring with center text.",
       "properties": {
         "action": {
           "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
@@ -21948,7 +21948,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -22017,7 +22017,7 @@
             }
           ],
           "default": "accent",
-          "description": "The fill's colour.",
+          "description": "The fill's color.",
           "examples": [
             "accent"
           ],
@@ -22397,7 +22397,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -22429,7 +22429,7 @@
         },
         "text": {
           "default": "{{ $value | round }}",
-          "description": "Centre text.",
+          "description": "Center text.",
           "examples": [
             "{{ $value | round }}%"
           ],
@@ -22652,7 +22652,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -23013,7 +23013,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -23149,7 +23149,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -23197,7 +23197,7 @@
             "cyan",
             "teal"
           ],
-          "description": "Colours for habits without a color of their own, in order",
+          "description": "Colors for habits without a color of their own, in order",
           "examples": [
             [
               "good",
@@ -23501,7 +23501,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -23664,7 +23664,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -23975,7 +23975,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -24052,7 +24052,7 @@
     },
     "widget.heatmap": {
       "additionalProperties": false,
-      "description": "A grid of cells coloured by value.",
+      "description": "A grid of cells colored by value.",
       "properties": {
         "action": {
           "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
@@ -24111,7 +24111,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -24446,7 +24446,7 @@
             "accent@0.2",
             "accent"
           ],
-          "description": "Two colours, low and high, mixed by where a value is between min and max.",
+          "description": "Two colors, low and high, mixed by where a value is between min and max.",
           "examples": [
             [
               "#161b22",
@@ -24517,7 +24517,7 @@
           "x-vestal-since": "0.4"
         },
         "steps": {
-          "description": "Instead of scale: [threshold, colour] pairs; a value takes the last stop at or below it.",
+          "description": "Instead of scale: [threshold, color] pairs; a value takes the last stop at or below it.",
           "examples": [
             [
               [
@@ -24550,7 +24550,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -24653,7 +24653,7 @@
     },
     "widget.homeAssistant": {
       "additionalProperties": false,
-      "description": "A grid of Home Assistant entities as tiles: icon, label, state with unit, a second line, coloured by state or thresholds",
+      "description": "A grid of Home Assistant entities as tiles: icon, label, state with unit, a second line, colored by state or thresholds",
       "properties": {
         "action": {
           "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
@@ -24712,7 +24712,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -25028,7 +25028,7 @@
             "unknown": "dim",
             "unlocked": "warn"
           },
-          "description": "State word to colour, for entities without numbers",
+          "description": "State word to color, for entities without numbers",
           "examples": [
             {
               "closed": "good",
@@ -25056,7 +25056,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -25205,7 +25205,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -25511,7 +25511,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -25647,7 +25647,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -25696,7 +25696,7 @@
               "type": "null"
             }
           ],
-          "description": "Default: the inherited text colour.",
+          "description": "Default: the inherited text color.",
           "examples": [
             "accent"
           ],
@@ -25988,7 +25988,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -26148,7 +26148,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -26469,7 +26469,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -26546,7 +26546,7 @@
     },
     "widget.keyValue": {
       "additionalProperties": false,
-      "description": "Labelled values side by side.",
+      "description": "Labeled values side by side.",
       "properties": {
         "action": {
           "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
@@ -26630,7 +26630,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -26975,7 +26975,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -27071,7 +27071,7 @@
     },
     "widget.keyValueList": {
       "additionalProperties": false,
-      "description": "Labelled values picked out of JSON sources, such as exchange rates.",
+      "description": "Labeled values picked out of JSON sources, such as exchange rates.",
       "properties": {
         "action": {
           "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
@@ -27130,7 +27130,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -27435,7 +27435,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -27609,7 +27609,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -28071,7 +28071,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -28207,7 +28207,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -28518,7 +28518,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -28655,7 +28655,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -28936,7 +28936,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -29072,7 +29072,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -29379,7 +29379,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -29515,7 +29515,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -29835,7 +29835,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -29878,7 +29878,7 @@
         },
         "warn": {
           "default": 15,
-          "description": "Minutes before the start from which the countdown is in the warning colour",
+          "description": "Minutes before the start from which the countdown is in the warning color",
           "examples": [
             15
           ],
@@ -29997,7 +29997,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -30308,7 +30308,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -30545,7 +30545,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -30616,7 +30616,7 @@
           "x-vestal-since": "0.4"
         },
         "calendarColors": {
-          "description": "A colour per calendar name: {\"Work\": \"accent\"}",
+          "description": "A color per calendar name: {\"Work\": \"accent\"}",
           "examples": [
             {}
           ],
@@ -30808,7 +30808,7 @@
           "x-vestal-since": "0.4"
         },
         "colors": {
-          "description": "Colours for habits without a color of their own, in order",
+          "description": "Colors for habits without a color of their own, in order",
           "examples": [
             [
               "good",
@@ -30943,7 +30943,7 @@
           "x-vestal-since": "0.4"
         },
         "delta": {
-          "description": "A change to show after the value, coloured by trend",
+          "description": "A change to show after the value, colored by trend",
           "examples": [
             "null"
           ],
@@ -31147,7 +31147,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour under the line.",
+          "description": "A color under the line.",
           "examples": [
             "accent"
           ],
@@ -31421,7 +31421,7 @@
               "type": "null"
             }
           ],
-          "description": "The icon's colour. Default: the text's.",
+          "description": "The icon's color. Default: the text's.",
           "examples": [
             "accent"
           ],
@@ -31679,7 +31679,7 @@
               "type": "null"
             }
           ],
-          "description": "A row of colour dots and labels under the bar.",
+          "description": "A row of color dots and labels under the bar.",
           "examples": [
             true
           ],
@@ -31994,7 +31994,7 @@
               "type": "null"
             }
           ],
-          "description": "The overlay's colour.",
+          "description": "The overlay's color.",
           "examples": [
             "accent"
           ],
@@ -32048,7 +32048,7 @@
           "x-vestal-since": "0.4"
         },
         "palette": {
-          "description": "Colours given to calendars, by a hash of their name",
+          "description": "Colors given to calendars, by a hash of their name",
           "examples": [
             [
               "accent",
@@ -32392,7 +32392,7 @@
           "x-vestal-since": "0.4"
         },
         "scale": {
-          "description": "Two colours, low and high, mixed by where a value is between min and max.",
+          "description": "Two colors, low and high, mixed by where a value is between min and max.",
           "examples": [
             [
               "#161b22",
@@ -32685,7 +32685,7 @@
           "x-vestal-since": "0.4"
         },
         "stateColors": {
-          "description": "State word to colour, for entities without numbers",
+          "description": "State word to color, for entities without numbers",
           "examples": [
             {
               "closed": "good",
@@ -32717,7 +32717,7 @@
           "x-vestal-since": "0.4"
         },
         "steps": {
-          "description": "Instead of scale: [threshold, colour] pairs; a value takes the last stop at or below it.",
+          "description": "Instead of scale: [threshold, color] pairs; a value takes the last stop at or below it.",
           "examples": [
             [
               [
@@ -32769,7 +32769,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -32909,7 +32909,7 @@
               "type": "null"
             }
           ],
-          "description": "The mark's colour.",
+          "description": "The mark's color.",
           "examples": [
             "accent"
           ],
@@ -33138,7 +33138,7 @@
           "x-vestal-since": "0.4"
         },
         "warn": {
-          "description": "Cores at or above this percentage are drawn in the warn colour",
+          "description": "Cores at or above this percentage are drawn in the warn color",
           "examples": [
             70
           ],
@@ -33371,7 +33371,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -33421,7 +33421,7 @@
             }
           ],
           "default": "accent",
-          "description": "The fill's colour.",
+          "description": "The fill's color.",
           "examples": [
             "accent"
           ],
@@ -33675,7 +33675,7 @@
             }
           ],
           "default": "#ffffff33",
-          "description": "The overlay's colour.",
+          "description": "The overlay's color.",
           "examples": [
             "accent"
           ],
@@ -33820,7 +33820,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -33900,7 +33900,7 @@
             }
           ],
           "default": "#ffffff8c",
-          "description": "The mark's colour.",
+          "description": "The mark's color.",
           "examples": [
             "accent"
           ],
@@ -34058,7 +34058,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -34399,7 +34399,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -34562,7 +34562,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -34911,7 +34911,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -35047,7 +35047,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -35361,7 +35361,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -35510,7 +35510,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -35815,7 +35815,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -35951,7 +35951,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -36001,7 +36001,7 @@
             }
           ],
           "default": "accent",
-          "description": "The line's colour; may use $value (the last point).",
+          "description": "The line's color; may use $value (the last point).",
           "examples": [
             "accent"
           ],
@@ -36046,7 +36046,7 @@
               "type": "null"
             }
           ],
-          "description": "The dotAt dot's colour. Default: the line's.",
+          "description": "The dotAt dot's color. Default: the line's.",
           "examples": [
             "accent"
           ],
@@ -36063,7 +36063,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour under the line.",
+          "description": "A color under the line.",
           "examples": [
             "accent"
           ],
@@ -36370,7 +36370,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -36556,7 +36556,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -36905,7 +36905,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -36982,7 +36982,7 @@
     },
     "widget.stackedBar": {
       "additionalProperties": false,
-      "description": "One bar split into coloured segments.",
+      "description": "One bar split into colored segments.",
       "properties": {
         "action": {
           "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
@@ -37041,7 +37041,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -37090,7 +37090,7 @@
               "type": "null"
             }
           ],
-          "description": "A segment without its own color: this (steps of its value), else a cycle of palette colours.",
+          "description": "A segment without its own color: this (steps of its value), else a cycle of palette colors.",
           "examples": [
             "accent"
           ],
@@ -37202,7 +37202,7 @@
             }
           ],
           "default": false,
-          "description": "A row of colour dots and labels under the bar.",
+          "description": "A row of color dots and labels under the bar.",
           "examples": [
             true
           ],
@@ -37401,7 +37401,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -37504,7 +37504,7 @@
     },
     "widget.stat": {
       "additionalProperties": false,
-      "description": "A big value, a label and an optional coloured delta",
+      "description": "A big value, a label and an optional colored delta",
       "properties": {
         "action": {
           "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
@@ -37563,7 +37563,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -37604,7 +37604,7 @@
         },
         "color": {
           "default": "text",
-          "description": "The value's colour",
+          "description": "The value's color",
           "examples": [
             "text"
           ],
@@ -37613,7 +37613,7 @@
         },
         "delta": {
           "default": "null",
-          "description": "A change to show after the value, coloured by trend",
+          "description": "A change to show after the value, colored by trend",
           "examples": [
             "null"
           ],
@@ -37947,7 +37947,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -38121,7 +38121,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -38415,7 +38415,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -38551,7 +38551,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -38894,7 +38894,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -39030,7 +39030,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -39402,7 +39402,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -39554,7 +39554,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -39875,7 +39875,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -40024,7 +40024,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -40491,7 +40491,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -40627,7 +40627,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -40951,7 +40951,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -41205,7 +41205,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -41348,7 +41348,7 @@
               "type": "null"
             }
           ],
-          "description": "The icon's colour. Default: the text's.",
+          "description": "The icon's color. Default: the text's.",
           "examples": [
             "accent"
           ],
@@ -41688,7 +41688,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -41879,7 +41879,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -42248,7 +42248,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -42392,7 +42392,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -42755,7 +42755,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -42891,7 +42891,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -43189,7 +43189,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -43232,7 +43232,7 @@
         },
         "warn": {
           "default": 70,
-          "description": "CPU at or above this percentage (of one core) is drawn in the warn colour",
+          "description": "CPU at or above this percentage (of one core) is drawn in the warn color",
           "examples": [
             70
           ],
@@ -43338,7 +43338,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -43636,7 +43636,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -43772,7 +43772,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -44070,7 +44070,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -44219,7 +44219,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -44530,7 +44530,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -44666,7 +44666,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -44968,7 +44968,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -45135,7 +45135,7 @@
               "type": "null"
             }
           ],
-          "description": "A colour painted behind the padded frame.",
+          "description": "A color painted behind the padded frame.",
           "examples": [
             "track",
             "accent@0.15"
@@ -45494,7 +45494,7 @@
               "type": "null"
             }
           ],
-          "description": "Text style and colour, inherited by everything under it.",
+          "description": "Text style and color, inherited by everything under it.",
           "examples": [
             {
               "color": "subtle",
@@ -45847,7 +45847,7 @@
         ]
       },
       "default": {},
-      "description": "Parameterised widgets and sources, used like a type. Built-in templates (the presets) are separate; a user template with a built-in's name needs \"override\": true.",
+      "description": "Parameterized widgets and sources, used like a type. Built-in templates (the presets) are separate; a user template with a built-in's name needs \"override\": true.",
       "examples": [
         {
           "metric": {

@@ -511,7 +511,7 @@ final class RuntimeTests: XCTestCase {
         XCTAssertEqual(fetcher.count("https://a.example"), 1)
         XCTAssertEqual(fetcher.count("https://b2.example"), 1)
         XCTAssertEqual(fetcher.count("foyer-api --host https://box.example /api/health"), 1, "the host is unchanged")
-        XCTAssertNil(runtime.snapshot(.source("c")), "a cancelled fetch never lands")
+        XCTAssertNil(runtime.snapshot(.source("c")), "a canceled fetch never lands")
 
         runtime.apply(runtimeConfig(sources: ["a": http("https://a.example")]))
         XCTAssertNil(runtime.snapshot(.host("box")))
@@ -533,7 +533,7 @@ final class RuntimeTests: XCTestCase {
         runtime.startDueJobs()
         await waitUntil { fetcher.cancelledKeys == ["https://x.example"] && fetcher.count("https://y.example") == 1 }
         await settle()
-        XCTAssertEqual(runtime.snapshot(.source("a")), SourceSnapshot(), "the cancelled run is not the new job's result")
+        XCTAssertEqual(runtime.snapshot(.source("a")), SourceSnapshot(), "the canceled run is not the new job's result")
 
         runtime.startDueJobs()
         await settle()
@@ -613,7 +613,7 @@ final class RuntimeTests: XCTestCase {
         runtime.shutdown()
         await waitUntil { fetcher.cancelledKeys == ["https://a.example"] }
         await settle()
-        XCTAssertEqual(runtime.snapshot(.source("a")), SourceSnapshot(), "the cancelled fetch never lands")
+        XCTAssertEqual(runtime.snapshot(.source("a")), SourceSnapshot(), "the canceled fetch never lands")
 
         // Nothing starts again, whatever is due or asked.
         clock.advance(3600)
@@ -668,7 +668,7 @@ final class RuntimeTests: XCTestCase {
         let child = Set(CommandRunner.runningProcessIDs).subtracting(before)
         let started = Date()
         runtime.shutdown()
-        // Gone well before the SIGKILL that follows a cancelled run's SIGTERM
+        // Gone well before the SIGKILL that follows a canceled run's SIGTERM
         // (on Linux the child may block SIGTERM; see CommandRunner).
         await waitUntil { Set(CommandRunner.runningProcessIDs).isDisjoint(with: child) }
         XCTAssertLessThan(Date().timeIntervalSince(started), 0.9)

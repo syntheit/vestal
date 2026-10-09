@@ -385,7 +385,7 @@ final class RenderEngineTests: XCTestCase {
         XCTAssertTrue(hiddenKV.root.children.isEmpty)
     }
 
-    // MARK: Styles and colours
+    // MARK: Styles and colors
 
     func testStyleInheritanceTokensEmphasisAndCase() {
         let s = render(one("""

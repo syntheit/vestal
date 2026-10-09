@@ -130,7 +130,7 @@ struct JQNative: @unchecked Sendable {
     let name: String
     let arity: Int
     let impl: Impl
-    /// Path-mode behaviour (getpath, empty, error). Without it, outputs in
+    /// Path-mode behavior (getpath, empty, error). Without it, outputs in
     /// path mode are plain values, as for jq's C functions.
     var pathImpl: ((JQInterpreter, [JQOp], JQPath, JQEnv?, JQPathEmit) throws -> Void)?
     /// A generator known to yield at most one value (`empty`).
@@ -488,7 +488,7 @@ final class JQCompiler {
         return message
     }
 
-    /// Edit distance counting a swap of neighbours as one edit.
+    /// Edit distance counting a swap of neighbors as one edit.
     static func editDistance(_ a: String, _ b: String) -> Int {
         let a = Array(a), b = Array(b)
         if a.isEmpty { return b.count }

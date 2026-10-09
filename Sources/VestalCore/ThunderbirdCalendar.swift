@@ -11,7 +11,7 @@ import CSQLite
 //
 // Each item is turned back into a small VEVENT (DTSTART/DTEND with their
 // zone, SUMMARY, LOCATION, the recurrence lines Thunderbird keeps verbatim,
-// RECURRENCE-ID for a moved or cancelled instance) and handed to ICSCalendar,
+// RECURRENCE-ID for a moved or canceled instance) and handed to ICSCalendar,
 // so recurrence expansion and time zones behave as they do for `ics`.
 //
 // Thunderbird keeps its databases open in WAL mode, so the files are copied
@@ -159,7 +159,7 @@ public enum ThunderbirdCalendar {
             properties[calID + "\u{0}" + id + "\u{0}" + (row.int(2).map(String.init) ?? ""), default: [:]][name] = value
         }
 
-        // A cancelled item takes its exceptions with it.
+        // A canceled item takes its exceptions with it.
         let cancelled = Set(items.filter { $0.recurrenceID == nil && isCancelled($0.status) }.map { $0.calID + "\u{0}" + $0.id })
         let low = start.timeIntervalSince1970 - 2 * 86400
         let high = end.timeIntervalSince1970 + 2 * 86400

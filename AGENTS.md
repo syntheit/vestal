@@ -11,7 +11,7 @@ Vestal is a full-screen dashboard toggled by a key, on macOS and Linux, driven b
 3. **Never put secrets in the config.** Tokens live in a file (or an environment variable, or a command such as `gh auth token`), declared under `secrets` and used as `{{ $secrets.name }}` in a source's URL, headers or argv. Under Nix the config is in the world-readable store.
 4. **One config serves macOS and Linux.** Use the built-in sources (`system`, `media`, `calendar`, `claude`, `codex`) rather than OS commands. Put what is truly OS-specific (fonts, a command that exists on one OS, a player name) in `platform.macos` or `platform.linux`, and check both OSes: `vestal check-config --platform linux`.
 5. **Validate before you claim success:** `vestal check-config --json` must say `"error": 0` (exit 0, not 3), and `vestal render` must end with `diagnostics: 0`. Then look at it (`vestal screenshot`).
-6. **Prefer what exists:** presets (`vestal docs presets`; each ships a sample you can look at without any source: `vestal docs samples`, `vestal gallery --only <name>`), semantic colours (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
+6. **Prefer what exists:** presets (`vestal docs presets`; each ships a sample you can look at without any source: `vestal docs samples`, `vestal gallery --only <name>`), semantic colors (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
 7. **Tell the user what runs.** `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists every program the config can run (command sources, inline or from a template too; `command` secrets; `run` actions in widgets, views, keys and templates; the v0.3 privacy toggle and foyer hosts), with what triggers it and whether it is on `PATH`. Mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
 8. **Lists replace, objects merge.** Your file is merged over the built-in defaults: objects merge key by key, but a list (such as `views.main.children`) replaces the default list whole, and `null` deletes a default. When you add a widget to a view, write the view's full list.
 
@@ -83,7 +83,7 @@ $ vestal fetch prs --config /tmp/vestal-draft.json --allow-commands --shape
 
 ### Step 3: write the config
 
-**Start from a starter, then customise.** For a user with no config yet, `vestal init --list` shows eight complete dashboards (default, minimal, developer, homelab, markets, focus, media, agentops); `vestal init --starter <id>` writes one to the config path (under Nix: `programs.vestal.starter = "<id>";`, with `programs.vestal.settings` merged over it). Read what it needs from the user, then change it with the loop below (`vestal docs starters`).
+**Start from a starter, then customize.** For a user with no config yet, `vestal init --list` shows eight complete dashboards (default, minimal, developer, homelab, markets, focus, media, agentops); `vestal init --starter <id>` writes one to the config path (under Nix: `programs.vestal.starter = "<id>";`, with `programs.vestal.settings` merged over it). Read what it needs from the user, then change it with the loop below (`vestal docs starters`).
 
 A complete config is a JSON object with `"version": 1`, merged over the defaults. The parts: `sources` (data), `widgets` (named widgets), `views` (which widgets show, in order), plus `templates`, `functions`, `secrets`, `keys`, `pages` (order, slide or fade, dots and swipe between views; `views.<name>.enabled: false` turns a view off), `theme`, `platform` when needed. Every recipe in section 5 is a complete file you can start from.
 
@@ -211,10 +211,10 @@ stack v gap=24 align=center w=fill maxWidth=680 [main]
 diagnostics: 0
 ```
 
-- `--format json` (or `--json`) prints the full render model (`vestal docs render-model`): every colour, size and flag, for checking details.
+- `--format json` (or `--json`) prints the full render model (`vestal docs render-model`): every color, size and flag, for checking details.
 - `--view <name>` renders another view; `--press <key>` presses keys first (switch views, open popups; nothing is run).
 - `--data <dir>` renders from fixture files (`<dir>/<source>.json`) instead of live data, to test states you can't produce: a CPU at 95%, an empty list, a failed source (`<dir>/<source>.error`). `--at <time>` freezes the clock.
-- Anything but `diagnostics: 0` is a problem: an expression that failed at runtime, an unknown icon or colour. `--strict` exits 3 on any.
+- Anything but `diagnostics: 0` is a problem: an expression that failed at runtime, an unknown icon or color. `--strict` exits 3 on any.
 
 To see what a key does, without running anything: `vestal press <key> --dry-run --config /tmp/vestal-draft.json` prints its binding (widget, view or global) and each effect (`run [argv]`, `open <url>`, `show view …`). `vestal press <key>` sends it to the running dashboard for real.
 
@@ -245,7 +245,7 @@ $ vestal screenshot /tmp/vestal.png --config /tmp/vestal-draft.json --json
 {"clipped":0,"diagnostics":0,"frames":null,"height":982,"path":"/tmp/vestal.png","scale":2,"truncated":0,"width":1512}
 ```
 
-Then open `/tmp/vestal.png` with your image-viewing tool and look: alignment, crowding, colours, anything cut off. `--frames` writes every node's frame, with `clipped: true` on nodes cut off at the bottom of the screen (vestal never scrolls) and `truncated: true` on texts cut by `lines`: check those without reading pixels. It takes the same `--view`, `--press`, `--data` and `--at` as `render`, plus `--size <w>x<h>`, `--scale` and `--background` on macOS (on Linux the PNG is the screen as the GTK UI draws it, in pixels). The desktop blur is never captured; on macOS the aurora isn't either (the background is the palette's `bg`), while the GTK UI draws its aurora into the PNG. It draws with the real UI code: SwiftUI on macOS, GTK on Linux (which needs a Wayland session; exit 5 without one: rely on `render` then).
+Then open `/tmp/vestal.png` with your image-viewing tool and look: alignment, crowding, colors, anything cut off. `--frames` writes every node's frame, with `clipped: true` on nodes cut off at the bottom of the screen (vestal never scrolls) and `truncated: true` on texts cut by `lines`: check those without reading pixels. It takes the same `--view`, `--press`, `--data` and `--at` as `render`, plus `--size <w>x<h>`, `--scale` and `--background` on macOS (on Linux the PNG is the screen as the GTK UI draws it, in pixels). The desktop blur is never captured; on macOS the aurora isn't either (the background is the palette's `bg`), while the GTK UI draws its aurora into the PNG. It draws with the real UI code: SwiftUI on macOS, GTK on Linux (which needs a Wayland session; exit 5 without one: rely on `render` then).
 
 ### Step 8: iterate and deploy
 
@@ -266,7 +266,7 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 | `$item`, `$index`, `$parent` | The current row, its position, the outer row. |
 | `$sources.<name>` | Any source's data. |
 | `$history.<source>.<name>` | Sampled numbers, oldest first. |
-| `$value` | The widget's own value, in colour and style fields. |
+| `$value` | The widget's own value, in color and style fields. |
 | `$meta` | `{fetchedAt, age, ok, error, stale, loaded}` of the source. |
 | `now` | The current time, epoch seconds. |
 
@@ -282,7 +282,7 @@ Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` 
 
 **Formatting:** `fmt_fixed(1)`, `fmt_int`, `fmt_percent`, `fmt_bytes`, `fmt_rate`, `fmt_duration`, `fmt_relative`, `fmt_time("HH:mm")`, `fmt_compact`, `fmt_thousands`, `to_epoch`; on `text`, `stat` and table columns, `"format": "fixed:1"`, `"bytes"`, `"percent"`, `"relative"`, ….
 
-**Colour by threshold:** `"color": {"steps": [[0, "good"], [70, "warn"], [90, "bad"]]}` (of the widget's value; `"of": ".x"` for another).
+**Color by threshold:** `"color": {"steps": [[0, "good"], [70, "warn"], [90, "bad"]]}` (of the widget's value; `"of": ".x"` for another).
 
 **Icons:** Phosphor names (`vestal icons battery`), `"weight": "fill"` for solid.
 
@@ -420,7 +420,7 @@ User: *"Show BTC and ETH with the 24h change and a small chart."*
 }
 ```
 
-- `stat` shows the value and a coloured `▲`/`▼` delta. The BTC chart comes from the API's own series (`btcDay`, reshaped by `transform`), so it is full at once; the ETH chart is recorded by vestal (`value` + `history`) and fills in over the next fetches, kept across restarts.
+- `stat` shows the value and a colored `▲`/`▼` delta. The BTC chart comes from the API's own series (`btcDay`, reshaped by `transform`), so it is full at once; the ETH chart is recorded by vestal (`value` + `history`) and fills in over the next fetches, kept across restarts.
 - Check: `vestal fetch prices --config /tmp/vestal-draft.json --shape` shows `.bitcoin.usd number  84726` and `.bitcoin.usd_24h_change number  0.576…`. The render has `text "$84,726" size=24` and `text "▲0.58%" size=11 color=good`.
 - Tell the user the ETH sparkline needs a few fetches (5 minutes apart) before it draws.
 
@@ -725,7 +725,7 @@ User: *"Make CPU, RAM and disk bars with their own warning levels and a note und
   "version": 1,
   "templates": {
     "metric": {
-      "description": "A labelled percentage bar that turns yellow, then red",
+      "description": "A labeled percentage bar that turns yellow, then red",
       "params": {
         "label": { "type": "text", "required": true },
         "value": { "type": "expr", "required": true, "description": "A 0-100 number" },
@@ -883,7 +883,7 @@ User: *"A table of my disks: used, free and size, red when nearly full."*
 ```
 
 - A `table` lines its columns up across rows. `storage` is a named `system` source with more `disks` than the default `["/"]`: list the user's real mount points (`df -h`).
-- Column colours use the cell's value (`steps` of `$value`).
+- Column colors use the cell's value (`steps` of `$value`).
 
 ## 6. Going further
 

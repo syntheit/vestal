@@ -137,7 +137,7 @@
             "id": "main/grid/12",
             "size": 12,
             "span": 3,
-            "text": "a cell spanning three columns, centred vertically in its row",
+            "text": "a cell spanning three columns, centered vertically in its row",
             "type": "text"
           },
           {
@@ -620,7 +620,7 @@
             "color": "nosuchcolor",
             "id": "main/misc/3",
             "size": 12,
-            "text": "unknown colour name draws as text",
+            "text": "unknown color name draws as text",
             "type": "text"
           }
         ],

@@ -9,7 +9,7 @@ vec2 flowDir(vec2 s, float t) {
 }
 
 // The dots at `s` (a 625-unit-high space) in one half of the lifetime cycle:
-// premultiplied colour and alpha.
+// premultiplied color and alpha.
 vec4 dotsAt(vec2 s, float ph) {
     const float cycle = 3.2;
     float u = time / cycle + ph * 0.5;

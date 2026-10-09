@@ -2,7 +2,7 @@
   "version": 1,
   "templates": {
     "metric": {
-      "description": "A labelled percentage bar that turns yellow, then red",
+      "description": "A labeled percentage bar that turns yellow, then red",
       "params": {
         "label": { "type": "text", "required": true },
         "value": { "type": "expr", "required": true, "description": "A 0-100 number" },

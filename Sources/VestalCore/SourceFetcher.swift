@@ -617,7 +617,7 @@ extension URLSession {
     /// (by its Content-Length, or as it arrives) fails at once with
     /// "response larger than …" instead of being buffered whole. A session
     /// of its own per request, ephemeral (nothing on disk), invalidated when
-    /// done. Cancelling the calling task cancels the request. The request's
+    /// done. Canceling the calling task cancels the request. The request's
     /// `timeoutInterval` bounds the whole request, not only the time between
     /// two packets, so a server that trickles its answer can't hold it open.
     static func vestalData(for request: URLRequest, limit: Int) async throws -> (Data, URLResponse) {
@@ -719,7 +719,7 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
         } else if challenged, error != nil,
                   let unauthorized = response ?? task.originalRequest?.url.flatMap({
                       HTTPURLResponse(url: $0, statusCode: 401, httpVersion: nil, headerFields: nil) }) {
-            // The challenge was cancelled, which URLSession reports as an error.
+            // The challenge was canceled, which URLSession reports as an error.
             result = .success((data, unauthorized))
         } else if let error {
             result = .failure(error)

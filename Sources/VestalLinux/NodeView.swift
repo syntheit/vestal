@@ -16,7 +16,7 @@ import VestalCore
 //   when a row still overflows, texts with a line limit shrink (and
 //   truncate) down to their minimum, and anything else overflows.
 // - Grids: fixed, fit (widest single-span cell) and fill columns; rows as
-//   tall as their tallest cell, cells centred vertically.
+//   tall as their tallest cell, cells centered vertically.
 // - Padding is inside the frame; min/max clamp after sizing, border-box.
 //
 // GTK sees natural sizes and a minimum of 0 for containers, so a container
@@ -143,7 +143,7 @@ class NodeView {
     }
 
     /// Font (role family, absolute size in logical pixels, numeric weight),
-    /// colour and tracking, as Pango attributes over the whole text. The
+    /// color and tracking, as Pango attributes over the whole text. The
     /// caller owns the returned list.
     private func textAttributes(_ text: RenderNode.Text) -> OpaquePointer? {
         let attrs = pango_attr_list_new()
@@ -554,7 +554,7 @@ class NodeView {
         g.columns.isEmpty ? [RenderNode.Grid.Column()] : g.columns
     }
 
-    /// Row and first column of each child, honouring `span`.
+    /// Row and first column of each child, honoring `span`.
     private func gridCells(_ g: RenderNode.Grid) -> [(row: Int, column: Int, span: Int)] {
         let count = effectiveColumns(g).count
         var cells: [(Int, Int, Int)] = []
@@ -725,7 +725,7 @@ class NodeView {
         var ink = PangoRectangle(), logical = PangoRectangle()
         pango_layout_get_extents(layout, &ink, &logical)
         let scale = Double(PANGO_SCALE)
-        // Centre the glyph's advance box horizontally and its em box
+        // Center the glyph's advance box horizontally and its em box
         // (ascent + descent) vertically in the size×size box.
         let x = box.x + (box.width - Double(logical.width) / scale) / 2 - Double(logical.x) / scale
         let y = box.y + (box.height - Double(logical.height) / scale) / 2 - Double(logical.y) / scale

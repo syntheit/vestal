@@ -51,7 +51,7 @@ struct PageLayerMotion {
 // MARK: - Dots
 
 /// One dot per page, near the bottom of the screen: the current page in the
-/// accent colour, the rest dim.
+/// accent color, the rest dim.
 struct PageDots: View {
     let pages: RenderPages
     let style: RenderStyle

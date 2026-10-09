@@ -42,7 +42,7 @@ final class ICSCalendarTests: XCTestCase {
         let standups = entries.filter { $0.title == "Standup" }
         // Monday, Wednesday and Friday up to UNTIL (Friday 30 October, local
         // end of day). The 14th is an EXDATE, the 16th moved, the 21st
-        // cancelled by its override.
+        // canceled by its override.
         let days = ["05", "07", "09", "12", "19", "23", "26", "28", "30"]
         XCTAssertEqual(standups.map(\.start), days.map { utc("2026-10-\($0)T13:30:00Z") })
         XCTAssertTrue(standups.allSatisfy { $0.end.timeIntervalSince($0.start) == 900 })

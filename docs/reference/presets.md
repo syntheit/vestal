@@ -20,7 +20,7 @@ A titled block: the title in upper case (size 11, bold, `dim`, tracking 1.5) fol
 
 ### `stat`
 
-A label, a big value, and an optional delta: `▲` or `▼` coloured by `trend` (`up-good`: up is `good`; `up-bad`: up is `bad`; `none`). `size` is `sm` (value 14), `md` (24) or `lg` (36). `value` and `delta` are expressions; `format`, `prefix` and `suffix` work as on `text`.
+A label, a big value, and an optional delta: `▲` or `▼` colored by `trend` (`up-good`: up is `good`; `up-bad`: up is `bad`; `none`). `size` is `sm` (value 14), `md` (24) or `lg` (36). `value` and `delta` are expressions; `format`, `prefix` and `suffix` work as on `text`.
 
 ```json
 { "type": "stat", "source": "system", "label": "Memory", "value": ".memory.percent", "format": "percent", "size": "lg" }
@@ -40,7 +40,7 @@ Widgets over the detail fields of the `system` source (`vestal docs source/syste
 
 ### `cpuCores`
 
-One column per logical core, 0 to 100, labelled `P1`..`P4` (performance) and `E1`..`E6` (efficiency); cores at or above `warn` are `warn`-coloured, the rest `cyan` (performance) or `teal` (efficiency). Beside them: the CPU total, the load averages, and the layout with the CPU temperature (`4P + 6E · 61°`). Where the OS doesn't tell the kinds, the columns are numbered and the layout reads `16 cores`.
+One column per logical core, 0 to 100, labeled `P1`..`P4` (performance) and `E1`..`E6` (efficiency); cores at or above `warn` are `warn`-colored, the rest `cyan` (performance) or `teal` (efficiency). Beside them: the CPU total, the load averages, and the layout with the CPU temperature (`4P + 6E · 61°`). Where the OS doesn't tell the kinds, the columns are numbered and the layout reads `16 cores`.
 
 | Parameter | Default | |
 |---|---|---|
@@ -73,7 +73,7 @@ programs.vestal.settings.views.main.children = [ { type = "memoryBreakdown"; } ]
 
 ### `diskBreakdown`
 
-Every volume the source lists (its `disks`, `["/"]` by default): the first with its name, "used / total" and a bar, the others as one row each with a bar coloured `good`, `warn` from 80% and `bad` from 95%. With `usage` naming a `diskUsage` source, the first volume's bar is split by those categories and an "Other" part for the rest, with a legend; until that source has data, and without `usage`, it is one bar. List more volumes with `disks` on the `system` source.
+Every volume the source lists (its `disks`, `["/"]` by default): the first with its name, "used / total" and a bar, the others as one row each with a bar colored `good`, `warn` from 80% and `bad` from 95%. With `usage` naming a `diskUsage` source, the first volume's bar is split by those categories and an "Other" part for the rest, with a legend; until that source has data, and without `usage`, it is one bar. List more volumes with `disks` on the `system` source.
 
 | Parameter | Default | |
 |---|---|---|
@@ -117,12 +117,12 @@ programs.vestal.settings.views.main.children = [ { type = "networkRates"; minute
 
 ### `topProcesses`
 
-The busiest processes by CPU: name, CPU in percent of one core (`warn`-coloured from `warn`), resident memory and a bar. It reads its own `system` source with `processes` set to `count`, so no process is read for configs that don't place it. Linux shows every process but kernel threads; macOS shows the current user's processes only (system daemons are not visible). The first reading after a start ranks by memory: CPU needs two.
+The busiest processes by CPU: name, CPU in percent of one core (`warn`-colored from `warn`), resident memory and a bar. It reads its own `system` source with `processes` set to `count`, so no process is read for configs that don't place it. Linux shows every process but kernel threads; macOS shows the current user's processes only (system daemons are not visible). The first reading after a start ranks by memory: CPU needs two.
 
 | Parameter | Default | |
 |---|---|---|
 | `count` | `5` | Processes shown, at most 20. |
-| `warn` | `70` | The CPU percentage from which a row is `warn`-coloured. |
+| `warn` | `70` | The CPU percentage from which a row is `warn`-colored. |
 
 ```json
 { "type": "topProcesses", "count": 8 }
@@ -183,9 +183,9 @@ programs.vestal.extraPackages = [ pkgs.gh ];
 
 ### `ciStatus`
 
-The latest GitHub Actions results per repository and branch: a state icon (`check-circle` green, `x-circle` red, `circle-notch` yellow while running, `minus-circle` for cancelled), the repository, the branch, the last `runs` results as small cells (older ones half as strong, the newest full), and how long the newest took (`4m 12s`, `running 2m`). A row opens the repository's Actions page for that branch.
+The latest GitHub Actions results per repository and branch: a state icon (`check-circle` green, `x-circle` red, `circle-notch` yellow while running, `minus-circle` for canceled), the repository, the branch, the last `runs` results as small cells (older ones half as strong, the newest full), and how long the newest took (`4m 12s`, `running 2m`). A row opens the repository's Actions page for that branch.
 
-One GraphQL request per refresh covers every repository: it reads each branch's last 30 commits and the check suites GitHub Actions ran for them. A commit is one cell: running when any of its suites is still running, failed when one failed or timed out, cancelled when one was cancelled, else passed; commits no workflow ran for (skipped suites, path filters) have no cell. So a cell is a commit's result rather than a single workflow run, and the duration spans the commit's suites. Use a `repos` entry per branch you care about.
+One GraphQL request per refresh covers every repository: it reads each branch's last 30 commits and the check suites GitHub Actions ran for them. A commit is one cell: running when any of its suites is still running, failed when one failed or timed out, canceled when one was canceled, else passed; commits no workflow ran for (skipped suites, path filters) have no cell. So a cell is a commit's result rather than a single workflow run, and the duration spans the commit's suites. Use a `repos` entry per branch you care about.
 
 | Parameter | Default | |
 |---|---|---|
@@ -193,7 +193,7 @@ One GraphQL request per refresh covers every repository: it reads each branch's 
 | `runs` | `12` | Cells per repository, at most 30. |
 | `refresh` | `5m` | |
 
-The source's data: a list, in `repos` order, of `{repo, nameWithOwner, branch, url, runs (oldest first: success, failure, running, cancelled), state (the newest, or none), started, finished (epoch seconds)}`. A repository GitHub can't find or read is left out.
+The source's data: a list, in `repos` order, of `{repo, nameWithOwner, branch, url, runs (oldest first: success, failure, running, canceled), state (the newest, or none), started, finished (epoch seconds)}`. A repository GitHub can't find or read is left out.
 
 ```json
 { "type": "ciStatus", "repos": ["acme/api", "acme/web", "acme/infra@update-flake"] }
@@ -239,7 +239,7 @@ The locks come from `nix flake metadata --json` (the `flake` source, `vestal doc
 |---|---|---|
 | `path` | required | The flake's directory or reference; `~/` expands. |
 | `behind` | `false` | Also ask GitHub how many commits each GitHub input is behind. |
-| `fresh`, `warn`, `bad` | `3`, `14`, `30` | Days: the lock age colours. |
+| `fresh`, `warn`, `bad` | `3`, `14`, `30` | Days: the lock age colors. |
 | `sort` | `age` | `age` (oldest lock first) or `name`. |
 | `limit` | `8` | Rows shown. |
 | `refresh` | `1h` | |
@@ -312,7 +312,7 @@ Hosts under `title` (`Systems`), each a row with CPU and RAM bars, temperature a
 
 ### `keyValueList`
 
-Labelled values picked out of JSON sources with v0.3 paths: `items` of `{label, source, match, pick | picks, format}`. New configs: use `keyValue`, whose values are jq.
+Labeled values picked out of JSON sources with v0.3 paths: `items` of `{label, source, match, pick | picks, format}`. New configs: use `keyValue`, whose values are jq.
 
 ### `weatherCard`
 
@@ -363,7 +363,7 @@ Under Home Manager: `programs.vestal.settings.sources.astro = { type = "astro"; 
 
 ### `countdowns`
 
-Days until the dates you care about, soonest first, each with how much of the wait has passed. `items` is `[{title, date, since?, color?}]` with dates as `2026-12-24`: the number of days from today (local date) is shown large, then the title and a thin bar of the time passed since `since`. Without `since` there is no bar. A date in the past is left out. The colour is automatic (`warn` within 14 days, `accent` within 60, else plain), or `color` on the item.
+Days until the dates you care about, soonest first, each with how much of the wait has passed. `items` is `[{title, date, since?, color?}]` with dates as `2026-12-24`: the number of days from today (local date) is shown large, then the title and a thin bar of the time passed since `since`. Without `since` there is no bar. A date in the past is left out. The color is automatic (`warn` within 14 days, `accent` within 60, else plain), or `color` on the item.
 
 | Parameter | Default | |
 |---|---|---|
@@ -422,7 +422,7 @@ Widgets for a home server or a few machines. Each reads a source (a "data pack",
 
 ### `containers`
 
-The containers of a Docker or Podman host: a badge for how many are running, unhealthy and exited (red when one exited with an error), then a row each with the name, the state (`up 12d`, `exited (1) 2h ago`, coloured by health), CPU and memory. It runs `docker ps -a --format json` every 15 seconds while the dashboard is shown, and `docker stats --no-stream --format json` for the last two columns (`stats: false` skips it; a stopped container shows `–`). When `limit` cuts the list, failed, unhealthy and restarting containers are kept first and `+ N more` says how many are not shown. Podman needs `program: "podman"` and nothing else.
+The containers of a Docker or Podman host: a badge for how many are running, unhealthy and exited (red when one exited with an error), then a row each with the name, the state (`up 12d`, `exited (1) 2h ago`, colored by health), CPU and memory. It runs `docker ps -a --format json` every 15 seconds while the dashboard is shown, and `docker stats --no-stream --format json` for the last two columns (`stats: false` skips it; a stopped container shows `–`). When `limit` cuts the list, failed, unhealthy and restarting containers are kept first and `+ N more` says how many are not shown. Podman needs `program: "podman"` and nothing else.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -575,7 +575,7 @@ The progress shape, one object per transfer:
 | `percent` | 0 to 100, or `null` when unknown (an empty bar). |
 | `detail`, `right` | Text on the left and the right of the line under the bar. Either may be empty. |
 | `icon` | A Phosphor icon name (`vestal icons`). Default `download`. |
-| `color` | A colour. Default `accent`, `good` at 100. |
+| `color` | A color. Default `accent`, `good` at 100. |
 
 ```json
 {
@@ -638,7 +638,7 @@ programs.vestal.settings.widgets.news = { type = "headlines"; limit = 6; };
 
 ### `cryptoTicker`
 
-A row per coin: symbol, name, a day's line (green up, red down) with its area, the price and the 24-hour change in colour. Clicking a row opens the coin on CoinGecko. Data from the `coingecko` pack, so one request every 5 minutes for all the coins.
+A row per coin: symbol, name, a day's line (green up, red down) with its area, the price and the 24-hour change in color. Clicking a row opens the coin on CoinGecko. Data from the `coingecko` pack, so one request every 5 minutes for all the coins.
 
 | Parameter | Default | |
 |---|---|---|
@@ -662,7 +662,7 @@ programs.vestal.settings.widgets.crypto = { type = "cryptoTicker"; source = "coi
 
 ### `watchlist`
 
-A short stock list: symbol, the session's line, the last price and the day's change in colour, under a Symbol / Last / Day header, and a line for the market: `market open` or `market closed`, the time of the last quote and a reminder that it may be delayed. Open means the last quote is under 20 minutes old. Clicking a row opens the symbol on Yahoo Finance. Data from the `yahooQuotes` pack (Yahoo's unofficial chart endpoint, no key, one request for all symbols); `vestal docs sources` says why and what a keyed source would need.
+A short stock list: symbol, the session's line, the last price and the day's change in color, under a Symbol / Last / Day header, and a line for the market: `market open` or `market closed`, the time of the last quote and a reminder that it may be delayed. Open means the last quote is under 20 minutes old. Clicking a row opens the symbol on Yahoo Finance. Data from the `yahooQuotes` pack (Yahoo's unofficial chart endpoint, no key, one request for all symbols); `vestal docs sources` says why and what a keyed source would need.
 
 | Parameter | Default | |
 |---|---|---|
@@ -686,16 +686,16 @@ programs.vestal.settings.widgets.stocks = { type = "watchlist"; source = "quotes
 
 ### `homeAssistant`
 
-A grid of tiles, one per entity: an icon and a label, the state with its unit (numbers rounded to one decimal, `°` and `%` joined to the number, other units after a space) and a second line. The state's colour: `color` of the entity if set; for a number, its `thresholds`; for a word, `stateColors` (`locked` and `closed` `good`; `on`, `open` and `unlocked` `warn`; `unavailable` and `unknown` `dim`; anything else `text`). The icon follows the state's colour (`subtle` for `text`). An entity Home Assistant doesn't know shows `–` in `dim`. Data from the `haStates` pack: the long-lived token is the secret named `homeAssistant`.
+A grid of tiles, one per entity: an icon and a label, the state with its unit (numbers rounded to one decimal, `°` and `%` joined to the number, other units after a space) and a second line. The state's color: `color` of the entity if set; for a number, its `thresholds`; for a word, `stateColors` (`locked` and `closed` `good`; `on`, `open` and `unlocked` `warn`; `unavailable` and `unknown` `dim`; anything else `text`). The icon follows the state's color (`subtle` for `text`). An entity Home Assistant doesn't know shows `–` in `dim`. Data from the `haStates` pack: the long-lived token is the secret named `homeAssistant`.
 
 | Parameter | Default | |
 |---|---|---|
 | `entities` | required | `[{id, label, icon, attribute, attributeUnit, attributeLabel, since, precision, unit, thresholds, colors, color}]`; a plain string is an id. |
 | `url` | `http://homeassistant.local:8123` | Home Assistant's base URL. |
 | `columns` | `3` | Tiles per row. |
-| `stateColors` | see above | State word to colour. |
+| `stateColors` | see above | State word to color. |
 
-An entity takes: `label` (default its friendly name), `icon` (a Phosphor name; default from the device class, else the domain: `light` is `lightbulb`, `lock` is `lock`, `sensor` is `gauge`, ...), `attribute` (an attribute shown on the second line, with `attributeUnit` right after it and `attributeLabel` after that: `48` `%` `humidity` is `48% humidity`), `since` (`true`: the second line is `since 18:02`, the time of the last change), `precision` (decimals, default 1), `unit` (replaces the entity's), `thresholds` (`[[0, "cyan"], [18, "text"], [26, "warn"]]`, as `step`), `colors` (state word to colour for this entity) and `color`.
+An entity takes: `label` (default its friendly name), `icon` (a Phosphor name; default from the device class, else the domain: `light` is `lightbulb`, `lock` is `lock`, `sensor` is `gauge`, ...), `attribute` (an attribute shown on the second line, with `attributeUnit` right after it and `attributeLabel` after that: `48` `%` `humidity` is `48% humidity`), `since` (`true`: the second line is `since 18:02`, the time of the last change), `precision` (decimals, default 1), `unit` (replaces the entity's), `thresholds` (`[[0, "cyan"], [18, "text"], [26, "warn"]]`, as `step`), `colors` (state word to color for this entity) and `color`.
 
 ```json
 {
@@ -751,7 +751,7 @@ Calendar, a pomodoro timer and two small files, drawn as widgets with keys. They
 
 ### `dayTimeline`
 
-Today's timed events on a strip with a line at now, so gaps and overlaps show without reading times. Events that overlap go on rows of their own, finished events are dimmed, and a line under the strip says how many there are and how many overlap another (`6 events · 3 overlap`) and what is next: `free until 11:00`, `busy until 12:45` while one is on, or `free for the rest of the day`. All-day events are not on the strip. Hidden when today has no events. Colours go by calendar: `calendarColors` names them, otherwise a hash of the calendar's name picks one of `palette`.
+Today's timed events on a strip with a line at now, so gaps and overlaps show without reading times. Events that overlap go on rows of their own, finished events are dimmed, and a line under the strip says how many there are and how many overlap another (`6 events · 3 overlap`) and what is next: `free until 11:00`, `busy until 12:45` while one is on, or `free for the rest of the day`. All-day events are not on the strip. Hidden when today has no events. Colors go by calendar: `calendarColors` names them, otherwise a hash of the calendar's name picks one of `palette`.
 
 The `calendar` source starts at now, so events that have ended are not in its data. Set `"includePast": true` on it to read from the start of today (the other calendar widgets filter on the end time and are not affected); without it the strip shows what is still to come.
 
@@ -761,7 +761,7 @@ The `calendar` source starts at now, so events that have ended are not in its da
 | `hours` | `10` | How many hours the strip covers. |
 | `lead` | `3` | How many of them are before now. Late in the day the strip starts earlier so it ends at midnight, and it never starts before midnight. |
 | `height` | `56` | Points; 56 holds two rows. |
-| `palette` | `accent`, `cyan`, `orange`, `purple`, `teal`, `good` | Colours for calendars. |
+| `palette` | `accent`, `cyan`, `orange`, `purple`, `teal`, `good` | Colors for calendars. |
 | `calendarColors` | none | `{"Work": "accent"}`. |
 | `hour12` | `false` | `1:46 PM` in the summary. |
 
@@ -784,7 +784,7 @@ programs.vestal.settings = {
 
 ### `nextMeeting`
 
-The next timed event that has not ended, with the time left (`in 15m`, in the warning colour from `warn` minutes before it, `now` while it runs), its times, `video call` or its location, and the first line of its notes. When the event has a call link, a Join button and a copy hint show: `J` opens the link (and hides the dashboard) and `C` copies it. Without a link there are no buttons and the keys are free. Hidden when nothing is left today.
+The next timed event that has not ended, with the time left (`in 15m`, in the warning color from `warn` minutes before it, `now` while it runs), its times, `video call` or its location, and the first line of its notes. When the event has a call link, a Join button and a copy hint show: `J` opens the link (and hides the dashboard) and `C` copies it. Without a link there are no buttons and the keys are free. Hidden when nothing is left today.
 
 The link is found by `meeting_link` (`vestal docs functions`) in the event's `url`, `location` and `notes`: a link to Zoom, Google Meet, Microsoft Teams, Webex and a few other call services wins wherever it is, else the first `https` link. The calendar's own fields give them: EventKit's URL and notes, `.ics` `URL`, `CONFERENCE`, `X-GOOGLE-CONFERENCE` and `DESCRIPTION`, the same through CalDAV, and Thunderbird's URL and description. Notes are kept to 4000 characters.
 
@@ -793,7 +793,7 @@ The link is found by `meeting_link` (`vestal docs functions`) in the event's `ur
 | `source` | `calendar` | A `calendar` source. |
 | `joinKey` | `j` | Opens the link. |
 | `copyKey` | `c` | Copies it. |
-| `warn` | `15` | Minutes before the start from which the countdown is `warn`-coloured. |
+| `warn` | `15` | Minutes before the start from which the countdown is `warn`-colored. |
 | `hour12` | `false` | `1:46 PM`. |
 
 ```json
@@ -863,7 +863,7 @@ programs.vestal.settings.widgets.todo = { type = "todoFile"; path = "~/notes/tod
 
 ### `habits`
 
-One strip per habit: `weeks` (5) of days, ending today, a cell each, with the current streak after it (`4d`). A done day is filled in the habit's colour; today is outlined until it is done. The streak counts the days in a row up to today, or up to yesterday while today is still open. Colours: the habit's `color`, else `colors` in order. Hidden when the file is missing or has no habits.
+One strip per habit: `weeks` (5) of days, ending today, a cell each, with the current streak after it (`4d`). A done day is filled in the habit's color; today is outlined until it is done. The streak counts the days in a row up to today, or up to yesterday while today is still open. Colors: the habit's `color`, else `colors` in order. Hidden when the file is missing or has no habits.
 
 The file is JSON, written by anything that can write JSON, such as a phone shortcut:
 

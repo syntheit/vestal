@@ -25,7 +25,7 @@ const place = (root, w, h) => {
   return { lay, frames, f: (n) => frames.get(n) };
 };
 
-test("a fit row places children with the gap, centred across", () => {
+test("a fit row places children with the gap, centered across", () => {
   const a = t("a", "abcd"), b = t("b", "ef", { size: 20 });
   const row = stack("r", "h", [a, b], { gap: 7, align: "center" });
   const { f } = place(row, 500, 300);
@@ -60,7 +60,7 @@ test("a column: stretch makes a child as wide as the stack, end aligns right", (
   assert.equal(f(b).y, 12 + 4);
 });
 
-test("the root is centred, capped by maxWidth, padded inside", () => {
+test("the root is centered, capped by maxWidth, padded inside", () => {
   const child = t("a", "hello");
   const root = stack("main", "v", [child], { maxWidth: 200, padding: [10, 20, 10, 20], width: "fill" });
   const { f } = place(root, 600, 400);
@@ -109,7 +109,7 @@ test("a grid: fixed, fit and fill columns, spans, the row as tall as its tallest
   // widths: 30, widest of (cdef=20, ij=20 -> wait col1 holds b and e): fit = 20, fill = 200 - 30 - 20 - 10 = 140
   assert.equal(f(cells[1]).x, 35);
   assert.equal(f(cells[2]).x, 60 + 140 - 10); // end aligned, 2 chars * 5 = 10 wide
-  // row 0 is 12 tall, row 1 is 24 tall (the size 20 text), cells centred vertically
+  // row 0 is 12 tall, row 1 is 24 tall (the size 20 text), cells centered vertically
   assert.equal(f(cells[3]).y, 12 + 3);
   assert.equal(f(cells[4]).y, 12 + 3 + (24 - 12) / 2);
 });
@@ -132,7 +132,7 @@ test("box size: min/max clamp, padding is inside, fixed sizes win", () => {
   assert.equal(lay2.fitHeight(text, 26), 12 + 4);
 });
 
-test("ring: centred child, square by default", () => {
+test("ring: centered child, square by default", () => {
   const center = t("c", "50%");
   const ring = { id: "r", type: "ring", width: 80, center, value: 0.5 };
   const { f } = place(stack("s", "v", [ring], { align: "start" }), 300, 300);
@@ -151,7 +151,7 @@ test("heatmap geometry", () => {
   assert.equal(lay.fitHeight(h, 28), 4 * 8 + 3 * 2);
 });
 
-test("popup card frame is centred and capped by the stage", () => {
+test("popup card frame is centered and capped by the stage", () => {
   const body = stack("p", "v", [t("a", "hello")]);
   const lay = new Layout(body, { measureText });
   assert.deepEqual(popupFrame(lay, body, 100, 400, 300), { x: 150, y: 144, w: 100, h: 12 });

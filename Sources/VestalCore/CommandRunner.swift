@@ -130,7 +130,7 @@ public enum CommandRunner {
     /// status is not an error here; callers decide what it means. Throws
     /// `CommandError` if the program can't be found or started, or runs
     /// longer than `timeout`, and `CancellationError` if the calling task is
-    /// cancelled (the child is killed in both cases).
+    /// canceled (the child is killed in both cases).
     ///
     /// `input` goes to the child's stdin, which then stays open (a server
     /// that exits at the end of its input, such as `codex app-server`, keeps
@@ -183,7 +183,7 @@ public enum CommandRunner {
     public static var runningProcessIDs: [Int32] { RunningChildren.shared.pids }
 
     /// Sends SIGKILL to every child `run` started that is still running, at
-    /// once, for when the app quits. Cancelling a run sends SIGTERM and only
+    /// once, for when the app quits. Canceling a run sends SIGTERM and only
     /// a second later SIGKILL, from a queue that is gone by then if the
     /// process exits; and a child that inherited a blocked SIGTERM (see
     /// `killChild`) would outlive the app. Their runs end as usual, with
@@ -359,7 +359,7 @@ private final class CommandExecution {
         let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
         source.setEventHandler { self.drain(fd, isStdout: isStdout) }
         // The FileHandle owns the descriptor and closes it when released; keep
-        // it alive until the source is fully cancelled.
+        // it alive until the source is fully canceled.
         source.setCancelHandler { withExtendedLifetime(handle) {} }
         source.resume()
         return source

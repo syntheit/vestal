@@ -11,7 +11,7 @@ import Foundation
 // (TemplateRegistry), not in the merged config layers.
 //
 // Each v0.3 preset reproduces its SwiftUI view in VestalMac/Widgets (sizes,
-// weights, colours, spacing, order). Icons are Phosphor names. Nothing here may use `sf:` icons,
+// weights, colors, spacing, order). Icons are Phosphor names. Nothing here may use `sf:` icons,
 // and nothing personal belongs here.
 
 public enum DefaultPresets {
@@ -38,19 +38,19 @@ public enum DefaultPresets {
       },
 
       "stat": {
-        "description": "A big value, a label and an optional coloured delta",
+        "description": "A big value, a label and an optional colored delta",
         "params": {
           "label": { "type": "text", "default": "" },
           "value": { "type": "expr", "required": true },
           "format": { "type": "string", "description": "A text format name: int, number, fixed:N, percent, thousands, compact, bytes, ..." },
           "prefix": { "type": "text", "default": "" },
           "suffix": { "type": "text", "default": "" },
-          "delta": { "type": "expr", "default": "null", "description": "A change to show after the value, coloured by trend" },
+          "delta": { "type": "expr", "default": "null", "description": "A change to show after the value, colored by trend" },
           "deltaFormat": { "type": "string", "default": "fixed:2" },
           "deltaSuffix": { "type": "text", "default": "%" },
           "trend": { "type": "string", "default": "up-good", "enum": ["up-good", "up-bad", "none"] },
           "size": { "type": "string", "default": "md", "enum": ["sm", "md", "lg"] },
-          "color": { "type": "color", "default": "text", "description": "The value's colour" }
+          "color": { "type": "color", "default": "text", "description": "The value's color" }
         },
         "widget": {
           "type": "stack", "gap": 2,
@@ -145,7 +145,7 @@ public enum DefaultPresets {
         "params": {
           "label": { "type": "text", "required": true },
           "window": { "type": "expr", "required": true, "description": "The window: .session or .weekly of a claude or codex source" },
-          "color": { "type": "color", "default": "accent", "description": "The bar's colour below 90%" }
+          "color": { "type": "color", "default": "accent", "description": "The bar's color below 90%" }
         },
         "widget": {
           "type": "row", "gap": 5, "align": "center",
@@ -196,7 +196,7 @@ public enum DefaultPresets {
       },
 
       "keyValueList": {
-        "description": "Labelled values picked from JSON sources (v0.3 keyValueList). New configs: use keyValue.",
+        "description": "Labeled values picked from JSON sources (v0.3 keyValueList). New configs: use keyValue.",
         "params": {
           "source": { "type": "string", "description": "The items' default source" },
           "items": { "type": "array", "required": true, "description": "v0.3 items: label, source, match, pick, picks, format" },
@@ -507,7 +507,7 @@ public enum DefaultPresets {
 
     /// A row of the host popup: label, a bar with the pressure under it, the
     /// percentage and a trailing note (v0.3 SystemDetailView.metricRow).
-    /// Arguments, separated by `§`: label text, value expr, colour, overlay
+    /// Arguments, separated by `§`: label text, value expr, color, overlay
     /// expr or null, trailing expr (null hides it).
     static func metricRow(_ label: String, _ value: String, _ color: String, _ overlay: String, _ trailing: String) -> String {
         let overlayField = overlay == "null" ? "" : #", "overlay": "\#(overlay)""#

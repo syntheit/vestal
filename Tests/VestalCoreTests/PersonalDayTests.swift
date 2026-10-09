@@ -482,7 +482,7 @@ final class PersonalDayPresetTests: XCTestCase {
         XCTAssertEqual(strip.items.map(\.label), ["Standup", "Focus block", "Design review", "Dentist", "1:1", "Dinner"])
         // Standup and Design review are both Work: the finished one is the fainter.
         XCTAssertNotEqual(strip.items[0].color, strip.items[2].color, "finished events are dimmed")
-        XCTAssertEqual(strip.items[2].color, strip.items[4].color, "upcoming ones keep the calendar's colour")
+        XCTAssertEqual(strip.items[2].color, strip.items[4].color, "upcoming ones keep the calendar's color")
         XCTAssertNotNil(strip.now)
         // Ten hours, three before now: 07:00 to 17:00.
         XCTAssertEqual(strip.ticks.first?.label, "08")

@@ -1,6 +1,6 @@
 # Phosphor icons
 
-The icon set vestal bundles on every OS: Phosphor Icons 2.1.2, MIT licence
+The icon set vestal bundles on every OS: Phosphor Icons 2.1.2, MIT license
 (`LICENSE`), by Helena Zhang and Tobias Fried.
 
 Taken unchanged from the npm package `@phosphor-icons/web` 2.1.2

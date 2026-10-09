@@ -27,7 +27,7 @@ A view is one screen of widgets. The dashboard opens `defaultView` (default `mai
 | `gap` | `24` (`12` with `theme.density` `compact`) | Between root children (the presets set their own `spaceBefore`). |
 | `align` | `center` | Cross-axis alignment of the root children. |
 | `padding` | `48` | Inside `maxWidth`: a number or `[top, right, bottom, left]`. |
-| `maxWidth` | `680` | The root is at most this wide, centred on the screen both ways. |
+| `maxWidth` | `680` | The root is at most this wide, centered on the screen both ways. |
 | `keys` | `{}` | Key bindings of this view only (`vestal docs keys`). |
 | `enabled` | `true` | `false` turns the view off (see Pages). |
 
@@ -46,7 +46,7 @@ With two or more views the dashboard pages like a phone's home screens: `left` a
 |---|---|---|
 | `order` | your views in key order, then by name (see below) | The views to page through, in order. A view not listed stays reachable by its `key` and `vestal show`, but is not paged to. A name that isn't an enabled view is a check-config warning and is skipped. |
 | `transition` | `"slide"` | How a change of page is drawn: `"slide"` (the old page leaves sideways while the new one comes in, 250 ms), `"fade"` (a crossfade, 180 ms) or `"none"`. With reduced motion on (macOS "Reduce motion", GTK `gtk-enable-animations` off), `slide` is a short fade. A jump to a view that is not a page also fades. |
-| `indicator` | `"dots"` | `"dots"`: one dot per page near the bottom of the screen, the current one in the accent colour; drawn only with two or more pages. `"none"`. |
+| `indicator` | `"dots"` | `"dots"`: one dot per page near the bottom of the screen, the current one in the accent color; drawn only with two or more pages. `"none"`. |
 | `swipe` | `true` | A two-finger horizontal swipe on the trackpad pages. The page follows the fingers and goes on past about 12 % of the screen width or with a quick flick, else springs back. |
 | `wrap` | `false` | Whether `right` on the last page goes to the first (and `left` on the first to the last). `tab` and `shift+tab` always cycle round. |
 
@@ -80,4 +80,4 @@ programs.vestal.settings = {
 
 ## Popups
 
-One popup at a time, opened by a `popup` action (`vestal docs actions`). The UI draws it centred over a `scrim` backdrop, in a card (`bg`, radius 14, a thin white border). Escape or a click on the backdrop closes it. Its content is an ordinary widget tree and updates live; its node ids start with `popup/`.
+One popup at a time, opened by a `popup` action (`vestal docs actions`). The UI draws it centered over a `scrim` backdrop, in a card (`bg`, radius 14, a thin white border). Escape or a click on the backdrop closes it. Its content is an ordinary widget tree and updates live; its node ids start with `popup/`.

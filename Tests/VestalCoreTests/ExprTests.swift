@@ -577,7 +577,7 @@ final class ExprTests: XCTestCase {
     }
 
     func testStrptimeWithoutADateNormalises() throws {
-        // jq on macOS reports day 0 here; vestal normalises through timegm.
+        // jq on macOS reports day 0 here; vestal normalizes through timegm.
         XCTAssertEqual(try one(#""11:30 PM" | strptime("%I:%M %p")"#), [1900, 0, 1, 23, 30, 0, 1, 0])
     }
 

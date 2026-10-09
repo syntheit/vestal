@@ -618,7 +618,7 @@ public final class LinuxDashboard {
             fadeGeneration += 1
             if fadeTick != 0 { gtk_widget_remove_tick_callback(stage.widget, fadeTick); fadeTick = 0 }
             aurora.stop()
-            // The cancelled fade would have given the keyboard back.
+            // The canceled fade would have given the keyboard back.
             setKeyboard(interactive: false)
             apply(model)
             gtk_widget_set_opacity(window, 0)

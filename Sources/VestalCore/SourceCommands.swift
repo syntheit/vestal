@@ -332,7 +332,7 @@ public enum SourceCommands {
     }
 
     /// `body`'s result, or "timed out" after `seconds` (the work is
-    /// cancelled).
+    /// canceled).
     static func withTimeout<T: Sendable>(
         _ seconds: TimeInterval, _ body: @escaping @Sendable () async throws -> T
     ) async -> Result<T, SourceError> {

@@ -79,7 +79,7 @@ public enum VestalApp {
 }
 
 /// What `openApplication` reported; written before the semaphore is
-/// signalled, read after the wait.
+/// signaled, read after the wait.
 private final class LaunchOutcome: @unchecked Sendable {
     var error: Error?
 }
@@ -191,7 +191,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
 
     /// Every way out (SIGTERM, `vestal quit`) ends here. The socket goes
     /// first, so a new instance can start at once; running fetches are
-    /// cancelled and running commands killed.
+    /// canceled and running commands killed.
     func applicationWillTerminate(_ notification: Notification) {
         server.stop()
         resident?.shutdown()

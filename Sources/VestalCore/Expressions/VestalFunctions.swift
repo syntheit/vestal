@@ -51,7 +51,7 @@ public enum VestalFunctions {
     /// (default: `Locale.current`).
     public static let localeKey = "vestal.locale"
     /// `JQEvalContext.userInfo` key of the palette (`[String: String]`, name
-    /// → `#rrggbbaa`) that `color_mix` and `alpha` resolve colour names with
+    /// → `#rrggbbaa`) that `color_mix` and `alpha` resolve color names with
     /// (default: `RenderTheme.tokyoNight`).
     public static let paletteKey = "vestal.palette"
 
@@ -175,7 +175,7 @@ public enum VestalFunctions {
             return .string(s.count > n ? String(s.prefix(n)) + "…" : s)
         },
 
-        // Colours, icons and thresholds
+        // Colors, icons and thresholds
         f("step", 1) { input, args, _ in
             guard let x = try number(input, "step") else { return .null }
             guard case .array(let stops) = args[0], !stops.isEmpty else {
@@ -195,7 +195,7 @@ public enum VestalFunctions {
         f("color_mix", 3) { _, args, context in
             let palette = palette(context)
             guard let a = RGBA(args[0], palette: palette), let b = RGBA(args[1], palette: palette) else {
-                throw JQError.runtime("color_mix: not a colour: \(RGBA(args[0], palette: palette) == nil ? args[0].jsonText() : args[1].jsonText())")
+                throw JQError.runtime("color_mix: not a color: \(RGBA(args[0], palette: palette) == nil ? args[0].jsonText() : args[1].jsonText())")
             }
             guard let t = try number(args[2], "color_mix") else { throw JQError.runtime("color_mix: t is null") }
             return .string(a.mixed(with: b, t: min(max(t, 0), 1)).hex)
@@ -203,7 +203,7 @@ public enum VestalFunctions {
         f("alpha", 1) { input, args, context in
             if input == .null { return .null }
             guard var c = RGBA(input, palette: palette(context)) else {
-                throw JQError.runtime("alpha: not a colour: \(input.jsonText())")
+                throw JQError.runtime("alpha: not a color: \(input.jsonText())")
             }
             guard let a = try number(args[0], "alpha") else { throw JQError.runtime("alpha: the alpha is null") }
             c.a *= min(max(a, 0), 1)
@@ -735,9 +735,9 @@ public enum VestalFunctions {
     }
 }
 
-// MARK: - Colours
+// MARK: - Colors
 
-/// A colour in sRGB, each channel 0…1.
+/// A color in sRGB, each channel 0…1.
 struct RGBA: Equatable {
     var r, g, b, a: Double
 

@@ -179,7 +179,7 @@ final class FeedsPresetsTests: XCTestCase {
         XCTAssertTrue(out.contains("text \"BTC\""), out)
         XCTAssertFalse(out.contains("text \"ETH\""), "limit")
         XCTAssertEqual(rows(out, containing: "spark points=").count, 2, out)
-        // Price is grouped over 1000, with two decimals under it; the change carries its sign and colour.
+        // Price is grouped over 1000, with two decimals under it; the change carries its sign and color.
         XCTAssertTrue(out.contains("text \"$109.59\""), out)
         XCTAssertTrue(out.contains("text \"$81,920\""), out)
         XCTAssertTrue(out.contains("text \"-5.8%\"") && out.contains("color=bad"), out)
@@ -262,7 +262,7 @@ final class FeedsPresetsTests: XCTestCase {
         XCTAssertTrue(out.contains("\"1.1 kW exporting\""), out)
         XCTAssertTrue(out.contains("\"since "), out)
         XCTAssertTrue(out.contains("\"rinse\""), out)
-        // Colours: thresholds step the number, `color` wins, a missing entity is dim.
+        // Colors: thresholds step the number, `color` wins, a missing entity is dim.
         XCTAssertTrue(out.contains("text \"3\" size=17 color=warn"), out)
         XCTAssertTrue(out.contains("text \"12 min\" size=17 color=accent"), out)
         XCTAssertTrue(out.contains("text \"–\" size=17 color=dim"), out)
@@ -293,13 +293,13 @@ final class FeedsPresetsTests: XCTestCase {
 
     func testNowPlayingShowsTheTrackAndControls() throws {
         let media: [String: Any] = [
-            "player": "Spotify", "state": "playing", "title": "Night Swim", "artist": "The Lowlands", "album": "Harbour Lights",
+            "player": "Spotify", "state": "playing", "title": "Night Swim", "artist": "The Lowlands", "album": "Harbor Lights",
             "artwork": "/nonexistent/cover.png", "position": 108.0, "duration": 256.0, "players": ["Spotify"],
         ]
         let out = try tree(config(widgets: ["np": ["type": "nowPlaying"]]), data: try mediaDir(media))
         XCTAssertTrue(out.contains("image"), out)
         XCTAssertTrue(out.contains("text \"Night Swim\""), out)
-        XCTAssertTrue(out.contains("text \"The Lowlands — Harbour Lights\""), out)
+        XCTAssertTrue(out.contains("text \"The Lowlands — Harbor Lights\""), out)
         XCTAssertTrue(out.contains("text \"1:48\"") && out.contains("text \"4:16\""), out)
         XCTAssertTrue(out.contains("icon skip-back") && out.contains("icon pause") && out.contains("icon skip-forward"), out)
         let (live, data, now) = try makeSession(config(widgets: ["np": ["type": "nowPlaying"]]), data: try mediaDir(media))

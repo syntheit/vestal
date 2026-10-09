@@ -14,7 +14,7 @@ Three rules cover the language:
 
 - **R1.** A field of kind *expr* is always jq.
 - **R2.** A field of kind *text* is literal, and each `{{ … }}` inside it is a jq expression whose first output is inserted. Strings go in as they are, numbers as jq's `tostring` writes them, `null` as nothing, and arrays and objects as compact JSON. `{{{{` writes a literal `{{`.
-- **R3.** Any other scalar field (a number, a boolean, a colour, an icon name, a width) may be written `{"expr": "<jq>"}` to compute it. Structural keys cannot: `type`, `id`, `children`, `row`, `cases`, a `source` given as a name, template names, and the keys of a source definition.
+- **R3.** Any other scalar field (a number, a boolean, a color, an icon name, a width) may be written `{"expr": "<jq>"}` to compute it. Structural keys cannot: `type`, `id`, `children`, `row`, `cases`, a `source` given as a name, template names, and the keys of a source definition.
 
 `{{ }}` needs no escaping in JSON or in Nix (Nix only interpolates `${`). jq's own `"\(…)"` still works inside an expression, but in a JSON string it must be written `\\(`.
 
@@ -41,7 +41,7 @@ Where each kind appears:
 | `$data` | The nearest source's data, unaffected by rows or `input`. |
 | `$item`, `$index` | The current row and its position from 0. Only inside a row. |
 | `$parent` | The enclosing row's item, in a nested list. |
-| `$value` | The node's own resolved `value`, in its colour and style fields and in `text` or `suffix` next to a `value`. |
+| `$value` | The node's own resolved `value`, in its color and style fields and in `text` or `suffix` next to a `value`. |
 | `$sources` | Every named source's data: `$sources.system.cpu.percent`, `$sources["host:harbor"]`. |
 | `$meta` | The nearest source's metadata: `{name, fetchedAt, age, ok, error, stale, loaded}`. `meta("name")` gives another source's. |
 | `$history` | `$history.<source>.<name>`: an array of numbers, oldest first. |

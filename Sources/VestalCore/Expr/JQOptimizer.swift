@@ -17,7 +17,7 @@ import Foundation
 
 enum JQOptimizer {
     /// Whether `op` is single. `paramsSingle`: treat closure parameters as
-    /// single (used when analysing a definition, whose call sites then
+    /// single (used when analyzing a definition, whose call sites then
     /// require single arguments).
     static func single(_ op: JQOp, paramsSingle: Bool) -> Bool {
         func s(_ o: JQOp) -> Bool { single(o, paramsSingle: paramsSingle) }
@@ -106,7 +106,7 @@ enum JQOptimizer {
         }
     }
 
-    /// Analyse and mark `root` and every definition inside it; `extra`
+    /// Analyze and mark `root` and every definition inside it; `extra`
     /// are top-level definitions not reachable from `root` (the prelude).
     static func optimize(_ root: JQOp, extra: [JQFunc] = []) -> JQOp {
         var funcs: [JQFunc] = []

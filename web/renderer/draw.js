@@ -4,7 +4,7 @@
 // strings in, strings out.
 //
 // `env` supplies { pal, px, theme, textWidth(node, text) }: `pal.css(spec,
-// fallback)` / `pal.rgba(...)` resolve colours, `px` is device pixels per point
+// fallback)` / `pal.rgba(...)` resolve colors, `px` is device pixels per point
 // (segment widths snap to it), `textWidth` measures a label for the timeline.
 
 import { heatmapPosition } from "./layout.js";

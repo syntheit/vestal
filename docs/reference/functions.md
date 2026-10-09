@@ -35,13 +35,13 @@ The `format` field of `text`, table columns and `keyValue` items names these: `i
 
 Arguments see the piped input, not the row: inside `now | fmt_time("HH:mm"; …)` the argument's `.` is `now`. Use `$item.tz`, or bind first: `.tz as $z | now | fmt_time("HH:mm"; $z)`.
 
-## Colours, icons and thresholds
+## Colors, icons and thresholds
 
 | Function | Meaning | Example |
 |---|---|---|
-| `step(stops)` | `stops` is `[[threshold, result], …]` in ascending order: the result of the last stop whose threshold ≤ the input, or the first stop's result below them all. Any result type: colours, icon names, text. | `95 \| step([[0,"good"],[70,"warn"],[90,"bad"]])` → `"bad"` |
-| `color_mix(a; b; t)` | blends two colours (palette names or hex) in sRGB, `t` from 0 to 1 → `"#rrggbbaa"` | `color_mix("good"; "bad"; .cpu.percent / 100)` |
-| `alpha(a)` | a colour with its alpha multiplied by `a` | `"accent" \| alpha(0.15)` → `"#7aa1f726"` |
+| `step(stops)` | `stops` is `[[threshold, result], …]` in ascending order: the result of the last stop whose threshold ≤ the input, or the first stop's result below them all. Any result type: colors, icon names, text. | `95 \| step([[0,"good"],[70,"warn"],[90,"bad"]])` → `"bad"` |
+| `color_mix(a; b; t)` | blends two colors (palette names or hex) in sRGB, `t` from 0 to 1 → `"#rrggbbaa"` | `color_mix("good"; "bad"; .cpu.percent / 100)` |
+| `alpha(a)` | a color with its alpha multiplied by `a` | `"accent" \| alpha(0.15)` → `"#7aa1f726"` |
 
 ## Time and data
 

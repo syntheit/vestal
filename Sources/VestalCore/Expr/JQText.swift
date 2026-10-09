@@ -460,7 +460,7 @@ enum JQTime {
         return b
     }
 
-    /// timegm: fields may be out of range and are normalised.
+    /// timegm: fields may be out of range and are normalized.
     static func timegm(_ b: Broken) -> Double {
         var y = b.year
         var m = b.month
@@ -681,7 +681,7 @@ enum JQTime {
             guard let g = try? gmtime(Double(epoch)) else { return nil }
             b = g
         } else {
-            // Normalise through timegm so %j day numbers and %z offsets
+            // Normalize through timegm so %j day numbers and %z offsets
             // apply (jq on macOS reports %z times in UTC).
             let base = Broken(year: year, month: month, day: day, hour: hour, minute: minute,
                               second: Double(second), wday: 0, yday: 0)

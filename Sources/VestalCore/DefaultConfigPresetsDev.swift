@@ -102,7 +102,7 @@ extension DefaultPresets {
       },
 
       "ciStatus": {
-        "description": "The latest GitHub Actions results per repository and branch: a state icon, the last results as coloured cells and how long the newest took",
+        "description": "The latest GitHub Actions results per repository and branch: a state icon, the last results as colored cells and how long the newest took",
         "params": {
           "repos": { "type": "array", "required": true, "description": "[\"owner/name\", \"owner/name@branch\"]: a repository, on its default branch unless a branch follows the @" },
           "runs": { "type": "integer", "default": 12, "description": "Cells per repository, at most 30" },
@@ -207,7 +207,7 @@ extension DefaultPresets {
       },
 
       "flakeInputs": {
-        "description": "How old each locked input of a Nix flake is, coloured by age, and with behind: true how many commits each GitHub input has gained since",
+        "description": "How old each locked input of a Nix flake is, colored by age, and with behind: true how many commits each GitHub input has gained since",
         "params": {
           "path": { "type": "string", "required": true, "description": "The flake's directory (~/ expands) or flake reference" },
           "behind": { "type": "boolean", "default": false, "description": "Also ask GitHub how many commits each GitHub input's branch is ahead of the lock (one request; uses the `github` secret)" },

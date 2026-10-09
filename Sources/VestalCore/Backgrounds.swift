@@ -132,7 +132,7 @@ public enum Backgrounds {
 
     // MARK: Sky
 
-    /// The keyframes of `sky`: hour, the colour overhead, at the horizon and
+    /// The keyframes of `sky`: hour, the color overhead, at the horizon and
     /// of the sun or moon (darkened for white text).
     static let skyKeys: [(hour: Double, top: String, horizon: String, sun: String)] = [
         (0, "#04060d", "#0d1428", "#cfd6ff"), (5, "#05070f", "#141b33", "#cfd6ff"), (6.5, "#1a2350", "#b0674f", "#ffcf8a"),
@@ -173,7 +173,7 @@ public enum Backgrounds {
         return Double(parts.hour ?? 0) + Double(parts.minute ?? 0) / 60 + Double(parts.second ?? 0) / 3600
     }
 
-    // MARK: Colours
+    // MARK: Colors
 
     /// `#rrggbb` or `#rrggbbaa` as red, green, blue in 0 to 1.
     public static func rgb(_ hex: String) -> [Float]? {
@@ -181,15 +181,15 @@ public enum Backgrounds {
         return [Float((value >> 16) & 255) / 255, Float((value >> 8) & 255) / 255, Float(value & 255) / 255]
     }
 
-    /// The mesh's colours, and the album-art mesh's when no artwork is set.
+    /// The mesh's colors, and the album-art mesh's when no artwork is set.
     public static let meshColors = ["#1e2a62", "#4a2a72", "#164f5c", "#5a2448"]
     public static let artMeshColors = ["#2a1e4f", "#6a2f63", "#a0504a", "#b07a4a"]
 
-    /// The four colours of a picture for `artmesh`, one per quadrant (top
+    /// The four colors of a picture for `artmesh`, one per quadrant (top
     /// left, top right, bottom right, bottom left), from `rgba` pixels of an
     /// opaque picture, row 0 at the top. Each is the quadrant's average with
     /// its saturation lifted and its brightness held between 0.22 and 0.60,
-    /// so that white text stays readable and a pale cover still has colour.
+    /// so that white text stays readable and a pale cover still has color.
     public static func artworkColors(rgba: [UInt8], width: Int, height: Int) -> [[Float]] {
         guard width >= 2, height >= 2, rgba.count >= width * height * 4 else { return [] }
         var sums = [[Double]](repeating: [0, 0, 0, 0], count: 4)
@@ -266,7 +266,7 @@ public enum Backgrounds {
         return u
     }
 
-    /// Four colours from `colors` (repeated to fill), else from `fallback`.
+    /// Four colors from `colors` (repeated to fill), else from `fallback`.
     static func cycle(_ colors: [[Float]]?, fallback: [String]) -> [[Float]] {
         let source = colors.flatMap { $0.isEmpty ? nil : $0 } ?? fallback.compactMap(rgb)
         return (0..<4).map { source[$0 % source.count] }
@@ -286,7 +286,7 @@ public struct RenderBackground: Equatable, Sendable, Codable {
     public var load: Double?
     /// One of `Backgrounds.conditions` (`weather`).
     public var condition: String?
-    /// The picture's local file (`artmesh`), whose colours the UI takes.
+    /// The picture's local file (`artmesh`), whose colors the UI takes.
     public var artwork: String?
 
     public init(colors: [String]? = nil, load: Double? = nil, condition: String? = nil, artwork: String? = nil) {

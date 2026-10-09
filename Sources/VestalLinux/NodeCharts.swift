@@ -7,7 +7,7 @@ import VestalCore
 //
 // The drawing of `bars`, `stackedBar`, `heatmap`, `timeline` and `image`
 // nodes. The arithmetic is the macOS UI's (VestalMac/Render/RenderCharts.swift)
-// line for line. Every colour arrives resolved; the labels of bars and the
+// line for line. Every color arrives resolved; the labels of bars and the
 // legend of a stacked bar are text nodes of their own.
 
 extension NodeView {
@@ -96,7 +96,7 @@ extension NodeView {
         return (Double(w), Double(h))
     }
 
-    /// Draws `layout` with its left edge at `x`, centred on `centerY`, and
+    /// Draws `layout` with its left edge at `x`, centered on `centerY`, and
     /// releases it.
     private func drawChartLayout(_ snapshot: OpaquePointer, _ layout: OpaquePointer, x: Double, centerY: Double, color: RGBA) {
         let size = chartLayoutSize(layout)

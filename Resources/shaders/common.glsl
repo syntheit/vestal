@@ -6,7 +6,7 @@
 //   resolution  the render size in pixels (after backgroundResolution)
 //   time        seconds; the renderer scales it (load runs faster when busy)
 //   p           four parameters, per background (see its file)
-//   c0..c3      colours, 0 to 1
+//   c0..c3      colors, 0 to 1
 // `uv` is 0 to 1 across the screen, y up. `background()` returns
 // premultiplied alpha: no channel above alpha.
 uniform vec2 resolution;

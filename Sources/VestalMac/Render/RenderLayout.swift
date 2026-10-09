@@ -451,7 +451,7 @@ struct GridLayout: Layout {
         return arrange(subviews, width: Double(bounds.width)).baseline.map { bounds.minY + CGFloat($0) }
     }
 
-    /// Row and first column of each child, honouring `span`.
+    /// Row and first column of each child, honoring `span`.
     private func cells(_ subviews: Subviews) -> [(row: Int, column: Int, span: Int)] {
         let count = columns.count
         var cells: [(Int, Int, Int)] = []
@@ -558,7 +558,7 @@ struct GridLayout: Layout {
 // MARK: - Ring
 
 /// A ring's drawing (the first subview) over its whole box, and its
-/// `center` node (the second, if any) centred inside.
+/// `center` node (the second, if any) centered inside.
 struct RingLayout: Layout {
     static var layoutProperties: LayoutProperties { LayoutProperties() }
 
@@ -593,9 +593,9 @@ struct StageRoleKey: LayoutValueKey {
 }
 
 /// The window's content: the root node
-/// `min(maxWidth, window width)` wide, centred both ways, and top-aligned
+/// `min(maxWidth, window width)` wide, centered both ways, and top-aligned
 /// (cut at the bottom) when taller than the window; the scrim over the whole
-/// window; the popup's card at the popup's width, centred.
+/// window; the popup's card at the popup's width, centered.
 struct StageLayout: Layout {
     static var layoutProperties: LayoutProperties { LayoutProperties() }
 

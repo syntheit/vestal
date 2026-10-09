@@ -91,7 +91,7 @@ final class ThunderbirdCalendarTests: XCTestCase {
         // All-day, floating, end exclusive.
         event(db, id: "allday", title: "Holiday", flags: 8, start: "2026-10-08T00:00:00Z", end: "2026-10-09T00:00:00Z",
               zone: "floating")
-        // Weekly Mondays 09:00 Berlin from 28 September, 12 October excluded, 19 October cancelled.
+        // Weekly Mondays 09:00 Berlin from 28 September, 12 October excluded, 19 October canceled.
         event(db, id: "standup", title: "Standup", flags: 16 | 32, start: "2026-09-28T07:00:00Z", end: "2026-09-28T07:30:00Z")
         exec(db, """
             INSERT INTO cal_recurrence VALUES ('net-1', 'standup', 'RRULE:FREQ=WEEKLY;BYDAY=MO');
@@ -104,8 +104,8 @@ final class ThunderbirdCalendarTests: XCTestCase {
         exec(db, "INSERT INTO cal_recurrence VALUES ('net-1', 'review', 'RRULE:FREQ=WEEKLY;BYDAY=TU')")
         event(db, id: "review", title: "Review (moved)", start: "2026-10-06T13:00:00Z", end: "2026-10-06T14:00:00Z",
               recurrence: "2026-10-06T08:00:00Z", recurrenceZone: "Europe/Berlin")
-        // Cancelled, and on a disabled calendar.
-        event(db, id: "gone", title: "Cancelled one", status: "CANCELLED", start: "2026-10-07T10:00:00Z", end: "2026-10-07T11:00:00Z")
+        // Canceled, and on a disabled calendar.
+        event(db, id: "gone", title: "Canceled one", status: "CANCELLED", start: "2026-10-07T10:00:00Z", end: "2026-10-07T11:00:00Z")
         event(db, cal: "off-2", id: "old", title: "Old calendar", start: "2026-10-07T10:00:00Z", end: "2026-10-07T11:00:00Z")
         // A row without a start time cannot be read.
         exec(db, "INSERT INTO cal_events (cal_id, id, title, flags) VALUES ('net-1', 'broken', 'No start', 0)")

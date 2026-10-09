@@ -4,7 +4,7 @@ import Foundation
 //
 // `bars`, `stackedBar`, `heatmap`, `timeline` and `image`: the data
 // primitives that draw many values at once. Like `sparkline`, each takes its
-// data as an expression (or a literal array), resolves every colour in the
+// data as an expression (or a literal array), resolves every color in the
 // core, and leaves only drawing to the UIs. What a UI could not draw from
 // numbers alone is composed of the other nodes: the labels under vertical
 // bars, the rows of horizontal bars (a grid of `text`, `bar` and `text`) and a
@@ -83,7 +83,7 @@ extension RenderPass {
                         align: .start)
     }
 
-    /// A colour field for one value (`$value` is it), or `fallback`.
+    /// A color field for one value (`$value` is it), or `fallback`.
     func chartColor(_ spec: AnyJSON?, id: String, field: String, scope: Scope, value: Double?, fallback: String) -> String {
         guard let spec else { return fallback }
         return color(spec, id: id, field: field, scope: scope, value: value.map { .number($0) } ?? .null) ?? fallback
@@ -302,8 +302,8 @@ extension RenderPass {
         return node
     }
 
-    /// The colour of a value: `steps` (the last stop at or below it, else
-    /// the first), else the `scale` mixed from its low colour to its high.
+    /// The color of a value: `steps` (the last stop at or below it, else
+    /// the first), else the `scale` mixed from its low color to its high.
     private func heatmapColors(_ w: [String: AnyJSON], id: String, scope: Scope, low: Double, high: Double) -> (Double) -> String {
         if case .array(let stops)? = w["steps"] {
             var table: [(threshold: Double, color: String)] = []
@@ -326,7 +326,7 @@ extension RenderPass {
         let from = palette.hexValue(endpoints[0]).flatMap { RGBA($0, palette: [:]) }
         let to = palette.hexValue(endpoints[1]).flatMap { RGBA($0, palette: [:]) }
         for (index, text) in endpoints.enumerated() where (index == 0 ? from : to) == nil {
-            report(id: id, field: "scale", severity: "warning", code: "unknown-color", message: "unknown colour \"\(text)\"")
+            report(id: id, field: "scale", severity: "warning", code: "unknown-color", message: "unknown color \"\(text)\"")
         }
         guard let from, let to else { return { _ in "accent" } }
         return { value in

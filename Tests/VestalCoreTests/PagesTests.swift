@@ -325,7 +325,7 @@ final class PagesTests: XCTestCase {
         XCTAssertEqual(swipe.handle(dx: 0, dy: 0, phase: .ended, time: 0.6), .commit(direction: 1))
         XCTAssertEqual(swipe.handle(dx: -50, dy: 0, phase: .changed, time: 0.7), .passThrough, "momentum")
         XCTAssertEqual(swipe.handle(dx: 0, dy: 0, phase: .ended, time: 0.8), .passThrough)
-        // A cancelled drag springs back.
+        // A canceled drag springs back.
         var cancelled = gesture()
         _ = cancelled.handle(dx: -40, dy: 0, phase: .began, time: 0)
         XCTAssertEqual(cancelled.handle(dx: 0, dy: 0, phase: .cancelled, time: 0.1), .cancel)

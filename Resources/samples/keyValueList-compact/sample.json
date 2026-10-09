@@ -1,7 +1,7 @@
 {
   "kind": "widget",
   "title": "Currencies (compact)",
-  "description": "Labelled values picked out of a JSON source: exchange rates against the dollar. Shown with theme.density set to compact.",
+  "description": "Labeled values picked out of a JSON source: exchange rates against the dollar. Shown with theme.density set to compact.",
   "preset": "keyValueList",
   "size": [
     680,

@@ -6,9 +6,9 @@ import VestalCore
 //
 // The window's content since v0.4: the aurora (for `theme.background:
 // "aurora"`) or a background of the library (BackgroundView) over the window's blur (tinted by `theme.dim` when set) or
-// solid colour, exactly as v0.3's
+// solid color, exactly as v0.3's
 // DashboardView draws it, and the render engine's model over that
-// (RenderStageView: the view's root centred, the popup with its scrim).
+// (RenderStageView: the view's root centered, the popup with its scrim).
 
 struct RenderDashboardView: View {
     @ObservedObject var store: RenderStore

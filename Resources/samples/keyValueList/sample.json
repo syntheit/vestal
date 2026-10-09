@@ -1,7 +1,7 @@
 {
   "kind": "widget",
   "title": "Currencies",
-  "description": "Labelled values picked out of a JSON source: exchange rates against the dollar.",
+  "description": "Labeled values picked out of a JSON source: exchange rates against the dollar.",
   "preset": "keyValueList",
   "size": [
     680,

@@ -89,7 +89,7 @@ Vestal is a full-screen dashboard toggled by a key, on macOS and Linux, driven b
 3. **Never put secrets in the config.** Tokens live in a file (or an environment variable, or a command such as `gh auth token`), declared under `secrets` and used as `{{ $secrets.name }}` in a source's URL, headers or argv. Under Nix the config is in the world-readable store.
 4. **One config serves macOS and Linux.** Use the built-in sources (`system`, `media`, `calendar`, `claude`, `codex`) rather than OS commands. Put what is truly OS-specific (fonts, a command that exists on one OS, a player name) in `platform.macos` or `platform.linux`, and check both OSes: `vestal check-config --platform linux`.
 5. **Validate before you claim success:** `vestal check-config --json` must say `"error": 0` (exit 0, not 3), and `vestal render` must end with `diagnostics: 0`. Then look at it (`vestal screenshot`).
-6. **Prefer what exists:** presets (`vestal docs presets`; each ships a sample you can look at without any source: `vestal docs samples`, `vestal gallery --only <name>`), semantic colours (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
+6. **Prefer what exists:** presets (`vestal docs presets`; each ships a sample you can look at without any source: `vestal docs samples`, `vestal gallery --only <name>`), semantic colors (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
 7. **Tell the user what runs.** `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists every program the config can run (command sources, inline or from a template too; `command` secrets; `run` actions in widgets, views, keys and templates; the v0.3 privacy toggle and foyer hosts), with what triggers it and whether it is on `PATH`. Mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
 8. **Lists replace, objects merge.** Your file is merged over the built-in defaults: objects merge key by key, but a list (such as `views.main.children`) replaces the default list whole, and `null` deletes a default. When you add a widget to a view, write the view's full list.
 
@@ -161,7 +161,7 @@ $ vestal fetch prs --config /tmp/vestal-draft.json --allow-commands --shape
 
 ### Step 3: write the config
 
-**Start from a starter, then customise.** For a user with no config yet, `vestal init --list` shows eight complete dashboards (default, minimal, developer, homelab, markets, focus, media, agentops); `vestal init --starter <id>` writes one to the config path (under Nix: `programs.vestal.starter = "<id>";`, with `programs.vestal.settings` merged over it). Read what it needs from the user, then change it with the loop below (`vestal docs starters`).
+**Start from a starter, then customize.** For a user with no config yet, `vestal init --list` shows eight complete dashboards (default, minimal, developer, homelab, markets, focus, media, agentops); `vestal init --starter <id>` writes one to the config path (under Nix: `programs.vestal.starter = "<id>";`, with `programs.vestal.settings` merged over it). Read what it needs from the user, then change it with the loop below (`vestal docs starters`).
 
 A complete config is a JSON object with `"version": 1`, merged over the defaults. The parts: `sources` (data), `widgets` (named widgets), `views` (which widgets show, in order), plus `templates`, `functions`, `secrets`, `keys`, `pages` (order, slide or fade, dots and swipe between views; `views.<name>.enabled: false` turns a view off), `theme`, `platform` when needed. Every recipe in section 5 is a complete file you can start from.
 
@@ -289,10 +289,10 @@ stack v gap=24 align=center w=fill maxWidth=680 [main]
 diagnostics: 0
 ```
 
-- `--format json` (or `--json`) prints the full render model (`vestal docs render-model`): every colour, size and flag, for checking details.
+- `--format json` (or `--json`) prints the full render model (`vestal docs render-model`): every color, size and flag, for checking details.
 - `--view <name>` renders another view; `--press <key>` presses keys first (switch views, open popups; nothing is run).
 - `--data <dir>` renders from fixture files (`<dir>/<source>.json`) instead of live data, to test states you can't produce: a CPU at 95%, an empty list, a failed source (`<dir>/<source>.error`). `--at <time>` freezes the clock.
-- Anything but `diagnostics: 0` is a problem: an expression that failed at runtime, an unknown icon or colour. `--strict` exits 3 on any.
+- Anything but `diagnostics: 0` is a problem: an expression that failed at runtime, an unknown icon or color. `--strict` exits 3 on any.
 
 To see what a key does, without running anything: `vestal press <key> --dry-run --config /tmp/vestal-draft.json` prints its binding (widget, view or global) and each effect (`run [argv]`, `open <url>`, `show view …`). `vestal press <key>` sends it to the running dashboard for real.
 
@@ -323,7 +323,7 @@ $ vestal screenshot /tmp/vestal.png --config /tmp/vestal-draft.json --json
 {"clipped":0,"diagnostics":0,"frames":null,"height":982,"path":"/tmp/vestal.png","scale":2,"truncated":0,"width":1512}
 ```
 
-Then open `/tmp/vestal.png` with your image-viewing tool and look: alignment, crowding, colours, anything cut off. `--frames` writes every node's frame, with `clipped: true` on nodes cut off at the bottom of the screen (vestal never scrolls) and `truncated: true` on texts cut by `lines`: check those without reading pixels. It takes the same `--view`, `--press`, `--data` and `--at` as `render`, plus `--size <w>x<h>`, `--scale` and `--background` on macOS (on Linux the PNG is the screen as the GTK UI draws it, in pixels). The desktop blur is never captured; on macOS the aurora isn't either (the background is the palette's `bg`), while the GTK UI draws its aurora into the PNG. It draws with the real UI code: SwiftUI on macOS, GTK on Linux (which needs a Wayland session; exit 5 without one: rely on `render` then).
+Then open `/tmp/vestal.png` with your image-viewing tool and look: alignment, crowding, colors, anything cut off. `--frames` writes every node's frame, with `clipped: true` on nodes cut off at the bottom of the screen (vestal never scrolls) and `truncated: true` on texts cut by `lines`: check those without reading pixels. It takes the same `--view`, `--press`, `--data` and `--at` as `render`, plus `--size <w>x<h>`, `--scale` and `--background` on macOS (on Linux the PNG is the screen as the GTK UI draws it, in pixels). The desktop blur is never captured; on macOS the aurora isn't either (the background is the palette's `bg`), while the GTK UI draws its aurora into the PNG. It draws with the real UI code: SwiftUI on macOS, GTK on Linux (which needs a Wayland session; exit 5 without one: rely on `render` then).
 
 ### Step 8: iterate and deploy
 
@@ -344,7 +344,7 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 | `$item`, `$index`, `$parent` | The current row, its position, the outer row. |
 | `$sources.<name>` | Any source's data. |
 | `$history.<source>.<name>` | Sampled numbers, oldest first. |
-| `$value` | The widget's own value, in colour and style fields. |
+| `$value` | The widget's own value, in color and style fields. |
 | `$meta` | `{fetchedAt, age, ok, error, stale, loaded}` of the source. |
 | `now` | The current time, epoch seconds. |
 
@@ -360,7 +360,7 @@ Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` 
 
 **Formatting:** `fmt_fixed(1)`, `fmt_int`, `fmt_percent`, `fmt_bytes`, `fmt_rate`, `fmt_duration`, `fmt_relative`, `fmt_time("HH:mm")`, `fmt_compact`, `fmt_thousands`, `to_epoch`; on `text`, `stat` and table columns, `"format": "fixed:1"`, `"bytes"`, `"percent"`, `"relative"`, ….
 
-**Colour by threshold:** `"color": {"steps": [[0, "good"], [70, "warn"], [90, "bad"]]}` (of the widget's value; `"of": ".x"` for another).
+**Color by threshold:** `"color": {"steps": [[0, "good"], [70, "warn"], [90, "bad"]]}` (of the widget's value; `"of": ".x"` for another).
 
 **Icons:** Phosphor names (`vestal icons battery`), `"weight": "fill"` for solid.
 
@@ -498,7 +498,7 @@ User: *"Show BTC and ETH with the 24h change and a small chart."*
 }
 ```
 
-- `stat` shows the value and a coloured `▲`/`▼` delta. The BTC chart comes from the API's own series (`btcDay`, reshaped by `transform`), so it is full at once; the ETH chart is recorded by vestal (`value` + `history`) and fills in over the next fetches, kept across restarts.
+- `stat` shows the value and a colored `▲`/`▼` delta. The BTC chart comes from the API's own series (`btcDay`, reshaped by `transform`), so it is full at once; the ETH chart is recorded by vestal (`value` + `history`) and fills in over the next fetches, kept across restarts.
 - Check: `vestal fetch prices --config /tmp/vestal-draft.json --shape` shows `.bitcoin.usd number  84726` and `.bitcoin.usd_24h_change number  0.576…`. The render has `text "$84,726" size=24` and `text "▲0.58%" size=11 color=good`.
 - Tell the user the ETH sparkline needs a few fetches (5 minutes apart) before it draws.
 
@@ -803,7 +803,7 @@ User: *"Make CPU, RAM and disk bars with their own warning levels and a note und
   "version": 1,
   "templates": {
     "metric": {
-      "description": "A labelled percentage bar that turns yellow, then red",
+      "description": "A labeled percentage bar that turns yellow, then red",
       "params": {
         "label": { "type": "text", "required": true },
         "value": { "type": "expr", "required": true, "description": "A 0-100 number" },
@@ -961,7 +961,7 @@ User: *"A table of my disks: used, free and size, red when nearly full."*
 ```
 
 - A `table` lines its columns up across rows. `storage` is a named `system` source with more `disks` than the default `["/"]`: list the user's real mount points (`df -h`).
-- Column colours use the cell's value (`steps` of `$value`).
+- Column colors use the cell's value (`steps` of `$value`).
 
 ## 6. Going further
 
@@ -993,7 +993,7 @@ Current week (all models): 59% used · resets Oct 3 at 7pm (America/Buenos_Aires
 Current week (Fable): 0% used · resets Oct 3 at 7pm (America/Buenos_Aires)
 ```
 
-vestal reads those lines: `Current session` is `session`, `Current week (all models)` is `weekly`, and any other `Current week (<name>)` goes to `extra` with that name as its `label`. A reset time is read in the zone in parentheses (`Sep 27 at 7:10pm`, `Oct 3, 7pm`, `7:10pm`, `in 3h 20m`); one vestal can't read keeps its text in `resetsText` with `resetsAt` null. Colour codes, notices and the rest of the output are ignored.
+vestal reads those lines: `Current session` is `session`, `Current week (all models)` is `weekly`, and any other `Current week (<name>)` goes to `extra` with that name as its `label`. A reset time is read in the zone in parentheses (`Sep 27 at 7:10pm`, `Oct 3, 7pm`, `7:10pm`, `in 3h 20m`); one vestal can't read keeps its text in `resetsText` with `resetsAt` null. Color codes, notices and the rest of the output are ignored.
 
 Claude Code uses its own login (Pro or Max). The command runs in vestal's cache directory (`~/Library/Caches/Vestal` on macOS, `$XDG_CACHE_HOME/vestal` or `~/.cache/vestal` on Linux), and `--no-session-persistence` keeps it from writing a transcript at every refresh (vestal drops the flag for a Claude Code too old to know it). It refreshes every 5 minutes while the dashboard is shown, and when you show the dashboard with data older than a minute. `vestal fetch claude` runs it and shows the data. vestal looks for `claude` on `PATH`, in the Nix and Homebrew directories and in `~/.local/bin` (Claude Code's native installer); anywhere else, set `"argv": ["~/.local/bin/claude", "-p", "--no-session-persistence", "/usage"]` on the source.
 
@@ -1111,7 +1111,7 @@ Fetches a source now and prints its data, after `transform`, as pretty JSON with
 
 `vestal check-config [path|-] [--json] [--strict] [--platform macos|linux|all] [--commands]`
 
-Checks a config file (default: the one vestal loads; `-` reads stdin) after merging, template expansion and the v0.3 adapter: unknown keys, types, sources, templates, views, widgets, colours and icons (each with a did-you-mean), type mismatches, bad durations and keys, key conflicts, template parameters, expressions that don't compile (with the position), unknown functions and variables, `sf:` icons outside `platform.macos`, literal-looking tokens. It prints `<file>: ok`, or one line per finding with its JSON path, and under it a line with the RFC 6901 pointer into your file, the line and column, and a did-you-mean. Exit 0 when the file is usable (warnings included), 1 when it can't be read or parsed, 2 for bad usage, 3 with error findings or, with `--strict`, any warning.
+Checks a config file (default: the one vestal loads; `-` reads stdin) after merging, template expansion and the v0.3 adapter: unknown keys, types, sources, templates, views, widgets, colors and icons (each with a did-you-mean), type mismatches, bad durations and keys, key conflicts, template parameters, expressions that don't compile (with the position), unknown functions and variables, `sf:` icons outside `platform.macos`, literal-looking tokens. It prints `<file>: ok`, or one line per finding with its JSON path, and under it a line with the RFC 6901 pointer into your file, the line and column, and a did-you-mean. Exit 0 when the file is usable (warnings included), 1 when it can't be read or parsed, 2 for bad usage, 3 with error findings or, with `--strict`, any warning.
 
 - `--json`: `{"file", "status", "counts": {"error", "warning", "info"}, "diagnostics": [...]}`. Each diagnostic has `severity`, `code`, `pointer`, `layer` (`user`, `platform.macos`, `platform.linux` or `defaults`), `message`, and where they apply `suggestion` (the best) and `suggestions` (up to 3), `expected` and `found`, `line` and `column`, `exprOffset`, and `platform` (for a finding only the other OS's block causes).
 - `--platform macos|linux`: check as that OS loads the file. The default, `all`, checks this OS and also the other OS's block.
@@ -1242,7 +1242,7 @@ A whole number above zero and `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4h"`, `"1
         "config-syntax": #"""
 # Config syntax in 10 minutes
 
-Everything vestal draws comes from one JSON file, `~/.config/vestal/config.json`. This page is the grammar of that file: its shape, how data gets onto the screen, the two kinds of expression, colours, secrets, per-OS blocks, and how each looks in Nix. [Your first dashboard by hand](first-dashboard.md) is the hands-on version; `vestal docs config` and the [configuration reference](../CONFIG.md) list every key.
+Everything vestal draws comes from one JSON file, `~/.config/vestal/config.json`. This page is the grammar of that file: its shape, how data gets onto the screen, the two kinds of expression, colors, secrets, per-OS blocks, and how each looks in Nix. [Your first dashboard by hand](first-dashboard.md) is the hands-on version; `vestal docs config` and the [configuration reference](../CONFIG.md) list every key.
 
 ## The file
 
@@ -1266,7 +1266,7 @@ The file is one JSON object. JSON is strict: keys and strings in double quotes, 
 |---|---|
 | `version` | Always `1`. |
 | `hotkey` | The key that shows and hides the dashboard: `"f3"`, `"cmd+shift+space"`. |
-| `theme` | Background, palette, colours, fonts, `scale`, `density`. |
+| `theme` | Background, palette, colors, fonts, `scale`, `density`. |
 | `sources` | Named data: HTTP APIs, commands, files, the calendar, the system. |
 | `widgets` | Named things to draw. |
 | `views` | Pages, each a list of widgets. `pages` sets their order. |
@@ -1323,7 +1323,7 @@ Inside JSON, a quote in an expression is written `\"`.
 
 ## Expressions (jq)
 
-Fields that compute a value (`value`, `items`, `when`, `input`, `vars`, a colour's `of`) are **jq** expressions, as strings. vestal runs a large subset of jq plus its own formatting functions. With this data:
+Fields that compute a value (`value`, `items`, `when`, `input`, `vars`, a color's `of`) are **jq** expressions, as strings. vestal runs a large subset of jq plus its own formatting functions. With this data:
 
 ```jsonc
 { "city": "Lisbon", "temp": 18.6, "hosts": [ { "name": "nas", "up": true, "cpu": 12.4 }, { "name": "pi", "up": false, "cpu": 0 } ] }
@@ -1350,17 +1350,17 @@ vestal eval 'It is {{ .temp | round }}° in {{ .city }}' --template --input stat
 
 An expression that fails at runtime makes that one field `null`; `when` treats `null` as false, so a widget with `"when": ".hosts | length > 0"` hides itself until there is data. `vestal docs functions` lists every function.
 
-Any other field (a size, a colour, an icon name) can be computed too, by writing `{"expr": "<jq>"}` in place of the value.
+Any other field (a size, a color, an icon name) can be computed too, by writing `{"expr": "<jq>"}` in place of the value.
 
-## Colours
+## Colors
 
-Anywhere a colour goes:
+Anywhere a color goes:
 
 | Form | Example |
 |---|---|
 | A palette name | `"accent"`, `"good"`, `"warn"`, `"bad"`, `"subtle"`, `"dim"`, `"blue"`, `"purple"` |
 | Hex, optionally with alpha | `"#7aa1f7"`, `"#7aa1f780"` |
-| A colour at an opacity | `"accent@0.15"` |
+| A color at an opacity | `"accent@0.15"` |
 | Thresholds | `{"steps": [[0, "good"], [70, "warn"], [90, "bad"]]}`: the last step at or under the value |
 | An expression | `{"expr": "if .ok then \"good\" else \"bad\" end"}` |
 
@@ -1528,7 +1528,7 @@ Three rules cover the language:
 
 - **R1.** A field of kind *expr* is always jq.
 - **R2.** A field of kind *text* is literal, and each `{{ … }}` inside it is a jq expression whose first output is inserted. Strings go in as they are, numbers as jq's `tostring` writes them, `null` as nothing, and arrays and objects as compact JSON. `{{{{` writes a literal `{{`.
-- **R3.** Any other scalar field (a number, a boolean, a colour, an icon name, a width) may be written `{"expr": "<jq>"}` to compute it. Structural keys cannot: `type`, `id`, `children`, `row`, `cases`, a `source` given as a name, template names, and the keys of a source definition.
+- **R3.** Any other scalar field (a number, a boolean, a color, an icon name, a width) may be written `{"expr": "<jq>"}` to compute it. Structural keys cannot: `type`, `id`, `children`, `row`, `cases`, a `source` given as a name, template names, and the keys of a source definition.
 
 `{{ }}` needs no escaping in JSON or in Nix (Nix only interpolates `${`). jq's own `"\(…)"` still works inside an expression, but in a JSON string it must be written `\\(`.
 
@@ -1555,7 +1555,7 @@ Where each kind appears:
 | `$data` | The nearest source's data, unaffected by rows or `input`. |
 | `$item`, `$index` | The current row and its position from 0. Only inside a row. |
 | `$parent` | The enclosing row's item, in a nested list. |
-| `$value` | The node's own resolved `value`, in its colour and style fields and in `text` or `suffix` next to a `value`. |
+| `$value` | The node's own resolved `value`, in its color and style fields and in `text` or `suffix` next to a `value`. |
 | `$sources` | Every named source's data: `$sources.system.cpu.percent`, `$sources["host:harbor"]`. |
 | `$meta` | The nearest source's metadata: `{name, fetchedAt, age, ok, error, stale, loaded}`. `meta("name")` gives another source's. |
 | `$history` | `$history.<source>.<name>`: an array of numbers, oldest first. |
@@ -1701,7 +1701,7 @@ That is a whole config:
 
 Save the file. vestal watches it and redraws at once. Press the hotkey: a clock in the middle of the screen.
 
-Anything you leave out comes from vestal's built-in defaults: the background, the colours, and the built-in data sources (`system`, `media`, `calendar`, `weather`).
+Anything you leave out comes from vestal's built-in defaults: the background, the colors, and the built-in data sources (`system`, `media`, `calendar`, `weather`).
 
 ## 4. Add widgets
 
@@ -1822,7 +1822,7 @@ The background is part of the `theme`. Add this key next to `widgets`:
 }
 ```
 
-`aurora` is the default. The others are `blur`, `none`, `mesh`, `topo`, `stars`, `flow`, `rain`, `plasma`, `grain`, `sky` (follows the time of day), `weather`, `load` and `artmesh` (takes the colours of the album playing). The site's background gallery shows each one; `vestal docs styling` explains their options.
+`aurora` is the default. The others are `blur`, `none`, `mesh`, `topo`, `stars`, `flow`, `rain`, `plasma`, `grain`, `sky` (follows the time of day), `weather`, `load` and `artmesh` (takes the colors of the album playing). The site's background gallery shows each one; `vestal docs styling` explains their options.
 
 ## Where next
 
@@ -1870,13 +1870,13 @@ The `format` field of `text`, table columns and `keyValue` items names these: `i
 
 Arguments see the piped input, not the row: inside `now | fmt_time("HH:mm"; …)` the argument's `.` is `now`. Use `$item.tz`, or bind first: `.tz as $z | now | fmt_time("HH:mm"; $z)`.
 
-## Colours, icons and thresholds
+## Colors, icons and thresholds
 
 | Function | Meaning | Example |
 |---|---|---|
-| `step(stops)` | `stops` is `[[threshold, result], …]` in ascending order: the result of the last stop whose threshold ≤ the input, or the first stop's result below them all. Any result type: colours, icon names, text. | `95 \| step([[0,"good"],[70,"warn"],[90,"bad"]])` → `"bad"` |
-| `color_mix(a; b; t)` | blends two colours (palette names or hex) in sRGB, `t` from 0 to 1 → `"#rrggbbaa"` | `color_mix("good"; "bad"; .cpu.percent / 100)` |
-| `alpha(a)` | a colour with its alpha multiplied by `a` | `"accent" \| alpha(0.15)` → `"#7aa1f726"` |
+| `step(stops)` | `stops` is `[[threshold, result], …]` in ascending order: the result of the last stop whose threshold ≤ the input, or the first stop's result below them all. Any result type: colors, icon names, text. | `95 \| step([[0,"good"],[70,"warn"],[90,"bad"]])` → `"bad"` |
+| `color_mix(a; b; t)` | blends two colors (palette names or hex) in sRGB, `t` from 0 to 1 → `"#rrggbbaa"` | `color_mix("good"; "bad"; .cpu.percent / 100)` |
+| `alpha(a)` | a color with its alpha multiplied by `a` | `"accent" \| alpha(0.15)` → `"#7aa1f726"` |
 
 ## Time and data
 
@@ -1938,7 +1938,7 @@ Icons are named from one open set, bundled with vestal on both OSes: **Phosphor 
 
 ## The font files
 
-The fonts are `Phosphor.ttf` (family `Phosphor`) and `Phosphor-Fill.ttf` (`Phosphor-Fill`), in the vestal repository under `Resources/icons/` with their licence.
+The fonts are `Phosphor.ttf` (family `Phosphor`) and `Phosphor-Fill.ttf` (`Phosphor-Fill`), in the vestal repository under `Resources/icons/` with their license.
 
 | | Installed at |
 |---|---|
@@ -2068,7 +2068,7 @@ A titled block: the title in upper case (size 11, bold, `dim`, tracking 1.5) fol
 
 ### `stat`
 
-A label, a big value, and an optional delta: `▲` or `▼` coloured by `trend` (`up-good`: up is `good`; `up-bad`: up is `bad`; `none`). `size` is `sm` (value 14), `md` (24) or `lg` (36). `value` and `delta` are expressions; `format`, `prefix` and `suffix` work as on `text`.
+A label, a big value, and an optional delta: `▲` or `▼` colored by `trend` (`up-good`: up is `good`; `up-bad`: up is `bad`; `none`). `size` is `sm` (value 14), `md` (24) or `lg` (36). `value` and `delta` are expressions; `format`, `prefix` and `suffix` work as on `text`.
 
 ```json
 { "type": "stat", "source": "system", "label": "Memory", "value": ".memory.percent", "format": "percent", "size": "lg" }
@@ -2088,7 +2088,7 @@ Widgets over the detail fields of the `system` source (`vestal docs source/syste
 
 ### `cpuCores`
 
-One column per logical core, 0 to 100, labelled `P1`..`P4` (performance) and `E1`..`E6` (efficiency); cores at or above `warn` are `warn`-coloured, the rest `cyan` (performance) or `teal` (efficiency). Beside them: the CPU total, the load averages, and the layout with the CPU temperature (`4P + 6E · 61°`). Where the OS doesn't tell the kinds, the columns are numbered and the layout reads `16 cores`.
+One column per logical core, 0 to 100, labeled `P1`..`P4` (performance) and `E1`..`E6` (efficiency); cores at or above `warn` are `warn`-colored, the rest `cyan` (performance) or `teal` (efficiency). Beside them: the CPU total, the load averages, and the layout with the CPU temperature (`4P + 6E · 61°`). Where the OS doesn't tell the kinds, the columns are numbered and the layout reads `16 cores`.
 
 | Parameter | Default | |
 |---|---|---|
@@ -2121,7 +2121,7 @@ programs.vestal.settings.views.main.children = [ { type = "memoryBreakdown"; } ]
 
 ### `diskBreakdown`
 
-Every volume the source lists (its `disks`, `["/"]` by default): the first with its name, "used / total" and a bar, the others as one row each with a bar coloured `good`, `warn` from 80% and `bad` from 95%. With `usage` naming a `diskUsage` source, the first volume's bar is split by those categories and an "Other" part for the rest, with a legend; until that source has data, and without `usage`, it is one bar. List more volumes with `disks` on the `system` source.
+Every volume the source lists (its `disks`, `["/"]` by default): the first with its name, "used / total" and a bar, the others as one row each with a bar colored `good`, `warn` from 80% and `bad` from 95%. With `usage` naming a `diskUsage` source, the first volume's bar is split by those categories and an "Other" part for the rest, with a legend; until that source has data, and without `usage`, it is one bar. List more volumes with `disks` on the `system` source.
 
 | Parameter | Default | |
 |---|---|---|
@@ -2165,12 +2165,12 @@ programs.vestal.settings.views.main.children = [ { type = "networkRates"; minute
 
 ### `topProcesses`
 
-The busiest processes by CPU: name, CPU in percent of one core (`warn`-coloured from `warn`), resident memory and a bar. It reads its own `system` source with `processes` set to `count`, so no process is read for configs that don't place it. Linux shows every process but kernel threads; macOS shows the current user's processes only (system daemons are not visible). The first reading after a start ranks by memory: CPU needs two.
+The busiest processes by CPU: name, CPU in percent of one core (`warn`-colored from `warn`), resident memory and a bar. It reads its own `system` source with `processes` set to `count`, so no process is read for configs that don't place it. Linux shows every process but kernel threads; macOS shows the current user's processes only (system daemons are not visible). The first reading after a start ranks by memory: CPU needs two.
 
 | Parameter | Default | |
 |---|---|---|
 | `count` | `5` | Processes shown, at most 20. |
-| `warn` | `70` | The CPU percentage from which a row is `warn`-coloured. |
+| `warn` | `70` | The CPU percentage from which a row is `warn`-colored. |
 
 ```json
 { "type": "topProcesses", "count": 8 }
@@ -2231,9 +2231,9 @@ programs.vestal.extraPackages = [ pkgs.gh ];
 
 ### `ciStatus`
 
-The latest GitHub Actions results per repository and branch: a state icon (`check-circle` green, `x-circle` red, `circle-notch` yellow while running, `minus-circle` for cancelled), the repository, the branch, the last `runs` results as small cells (older ones half as strong, the newest full), and how long the newest took (`4m 12s`, `running 2m`). A row opens the repository's Actions page for that branch.
+The latest GitHub Actions results per repository and branch: a state icon (`check-circle` green, `x-circle` red, `circle-notch` yellow while running, `minus-circle` for canceled), the repository, the branch, the last `runs` results as small cells (older ones half as strong, the newest full), and how long the newest took (`4m 12s`, `running 2m`). A row opens the repository's Actions page for that branch.
 
-One GraphQL request per refresh covers every repository: it reads each branch's last 30 commits and the check suites GitHub Actions ran for them. A commit is one cell: running when any of its suites is still running, failed when one failed or timed out, cancelled when one was cancelled, else passed; commits no workflow ran for (skipped suites, path filters) have no cell. So a cell is a commit's result rather than a single workflow run, and the duration spans the commit's suites. Use a `repos` entry per branch you care about.
+One GraphQL request per refresh covers every repository: it reads each branch's last 30 commits and the check suites GitHub Actions ran for them. A commit is one cell: running when any of its suites is still running, failed when one failed or timed out, canceled when one was canceled, else passed; commits no workflow ran for (skipped suites, path filters) have no cell. So a cell is a commit's result rather than a single workflow run, and the duration spans the commit's suites. Use a `repos` entry per branch you care about.
 
 | Parameter | Default | |
 |---|---|---|
@@ -2241,7 +2241,7 @@ One GraphQL request per refresh covers every repository: it reads each branch's 
 | `runs` | `12` | Cells per repository, at most 30. |
 | `refresh` | `5m` | |
 
-The source's data: a list, in `repos` order, of `{repo, nameWithOwner, branch, url, runs (oldest first: success, failure, running, cancelled), state (the newest, or none), started, finished (epoch seconds)}`. A repository GitHub can't find or read is left out.
+The source's data: a list, in `repos` order, of `{repo, nameWithOwner, branch, url, runs (oldest first: success, failure, running, canceled), state (the newest, or none), started, finished (epoch seconds)}`. A repository GitHub can't find or read is left out.
 
 ```json
 { "type": "ciStatus", "repos": ["acme/api", "acme/web", "acme/infra@update-flake"] }
@@ -2287,7 +2287,7 @@ The locks come from `nix flake metadata --json` (the `flake` source, `vestal doc
 |---|---|---|
 | `path` | required | The flake's directory or reference; `~/` expands. |
 | `behind` | `false` | Also ask GitHub how many commits each GitHub input is behind. |
-| `fresh`, `warn`, `bad` | `3`, `14`, `30` | Days: the lock age colours. |
+| `fresh`, `warn`, `bad` | `3`, `14`, `30` | Days: the lock age colors. |
 | `sort` | `age` | `age` (oldest lock first) or `name`. |
 | `limit` | `8` | Rows shown. |
 | `refresh` | `1h` | |
@@ -2360,7 +2360,7 @@ Hosts under `title` (`Systems`), each a row with CPU and RAM bars, temperature a
 
 ### `keyValueList`
 
-Labelled values picked out of JSON sources with v0.3 paths: `items` of `{label, source, match, pick | picks, format}`. New configs: use `keyValue`, whose values are jq.
+Labeled values picked out of JSON sources with v0.3 paths: `items` of `{label, source, match, pick | picks, format}`. New configs: use `keyValue`, whose values are jq.
 
 ### `weatherCard`
 
@@ -2411,7 +2411,7 @@ Under Home Manager: `programs.vestal.settings.sources.astro = { type = "astro"; 
 
 ### `countdowns`
 
-Days until the dates you care about, soonest first, each with how much of the wait has passed. `items` is `[{title, date, since?, color?}]` with dates as `2026-12-24`: the number of days from today (local date) is shown large, then the title and a thin bar of the time passed since `since`. Without `since` there is no bar. A date in the past is left out. The colour is automatic (`warn` within 14 days, `accent` within 60, else plain), or `color` on the item.
+Days until the dates you care about, soonest first, each with how much of the wait has passed. `items` is `[{title, date, since?, color?}]` with dates as `2026-12-24`: the number of days from today (local date) is shown large, then the title and a thin bar of the time passed since `since`. Without `since` there is no bar. A date in the past is left out. The color is automatic (`warn` within 14 days, `accent` within 60, else plain), or `color` on the item.
 
 | Parameter | Default | |
 |---|---|---|
@@ -2470,7 +2470,7 @@ Widgets for a home server or a few machines. Each reads a source (a "data pack",
 
 ### `containers`
 
-The containers of a Docker or Podman host: a badge for how many are running, unhealthy and exited (red when one exited with an error), then a row each with the name, the state (`up 12d`, `exited (1) 2h ago`, coloured by health), CPU and memory. It runs `docker ps -a --format json` every 15 seconds while the dashboard is shown, and `docker stats --no-stream --format json` for the last two columns (`stats: false` skips it; a stopped container shows `–`). When `limit` cuts the list, failed, unhealthy and restarting containers are kept first and `+ N more` says how many are not shown. Podman needs `program: "podman"` and nothing else.
+The containers of a Docker or Podman host: a badge for how many are running, unhealthy and exited (red when one exited with an error), then a row each with the name, the state (`up 12d`, `exited (1) 2h ago`, colored by health), CPU and memory. It runs `docker ps -a --format json` every 15 seconds while the dashboard is shown, and `docker stats --no-stream --format json` for the last two columns (`stats: false` skips it; a stopped container shows `–`). When `limit` cuts the list, failed, unhealthy and restarting containers are kept first and `+ N more` says how many are not shown. Podman needs `program: "podman"` and nothing else.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -2623,7 +2623,7 @@ The progress shape, one object per transfer:
 | `percent` | 0 to 100, or `null` when unknown (an empty bar). |
 | `detail`, `right` | Text on the left and the right of the line under the bar. Either may be empty. |
 | `icon` | A Phosphor icon name (`vestal icons`). Default `download`. |
-| `color` | A colour. Default `accent`, `good` at 100. |
+| `color` | A color. Default `accent`, `good` at 100. |
 
 ```json
 {
@@ -2686,7 +2686,7 @@ programs.vestal.settings.widgets.news = { type = "headlines"; limit = 6; };
 
 ### `cryptoTicker`
 
-A row per coin: symbol, name, a day's line (green up, red down) with its area, the price and the 24-hour change in colour. Clicking a row opens the coin on CoinGecko. Data from the `coingecko` pack, so one request every 5 minutes for all the coins.
+A row per coin: symbol, name, a day's line (green up, red down) with its area, the price and the 24-hour change in color. Clicking a row opens the coin on CoinGecko. Data from the `coingecko` pack, so one request every 5 minutes for all the coins.
 
 | Parameter | Default | |
 |---|---|---|
@@ -2710,7 +2710,7 @@ programs.vestal.settings.widgets.crypto = { type = "cryptoTicker"; source = "coi
 
 ### `watchlist`
 
-A short stock list: symbol, the session's line, the last price and the day's change in colour, under a Symbol / Last / Day header, and a line for the market: `market open` or `market closed`, the time of the last quote and a reminder that it may be delayed. Open means the last quote is under 20 minutes old. Clicking a row opens the symbol on Yahoo Finance. Data from the `yahooQuotes` pack (Yahoo's unofficial chart endpoint, no key, one request for all symbols); `vestal docs sources` says why and what a keyed source would need.
+A short stock list: symbol, the session's line, the last price and the day's change in color, under a Symbol / Last / Day header, and a line for the market: `market open` or `market closed`, the time of the last quote and a reminder that it may be delayed. Open means the last quote is under 20 minutes old. Clicking a row opens the symbol on Yahoo Finance. Data from the `yahooQuotes` pack (Yahoo's unofficial chart endpoint, no key, one request for all symbols); `vestal docs sources` says why and what a keyed source would need.
 
 | Parameter | Default | |
 |---|---|---|
@@ -2734,16 +2734,16 @@ programs.vestal.settings.widgets.stocks = { type = "watchlist"; source = "quotes
 
 ### `homeAssistant`
 
-A grid of tiles, one per entity: an icon and a label, the state with its unit (numbers rounded to one decimal, `°` and `%` joined to the number, other units after a space) and a second line. The state's colour: `color` of the entity if set; for a number, its `thresholds`; for a word, `stateColors` (`locked` and `closed` `good`; `on`, `open` and `unlocked` `warn`; `unavailable` and `unknown` `dim`; anything else `text`). The icon follows the state's colour (`subtle` for `text`). An entity Home Assistant doesn't know shows `–` in `dim`. Data from the `haStates` pack: the long-lived token is the secret named `homeAssistant`.
+A grid of tiles, one per entity: an icon and a label, the state with its unit (numbers rounded to one decimal, `°` and `%` joined to the number, other units after a space) and a second line. The state's color: `color` of the entity if set; for a number, its `thresholds`; for a word, `stateColors` (`locked` and `closed` `good`; `on`, `open` and `unlocked` `warn`; `unavailable` and `unknown` `dim`; anything else `text`). The icon follows the state's color (`subtle` for `text`). An entity Home Assistant doesn't know shows `–` in `dim`. Data from the `haStates` pack: the long-lived token is the secret named `homeAssistant`.
 
 | Parameter | Default | |
 |---|---|---|
 | `entities` | required | `[{id, label, icon, attribute, attributeUnit, attributeLabel, since, precision, unit, thresholds, colors, color}]`; a plain string is an id. |
 | `url` | `http://homeassistant.local:8123` | Home Assistant's base URL. |
 | `columns` | `3` | Tiles per row. |
-| `stateColors` | see above | State word to colour. |
+| `stateColors` | see above | State word to color. |
 
-An entity takes: `label` (default its friendly name), `icon` (a Phosphor name; default from the device class, else the domain: `light` is `lightbulb`, `lock` is `lock`, `sensor` is `gauge`, ...), `attribute` (an attribute shown on the second line, with `attributeUnit` right after it and `attributeLabel` after that: `48` `%` `humidity` is `48% humidity`), `since` (`true`: the second line is `since 18:02`, the time of the last change), `precision` (decimals, default 1), `unit` (replaces the entity's), `thresholds` (`[[0, "cyan"], [18, "text"], [26, "warn"]]`, as `step`), `colors` (state word to colour for this entity) and `color`.
+An entity takes: `label` (default its friendly name), `icon` (a Phosphor name; default from the device class, else the domain: `light` is `lightbulb`, `lock` is `lock`, `sensor` is `gauge`, ...), `attribute` (an attribute shown on the second line, with `attributeUnit` right after it and `attributeLabel` after that: `48` `%` `humidity` is `48% humidity`), `since` (`true`: the second line is `since 18:02`, the time of the last change), `precision` (decimals, default 1), `unit` (replaces the entity's), `thresholds` (`[[0, "cyan"], [18, "text"], [26, "warn"]]`, as `step`), `colors` (state word to color for this entity) and `color`.
 
 ```json
 {
@@ -2799,7 +2799,7 @@ Calendar, a pomodoro timer and two small files, drawn as widgets with keys. They
 
 ### `dayTimeline`
 
-Today's timed events on a strip with a line at now, so gaps and overlaps show without reading times. Events that overlap go on rows of their own, finished events are dimmed, and a line under the strip says how many there are and how many overlap another (`6 events · 3 overlap`) and what is next: `free until 11:00`, `busy until 12:45` while one is on, or `free for the rest of the day`. All-day events are not on the strip. Hidden when today has no events. Colours go by calendar: `calendarColors` names them, otherwise a hash of the calendar's name picks one of `palette`.
+Today's timed events on a strip with a line at now, so gaps and overlaps show without reading times. Events that overlap go on rows of their own, finished events are dimmed, and a line under the strip says how many there are and how many overlap another (`6 events · 3 overlap`) and what is next: `free until 11:00`, `busy until 12:45` while one is on, or `free for the rest of the day`. All-day events are not on the strip. Hidden when today has no events. Colors go by calendar: `calendarColors` names them, otherwise a hash of the calendar's name picks one of `palette`.
 
 The `calendar` source starts at now, so events that have ended are not in its data. Set `"includePast": true` on it to read from the start of today (the other calendar widgets filter on the end time and are not affected); without it the strip shows what is still to come.
 
@@ -2809,7 +2809,7 @@ The `calendar` source starts at now, so events that have ended are not in its da
 | `hours` | `10` | How many hours the strip covers. |
 | `lead` | `3` | How many of them are before now. Late in the day the strip starts earlier so it ends at midnight, and it never starts before midnight. |
 | `height` | `56` | Points; 56 holds two rows. |
-| `palette` | `accent`, `cyan`, `orange`, `purple`, `teal`, `good` | Colours for calendars. |
+| `palette` | `accent`, `cyan`, `orange`, `purple`, `teal`, `good` | Colors for calendars. |
 | `calendarColors` | none | `{"Work": "accent"}`. |
 | `hour12` | `false` | `1:46 PM` in the summary. |
 
@@ -2832,7 +2832,7 @@ programs.vestal.settings = {
 
 ### `nextMeeting`
 
-The next timed event that has not ended, with the time left (`in 15m`, in the warning colour from `warn` minutes before it, `now` while it runs), its times, `video call` or its location, and the first line of its notes. When the event has a call link, a Join button and a copy hint show: `J` opens the link (and hides the dashboard) and `C` copies it. Without a link there are no buttons and the keys are free. Hidden when nothing is left today.
+The next timed event that has not ended, with the time left (`in 15m`, in the warning color from `warn` minutes before it, `now` while it runs), its times, `video call` or its location, and the first line of its notes. When the event has a call link, a Join button and a copy hint show: `J` opens the link (and hides the dashboard) and `C` copies it. Without a link there are no buttons and the keys are free. Hidden when nothing is left today.
 
 The link is found by `meeting_link` (`vestal docs functions`) in the event's `url`, `location` and `notes`: a link to Zoom, Google Meet, Microsoft Teams, Webex and a few other call services wins wherever it is, else the first `https` link. The calendar's own fields give them: EventKit's URL and notes, `.ics` `URL`, `CONFERENCE`, `X-GOOGLE-CONFERENCE` and `DESCRIPTION`, the same through CalDAV, and Thunderbird's URL and description. Notes are kept to 4000 characters.
 
@@ -2841,7 +2841,7 @@ The link is found by `meeting_link` (`vestal docs functions`) in the event's `ur
 | `source` | `calendar` | A `calendar` source. |
 | `joinKey` | `j` | Opens the link. |
 | `copyKey` | `c` | Copies it. |
-| `warn` | `15` | Minutes before the start from which the countdown is `warn`-coloured. |
+| `warn` | `15` | Minutes before the start from which the countdown is `warn`-colored. |
 | `hour12` | `false` | `1:46 PM`. |
 
 ```json
@@ -2911,7 +2911,7 @@ programs.vestal.settings.widgets.todo = { type = "todoFile"; path = "~/notes/tod
 
 ### `habits`
 
-One strip per habit: `weeks` (5) of days, ending today, a cell each, with the current streak after it (`4d`). A done day is filled in the habit's colour; today is outlined until it is done. The streak counts the days in a row up to today, or up to yesterday while today is still open. Colours: the habit's `color`, else `colors` in order. Hidden when the file is missing or has no habits.
+One strip per habit: `weeks` (5) of days, ending today, a cell each, with the current streak after it (`4d`). A done day is filled in the habit's color; today is outlined until it is done. The streak counts the days in a row up to today, or up to yesterday while today is still open. Colors: the habit's `color`, else `colors` in order. Hidden when the file is missing or has no habits.
 
 The file is JSON, written by anything that can write JSON, such as a phone shortcut:
 
@@ -3122,7 +3122,7 @@ Print one with `vestal docs recipe/<name>`. To use it, merge the parts you need 
         "render-model": #"""
 # The render model
 
-vestal turns config and data into a resolved tree of nodes, and a UI only draws that tree. Every text is a string, every size a number, every icon a name plus its glyph, every colour a palette name or `#rrggbbaa`. A UI never evaluates an expression, reads a source or runs an action: it lays out and draws nodes, and reports clicks and keys (`vestal docs protocol`).
+vestal turns config and data into a resolved tree of nodes, and a UI only draws that tree. Every text is a string, every size a number, every icon a name plus its glyph, every color a palette name or `#rrggbbaa`. A UI never evaluates an expression, reads a source or runs an action: it lays out and draws nodes, and reports clicks and keys (`vestal docs protocol`).
 
 `vestal render --format json` prints it; `--format tree` prints the same as an outline, the cheapest way for an agent to see what is on screen.
 
@@ -3185,7 +3185,7 @@ Keys are sorted and defaults are left out, so output is deterministic.
 | `width`, `height` | fit | A number, or `"fill"`. |
 | `minWidth`, `maxWidth`, `minHeight`, `maxHeight` | none | |
 | `padding` | `[0, 0, 0, 0]` | `[top, right, bottom, left]`, inside the frame. |
-| `background` | none | A colour, painted on the padded frame. |
+| `background` | none | A color, painted on the padded frame. |
 | `radius` | `0` | |
 | `border` | none | `{ "color", "width" }` |
 | `opacity` | `1` | Multiplies the subtree. |
@@ -3201,9 +3201,9 @@ Keys are sorted and defaults are left out, so output is deterministic.
 | Type | Fields (default) | Draws |
 |---|---|---|
 | `stack` | `axis` (`v` or `h`), `gap` (0), `align` (`start`; also `center`, `end`, `stretch`, and `baseline` for `h`), `justify` (`start`, `center`, `end`, `between`), `children` | Nothing itself; lays out its children. |
-| `grid` | `columns` (`[{ "width": number \| "fill" \| "fit", "align" }]`), `gap` (0), `rowGap` (0), `children` | Children row by row, honouring `span`; cells centred vertically. |
+| `grid` | `columns` (`[{ "width": number \| "fill" \| "fit", "align" }]`), `gap` (0), `rowGap` (0), `children` | Children row by row, honoring `span`; cells centered vertically. |
 | `text` | `text`, `size` (13), `weight` (400), `font` (`sans`), `color` (`text`), `tracking` (0), `lines` (unlimited), `textAlign` (`start`) | One run of text, case already applied; cut at the tail with `…` beyond `lines`. |
-| `icon` | `name`, `glyph` (one character; absent for `sf:` names), `weight` (`regular` or `fill`), `size` (13), `color` (`text`) | The glyph in the icon font, centred in a `size`×`size` box. |
+| `icon` | `name`, `glyph` (one character; absent for `sf:` names), `weight` (`regular` or `fill`), `size` (13), `color` (`text`) | The glyph in the icon font, centered in a `size`×`size` box. |
 | `bar` | `value` (0…1), `start` (0), `overlay` (0…1), `overlayPosition` (`above`), `tick` (0…1), `tickColor`, `color`, `trackColor`, `overlayColor`, `radius` (2) | A rounded track, the fill from `start` to `value`, the overlay above or below it, and a 1.5 point mark at `tick`. |
 | `ring` | `value` (0…1), `sweep` (270), `thickness` (6), `color`, `trackColor`, `center` (a node), `dot` (false), `dotColor` (`text`), `ticks` (0), `labels` (`[]`) | An arc track with its gap at the bottom, the fill arc with round caps, and `center` inside. A `sweep` of 360 has no gap and starts at the top. `dot` draws a dot, `thickness` × 1.1 in radius, on the fill's end. `ticks` marks the outside: that many marks evenly spaced over the sweep (a full circle: round it; an arc: the first and last on its ends), every fourth longer and brighter (`text` at 50%, 1.5 wide, against 20%, 1 wide), and the arc moves 15 points inwards to leave room. `labels` (up to four) are drawn inside the arc, 20 points from it, in the same way along the sweep, in `dim`, size 10, mono. Its size is its `width`. |
 | `spark` | `values`, `min`, `max`, `color`, `fill`, `strokeWidth` (1.5), `dot` (false), `dotAt` (0…1), `dotColor` | A polyline, x evenly spaced, y scaled to `min`…`max`; fewer than two values draw nothing. A dot on the last point, or with `dotAt` at that fraction of the width, on the line. |
@@ -3211,7 +3211,7 @@ Keys are sorted and defaults are left out, so output is deterministic.
 | `spacer` | `min` (0) | Nothing. |
 | `bars` | `values` (one number per column), `max` (1), `colors` (one per column), `barWidth` (columns share the width), `gap` (3) | Columns from the left edge on the bottom line, each `value / max` tall (clamped, at least 1 when above 0), corners rounded by 2. |
 | `stackedBar` | `segments` (`[{ "value": 0…1, "color" }]`), `trackColor` (`track`), `radius` (4) | A track and the segments from the leading edge, each `value` of the width, all inside one rounded shape. |
-| `heatmap` | `cells` (a colour or `null` per cell), `rows` (7), `direction` (`columns`), `cell` (8), `gap` (2), `radius` (2), `trackColor` (`track`) | Square cells. `columns`: cell `i` is at column `i / rows`, row `i % rows`. `rows`: row-major with `ceil(count / rows)` columns. `null` draws a `trackColor` cell; positions past the last cell draw nothing. |
+| `heatmap` | `cells` (a color or `null` per cell), `rows` (7), `direction` (`columns`), `cell` (8), `gap` (2), `radius` (2), `trackColor` (`track`) | Square cells. `columns`: cell `i` is at column `i / rows`, row `i % rows`. `rows`: row-major with `ceil(count / rows)` columns. `null` draws a `trackColor` cell; positions past the last cell draw nothing. |
 | `timeline` | `items` (`[{ "start", "end", "label", "color", "lane" }]`), `ticks` (`[{ "at", "label" }]`), `lanes` (1), `now`, `nowColor` (`accent`) | A time axis, everything as fractions 0…1 of the width (`end` absent: a point marker). The bottom 12 points are tick labels (dim, 9); above them a faint line at each tick, the items on `lanes` equal rows 2 apart (a bar at least 3 wide, corners 3; a point is a dot at most 8 across), then a 1.5 wide `nowColor` line at `now`. An item's `label` is drawn inside its bar (10, medium, in `bg`) only when it fits with 4 either side and the lane is 12 or taller; a tick label only when it clears the previous one by 4. |
 | `analog` | `size` (236), `ticks` (`hours`; `none`, `minutes`), `seconds` (`none`; `step`, `sweep`), `dateWindow` (false), `numerals` (false), `zone` (the system's), `color` (`text`), `faceColor`, `secondsColor` (`bad`), `pivotColor` (`accent`) | A round clock the UI draws and runs by itself: the core sends it once and never again for a tick. The UI reads the time in `zone` and moves the hands: the hour and minute hands continuously, the seconds hand once a second (`step`) or every frame (`sweep`), and only while the dashboard is shown (nothing runs, and no timer, while it is hidden). Reduced motion turns `sweep` into `step`. `size` is its width and height. The face is a circle (`faceColor`, stroked in `color` at 20%); with `ticks` `none` it has a dot at twelve, short hands and no tails, otherwise sixty marks (`minutes`) or twelve (`hours`), heavier at the hours, and hands with tails. `dateWindow` is a box with the day of the month right of the pivot; `numerals` draw 1 to 12. The seconds hand has a counterweight dot. Proportions are fixed by the face's size (`AnalogGeometry` in VestalCore). |
 | `flip` | `text`, `small` (`""`), `size` (90), `smallSize` (40), `color` (`text`), `tile`, `tileBottom`, `animate` (true) | Split-flap tiles in a row with their bottoms on one line: one tile per character of `text` (80 × 114 at `size` 90, scaling with it), then the characters of `small` on smaller tiles (36 × 52 at `smallSize` 40, 14 apart from the big ones). `:` is two small squares in a colon cell, a space a gap. Each tile is two halves, `tile` above and `tileBottom` below, with a seam. The UI keeps the characters it last drew: when a later model changes a tile's character it folds over (the top half falls to the seam over 170 ms, then the new bottom half rises over 170 ms) and the other tiles stay; a node that is new, or whose number of tiles changed, appears without a fold, as does everything with `animate` false or under reduced motion. Its size follows from the text (`FlipLayout` in VestalCore). |
@@ -3231,7 +3231,7 @@ Units are logical points (macOS points, Wayland logical pixels).
 2. **Stacks** place children in order with each child's `spaceBefore`, else the `gap`, before every child but the first. Fixed and fit children are measured first; the rest is shared equally by the `fill` children (never below 0). `alignSelf` or `align` places each child across; `stretch` makes it as wide as the stack. `justify` spreads leftover space when no child fills.
 3. **Grids**: fixed columns take their width, `fit` columns their widest cell, `fill` columns share the rest. A row is as tall as its tallest cell.
 4. `padding` is inside the frame; `background`, `border` and `radius` paint the padded frame; `min…`/`max…` clamp after sizing (`maxWidth` includes padding).
-5. The root is centred on the screen both ways, `min(maxWidth, window width)` wide.
+5. The root is centered on the screen both ways, `min(maxWidth, window width)` wide.
 6. A fit text is as wide as its line, capped by the offer; it wraps unless `lines` is 1. `baseline` lines up the first baselines of text children.
 7. Hidden widgets have no node.
 8. Nothing scrolls: content taller than the window is clipped at the bottom.
@@ -3281,7 +3281,7 @@ The diff runs top-down: a node whose own fields or ordered child ids changed is 
 { "id": "main/exchange/1/@BRL/1", "field": "text", "severity": "error", "code": "expr-runtime", "message": "tonumber: cannot parse \"n/a\" as a number" }
 ```
 
-Expression runtime errors, unknown icons and colours used at render time, duplicate row ids, failed sources. UIs needn't show them; `vestal render` prints them, and `vestal render --strict` exits 3 when there are any.
+Expression runtime errors, unknown icons and colors used at render time, duplicate row ids, failed sources. UIs needn't show them; `vestal render` prints them, and `vestal render --strict` exits 3 when there are any.
 
 """#,
         "samples": #"""
@@ -3696,7 +3696,7 @@ The inputs a Nix flake has locked, from `nix flake metadata --json <path>`, and 
 | Key | Default | |
 |---|---|---|
 | `path` | required | The flake: a directory or a flake reference. A leading `~/` expands. Text. |
-| `behind` | `false` | Also ask GitHub how many commits each GitHub input's branch has gained since its locked revision. One GraphQL request (`https://api.github.com/graphql`) for all inputs, authorised by `headers`. The branch is the one the flake follows (`original.ref`), else the repository's default branch. Inputs that are not on github.com, or are pinned to a revision, are not asked about. If GitHub fails, or there is no token, `behind` is `null` everywhere, the lock data is still delivered, and the source's note says why (`vestal sources`). |
+| `behind` | `false` | Also ask GitHub how many commits each GitHub input's branch has gained since its locked revision. One GraphQL request (`https://api.github.com/graphql`) for all inputs, authorized by `headers`. The branch is the one the flake follows (`original.ref`), else the repository's default branch. Inputs that are not on github.com, or are pinned to a revision, are not asked about. If GitHub fails, or there is no token, `behind` is `null` everywhere, the lock data is still delivered, and the source's note says why (`vestal sources`). |
 | `headers` | none | Headers of that request, such as `{"Authorization": "Bearer {{ $secrets.github }}"}`; read only with `behind`. |
 | `argv` | `["nix", "--extra-experimental-features", "nix-command flakes", "flake", "metadata", "--json"]` | The command, before the flake's path. |
 | `timeout` | `10s` | For the `nix` command and the GitHub request. |
@@ -3970,7 +3970,7 @@ programs.vestal.starter = "focus";
 
 ## `media`: Media
 
-Now playing, large. The background takes the album's colours. Background: `artmesh`.
+Now playing, large. The background takes the album's colors. Background: `artmesh`.
 
 Pages: **Now playing** (key 1), **Main** (key 2).
 
@@ -4029,8 +4029,8 @@ programs.vestal.starter = "agentops";
 | `dim` | Linux `0.5`, macOS none | 0 to 1: the opacity of the palette's `bg` over the blurred desktop, for `aurora` and `blur`. About `0.75` to `0.85` hides busy windows behind the dashboard. macOS by default keeps the material's own tint; set, it adds `bg` over it. On Linux it lies over vestal's own blur (`backdrop` `self`), or over the compositor's (`compositor`), where it is the knob for how much shows through: Hyprland can't set blur strength per layer, and below its `ignore_alpha` (0.3 by default) it blurs only behind the aurora's ribbons, not the tint (check-config warns). Clamped to 0 to 1. |
 | `backdrop` | Linux `self` | Linux only (macOS ignores it). `self`: vestal captures the output it is about to cover right before it shows and blurs it itself, heavily, under `bg` at `dim` (the window is opaque). `compositor`: a translucent window over the compositor's blur. `none`: translucent, no blur. Without screen capture (`ext-image-copy-capture-v1` or `wlr-screencopy-unstable-v1`) a show falls back to `compositor`. |
 | `blur` | `48` | Linux, `backdrop` `self`: the blur radius in points, 0 to 200. |
-| `palettes` | none | Name → `{ "extends": "<palette>", "colors": { name: colour } }`. |
-| `colors` | none | Colours added to, or replacing, the chosen palette's. |
+| `palettes` | none | Name → `{ "extends": "<palette>", "colors": { name: color } }`. |
+| `colors` | none | Colors added to, or replacing, the chosen palette's. |
 | `typeface` | `system` | A named set of fonts that fills the four roles at once: `system`, `geist`, `inter`, `plex`, `instrument` or `fira` ([Fonts](#fonts)). |
 | `fonts` | the typeface's | `{ "display": family, "sans": family, "mono": family, "rounded": family }`; each entry overrides the typeface's family for that role. `null` or absent means the typeface's, else the platform default. |
 | `font` | none | Shorthand for `fonts.sans`. |
@@ -4099,17 +4099,17 @@ Fonts are also the usual reason for a `platform` block:
 
 | Name | Feel | Cost | Resolution | Parameters |
 |---|---|---|---|---|
-| `mesh` | Four soft colour fields drifting over minutes; fills the screen. | low | 0.25 | `colors`: up to four colours (hex or palette names; fewer repeat). Default `#1e2a62 #4a2a72 #164f5c #5a2448`. |
+| `mesh` | Four soft color fields drifting over minutes; fills the screen. | low | 0.25 | `colors`: up to four colors (hex or palette names; fewer repeat). Default `#1e2a62 #4a2a72 #164f5c #5a2448`. |
 | `topo` | Contour lines of slowly shifting terrain, every fifth brighter. | medium | 0.6 | none |
 | `stars` | Three depths of stars drifting sideways. Near-black stays near-black. | low | 0.8 | none |
 | `flow` | Short comet trails carried along an invisible current. The busiest. | medium | 0.6 | none |
 | `rain` | Drops sliding down a pane over out-of-focus city lights. Dense near the text. | high | 0.45 | none |
 | `plasma` | Very low-contrast interference bands in blue and violet. | low | 0.25 | none |
 | `grain` | Film grain and darker corners; almost no motion. | low | 0.9 | none |
-| `sky` | Sky colour, sun or moon and stars follow the local clock: navy at night, amber at dusk. | low | 0.5 | none |
+| `sky` | Sky color, sun or moon and stars follow the local clock: navy at night, amber at dusk. | low | 0.5 | none |
 | `weather` | Rain, snow, a storm with lightning, or a clear-day haze. | medium | 0.7 | `source`, `condition` |
 | `load` | The aurora, thicker, warmer and faster as the load rises. | low | 0.35 | `source`, `value` |
-| `artmesh` | The mesh coloured from the playing track's artwork. | low | 0.25 | `source`, `artwork`, `colors` |
+| `artmesh` | The mesh colored from the playing track's artwork. | low | 0.25 | `source`, `artwork`, `colors` |
 
 ```json
 { "theme": { "background": "sky" } }
@@ -4131,14 +4131,14 @@ Fonts are also the usual reason for a `platform` block:
 { "theme": { "background": { "type": "artmesh", "source": "media" } } }
 ```
 
-The data-driven ones read a source through the render engine: `value`, `condition` and `artwork` are expressions over the source's data (as in a widget with that `source`), evaluated again whenever the source updates; the background never polls. Without data yet they draw their idle look (load 0, clear weather, the default mesh colours).
+The data-driven ones read a source through the render engine: `value`, `condition` and `artwork` are expressions over the source's data (as in a widget with that `source`), evaluated again whenever the source updates; the background never polls. Without data yet they draw their idle look (load 0, clear weather, the default mesh colors).
 
 - `load`: `value` gives 0 to 100 (shown as 0 to 1). Default source `system`, value `.cpu.percent`. Time runs at 0.5 + 3.2 times the load.
 - `weather`: `condition` is `clear`, `rain`, `snow` or `storm` written as is, or an expression giving one of those, a description in words (thunder or storm, then snow, sleet, ice, hail or blizzard, then rain, drizzle or shower; anything else is clear: "Light rain shower", "Partly cloudy"), or a weather code. Codes below 100 are WMO (Open-Meteo): 0 to 48 clear (cloud, fog), 51 to 67 and 80 to 82 rain, 71 to 77 and 85, 86 snow, 95 to 99 storm. Codes from 100 are World Weather Online's (wttr.in's `weatherCode`): 113 to 122, 143, 248, 260 clear; 176, 182, 185, 263 to 314, 353 to 359 rain; 179, 227, 230, 317 to 338, 350, 362 to 377 snow; 200, 386 to 395 storm. Default source `weather` (the built-in wttr.in one), condition `.current_condition[0].weatherCode`.
-- `artmesh`: `artwork` gives a picture's file path or an http(s) URL (fetched once and cached, as for `image` widgets); the mesh takes four colours from its quadrants, darkened to keep white text readable. Default source `media`, artwork `.artwork`. When the media source has no `artwork` field, or the picture isn't there yet, the mesh keeps its default colours (`#2a1e4f #6a2f63 #a0504a #b07a4a`, or `colors`).
-- `sky` follows the local clock (a table of colours by hour, darkened for text); it reads no source.
+- `artmesh`: `artwork` gives a picture's file path or an http(s) URL (fetched once and cached, as for `image` widgets); the mesh takes four colors from its quadrants, darkened to keep white text readable. Default source `media`, artwork `.artwork`. When the media source has no `artwork` field, or the picture isn't there yet, the mesh keeps its default colors (`#2a1e4f #6a2f63 #a0504a #b07a4a`, or `colors`).
+- `sky` follows the local clock (a table of colors by hour, darkened for text); it reads no source.
 
-## Colours
+## Colors
 
 Prefer the **semantic** names; they follow the palette. `tokyo-night`, the only built-in palette:
 
@@ -4157,7 +4157,7 @@ Prefer the **semantic** names; they follow the palette. `tokyo-night`, the only 
 | `blue`, `green`, `yellow`, `red` | hue | `#7aa1f7`, `#73cf8f`, `#e3c975`, `#f06b6b` |
 | `cyan`, `purple`, `teal`, `orange` | hue | `#7dcfff`, `#ba99f7`, `#73d6c2`, `#ff9e64` |
 
-Wherever a colour goes (`color`, `background`, `trackColor`, `iconColor`, `fill`, style `color`, palette entries):
+Wherever a color goes (`color`, `background`, `trackColor`, `iconColor`, `fill`, style `color`, palette entries):
 
 | Form | Example | |
 |---|---|---|
@@ -4185,7 +4185,7 @@ A palette entry may name another entry. A palette of your own:
 }
 ```
 
-`color_mix(a; b; t)` and `alpha(a)` compute colours in expressions (`vestal docs functions`).
+`color_mix(a; b; t)` and `alpha(a)` compute colors in expressions (`vestal docs functions`).
 
 ## Text style
 
@@ -4196,10 +4196,10 @@ A palette entry may name another entry. A palette of your own:
 | `size` | points, or `xs` 10, `sm` 11, `md` 12, `base` 13, `lg` 14, `xl` 18, `2xl` 24, `3xl` 36, `display` 56 | `base` (13) |
 | `weight` | `ultralight` 100, `thin` 200, `light` 300, `regular` 400, `medium` 500, `semibold` 600, `bold` 700, `heavy` 800, `black` 900, or the number | `regular` |
 | `font` | a role (`display`, `sans`, `mono`, `rounded`) or a family name; a comma-separated list takes the first usable entry (`"display, Inter Tight"`: the theme's display font, else Inter Tight) | `sans` |
-| `color` | a colour | `text` |
+| `color` | a color | `text` |
 | `tracking` | points of letter spacing | `0` |
 | `case` | `upper`, `lower`, `none` | `none` |
-| `emphasis` | `strong` (weight +200, colour `text`), `muted` (colour `subtle`), `faint` (colour `dim`) | none |
+| `emphasis` | `strong` (weight +200, color `text`), `muted` (color `subtle`), `faint` (color `dim`) | none |
 | `scale` | multiplies sizes in this subtree | `1` |
 
 Every style field may be `{"expr": …}`:
@@ -4214,7 +4214,7 @@ Keep changing values (rates, times) at the end of a row, so the stable items don
         "templates": #"""
 # Templates
 
-A template is a named, parameterised widget (or source) written in the config. Using one looks like using any widget type: `{"type": "<template>", "<param>": value, …}`. The built-in presets are templates too (`vestal docs presets`); `vestal print-config --templates` prints every template, built-ins included, and `vestal print-config --expanded` shows what each widget becomes.
+A template is a named, parameterized widget (or source) written in the config. Using one looks like using any widget type: `{"type": "<template>", "<param>": value, …}`. The built-in presets are templates too (`vestal docs presets`); `vestal print-config --templates` prints every template, built-ins included, and `vestal print-config --expanded` shows what each widget becomes.
 
 ## Defining one
 
@@ -4223,7 +4223,7 @@ A template is a named, parameterised widget (or source) written in the config. U
   "version": 1,
   "templates": {
     "metric": {
-      "description": "A labelled percentage bar with a threshold colour",
+      "description": "A labeled percentage bar with a threshold color",
       "params": {
         "label": { "type": "text", "required": true },
         "value": { "type": "expr", "required": true, "description": "0-100" },
@@ -4309,7 +4309,7 @@ Data parameters are `$name` variables in the source body's `url`, `path`, `body`
 
 ## The v0.3 adapter
 
-Two v0.3 behaviours link separate widgets, so a small adapter applies them before expansion, each reported by check-config as an info note with code `legacy`:
+Two v0.3 behaviors link separate widgets, so a small adapter applies them before expansion, each reported by check-config as an info note with code `legacy`:
 
 1. The first `systemBar` of the default view whose privacy item shows gets the key `p`.
 2. Each `systemHealth` host with a `url` becomes the source `host:<name>` (`{"type": <provider>, "url": …, "refresh": <interval or 5s>}`).
@@ -4345,7 +4345,7 @@ A view is one screen of widgets. The dashboard opens `defaultView` (default `mai
 | `gap` | `24` (`12` with `theme.density` `compact`) | Between root children (the presets set their own `spaceBefore`). |
 | `align` | `center` | Cross-axis alignment of the root children. |
 | `padding` | `48` | Inside `maxWidth`: a number or `[top, right, bottom, left]`. |
-| `maxWidth` | `680` | The root is at most this wide, centred on the screen both ways. |
+| `maxWidth` | `680` | The root is at most this wide, centered on the screen both ways. |
 | `keys` | `{}` | Key bindings of this view only (`vestal docs keys`). |
 | `enabled` | `true` | `false` turns the view off (see Pages). |
 
@@ -4364,7 +4364,7 @@ With two or more views the dashboard pages like a phone's home screens: `left` a
 |---|---|---|
 | `order` | your views in key order, then by name (see below) | The views to page through, in order. A view not listed stays reachable by its `key` and `vestal show`, but is not paged to. A name that isn't an enabled view is a check-config warning and is skipped. |
 | `transition` | `"slide"` | How a change of page is drawn: `"slide"` (the old page leaves sideways while the new one comes in, 250 ms), `"fade"` (a crossfade, 180 ms) or `"none"`. With reduced motion on (macOS "Reduce motion", GTK `gtk-enable-animations` off), `slide` is a short fade. A jump to a view that is not a page also fades. |
-| `indicator` | `"dots"` | `"dots"`: one dot per page near the bottom of the screen, the current one in the accent colour; drawn only with two or more pages. `"none"`. |
+| `indicator` | `"dots"` | `"dots"`: one dot per page near the bottom of the screen, the current one in the accent color; drawn only with two or more pages. `"none"`. |
 | `swipe` | `true` | A two-finger horizontal swipe on the trackpad pages. The page follows the fingers and goes on past about 12 % of the screen width or with a quick flick, else springs back. |
 | `wrap` | `false` | Whether `right` on the last page goes to the first (and `left` on the first to the last). `tab` and `shift+tab` always cycle round. |
 
@@ -4398,7 +4398,7 @@ programs.vestal.settings = {
 
 ## Popups
 
-One popup at a time, opened by a `popup` action (`vestal docs actions`). The UI draws it centred over a `scrim` backdrop, in a card (`bg`, radius 14, a thin white border). Escape or a click on the backdrop closes it. Its content is an ordinary widget tree and updates live; its node ids start with `popup/`.
+One popup at a time, opened by a `popup` action (`vestal docs actions`). The UI draws it centered over a `scrim` backdrop, in a card (`bg`, radius 14, a thin white border). Escape or a click on the backdrop closes it. Its content is an ordinary widget tree and updates live; its node ids start with `popup/`.
 
 """#,
         "widgets": #"""
@@ -4431,7 +4431,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 | `width`, `height` | number, `"fill"`, `"fit"` | `"fit"` | Points; `fill` takes the space the parent offers. |
 | `minWidth`, `maxWidth` | number | none | |
 | `padding` | number or `[top, right, bottom, left]` | `0` | |
-| `background` | colour | none | Painted behind the padded frame. |
+| `background` | color | none | Painted behind the padded frame. |
 | `border` | object | none | `{"color": "accent@0.6", "width": 1}`: an outline along the padded frame, following `radius`. `color` defaults to `dim`, `width` to 1 (0 draws none); both may be `{"expr": …}`. |
 | `radius` | number | `0` | Corner radius of the background and the border. |
 | `opacity` | 0 to 1 | `1` | |
@@ -4451,7 +4451,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 - A stack or row places its visible children in order with `gap` between them (a child's `spaceBefore` replaces the gap before it).
 - `fill` takes the space left over on that axis, shared equally among `fill` siblings. A container with a `fill` child is itself `fill` on that axis. Without a size a widget fits its content.
 - Text wraps unless `lines` limits it; then it is cut with `…`. Nothing scrolls: content taller than the screen is cut off at the bottom, so keep lists short with `limit`.
-- A view's root is at most `maxWidth` (680) wide, centred on the screen both ways (`vestal docs views`).
+- A view's root is at most `maxWidth` (680) wide, centered on the screen both ways (`vestal docs views`).
 
 ## Containers
 
@@ -4548,7 +4548,7 @@ One child picked by a value: `on` is evaluated and turned into text, `cases` map
 
 ### `text`
 
-Text, from `text` (with `{{ }}` holes), or from `value` run through `format` between `prefix` and `suffix` (`placeholder` when the value is `null`). An optional leading `icon` is drawn in the text's colour at 0.8 times its size. `lines` limits the lines (cut with `…`); `align` places the text in its frame.
+Text, from `text` (with `{{ }}` holes), or from `value` run through `format` between `prefix` and `suffix` (`placeholder` when the value is `null`). An optional leading `icon` is drawn in the text's color at 0.8 times its size. `lines` limits the lines (cut with `…`); `align` places the text in its frame.
 
 ```json
 { "type": "text", "source": "system", "icon": "hard-drives", "value": ".disks[0].free", "format": "bytes", "suffix": " free", "style": { "size": 12, "color": "subtle" } }
@@ -4564,7 +4564,7 @@ A glyph from the bundled Phosphor set (`vestal icons <query>`), `regular` or `fi
 
 ### `progress`
 
-A horizontal bar: `(value − min) / (max − min)`, clamped. Optional `label` before it, `text` after it (default `"{{ $value | round }}%"`; `""` for none), and an `overlay`, a second value on the same scale drawn `above` or `below` the fill. `start` (same scale) moves where the fill begins, so the fill covers `start` to `value`: a range bar for a low-to-high span. `tick` (same scale) draws a thin mark, `tickColor` its colour (default white at about 55%): where usage would be at an even pace, say. `width` is the bar's own width (default `fill`).
+A horizontal bar: `(value − min) / (max − min)`, clamped. Optional `label` before it, `text` after it (default `"{{ $value | round }}%"`; `""` for none), and an `overlay`, a second value on the same scale drawn `above` or `below` the fill. `start` (same scale) moves where the fill begins, so the fill covers `start` to `value`: a range bar for a low-to-high span. `tick` (same scale) draws a thin mark, `tickColor` its color (default white at about 55%): where usage would be at an even pace, say. `width` is the bar's own width (default `fill`).
 
 ```json
 { "type": "progress", "source": "system", "label": "RAM", "labelWidth": 30, "value": ".memory.percent", "overlay": ".memory.pressure", "width": 120, "textWidth": 34, "color": "purple" }
@@ -4601,7 +4601,7 @@ Split-flap tiles: one per character of `text` (digits; `:` is a colon and a spac
 
 ### `sparkline`
 
-A line from `values` (an array of numbers), or from `value` plus `history`, which records the value on the widget's source at every fetch (`vestal docs sources`). `min` and `max` fix the scale; `fill` colours the area under the line; `dot` marks the last point, or `dotAt` (0 to 1, a fraction of the width, `dotColor` for its colour) a point along the line, such as the sun on its arc. Fewer than two points draw nothing, keeping the size.
+A line from `values` (an array of numbers), or from `value` plus `history`, which records the value on the widget's source at every fetch (`vestal docs sources`). `min` and `max` fix the scale; `fill` colors the area under the line; `dot` marks the last point, or `dotAt` (0 to 1, a fraction of the width, `dotColor` for its color) a point along the line, such as the sun on its arc. Fewer than two points draw nothing, keeping the size.
 
 ```json
 { "type": "sparkline", "source": "system", "value": ".cpu.percent", "history": { "size": 120 }, "min": 0, "max": 100, "height": 32, "fill": "accent@0.15", "dot": true }
@@ -4609,7 +4609,7 @@ A line from `values` (an array of numbers), or from `value` plus `history`, whic
 
 ### `keyValue`
 
-Labelled values side by side. Each item has a `label` and a `value` (with `format`) or a `text`, and may have its own `source`, `vars`, `when`, `color`, `action` and `key`. An item whose source has no data, whose `when` is false or whose value is `null` is skipped; the widget is hidden when every item is.
+Labeled values side by side. Each item has a `label` and a `value` (with `format`) or a `text`, and may have its own `source`, `vars`, `when`, `color`, `action` and `key`. An item whose source has no data, whose `when` is false or whose value is `null` is skipped; the widget is hidden when every item is.
 
 ```json
 {
@@ -4641,11 +4641,11 @@ Flexible space along the parent's axis: in a row it pushes the rest to the end. 
 
 ## Charts
 
-Five primitives draw many values at once. They share `sparkline`'s conventions: data is an expression (or a literal array), colours are palette names, `name@alpha`, `{"steps": …}` or `{"expr": …}`, and sizes are points (`theme.scale` multiplies them). A `null` data field draws an empty chart of the same size, or shows the widget's `placeholder` text when it has one; an empty array is data, not null, and draws an empty chart. Every chart has an `alt` (a summary of its values) for `vestal render --format tree` and for clients older than render-model minor 1 (`vestal docs render-model`).
+Five primitives draw many values at once. They share `sparkline`'s conventions: data is an expression (or a literal array), colors are palette names, `name@alpha`, `{"steps": …}` or `{"expr": …}`, and sizes are points (`theme.scale` multiplies them). A `null` data field draws an empty chart of the same size, or shows the widget's `placeholder` text when it has one; an empty array is data, not null, and draws an empty chart. Every chart has an `alt` (a summary of its values) for `vestal render --format tree` and for clients older than render-model minor 1 (`vestal docs render-model`).
 
 ### `bars`
 
-A bar chart. `values` is an expression (or a literal array) giving numbers, or objects `{"value", "label", "color"}`; a `null` value is an empty slot. `max` is the value of a full bar (a number or an expression; default the largest value). `color` is one colour for every bar, or `{"steps": …}` applied to each bar's value; an object's own `color` wins.
+A bar chart. `values` is an expression (or a literal array) giving numbers, or objects `{"value", "label", "color"}`; a `null` value is an empty slot. `max` is the value of a full bar (a number or an expression; default the largest value). `color` is one color for every bar, or `{"steps": …}` applied to each bar's value; an object's own `color` wins.
 
 `orientation: "vertical"` (default) draws columns, 160 wide and 48 tall unless `width` and `height` say otherwise (`height` is the columns' height). The columns share the width, `gap` (3) apart, or are `barWidth` wide, in which case the widget is as wide as they are. With `labels: true` (default `false`) each `label` is drawn small and dim under its column; an empty label draws nothing, and a label wider than its column is cut with `…`, so label every Nth bar for a long series. `orientation: "horizontal"` draws a row per bar: its `label` before the bar, the bar (`barWidth` thick, 6; `gap` between rows, 6), and its value after it, rounded, or through `format` (a text format name, as on `text`). `labels` defaults to `true` there; `labelWidth` fixes the label column's width (default the widest label). Horizontal bars fill the width.
 
@@ -4659,7 +4659,7 @@ A bar chart. `values` is an expression (or a literal array) giving numbers, or o
 
 ### `stackedBar`
 
-One bar split into coloured segments. `segments` is an expression (or a literal array) giving objects `{"value", "label", "color"}`; segments whose value is not above 0 are dropped. `total` (a number or an expression; default the segments' sum) is the whole bar: what the segments leave is drawn in `trackColor` (`track`); segments that add up to more than `total` share the bar. A segment without a `color` takes the widget's `color` (which may use `steps` of its value), else a cycle of palette colours (`accent`, `purple`, `cyan`, `teal`, `orange`, `good`, `warn`, `bad`). `height` is 8 and the width fills; `radius` defaults to half the height. With `legend: true` a row of colour dots and labels (segments with no label are left out) goes under the bar.
+One bar split into colored segments. `segments` is an expression (or a literal array) giving objects `{"value", "label", "color"}`; segments whose value is not above 0 are dropped. `total` (a number or an expression; default the segments' sum) is the whole bar: what the segments leave is drawn in `trackColor` (`track`); segments that add up to more than `total` share the bar. A segment without a `color` takes the widget's `color` (which may use `steps` of its value), else a cycle of palette colors (`accent`, `purple`, `cyan`, `teal`, `orange`, `good`, `warn`, `bad`). `height` is 8 and the width fills; `radius` defaults to half the height. With `legend: true` a row of color dots and labels (segments with no label are left out) goes under the bar.
 
 ```json
 { "type": "stackedBar", "source": "system", "legend": true, "segments": "[{value: .disks[0].used, label: \"Used \\(.disks[0].used | fmt_bytes)\", color: \"accent\"}, {value: .disks[0].free, label: \"Free \\(.disks[0].free | fmt_bytes)\", color: \"good@0.5\"}]" }
@@ -4667,7 +4667,7 @@ One bar split into coloured segments. `segments` is an expression (or a literal 
 
 ### `heatmap`
 
-A grid of square cells, as GitHub draws contributions. `values` is an expression (or a literal array) giving numbers; `null` is an empty cell, drawn in `trackColor` (`track`). They fill `rows` (7) cells down a column and then the next column (`direction: "columns"`, default), or across a row and then the next row (`"rows"`, with `rows` rows). `cell` (8) is a cell's size, `gap` (2) the space between cells, `radius` (2) a cell's corner; the widget is as large as its cells. Colours: `scale` is two colours, low and high (default `["accent@0.2", "accent"]`), mixed by where a value is between `min` and `max` (default the smallest and largest value; all equal is the high colour); or `steps` is `[[threshold, colour], …]`, a value taking the last stop at or below it, the first when below all.
+A grid of square cells, as GitHub draws contributions. `values` is an expression (or a literal array) giving numbers; `null` is an empty cell, drawn in `trackColor` (`track`). They fill `rows` (7) cells down a column and then the next column (`direction: "columns"`, default), or across a row and then the next row (`"rows"`, with `rows` rows). `cell` (8) is a cell's size, `gap` (2) the space between cells, `radius` (2) a cell's corner; the widget is as large as its cells. Colors: `scale` is two colors, low and high (default `["accent@0.2", "accent"]`), mixed by where a value is between `min` and `max` (default the smallest and largest value; all equal is the high color); or `steps` is `[[threshold, color], …]`, a value taking the last stop at or below it, the first when below all.
 
 ```json
 { "type": "heatmap", "values": [0, 2, 5, 1, 0, 0, 0, 3, 4, 8, 6, 2, 0, 1, 0, 1, 2, 3, 1, 0, 0, 0, 5, 9, 12, 7, 3, 0, null, null, null], "scale": ["good@0.2", "good"], "cell": 10, "gap": 3 }
@@ -4675,7 +4675,7 @@ A grid of square cells, as GitHub draws contributions. `values` is an expression
 
 ### `timeline`
 
-A horizontal time axis with items. `from` and `to` are the times at its edges: epoch seconds, ISO 8601 (as written, or an expression giving one; without an offset it is UTC, as in `to_epoch`); the default is today, midnight to midnight in the config's time zone. `items` is an expression (or a literal array) giving objects `{"start", "end", "label", "color"}` with times like `from`; no `end` is a point marker. Items outside the range are dropped and the rest cut at its edges; overlapping items go on separate rows. `color` is the colour of items without their own (`accent`). Under the axis go tick labels at a sensible step (5 minutes to a week, at most nine of them) in the clock's 12 or 24 hour setting (`fmt_localized`). Height is 36 and the width fills. A label is drawn inside its bar when it fits, else left out. With `now` (default `true`) a thin `nowColor` (`accent`) line marks the current time, to the minute, and the dashboard redraws as time passes.
+A horizontal time axis with items. `from` and `to` are the times at its edges: epoch seconds, ISO 8601 (as written, or an expression giving one; without an offset it is UTC, as in `to_epoch`); the default is today, midnight to midnight in the config's time zone. `items` is an expression (or a literal array) giving objects `{"start", "end", "label", "color"}` with times like `from`; no `end` is a point marker. Items outside the range are dropped and the rest cut at its edges; overlapping items go on separate rows. `color` is the color of items without their own (`accent`). Under the axis go tick labels at a sensible step (5 minutes to a week, at most nine of them) in the clock's 12 or 24 hour setting (`fmt_localized`). Height is 36 and the width fills. A label is drawn inside its bar when it fits, else left out. With `now` (default `true`) a thin `nowColor` (`accent`) line marks the current time, to the minute, and the dashboard redraws as time passes.
 
 ```json
 { "type": "timeline", "source": "calendar", "from": "now | fmt_time(\"yyyy-MM-dd'T'08:00:00xxx\") | to_epoch", "to": "now | fmt_time(\"yyyy-MM-dd'T'20:00:00xxx\") | to_epoch", "items": "[.[] | select(.allDay | not) | {start, end, label: .title}]", "height": 44 }
@@ -4683,7 +4683,7 @@ A horizontal time axis with items. `from` and `to` are the times at its edges: e
 
 ### `image`
 
-A picture. `src` is a file path (`~` expanded) or an http(s) URL; it is text, so `{{ }}` holes work (`"src": "{{ .artUrl }}"`), and so does `{"expr": …}`. `width` and `height` default to 48, `fit` is `cover` (default: fill the frame, cropping) or `contain` (the whole picture), and `radius` (6) rounds the picture. A URL is fetched once, off the UI's thread, at most 5 MB, into vestal's cache directory (`~/Library/Caches/Vestal/images` on macOS, `$XDG_CACHE_HOME/vestal/images` or `~/.cache/vestal/images` on Linux), named by a hash of the URL, and fetched again only if the URL changes; `vestal render` never fetches. While it has no picture, because the file is missing or unreadable, the fetch is still running or it failed (tried again after five minutes), the widget draws an empty rounded rectangle in the `track` colour, never an error. The render model carries the local file's path, not the picture (`vestal docs render-model`).
+A picture. `src` is a file path (`~` expanded) or an http(s) URL; it is text, so `{{ }}` holes work (`"src": "{{ .artUrl }}"`), and so does `{"expr": …}`. `width` and `height` default to 48, `fit` is `cover` (default: fill the frame, cropping) or `contain` (the whole picture), and `radius` (6) rounds the picture. A URL is fetched once, off the UI's thread, at most 5 MB, into vestal's cache directory (`~/Library/Caches/Vestal/images` on macOS, `$XDG_CACHE_HOME/vestal/images` or `~/.cache/vestal/images` on Linux), named by a hash of the URL, and fetched again only if the URL changes; `vestal render` never fetches. While it has no picture, because the file is missing or unreadable, the fetch is still running or it failed (tried again after five minutes), the widget draws an empty rounded rectangle in the `track` color, never an error. The render model carries the local file's path, not the picture (`vestal docs render-model`).
 
 ```json
 { "type": "image", "src": "~/Pictures/avatar.png", "width": 64, "height": 64, "radius": 12 }

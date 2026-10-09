@@ -170,7 +170,7 @@ programs.vestal.starter = "focus";
 
 ## `media`: Media
 
-Now playing, large. The background takes the album's colours. Background: `artmesh`.
+Now playing, large. The background takes the album's colors. Background: `artmesh`.
 
 Pages: **Now playing** (key 1), **Main** (key 2).
 

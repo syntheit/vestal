@@ -24,7 +24,7 @@ Icons are named from one open set, bundled with vestal on both OSes: **Phosphor 
 
 ## The font files
 
-The fonts are `Phosphor.ttf` (family `Phosphor`) and `Phosphor-Fill.ttf` (`Phosphor-Fill`), in the vestal repository under `Resources/icons/` with their licence.
+The fonts are `Phosphor.ttf` (family `Phosphor`) and `Phosphor-Fill.ttf` (`Phosphor-Fill`), in the vestal repository under `Resources/icons/` with their license.
 
 | | Installed at |
 |---|---|

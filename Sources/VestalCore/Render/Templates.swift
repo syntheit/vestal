@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Templates
 //
-// A template is a named, parameterised widget or source, used like a type:
+// A template is a named, parameterized widget or source, used like a type:
 // `{"type": "<template>", "<param>": value, ...}`. The built-in ones
 // (DefaultPresets) sit in their own registry; the user's `templates` are
 // looked up first only when they don't clash with a built-in, or set

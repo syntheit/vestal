@@ -184,7 +184,7 @@ public enum SchemaRegistry {
             SchemaKey("templates", .map(.shape("template")), default: .object([:]), since: "0.4",
                       examples: [.object(["metric": .object(["params": .object(["label": .object(["type": .string("text")])]),
                                                              "widget": .object(["type": .string("text"), "text": .object(["param": .string("label")])])])])],
-                      "Parameterised widgets and sources, used like a type. Built-in templates (the presets) are "
+                      "Parameterized widgets and sources, used like a type. Built-in templates (the presets) are "
                       + "separate; a user template with a built-in's name needs \"override\": true."),
             SchemaKey("functions", .map(.string), kind: .expr, default: .object([:]), since: "0.4",
                       examples: [.object(["gib": .string(". / 1073741824 | fmt_fixed(1)")])],
@@ -202,7 +202,7 @@ public enum SchemaRegistry {
         ]),
         SchemaShape("theme", "Palette and background.", keys: [
             SchemaKey("palette", .string, default: .string("tokyo-night"), examples: [.string("tokyo-night")],
-                      "The colour palette: tokyo-night, or a key of palettes. An unknown name falls back to tokyo-night."),
+                      "The color palette: tokyo-night, or a key of palettes. An unknown name falls back to tokyo-night."),
             SchemaKey("background", .nameOrShape(Backgrounds.names, "background"), default: .string("aurora"),
                       examples: [.string("blur"), .object(["type": .string("sky")])],
                       "aurora: the animated aurora over the blurred desktop. blur: the blurred desktop only. none: the palette's "
@@ -227,7 +227,7 @@ public enum SchemaRegistry {
                       examples: [.object(["ember": .object(["extends": .string("tokyo-night"), "colors": .object(["accent": .string("#ff9e64")])])])],
                       "User palettes: name → extends and colors."),
             SchemaKey("colors", .map(.string), since: "0.4", examples: [.object(["brand": .string("#e01e5a")])],
-                      "Colours added to or overriding the chosen palette: name → colour (hex, a palette name, or name@alpha)."),
+                      "Colors added to or overriding the chosen palette: name → color (hex, a palette name, or name@alpha)."),
             SchemaKey("typeface", .oneOf(Typefaces.names), default: .string(Typefaces.defaultName), since: "0.4",
                       examples: [.string("inter")],
                       "A named set of fonts filling the roles at once (display, sans, mono, rounded). "
@@ -253,7 +253,7 @@ public enum SchemaRegistry {
             SchemaKey("type", .oneOf(Backgrounds.names), required: true, since: "0.4", examples: [.string("mesh")],
                       "Which background."),
             SchemaKey("colors", .list(.string), since: "0.4", examples: [.array([.string("#1e2a62"), .string("purple")])],
-                      "mesh (and artmesh without artwork): up to four colours (hex or palette names); fewer repeat."),
+                      "mesh (and artmesh without artwork): up to four colors (hex or palette names); fewer repeat."),
             SchemaKey("source", .string, since: "0.4", examples: [.string("system")],
                       "load, weather, artmesh: the source value, condition and artwork read. Default: system, weather, media."),
             SchemaKey("value", .string, kind: .expr, since: "0.4", examples: [.string(".cpu.percent")],
@@ -262,8 +262,8 @@ public enum SchemaRegistry {
                       "weather: clear, rain, snow or storm written as is, or an expression over the source giving one of those, "
                       + "a description in words, or a WMO or wttr.in weather code. Default .current_condition[0].weatherCode."),
             SchemaKey("artwork", .string, kind: .expr, since: "0.4", examples: [.string(".artwork")],
-                      "artmesh: an expression over the source giving a picture's path or URL, whose colours the mesh takes. "
-                      + "Default .artwork. Without a picture the mesh keeps its default colours."),
+                      "artmesh: an expression over the source giving a picture's path or URL, whose colors the mesh takes. "
+                      + "Default .artwork. Without a picture the mesh keeps its default colors."),
         ]),
         SchemaShape("pages", "Paging between views. A page is an enabled view; the dots show when there are two or more.", keys: [
             SchemaKey("order", .list(.string), since: "0.4", examples: [.array([.string("main"), .string("focus")])],
@@ -305,7 +305,7 @@ public enum SchemaRegistry {
             SchemaKey("padding", .any, default: .int(48), since: "0.4", examples: [.int(32), .array([.int(24), .int(48), .int(24), .int(48)])],
                       "Inside maxWidth: a number, or [top, right, bottom, left]."),
             SchemaKey("maxWidth", .number, default: .int(680), since: "0.4", examples: [.int(1100)],
-                      "The root is at most this wide, centred on screen."),
+                      "The root is at most this wide, centered on screen."),
             SchemaKey("keys", .map(.any), default: .object([:]), since: "0.4",
                       examples: [.object(["n": .object(["open": .string("https://news.ycombinator.com")])])],
                       "Key bindings of this view: key → action."),
@@ -332,7 +332,7 @@ public enum SchemaRegistry {
             SchemaKey("interval", .duration, default: .string(HostConfig.defaultInterval), examples: [.string("10s")],
                       "How often a url host is polled while the dashboard is shown."),
         ]),
-        SchemaShape("item", "A labelled value of a keyValueList. It needs pick or picks.", keys: [
+        SchemaShape("item", "A labeled value of a keyValueList. It needs pick or picks.", keys: [
             SchemaKey("label", .string, kind: .text, required: true, examples: [.string("EUR")], "Shown above the value."),
             SchemaKey("source", .string, examples: [.string("rates")], "Where to pick from. Default: the widget's source."),
             SchemaKey("match", .map(.any), examples: [.object(["casa": .string("blue")])],
@@ -579,7 +579,7 @@ public enum SchemaRegistry {
                       + "`foyer-api --host <url> /api/health`."),
             title("Systems"),
         ]),
-        SchemaEntityType("keyValueList", "Labelled values picked out of JSON sources, such as exchange rates.", keys: [
+        SchemaEntityType("keyValueList", "Labeled values picked out of JSON sources, such as exchange rates.", keys: [
             SchemaKey("source", .string, examples: [.string("rates")], "The source items read, unless they name their own."),
             SchemaKey("items", .list(.shape("item")), required: true,
                       examples: [.array([.object(["label": .string("EUR"), "pick": .string("rates.EUR"), "format": .string("decimal")])])],

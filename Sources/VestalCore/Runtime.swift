@@ -166,7 +166,7 @@ public final class AppRuntime {
     private var tasks: [JobID: Task<Void, Never>] = [:]
     private var observers: [(id: Int, handler: @MainActor (RuntimeEvent) -> Void)] = []
     private var lastObserverID = 0
-    /// Numbers each start, across all jobs, so a result from a cancelled or
+    /// Numbers each start, across all jobs, so a result from a canceled or
     /// replaced run never matches the job that took its place.
     private var lastGeneration = 0
     private var started = false
@@ -314,8 +314,8 @@ public final class AppRuntime {
 
     /// Switches to `config` (a reload). Unchanged sources and hosts keep their
     /// snapshot and schedule. Changed ones keep their data for now and fetch
-    /// again at once. Removed ones are cancelled and dropped. Tickers stay.
-    /// Visible-only fetches in flight are cancelled (and start again at once
+    /// again at once. Removed ones are canceled and dropped. Tickers stay.
+    /// Visible-only fetches in flight are canceled (and start again at once
     /// if still due), and secrets are read again when next needed.
     public func apply(_ config: Config) {
         self.config = config
@@ -463,7 +463,7 @@ public final class AppRuntime {
         }
     }
 
-    /// `work`'s outcome, or a failure after `seconds` (the work is cancelled).
+    /// `work`'s outcome, or a failure after `seconds` (the work is canceled).
     private static func withTimeout(_ seconds: TimeInterval, _ work: Task<Outcome, Never>) async -> Outcome {
         let timer = Task { () -> Void in
             try? await Task.sleep(nanoseconds: UInt64(max(seconds, 0.001) * 1_000_000_000))
@@ -615,7 +615,7 @@ public final class AppRuntime {
     }
 
     private func finish(_ id: JobID, _ generation: Int, _ outcome: Outcome) {
-        // The result of a run that was cancelled, or whose job was replaced
+        // The result of a run that was canceled, or whose job was replaced
         // or removed since, is dropped.
         guard let job = jobs[id], job.generation == generation else { return }
         tasks[id] = nil

@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Render model: messages
 //
 // The snapshot, patch and interaction messages, as Swift values. The
-// in-process API passes these directly; the socket protocol serialises
+// in-process API passes these directly; the socket protocol serializes
 // exactly these.
 
 /// The render model's protocol version.
@@ -41,7 +41,7 @@ public struct RenderTheme: Equatable, Sendable, Codable {
     /// `aurora`, `blur`, `none` or a background of the shader library
     /// (`Backgrounds.names`).
     public var background: String
-    /// Every colour name a node may use, as `#rrggbbaa`.
+    /// Every color name a node may use, as `#rrggbbaa`.
     public var colors: [String: String]
     /// Family per role; nil means the platform default.
     public var fonts: Fonts

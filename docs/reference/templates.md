@@ -1,6 +1,6 @@
 # Templates
 
-A template is a named, parameterised widget (or source) written in the config. Using one looks like using any widget type: `{"type": "<template>", "<param>": value, …}`. The built-in presets are templates too (`vestal docs presets`); `vestal print-config --templates` prints every template, built-ins included, and `vestal print-config --expanded` shows what each widget becomes.
+A template is a named, parameterized widget (or source) written in the config. Using one looks like using any widget type: `{"type": "<template>", "<param>": value, …}`. The built-in presets are templates too (`vestal docs presets`); `vestal print-config --templates` prints every template, built-ins included, and `vestal print-config --expanded` shows what each widget becomes.
 
 ## Defining one
 
@@ -9,7 +9,7 @@ A template is a named, parameterised widget (or source) written in the config. U
   "version": 1,
   "templates": {
     "metric": {
-      "description": "A labelled percentage bar with a threshold colour",
+      "description": "A labeled percentage bar with a threshold color",
       "params": {
         "label": { "type": "text", "required": true },
         "value": { "type": "expr", "required": true, "description": "0-100" },
@@ -95,7 +95,7 @@ Data parameters are `$name` variables in the source body's `url`, `path`, `body`
 
 ## The v0.3 adapter
 
-Two v0.3 behaviours link separate widgets, so a small adapter applies them before expansion, each reported by check-config as an info note with code `legacy`:
+Two v0.3 behaviors link separate widgets, so a small adapter applies them before expansion, each reported by check-config as an info note with code `legacy`:
 
 1. The first `systemBar` of the default view whose privacy item shows gets the key `p`.
 2. Each `systemHealth` host with a `url` becomes the source `host:<name>` (`{"type": <provider>, "url": …, "refresh": <interval or 5s>}`).

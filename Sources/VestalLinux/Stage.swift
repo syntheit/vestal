@@ -6,7 +6,7 @@ import VestalCore
 // MARK: - Stage
 //
 // The window's content, bottom to top: the aurora, the view's root node
-// (`min(maxWidth, window width)` wide, centred both ways, and clipped at the
+// (`min(maxWidth, window width)` wide, centered both ways, and clipped at the
 // bottom when taller than the window), and while a popup is open, the scrim
 // and the popup's card.
 
@@ -207,7 +207,7 @@ final class StageView: NodeView {
         }
     }
 
-    /// The view's root: `min(maxWidth, width)` wide, centred, top-aligned
+    /// The view's root: `min(maxWidth, width)` wide, centered, top-aligned
     /// when taller than the window.
     private func placeRoot(_ root: NodeView, width: Double, height: Double) {
         do {

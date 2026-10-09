@@ -6,7 +6,7 @@ import FoundationXML
 // MARK: - Feed parser
 //
 // `parse: "feed"`: RSS 2.0 (and RSS 1.0/RDF), Atom 1.0 and JSON Feed 1.x,
-// normalised to one shape :
+// normalized to one shape :
 //
 //     { "title": …, "url": …, "items": [ { "id", "title", "url", "date",
 //       "author", "summary" } ] }
@@ -305,7 +305,7 @@ public enum FeedParser {
             }
         }
 
-        /// The content re-serialised as markup, for Atom `xhtml` text.
+        /// The content re-serialized as markup, for Atom `xhtml` text.
         var markup: String {
             var out = ""
             for node in nodes {

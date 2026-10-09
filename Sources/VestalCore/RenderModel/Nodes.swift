@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Render model: nodes
 //
 // The resolved tree a UI draws. Every text is a
-// string, every size a number, every icon a name plus a glyph; colours are
+// string, every size a number, every icon a name plus a glyph; colors are
 // `#rrggbbaa` or a key of the snapshot's `theme.colors`.
 //
 // Decoding is lenient: unknown fields are ignored and an unknown node
@@ -504,7 +504,7 @@ public struct RenderNode: Equatable, Sendable, Codable {
 
     /// A grid of square cells.
     public struct Heatmap: Equatable, Sendable {
-        /// One entry per cell in fill order, resolved to a colour; nil is an
+        /// One entry per cell in fill order, resolved to a color; nil is an
         /// empty cell, drawn in `trackColor`.
         public var cells: [String?] = []
         public var rows: Int = 7

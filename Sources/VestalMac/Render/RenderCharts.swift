@@ -7,7 +7,7 @@ import VestalCore
 //
 // The drawing of `bars`, `stackedBar`, `heatmap`, `timeline` and `image`
 // nodes, after the GTK UI's (VestalLinux/NodeView.swift, MARK: Charts),
-// which does the same arithmetic. Every colour arrives resolved; the labels
+// which does the same arithmetic. Every color arrives resolved; the labels
 // of bars and the legend of a stacked bar are text nodes of their own.
 
 // MARK: - Bars
@@ -65,7 +65,7 @@ struct StackedBarDrawing: View {
 
 // MARK: - Heatmap
 
-/// Square cells in a grid; an empty cell is drawn in the track colour.
+/// Square cells in a grid; an empty cell is drawn in the track color.
 struct HeatmapDrawing: View {
     let heatmap: RenderNode.Heatmap
     let style: RenderStyle
@@ -168,7 +168,7 @@ struct TimelineDrawing: View {
 // MARK: - Image
 
 /// A picture from a local file, clipped to its corner radius; without a
-/// readable file, an empty rounded rectangle in the track colour.
+/// readable file, an empty rounded rectangle in the track color.
 struct ImageDrawing: View {
     let image: RenderNode.Image
     let style: RenderStyle

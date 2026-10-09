@@ -40,11 +40,11 @@ public enum DocsCommand {
         "functions": "Every vestal function and jq builtin (--legacy: the v0.3 helpers too)",
         "sources": "Fetching data: common keys, secrets, history, and every source type's data shape",
         "widgets": "Containers and primitives, the fields every widget takes, and layout",
-        "templates": "Defining your own parameterised widgets and sources",
+        "templates": "Defining your own parameterized widgets and sources",
         "presets": "The built-in templates: section, stat, badge, the v0.3 widgets and the system, time, developer, homelab, feed and personal widgets",
         "starters": "Eight complete dashboards to start from: `vestal init`, `programs.vestal.starter`, what each needs",
         "samples": "The sample every preset ships, its format, and `vestal gallery`, which draws them all",
-        "styling": "Theme, palettes and colours, text style, fonts",
+        "styling": "Theme, palettes and colors, text style, fonts",
         "icons": "The bundled Phosphor icons, sf: names on macOS, the font files",
         "views": "Views, switching between them, and popups",
         "keys": "Key bindings, their precedence, and auto keys",
@@ -55,7 +55,7 @@ public enum DocsCommand {
         "ai-usage": "Claude and Codex plan usage: the claude and codex sources, the data, the widgets",
         "install": "Installing vestal: the macOS DMG and Homebrew cask, Nix and Home Manager",
         "first-dashboard": "A guide for people: install, vestal init, then build a dashboard by hand, step by step",
-        "config-syntax": "A guide for people: the config's shape, sources, widgets and views, {{ }} text, jq, colours, secrets, platform blocks, Nix",
+        "config-syntax": "A guide for people: the config's shape, sources, widgets and views, {{ }} text, jq, colors, secrets, platform blocks, Nix",
     ]
 
     /// Topic families: `<prefix><name>`, generated.

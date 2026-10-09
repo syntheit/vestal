@@ -1190,7 +1190,7 @@ final class IPCTests: XCTestCase {
             visible: true,
             configPath: "/home/u/.config/vestal/config.json",
             hotkey: "f3",
-            warnings: ["unknown key 'colour' in theme", "line 3, column 7: \"quoted\"\nnext"],
+            warnings: ["unknown key 'color' in theme", "line 3, column 7: \"quoted\"\nnext"],
             sources: [
                 IPCSourceStatus(name: "weather", type: "http", fetchedAt: Date(timeIntervalSince1970: 1_758_000_000)),
                 IPCSourceStatus(name: "agenda", type: "calendar", lastError: "calendar access denied"),

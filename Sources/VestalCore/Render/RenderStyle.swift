@@ -2,9 +2,9 @@ import Foundation
 
 // MARK: - Styling
 //
-// The palette a config draws with, the colour grammar and the
+// The palette a config draws with, the color grammar and the
 // text style that widgets inherit. Nodes carry a palette name when a
-// colour is one, so a palette change is a single `theme` op; anything else
+// color is one, so a palette change is a single `theme` op; anything else
 // (hex, `name@alpha`) is sent resolved as `#rrggbbaa`.
 
 public struct RenderPalette: Equatable, Sendable {
@@ -56,15 +56,15 @@ public struct RenderPalette: Equatable, Sendable {
             if let hex = Self.hex(value) {
                 resolved[name] = hex
             } else {
-                problems.append("colour \"\(name)\": \"\(raw[name]!)\" is not a colour")
+                problems.append("color \"\(name)\": \"\(raw[name]!)\" is not a color")
             }
         }
         colors = resolved
         self.problems = problems
     }
 
-    /// A colour value as a node carries it: a palette name as is,
-    /// anything else as `#rrggbbaa`. Nil when it isn't a colour.
+    /// A color value as a node carries it: a palette name as is,
+    /// anything else as `#rrggbbaa`. Nil when it isn't a color.
     public func resolve(_ text: String) -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         if colors[trimmed] != nil { return trimmed }
@@ -76,7 +76,7 @@ public struct RenderPalette: Equatable, Sendable {
         return Self.hex(trimmed)
     }
 
-    /// A colour as `#rrggbbaa`, palette names included.
+    /// A color as `#rrggbbaa`, palette names included.
     public func hexValue(_ text: String) -> String? {
         guard let resolved = resolve(text) else { return nil }
         return colors[resolved] ?? resolved

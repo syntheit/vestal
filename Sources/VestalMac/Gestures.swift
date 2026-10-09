@@ -13,7 +13,7 @@ import VestalCore
 // fourth finger landed, is the ratio; once it has moved 4% either way the
 // direction is clear and the gesture begins, its progress follows the ratio
 // (`PinchMath`), and lifting (or any change in the contact count) ends it.
-// The frame layout (stride, state and normalised position offsets) is what
+// The frame layout (stride, state and normalized position offsets) is what
 // the framework's `MTTouch` has had since macOS 10.x. The frame callback
 // runs on the framework's own thread, so it allocates nothing: it posts to a
 // lock-protected mailbox that hops to the main thread at most once until the

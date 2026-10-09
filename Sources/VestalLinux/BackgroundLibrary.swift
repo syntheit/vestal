@@ -253,10 +253,10 @@ final class LibraryPass {
     }
 }
 
-// MARK: - Artwork colours
+// MARK: - Artwork colors
 
 enum ArtworkPixels {
-    /// The four colours of a picture (VestalCore tunes them), from an 8x8
+    /// The four colors of a picture (VestalCore tunes them), from an 8x8
     /// sample of its pixels. Nil when GTK can't read the file.
     static func colors(_ path: String) -> [[Float]]? {
         var error: UnsafeMutablePointer<GError>?

@@ -35,7 +35,7 @@ test("icon aliases and missing weights", () => {
   assert.equal(glyphFor("clock").length, 1);
 });
 
-// MARK: colours
+// MARK: colors
 
 test("palette names, #hex, @alpha and unknown names", () => {
   const p = makePalette({ colors: { text: "#ffffffff", accent: "#7aa1f7ff", good: "green", green: "#73cf8fff" } });

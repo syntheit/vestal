@@ -533,14 +533,14 @@ public enum IPC {
     /// How long the instance's UI gets to take a screenshot.
     public static let screenshotTimeout: TimeInterval = 10
 
-    /// Whether `$XDG_RUNTIME_DIR` is honoured: on Linux, not on macOS.
+    /// Whether `$XDG_RUNTIME_DIR` is honored: on Linux, not on macOS.
     #if os(macOS)
     public static let usesRuntimeDirectory = false
     #else
     public static let usesRuntimeDirectory = true
     #endif
 
-    /// Where the runtime directory is honoured: `$XDG_RUNTIME_DIR/vestal.sock`
+    /// Where the runtime directory is honored: `$XDG_RUNTIME_DIR/vestal.sock`
     /// when that holds an absolute path (the XDG spec says to ignore relative
     /// ones), else `/run/user/<uid>/vestal.sock` when `isOwnDirectory` says
     /// that directory is the user's. Otherwise, and always on macOS,

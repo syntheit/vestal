@@ -66,7 +66,7 @@ export function lazy(el, fn) {
  * Draws a snapshot at its own size in points inside `box`. By default it is
  * scaled to the box's width (never above `maxScale`) and the box takes its
  * height; with `contain`, the box's size is fixed and the render is the
- * largest that fits in it, centred. Returns a controller for paging.
+ * largest that fits in it, centered. Returns a controller for paging.
  */
 export function screen(box, o) {
   const host = document.createElement("div");

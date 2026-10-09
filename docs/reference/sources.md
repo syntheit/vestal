@@ -332,7 +332,7 @@ The inputs a Nix flake has locked, from `nix flake metadata --json <path>`, and 
 | Key | Default | |
 |---|---|---|
 | `path` | required | The flake: a directory or a flake reference. A leading `~/` expands. Text. |
-| `behind` | `false` | Also ask GitHub how many commits each GitHub input's branch has gained since its locked revision. One GraphQL request (`https://api.github.com/graphql`) for all inputs, authorised by `headers`. The branch is the one the flake follows (`original.ref`), else the repository's default branch. Inputs that are not on github.com, or are pinned to a revision, are not asked about. If GitHub fails, or there is no token, `behind` is `null` everywhere, the lock data is still delivered, and the source's note says why (`vestal sources`). |
+| `behind` | `false` | Also ask GitHub how many commits each GitHub input's branch has gained since its locked revision. One GraphQL request (`https://api.github.com/graphql`) for all inputs, authorized by `headers`. The branch is the one the flake follows (`original.ref`), else the repository's default branch. Inputs that are not on github.com, or are pinned to a revision, are not asked about. If GitHub fails, or there is no token, `behind` is `null` everywhere, the lock data is still delivered, and the source's note says why (`vestal sources`). |
 | `headers` | none | Headers of that request, such as `{"Authorization": "Bearer {{ $secrets.github }}"}`; read only with `behind`. |
 | `argv` | `["nix", "--extra-experimental-features", "nix-command flakes", "flake", "metadata", "--json"]` | The command, before the flake's path. |
 | `timeout` | `10s` | For the `nix` command and the GitHub request. |

@@ -167,7 +167,7 @@ private struct Walker {
         let palettes = ThemeConfig.palettes + (theme["palettes"]?.objectValue?.keys.sorted() ?? [])
         oneOf(theme["palette"], "theme.palette", palettes)
         oneOf(theme["icons"], "theme.icons", ["native", "phosphor"])
-        for problem in RenderPalette(theme: value).problems where problem.hasPrefix("colour") {
+        for problem in RenderPalette(theme: value).problems where problem.hasPrefix("color") {
             add(.invalidValue, "theme.colors", problem, code: "unknown-color")
         }
         themeBackground(theme)
@@ -244,10 +244,10 @@ private struct Walker {
                         continue
                     }
                     if v04.palette.hexValue(text) == nil {
-                        add(.invalidValue, "\(path).colors[\(i)]", "unknown colour \"\(text)\"; ignored", code: "unknown-color", found: text)
+                        add(.invalidValue, "\(path).colors[\(i)]", "unknown color \"\(text)\"; ignored", code: "unknown-color", found: text)
                     }
                 }
-                if colors.count > 4 { add(.invalidValue, "\(path).colors", "only the first four colours are used", code: "ignored") }
+                if colors.count > 4 { add(.invalidValue, "\(path).colors", "only the first four colors are used", code: "ignored") }
             } else if let colors = members["colors"], colors != .null {
                 wrongType(colors, "\(path).colors", expected: "a list")
             }

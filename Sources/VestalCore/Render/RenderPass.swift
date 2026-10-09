@@ -25,7 +25,7 @@ public struct RenderActionBinding {
 
 /// A widget key before assignment.
 struct KeyCandidate: Equatable {
-    /// An explicit key, normalised; nil for `auto`.
+    /// An explicit key, normalized; nil for `auto`.
     var key: String?
     /// Letters `auto` tries, in order.
     var hint: String
@@ -974,13 +974,13 @@ final class RenderPass {
         return style(.object(fields), over: base, id: id, scope: scope, value: value)
     }
 
-    /// A colour field: a name, hex, `name@alpha`, `{"steps", "of"}`
+    /// A color field: a name, hex, `name@alpha`, `{"steps", "of"}`
     /// or `{"expr"}`. Unknown names are reported and draw as `text`.
     func color(_ value: AnyJSON, id: String, field: String, scope: Scope, value current: JQValue?) -> String? {
         switch value {
         case .string(let text):
             if let resolved = model.palette.resolve(text) { return resolved }
-            report(id: id, field: field, severity: "warning", code: "unknown-color", message: "unknown colour \"\(text)\"")
+            report(id: id, field: field, severity: "warning", code: "unknown-color", message: "unknown color \"\(text)\"")
             return "text"
         case .object(let members):
             if case .string(let expression)? = members["expr"] {
@@ -1003,7 +1003,7 @@ final class RenderPass {
                 }
                 return (chosen ?? first).flatMap { color($0, id: id, field: field, scope: scope, value: current) }
             }
-            report(id: id, field: field, severity: "warning", code: "unknown-color", message: "not a colour")
+            report(id: id, field: field, severity: "warning", code: "unknown-color", message: "not a color")
             return nil
         default:
             return nil

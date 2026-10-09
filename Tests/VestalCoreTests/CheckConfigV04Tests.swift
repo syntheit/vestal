@@ -3,7 +3,7 @@ import VestalCore
 import XCTest
 
 /// check-config on v0.4 configs: expressions, widget types, views, keys,
-/// functions, colours and icons.
+/// functions, colors and icons.
 final class CheckConfigV04Tests: XCTestCase {
     private func diagnostics(_ text: String, platform: ConfigPlatform = .linux) -> [ConfigDiagnostic] {
         let loaded = ConfigLoader.load(data: Data(text.utf8), path: "test.json", platform: platform, otherPlatforms: false)

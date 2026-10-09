@@ -68,7 +68,7 @@
         { "name": "main", "title": "Main", "key": "2", "samples": ["clock", "systemBar", "agendaList", "weatherCard"] }
       ] },
     { "id": "media", "name": "Media", "background": "artmesh", "wall": "dune",
-      "pitch": "Now playing with the artwork, the day around it, and the background in the album's colours.",
+      "pitch": "Now playing with the artwork, the day around it, and the background in the album's colors.",
       "pages": [
         { "name": "playing", "title": "Now playing", "key": "1", "samples": ["clock", "nowPlaying", "forecast"] },
         { "name": "main", "title": "Main", "key": "2", "samples": ["clock", "systemBar", "agendaList", "weatherCard"] }

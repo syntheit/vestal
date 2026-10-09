@@ -92,7 +92,7 @@ public enum HeadlessApp {
                                     actions: RenderActionRunner(media: platform.sources.media, audio: platform.audio))
             let quit: @MainActor () -> Void = {
                 // The socket goes first, so a new instance can start at once;
-                // running fetches are cancelled and running commands killed.
+                // running fetches are canceled and running commands killed.
                 server.stop()
                 resident.shutdown()
                 vestalLog("quit")

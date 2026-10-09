@@ -4,7 +4,7 @@ import Foundation
 //
 // check-config's findings for what v0.4 adds: the engine's widget types and their fields, template instances,
 // views with `children`, `defaultView`, key bindings, user `functions` and
-// `templates`, colours and icons, and every expression: each expr field is
+// `templates`, colors and icons, and every expression: each expr field is
 // compiled, and each text field's `{{ }}` holes, with the variables in scope
 // at that place (the reserved names, the enclosing `vars`, a
 // template's data parameters; `$item`, `$index`, `$parent` only in rows).
@@ -638,13 +638,13 @@ struct V04Checker {
         }
     }
 
-    /// A colour: a palette name, hex, `name@alpha`, `{"steps", "of"}`
+    /// A color: a palette name, hex, `name@alpha`, `{"steps", "of"}`
     /// or `{"expr"}`.
     mutating func color(_ value: AnyJSON?, path: String, scope: Scope, inTemplate: Bool = false) {
         switch value {
         case .string(let text)?:
             if palette.resolve(text) == nil {
-                add(.invalidValue, path, "unknown colour \"\(text)\"", code: "unknown-color", severity: .error,
+                add(.invalidValue, path, "unknown color \"\(text)\"", code: "unknown-color", severity: .error,
                     suggestions: DidYouMean.suggestions(for: RenderPalette.baseName(text), among: palette.colors.keys.sorted()),
                     found: text)
             }
@@ -655,14 +655,14 @@ struct V04Checker {
             } else if case .array(let stops)? = members["steps"] {
                 for (i, stop) in stops.enumerated() {
                     guard case .array(let pair) = stop, pair.count == 2, TextStyle.size(pair[0]) != nil else {
-                        add(.invalidValue, "\(path).steps[\(i)]", "a step is [threshold, colour]", severity: .error)
+                        add(.invalidValue, "\(path).steps[\(i)]", "a step is [threshold, color]", severity: .error)
                         continue
                     }
                     color(pair[1], path: "\(path).steps[\(i)][1]", scope: scope, inTemplate: inTemplate)
                 }
                 expr(members["of"], path: "\(path).of", scope: scope, inTemplate: inTemplate)
             } else {
-                add(.invalidValue, path, "not a colour: a name, #rrggbb[aa], {\"steps\": …} or {\"expr\": …}",
+                add(.invalidValue, path, "not a color: a name, #rrggbb[aa], {\"steps\": …} or {\"expr\": …}",
                     code: "unknown-color", severity: .error)
             }
         default:

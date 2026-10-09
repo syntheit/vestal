@@ -1,6 +1,6 @@
 # Config syntax in 10 minutes
 
-Everything vestal draws comes from one JSON file, `~/.config/vestal/config.json`. This page is the grammar of that file: its shape, how data gets onto the screen, the two kinds of expression, colours, secrets, per-OS blocks, and how each looks in Nix. [Your first dashboard by hand](first-dashboard.md) is the hands-on version; `vestal docs config` and the [configuration reference](../CONFIG.md) list every key.
+Everything vestal draws comes from one JSON file, `~/.config/vestal/config.json`. This page is the grammar of that file: its shape, how data gets onto the screen, the two kinds of expression, colors, secrets, per-OS blocks, and how each looks in Nix. [Your first dashboard by hand](first-dashboard.md) is the hands-on version; `vestal docs config` and the [configuration reference](../CONFIG.md) list every key.
 
 ## The file
 
@@ -24,7 +24,7 @@ The file is one JSON object. JSON is strict: keys and strings in double quotes, 
 |---|---|
 | `version` | Always `1`. |
 | `hotkey` | The key that shows and hides the dashboard: `"f3"`, `"cmd+shift+space"`. |
-| `theme` | Background, palette, colours, fonts, `scale`, `density`. |
+| `theme` | Background, palette, colors, fonts, `scale`, `density`. |
 | `sources` | Named data: HTTP APIs, commands, files, the calendar, the system. |
 | `widgets` | Named things to draw. |
 | `views` | Pages, each a list of widgets. `pages` sets their order. |
@@ -81,7 +81,7 @@ Inside JSON, a quote in an expression is written `\"`.
 
 ## Expressions (jq)
 
-Fields that compute a value (`value`, `items`, `when`, `input`, `vars`, a colour's `of`) are **jq** expressions, as strings. vestal runs a large subset of jq plus its own formatting functions. With this data:
+Fields that compute a value (`value`, `items`, `when`, `input`, `vars`, a color's `of`) are **jq** expressions, as strings. vestal runs a large subset of jq plus its own formatting functions. With this data:
 
 ```jsonc
 { "city": "Lisbon", "temp": 18.6, "hosts": [ { "name": "nas", "up": true, "cpu": 12.4 }, { "name": "pi", "up": false, "cpu": 0 } ] }
@@ -108,17 +108,17 @@ vestal eval 'It is {{ .temp | round }}° in {{ .city }}' --template --input stat
 
 An expression that fails at runtime makes that one field `null`; `when` treats `null` as false, so a widget with `"when": ".hosts | length > 0"` hides itself until there is data. `vestal docs functions` lists every function.
 
-Any other field (a size, a colour, an icon name) can be computed too, by writing `{"expr": "<jq>"}` in place of the value.
+Any other field (a size, a color, an icon name) can be computed too, by writing `{"expr": "<jq>"}` in place of the value.
 
-## Colours
+## Colors
 
-Anywhere a colour goes:
+Anywhere a color goes:
 
 | Form | Example |
 |---|---|
 | A palette name | `"accent"`, `"good"`, `"warn"`, `"bad"`, `"subtle"`, `"dim"`, `"blue"`, `"purple"` |
 | Hex, optionally with alpha | `"#7aa1f7"`, `"#7aa1f780"` |
-| A colour at an opacity | `"accent@0.15"` |
+| A color at an opacity | `"accent@0.15"` |
 | Thresholds | `{"steps": [[0, "good"], [70, "warn"], [90, "bad"]]}`: the last step at or under the value |
 | An expression | `{"expr": "if .ok then \"good\" else \"bad\" end"}` |
 

@@ -5,7 +5,7 @@ import Foundation
 // Suggestions for a name that isn't known (a key, a type, a source, a docs
 // topic): the candidates within a Damerau-Levenshtein distance of 2 (optimal
 // string alignment: insertions, deletions, substitutions and swaps of two
-// neighbours), or sharing a prefix of at least 3 characters, best 3 first.
+// neighbors), or sharing a prefix of at least 3 characters, best 3 first.
 // Case is ignored when comparing.
 
 public enum DidYouMean {

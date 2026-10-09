@@ -21,7 +21,7 @@ import Foundation
 // here, copied from HIToolbox's Events.h (kVK_* and cmdKey etc.), so
 // VestalMac can call RegisterEventHotKey without tables of its own and the
 // mapping is testable on Linux. Letters and digits are ANSI key positions:
-// "a" is the key labelled A on a US keyboard, wherever the layout puts it.
+// "a" is the key labeled A on a US keyboard, wherever the layout puts it.
 //
 // Portable: no Carbon.
 

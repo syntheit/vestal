@@ -76,7 +76,7 @@ extension DefaultPresets {
         "description": "Load per core, performance and efficiency cores apart, with the CPU total, the load average and the core layout",
         "params": {
           "source": { "type": "source", "default": "system", "description": "A system source" },
-          "warn": { "type": "number", "default": 70, "description": "Cores at or above this percentage are drawn in the warn colour" }
+          "warn": { "type": "number", "default": 70, "description": "Cores at or above this percentage are drawn in the warn color" }
         },
         "widget": {
           "type": "row", "gap": 22, "align": "end", "source": { "param": "source" },
@@ -179,7 +179,7 @@ extension DefaultPresets {
         "description": "The busiest processes by CPU, with their memory",
         "params": {
           "count": { "type": "integer", "default": 5, "description": "How many processes, at most 20" },
-          "warn": { "type": "number", "default": 70, "description": "CPU at or above this percentage (of one core) is drawn in the warn colour" }
+          "warn": { "type": "number", "default": 70, "description": "CPU at or above this percentage (of one core) is drawn in the warn color" }
         },
         "widget": {
           "type": "stack", "gap": 7, "width": "fill", "align": "start",

@@ -19,8 +19,8 @@ extension DefaultPresets {
           "hours": { "type": "integer", "default": 10, "description": "How many hours the strip covers" },
           "lead": { "type": "integer", "default": 3, "description": "How many of them are before now (the strip starts earlier late in the day, and never before midnight)" },
           "height": { "type": "number", "default": 56, "description": "Height of the strip, in points" },
-          "palette": { "type": "array", "default": ["accent", "cyan", "orange", "purple", "teal", "good"], "description": "Colours given to calendars, by a hash of their name" },
-          "calendarColors": { "type": "object", "default": {}, "description": "A colour per calendar name: {\"Work\": \"accent\"}" },
+          "palette": { "type": "array", "default": ["accent", "cyan", "orange", "purple", "teal", "good"], "description": "Colors given to calendars, by a hash of their name" },
+          "calendarColors": { "type": "object", "default": {}, "description": "A color per calendar name: {\"Work\": \"accent\"}" },
           "hour12": { "type": "boolean", "default": false, "description": "Times as 1:46 PM instead of 13:46" }
         },
         "widget": {
@@ -57,7 +57,7 @@ extension DefaultPresets {
           "source": { "type": "source", "default": "calendar", "description": "A calendar source" },
           "joinKey": { "type": "string", "default": "j", "description": "Opens the call link" },
           "copyKey": { "type": "string", "default": "c", "description": "Copies the call link" },
-          "warn": { "type": "integer", "default": 15, "description": "Minutes before the start from which the countdown is in the warning colour" },
+          "warn": { "type": "integer", "default": 15, "description": "Minutes before the start from which the countdown is in the warning color" },
           "hour12": { "type": "boolean", "default": false, "description": "Times as 1:46 PM instead of 13:46" }
         },
         "widget": {
@@ -213,7 +213,7 @@ extension DefaultPresets {
           "path": { "type": "string", "default": "~/.local/share/vestal/habits.json", "description": "A JSON file: {\"habits\": [{\"name\", \"color\", \"days\": [\"2026-10-01\", ...]}]}" },
           "weeks": { "type": "integer", "default": 5, "description": "How many weeks the strip covers, ending today" },
           "nameWidth": { "type": "number", "default": 116, "description": "Width of the names column" },
-          "colors": { "type": "array", "default": ["good", "accent", "purple", "orange", "cyan", "teal"], "description": "Colours for habits without a color of their own, in order" },
+          "colors": { "type": "array", "default": ["good", "accent", "purple", "orange", "cyan", "teal"], "description": "Colors for habits without a color of their own, in order" },
           "refresh": { "type": "string", "default": "30s", "description": "How often the file is read while the dashboard is shown" }
         },
         "widget": {

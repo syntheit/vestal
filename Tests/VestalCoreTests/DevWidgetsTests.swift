@@ -282,7 +282,7 @@ final class DevWidgetsTests: XCTestCase {
         XCTAssertEqual(api["started"], .int(1_790_503_210))
         XCTAssertEqual(api["finished"], .int(1_790_503_462))
         // Oldest first; the commit no workflow ran for and the one that only skipped are left out;
-        // a commit with a failed and a passed suite failed; a cancelled one is its own state.
+        // a commit with a failed and a passed suite failed; a canceled one is its own state.
         XCTAssertEqual(api["runs"]?.arrayValue?.compactMap(\.stringValue),
                        ["success", "success", "success", "success", "cancelled", "success", "success", "failure",
                         "success", "success", "success", "success"])

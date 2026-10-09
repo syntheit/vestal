@@ -5,7 +5,7 @@ import VestalCore
 
 // MARK: - Theme
 //
-// Colours and fonts for the nodes: palette names resolved through the
+// Colors and fonts for the nodes: palette names resolved through the
 // snapshot's `theme.colors`, font roles mapped to families,
 // and the bundled fonts registered with fontconfig.
 
@@ -50,7 +50,7 @@ final class ThemeState {
         self.theme = theme
     }
 
-    /// A node colour: a palette name, `#hex`, or either with `@alpha`. An
+    /// A node color: a palette name, `#hex`, or either with `@alpha`. An
     /// unknown name draws as `text`, as check-config promises.
     func color(_ spec: String?, default fallback: String = "text") -> RGBA {
         let spec = spec ?? fallback
@@ -110,12 +110,12 @@ final class ThemeState {
     /// blur for `aurora` and `blur`, opaque for `none`. `dim` must stay above
     /// the `ignore_alpha` layer rule (0.3 by default), or Hyprland blurs only
     /// the aurora's ribbons; check-config warns. Without blur it is a plain
-    /// dim. The window's CSS is `RenderTheme.linuxWindowCSS`, the same colour.
+    /// dim. The window's CSS is `RenderTheme.linuxWindowCSS`, the same color.
     var windowBackground: RGBA {
         color("bg").withAlpha(theme.windowAlpha(defaultDim: RenderTheme.linuxDim))
     }
 
-    /// The same colour over a self-blurred backdrop, which the aurora's GL
+    /// The same color over a self-blurred backdrop, which the aurora's GL
     /// area lays itself (the window is clear then).
     var backdropTint: RGBA { windowBackground }
 }

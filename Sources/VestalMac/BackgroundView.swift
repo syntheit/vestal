@@ -265,10 +265,10 @@ final class BackgroundRenderer: NSObject, MTKViewDelegate {
     }
 }
 
-// MARK: - Artwork colours
+// MARK: - Artwork colors
 
 enum ArtworkColors {
-    /// The four colours of a picture, a quadrant each (top left, top right,
+    /// The four colors of a picture, a quadrant each (top left, top right,
     /// bottom right, bottom left), tuned for text on top. Nil when the file
     /// is not a picture.
     static func extract(_ path: String) -> [[Float]]? {

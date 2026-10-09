@@ -740,7 +740,7 @@ ${body}
   const card = (p, text) => `<a class="doc-card" href="${p.slug}.html"><b>${escHTML(p.label)}</b>${escHTML(text || "")}</a>`;
   const blurb = {
     "first-dashboard": "Install, write a starter, then build a dashboard step by step with nothing but a text editor.",
-    "config-syntax": "The file's shape, sources, widgets and views, {{ }} text, jq, colours, secrets, per-OS blocks and Nix.",
+    "config-syntax": "The file's shape, sources, widgets and views, {{ }} text, jq, colors, secrets, per-OS blocks and Nix.",
     recipes: "Complete configs for common requests: GitHub reviews, prices, Home Assistant, Docker, calendars and more.",
     configuration: "The contract: every key, its type and default, how layers merge.",
     jq: "The subset of jq that expressions use.",

@@ -75,14 +75,14 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 | `version` | integer | `1` | Schema version. Only `1` exists; v0.4 only adds keys. |
 | `hotkey` | string or `null` | `null` | Built-in toggle hotkey, such as `"f3"` or `"cmd+shift+space"`: keys `f1`-`f20`, letters, digits, `space`, `escape` (or `esc`), `home`, `end`, with modifiers `cmd` (or `super`, the same key: Super on Linux), `ctrl`, `alt` (or `opt`) and `shift`, joined with `+`, case-insensitive. The hotkey is taken from every app, so letters, digits, `space` and `escape` need `cmd`, `ctrl` or `alt` (`shift` alone is not enough); `f1`-`f20`, `home` and `end` may stand alone. One that doesn't parse registers nothing and is a warning (`check-config`, `vestal status`). `null` registers nothing; bind `vestal toggle` in skhd, Hyprland or similar instead. On Linux vestal registers no hotkey itself (Wayland has no global hotkeys); the Home Manager module's `programs.vestal.hyprland.enable` turns this key into a Hyprland bind. On macOS, letters and digits are key positions on a US layout. |
 | `gesture` | `"pinch"` or `null` | `null` | Trackpad gesture for the dashboard, like `hotkey`. `"pinch"` is the old Launchpad gesture with a thumb and three fingers: pinching in opens the dashboard when it is hidden, spreading the fingers closes it when it is shown (the other way round does nothing). The dashboard fades in or out with the fingers; lifting past halfway (or with a quick flick) completes it, lifting earlier puts it back. macOS only, read from the trackpad through the private MultitouchSupport framework (no permission needed), so a `"pinch"` on macOS also needs the system's own use of that gesture turned off (System Settings > Trackpad > More Gestures > Apps, or `defaults write com.apple.dock showLaunchpadGestureEnabled -bool false`). Any other value is a warning and watches nothing. On Linux the key is accepted and ignored (an info note in `check-config`); bind `vestal toggle` in the compositor. `null` watches nothing. |
-| `theme` | object | see [theme](#theme) | Palette, background, colours, fonts, scale, density, icons. |
+| `theme` | object | see [theme](#theme) | Palette, background, colors, fonts, scale, density, icons. |
 | `sources` | object | `weather`, `calendar`, `system`, `media`, `claude`, `codex` | Named data sources, see [sources](#sources). |
 | `widgets` | object | see [defaults](#built-in-defaults) | Named widgets, see [widgets](#widgets). |
 | `views` | object | `main` | Named views, see [views](#views). |
 | `defaultView` | string | `"main"` | The view `vestal show` and `vestal toggle` open when they name none. |
 | `pages` | object | see [pages](#pages) | Paging between views: order, transition, dots, swipe, wrap. |
 | `keys` | object | `{}` | Global key bindings, key → action, see [keys](#keys). |
-| `templates` | object | `{}` | Your own parameterised widgets and sources, see [templates](#templates). |
+| `templates` | object | `{}` | Your own parameterized widgets and sources, see [templates](#templates). |
 | `functions` | object | `{}` | Your own jq functions, see [functions](#functions). |
 | `secrets` | object | none | Named secrets for source definitions, see [secrets](#secrets). |
 | `platform` | object | none | Per-OS overrides, see [above](#the-platform-block). |
@@ -98,8 +98,8 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 | `dim` | number | `0.5` on Linux, none on macOS | 0 to 1: the opacity of the palette's `bg` over the blurred desktop, for `"aurora"` and `"blur"` (the aurora draws over it). Higher hides more of what is behind: about `0.75` to `0.85` keeps busy windows (a terminal full of text) from showing through. macOS by default draws no extra tint (the HUD material's own); set, it lays `bg` at this opacity over the material. On Linux, with the default `backdrop` `"self"`, it is laid over vestal's own blur of the screen, and any value works. With `"compositor"` it is how opaque the window is over the compositor's blur: Hyprland can't set blur strength per layer, so this is the knob for the dashboard alone, and below Hyprland's `ignore_alpha` (0.3 by default, `programs.vestal.hyprland.ignoreAlpha`) Hyprland doesn't blur behind the tint (only behind the aurora's ribbons, where they are opaque enough); check-config warns. Outside 0 to 1 it is clamped, with a warning. Put it in a `platform` block to set one OS only. |
 | `backdrop` | string | `"self"` on Linux | Linux only; macOS ignores it (the window's HUD material always blurs). What is behind the dashboard for `"aurora"` and `"blur"`. `"self"`: right before it shows, vestal captures the output it is about to cover (the compositor's focused one, over the `ext-image-copy-capture-v1` or `wlr-screencopy-unstable-v1` protocol: Hyprland, sway, river, niri and most wlroots compositors), blurs the picture itself on the GPU as heavily as the macOS HUD material (`blur`), a little more saturated and darker, and draws it in an opaque window under `bg` at `dim` and the aurora. The picture is taken once per show, so windows that change behind the dashboard don't show through while it is up. `"compositor"`: a translucent window over whatever blur the compositor adds (Hyprland: the `blur` layer rule, which the Home Manager module adds only for this value). `"none"`: translucent, no blur asked for. When the compositor can't capture the screen (no protocol, several outputs and no way to learn the focused one, a rotated output, a failed or slow capture), a show falls back to `"compositor"`, logged once; with the Home Manager module's rules that is a translucent window without blur (the module adds Hyprland's `blur` rule only for an explicit `"compositor"`). |
 | `blur` | number | `48` | Linux, `backdrop` `"self"`: the blur's radius in points (about twice the Gaussian's standard deviation; scaled by the output's scale). `0` to `200`, clamped with a warning. Takes effect at the next show. |
-| `palettes` | object | none | Your palettes: name → `{"extends": "<palette>", "colors": {name: colour}}`. `extends` defaults to `tokyo-night`. |
-| `colors` | object | none | Colours added to, or overriding, the chosen palette: name → colour. |
+| `palettes` | object | none | Your palettes: name → `{"extends": "<palette>", "colors": {name: color}}`. `extends` defaults to `tokyo-night`. |
+| `colors` | object | none | Colors added to, or overriding, the chosen palette: name → color. |
 | `typeface` | string | `"system"` | A named set of fonts filling the roles at once: `system`, `geist`, `inter`, `plex`, `instrument` or `fira` (`vestal docs styling`). The families ship with vestal and are loaded for its own process only. |
 | `fonts` | object | the typeface's | A family per role: `{"display": …, "sans": …, "mono": …, "rounded": …}` (`display` is for clocks and big numbers); an entry overrides the typeface's. `null` (or absent) is the typeface's, else the platform's default: SF Pro, SF Mono and SF Pro Rounded on macOS; Geist and Geist Mono on Linux (shipped by the Nix package; fontconfig's `sans-serif` and `monospace` without them; `rounded` is `sans` there). A family that isn't installed falls back to the default. On Linux, text is drawn with FreeType's stem darkening and text below bold one weight step heavier (400 as 500, 600 as 700), which matches macOS's heavier glyphs (`docs/screenshots/linux/fonts/`); `VESTAL_FONT_WEIGHT_OFFSET=0` in vestal's environment draws the weights as given, and a `FREETYPE_PROPERTIES` of your own replaces the darkening. |
 | `font` | string | none | Shorthand for `fonts.sans`. |
@@ -119,7 +119,7 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 }
 ```
 
-### Colours
+### Colors
 
 `tokyo-night` defines these names. Prefer the semantic ones: they follow the palette.
 
@@ -135,14 +135,14 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 | `scrim` | semantic | `#000000a6` (behind popups) |
 | `blue`, `green`, `yellow`, `red`, `cyan`, `purple`, `teal`, `orange` | hue | `#7aa1f7`, `#73cf8f`, `#e3c975`, `#f06b6b`, `#7dcfff`, `#ba99f7`, `#73d6c2`, `#ff9e64` |
 
-Wherever a colour goes (`color`, `background`, `trackColor`, a style's `color`, a palette entry) it may be:
+Wherever a color goes (`color`, `background`, `trackColor`, a style's `color`, a palette entry) it may be:
 
 | Form | Example | |
 |---|---|---|
 | a name | `"good"`, `"brand"` | A palette name. An unknown one is a `check-config` error and draws as `text`. |
 | hex | `"#7aa1f7"`, `"#7aa1f780"`, `"#fff"` | sRGB, with optional alpha. |
 | with alpha | `"accent@0.15"`, `"#ffffff@0.2"` | Multiplies the alpha. |
-| steps | `{"steps": [[0, "good"], [70, "warn"], [90, "bad"]], "of": ".cpu.percent"}` | The colour of the last stop whose threshold is ≤ the value; `of` (an expression) defaults to the widget's own value, `$value`. |
+| steps | `{"steps": [[0, "good"], [70, "warn"], [90, "bad"]], "of": ".cpu.percent"}` | The color of the last stop whose threshold is ≤ the value; `of` (an expression) defaults to the widget's own value, `$value`. |
 | expression | `{"expr": "if .ok then \"good\" else \"bad\" end"}` | Must give one of the forms above. |
 
 ### Text style
@@ -154,10 +154,10 @@ Wherever a colour goes (`color`, `background`, `trackColor`, a style's `color`, 
 | `size` | points, or `xs` 10, `sm` 11, `md` 12, `base` 13, `lg` 14, `xl` 18, `2xl` 24, `3xl` 36, `display` 56 | `base` (13) |
 | `weight` | `ultralight`, `thin`, `light`, `regular`, `medium`, `semibold`, `bold`, `heavy`, `black`, or 100–900 | `regular` |
 | `font` | a role (`display`, `sans`, `mono`, `rounded`) or a family name; a comma-separated list takes the first usable entry (`"display, Inter Tight"`: the theme's display font, else Inter Tight) | `sans` |
-| `color` | a colour | `text` |
+| `color` | a color | `text` |
 | `tracking` | points of letter spacing | 0 |
 | `case` | `upper`, `lower`, `none` | `none` |
-| `emphasis` | `strong` (weight +200, colour `text`), `muted` (colour `subtle`), `faint` (colour `dim`) | none |
+| `emphasis` | `strong` (weight +200, color `text`), `muted` (color `subtle`), `faint` (color `dim`) | none |
 | `scale` | multiplies sizes in this subtree | 1 |
 
 ### Icons
@@ -175,7 +175,7 @@ Every field of a widget or source is one of three kinds. `vestal schema` and `ve
 | **literal** | a JSON value, or `{"expr": "<jq>"}` to compute it | `"size": 14`, `"color": {"expr": "…"}` |
 
 - In a *text* field each `{{ … }}` is jq; strings go in as they are, numbers as jq's `tostring`, and `null` as nothing. `{{{{` writes a literal `{{`. Prefer `{{ }}` to jq's `"\(…)"`, which needs `\\(` inside a JSON string.
-- Any other scalar field (a number, a colour, an icon name, a width) may be `{"expr": "<jq>"}`. Structural keys can't: `type`, `id`, `children`, `row`, `cases`, a `source` given by name, and template names.
+- Any other scalar field (a number, a color, an icon name, a width) may be `{"expr": "<jq>"}`. Structural keys can't: `type`, `id`, `children`, `row`, `cases`, a `source` given by name, and template names.
 - An expression's first output is the value; `items` collects every output (so `.items` and `.items[]` both work).
 - A runtime error (such as `tonumber` on `"n/a"`) makes that field `null` and shows up in `vestal render`'s diagnostics; it never stops the dashboard. `null` is quiet: a `value` that is `null` shows the widget's `placeholder` (`–`), and `when` treats `null` like `false`.
 - One evaluation may take at most 100,000 steps and 50 ms, and produce at most 4 MiB.
@@ -299,7 +299,7 @@ Events, as a list: `title`, `start` and `end` (seconds since 1970), `allDay`, `c
 | `days` | integer, at least 1 | `1` | How many days to read: from now to the end of the `days`-th day, today being the first. |
 | `includePast` | boolean | `false` | `true` starts at the beginning of today instead of now, so events that already ended are in the data too (the [`dayTimeline`](#daytimeline) preset dims them). Widgets that look ahead filter on the end time and don't change. |
 | `calendars` | list of strings | all | Only calendars with these names. |
-| `ics` | list of text | none | `.ics` files, directories of them (such as vdirsyncer's) or `http(s)` URLs. When set, they are read on both macOS and Linux. The calendar's name is the file's `X-WR-CALNAME`, else the file's name (for a file in a directory, the directory's name). Recurring events are expanded (`RRULE` with `DAILY`, `WEEKLY`, `MONTHLY` or `YEARLY`, `COUNT`, `UNTIL`, `INTERVAL`, `BYDAY`, `BYMONTHDAY`, `BYMONTH`, `WKST`, and `EXDATE`, `RDATE`, moved or cancelled instances), in the event's own time zone (`TZID`, with its `VTIMEZONE`). An event whose rule uses anything else (`BYSETPOS`, `BYWEEKNO`, ...) is left out rather than guessed, and `vestal sources` says how many were. A URL may carry `user:password@`; vestal strips it and sends it as a Basic `Authorization` header, and shows the password as `***` in messages. For Radicale, whose collection URL returns the whole calendar: `"ics": ["https://me:{{ $secrets.dav }}@dav.example.com/me/calendar-uuid/"]` (percent-encode `@`, `/`, `:` in the password). The source's `headers` are sent too. |
+| `ics` | list of text | none | `.ics` files, directories of them (such as vdirsyncer's) or `http(s)` URLs. When set, they are read on both macOS and Linux. The calendar's name is the file's `X-WR-CALNAME`, else the file's name (for a file in a directory, the directory's name). Recurring events are expanded (`RRULE` with `DAILY`, `WEEKLY`, `MONTHLY` or `YEARLY`, `COUNT`, `UNTIL`, `INTERVAL`, `BYDAY`, `BYMONTHDAY`, `BYMONTH`, `WKST`, and `EXDATE`, `RDATE`, moved or canceled instances), in the event's own time zone (`TZID`, with its `VTIMEZONE`). An event whose rule uses anything else (`BYSETPOS`, `BYWEEKNO`, ...) is left out rather than guessed, and `vestal sources` says how many were. A URL may carry `user:password@`; vestal strips it and sends it as a Basic `Authorization` header, and shows the password as `***` in messages. For Radicale, whose collection URL returns the whole calendar: `"ics": ["https://me:{{ $secrets.dav }}@dav.example.com/me/calendar-uuid/"]` (percent-encode `@`, `/`, `:` in the password). The source's `headers` are sent too. |
 | `thunderbird` | `true` or text | none | Thunderbird's own calendars, with no extra sync: `true` for the default profile (from `profiles.ini`, in `~/.thunderbird` on Linux or `~/Library/Thunderbird` on macOS) or a profile directory such as `"~/.thunderbird/abcd1234.default"`. vestal reads the profile's calendar databases (`calendar-data/cache.sqlite`, the offline cache of network calendars, and `local.sqlite`) from a private copy, never writing to Thunderbird's files, and skips disabled calendars. Only calendars with **Offline support** enabled (Thunderbird, Calendar properties) are cached, and the cache is as fresh as Thunderbird's last sync, so Thunderbird must have run recently. Recurrence and time zones work as for `ics`. Like `ics`, it replaces EventKit; with several set, events are combined. `calendars` filters by name. |
 | `timeout` | duration | `"10s"` | For `ics` and `caldav` URLs. |
 | `caldav` | list of text | none | CalDAV servers read by vestal itself, on both macOS and Linux. Each entry is a calendar collection URL, or a server or principal URL whose calendars are discovered (`current-user-principal`, `calendar-home-set`, then every calendar that holds events; `/.well-known/caldav` is tried when the URL names no principal). Credentials go in the URL as for `ics` (`https://me:{{ $secrets.dav }}@dav.example.com/`; percent-encode `@`, `/`, `:` in the password): vestal sends them as a Basic `Authorization` header, only to the entry's own host (for iCloud, also its `pNN-caldav.icloud.com` partitions), and shows the password as `***`. `calendars` then names calendars by their display name. The discovered list is kept in memory for a day. Recurring events are expanded as for `ics`. Examples: Radicale `http://me:{{ $secrets.dav }}@127.0.0.1:5232/`; Nextcloud `https://me:{{ $secrets.dav }}@cloud.example.com/remote.php/dav/`; Fastmail `https://me%40fastmail.com:{{ $secrets.dav }}@caldav.fastmail.com/dav/calendars/user/me@fastmail.com/` (app password); iCloud `https://me%40icloud.com:{{ $secrets.dav }}@caldav.icloud.com/` (app-specific password). Google Calendar's CalDAV needs OAuth and is not supported: use Google's "Secret address in iCal format" with `ics`. |
@@ -470,7 +470,7 @@ The tables below give each type's main fields. `vestal docs config` lists every 
 | `minWidth`, `maxWidth` | number | none | |
 | `padding` | number or `[top, right, bottom, left]` | 0 | Inside the frame. |
 | `border` | object | none | `{"color": "accent@0.6", "width": 1}`: an outline along the padded frame, following `radius`. |
-| `background`, `radius`, `opacity`, `clip` | | none, 0, 1, false | A colour behind the padded frame, its corner radius, the subtree's opacity, clipping to the frame. |
+| `background`, `radius`, `opacity`, `clip` | | none, 0, 1, false | A color behind the padded frame, its corner radius, the subtree's opacity, clipping to the frame. |
 | `spaceBefore` | number | the parent's `gap` | Space before this child in a `stack` or `row`. |
 | `alignSelf` | `start`, `center`, `end`, `stretch` | the parent's `align` | |
 | `span` | integer | 1 | Grid columns this child takes. |
@@ -498,12 +498,12 @@ The tables below give each type's main fields. `vestal docs config` lists every 
 | `progress` | `value`, `max` (100), `min` (0), `overlay`, `overlayPosition` (`above`; `below`), `start` (where the fill begins, on the same scale: a range bar), `tick` (a thin mark at this value), `tickColor` (`#ffffff8c`), `label`, `labelWidth` (a minimum), `text` (`{{ $value \| round }}%`; `""` for none), `textWidth` (a minimum), `width` (`fill`), `height` (6), `radius` (2), `color` (`accent`), `trackColor` (`color` at 15%), `overlayColor` (`#ffffff33`), `labelStyle`, `textStyle`, `gap` (4) | A horizontal bar with a label before and a value after. |
 | `gauge` | `value`, `max`, `min`, `text` (`{{ $value \| round }}`), `label`, `size` (64), `thickness` (6), `sweep` (270; 360 closes it, starting at the top), `color`, `trackColor`, `dot` (false), `dotColor`, `ticks` (0), `labels`, `center` (a widget), `textStyle`, `labelStyle` | A ring with center text and a label under it; `dot` marks the fill's end, `ticks` and `labels` the outside and inside. |
 | `sparkline` | `values` (expr: an array of numbers), or `value` + `history` (`{size, every}`); `min`, `max` (the data's own), `width` (`fill`), `height` (24), `color` (`accent`; may use `$value`, the last point), `fill`, `strokeWidth` (1.5), `dot` (false), `dotAt` (a dot at this fraction of the width, 0 to 1), `dotColor` | A line. Fewer than two points draws nothing. |
-| `keyValue` | `items` (a list of `{label, value` + `format` or `text, color, source, vars, when, action, key}`), `gap` (24), `align` (`center`), `labelStyle`, `valueStyle` | Labelled values side by side. An item whose source has no data, whose `when` is false, or whose value is `null` is skipped; with none left the widget is hidden. |
+| `keyValue` | `items` (a list of `{label, value` + `format` or `text, color, source, vars, when, action, key}`), `gap` (24), `align` (`center`), `labelStyle`, `valueStyle` | Labeled values side by side. An item whose source has no data, whose `when` is false, or whose value is `null` is skipped; with none left the widget is hidden. |
 | `divider` | `axis` (`h`; `v`), `thickness` (0.5), `color` (`dim`) | A rule that fills the width (or height). |
 | `spacer` | `min` (0); with `width` or `height` a fixed gap | Flexible space along the parent's axis. |
 | `bars` | `values` (expr: numbers, or `{value, label, color}`), `orientation` (`vertical`; `horizontal`), `max` (the largest), `labels` (false vertical, true horizontal), `color` (`accent`; may use `steps`), `barWidth`, `gap` (3 vertical, 6 horizontal), `format`, `labelWidth`, `width` (160 vertical), `height` (48 vertical), `placeholder` | A bar chart: columns, or a row per bar with label and value. |
-| `stackedBar` | `segments` (expr: `{value, label, color}`), `total` (the sum), `legend` (false), `color`, `trackColor` (`track`), `radius` (half the height), `height` (8), `placeholder` | One bar split into coloured segments; what they leave is the track. |
-| `heatmap` | `values` (expr: numbers, `null` is an empty cell), `rows` (7), `direction` (`columns`; `rows`), `cell` (8), `gap` (2), `radius` (2), `scale` (`["accent@0.2", "accent"]`), `steps`, `min`, `max`, `trackColor` (`track`), `placeholder` | A grid of cells coloured by value (contributions style). |
+| `stackedBar` | `segments` (expr: `{value, label, color}`), `total` (the sum), `legend` (false), `color`, `trackColor` (`track`), `radius` (half the height), `height` (8), `placeholder` | One bar split into colored segments; what they leave is the track. |
+| `heatmap` | `values` (expr: numbers, `null` is an empty cell), `rows` (7), `direction` (`columns`; `rows`), `cell` (8), `gap` (2), `radius` (2), `scale` (`["accent@0.2", "accent"]`), `steps`, `min`, `max`, `trackColor` (`track`), `placeholder` | A grid of cells colored by value (contributions style). |
 | `timeline` | `from`, `to` (times: epoch seconds or ISO 8601; today), `items` (expr: `{start, end, label, color}`), `now` (true), `nowColor` (`accent`), `color` (`accent`), `height` (36), `placeholder` | A time axis with items as bars (no `end`: a marker), tick labels in the clock's 12 or 24 hour setting, and a line at the current time. |
 | `image` | `src` (text: a path or http(s) URL), `width` (48), `height` (48), `fit` (`cover`; `contain`), `radius` (6) | A picture; a URL is fetched once into the cache. Missing: an empty rounded rectangle. |
 | `analog` | `size` (236), `ticks` (`hours`; `none`, `minutes`), `seconds` (`false`; `"step"`, `"sweep"`), `dateWindow` (false), `numerals` (false), `zone` (the system's), `color`, `faceColor`, `secondsColor` (`bad`), `pivotColor` (`accent`) | A round clock the UI draws and runs itself, only while shown. |
@@ -516,20 +516,20 @@ The tables below give each type's main fields. `vestal docs config` lists every 
 | Type | Parameters (defaults) | |
 |---|---|---|
 | `section` | `title` (text), `children` (widgets), `gap` (8) | A titled block: the upper-case header with a rule, then the children. Width `fill`. |
-| `stat` | `label`, `value` (expr, required), `format`, `prefix`, `suffix`, `delta` (expr), `deltaFormat` (`fixed:2`), `deltaSuffix` (`%`), `trend` (`up-good`; `up-bad`, `none`), `size` (`md`; `sm`, `lg`), `color` (`text`) | A big value with a label over it and an optional delta (`▲`/`▼`, coloured by `trend`). |
+| `stat` | `label`, `value` (expr, required), `format`, `prefix`, `suffix`, `delta` (expr), `deltaFormat` (`fixed:2`), `deltaSuffix` (`%`), `trend` (`up-good`; `up-bad`, `none`), `size` (`md`; `sm`, `lg`), `color` (`text`) | A big value with a label over it and an optional delta (`▲`/`▼`, colored by `trend`). |
 | `badge` | `text`, `icon`, `color` (`accent`) | A small pill: 10-point semibold text in `color` on `color` at 15%. |
 
 `vestal docs presets` lists every built-in template, and `vestal docs preset/<name>` prints one's JSON.
 
 ## Templates
 
-A template is a named, parameterised widget (or source) written in config. It is used like a type:
+A template is a named, parameterized widget (or source) written in config. It is used like a type:
 
 ```json
 {
   "templates": {
     "metric": {
-      "description": "A labelled percentage bar with a threshold colour",
+      "description": "A labeled percentage bar with a threshold color",
       "params": {
         "label": { "type": "text", "required": true },
         "value": { "type": "expr", "required": true, "description": "0-100" },
@@ -590,7 +590,7 @@ Templates are expanded once, when the config loads:
 | `gap` | number | 24 | Between root children (the presets set their own `spaceBefore`). |
 | `align` | string | `"center"` | Cross-axis alignment of the root children. |
 | `padding` | number or list | 48 | Inside `maxWidth`. |
-| `maxWidth` | number | 680 | The root is at most this wide, centred on screen. |
+| `maxWidth` | number | 680 | The root is at most this wide, centered on screen. |
 | `keys` | object | `{}` | Key bindings of this view, key → action. |
 | `enabled` | boolean | `true` | `false` turns the view off: no key, no paging, `vestal show` exits 4, nothing in it is evaluated. |
 
@@ -617,7 +617,7 @@ With two or more views the dashboard pages like a phone's home screens. The top-
 |---|---|---|
 | `order` | the views in key order, then by name | The views to page through, in order. A view not listed stays reachable by its `key` and `vestal show`, but is not paged to. A name that isn't an enabled view is a check-config warning and is skipped. |
 | `transition` | `"slide"` | How a change of page is drawn: `"slide"` (the old page leaves sideways while the new one comes in, 250 ms), `"fade"` (a crossfade, 180 ms) or `"none"`. With reduced motion on (macOS "Reduce motion", GTK `gtk-enable-animations` off), `slide` is a short fade. A jump to a view that is not a page also fades. |
-| `indicator` | `"dots"` | `"dots"`: one dot per page near the bottom of the screen, the current one in the accent colour; drawn only with two or more pages. `"none"`. |
+| `indicator` | `"dots"` | `"dots"`: one dot per page near the bottom of the screen, the current one in the accent color; drawn only with two or more pages. `"none"`. |
 | `swipe` | `true` | A two-finger horizontal swipe on the trackpad pages. The page follows the fingers and goes on past about 12 % of the screen width or with a quick flick, else springs back. |
 | `wrap` | `false` | Whether `right` on the last page goes to the first (and `left` on the first to the last). `tab` and `shift+tab` always cycle round. |
 
@@ -716,7 +716,7 @@ Every action also takes `hide: true` or `false` to override the last column. `ve
 
 The eight v0.3 widget types are built-in templates with the same names and parameters, so every v0.3 config means what it did. They are written in the config language (`vestal docs preset/<name>` prints each one's JSON, and `vestal print-config --expanded` what an instance becomes). New configs can use them, or build the same things from the primitives. Each preset sets the space before it that v0.3's dashboard used: 28 points before `systemBar` and `claudeUsage`, 20 before `media`, 24 before the sections, none before `clock`.
 
-Two v0.3 behaviours link separate widgets; a small legacy adapter keeps them, and reports each as an `info` finding with code `legacy`: the first `systemBar` in the default view whose privacy item shows gets the key `p`; and every `systemHealth` host with a `url` gets a source named `host:<name>` (`{"type": <provider>, "url": …, "refresh": <interval>}`), which any widget can read.
+Two v0.3 behaviors link separate widgets; a small legacy adapter keeps them, and reports each as an `info` finding with code `legacy`: the first `systemBar` in the default view whose privacy item shows gets the key `p`; and every `systemHealth` host with a `url` gets a source named `host:<name>` (`{"type": <provider>, "url": …, "refresh": <interval>}`), which any widget can read.
 
 ### `clock`
 
@@ -815,7 +815,7 @@ A host needs `url` or `source`. A host name listed twice, in one widget or two, 
 
 ### `keyValueList`
 
-Labelled values picked out of JSON sources, such as exchange rates. New configs can use the [`keyValue`](#primitives) primitive, whose values are jq expressions.
+Labeled values picked out of JSON sources, such as exchange rates. New configs can use the [`keyValue`](#primitives) primitive, whose values are jq expressions.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -921,7 +921,7 @@ New in 0.4: `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`. The f
 | `reviewQueue` | Pull requests waiting on your review: `repo#number`, title, `+`/`−` lines, author, age, a summary badge; a row's key (1-9) opens it. | `search` (`is:pr is:open review-requested:@me archived:false`), `limit` (5), `refresh` (`5m`), `numberKeys` (`true`) |
 | `ciStatus` | The latest Actions results per repository and branch: a state icon, the last results as cells, the newest one's duration. One GraphQL request for all repositories. | `repos` (required: `"owner/name"` or `"owner/name@branch"`), `runs` (12), `refresh` (`5m`) |
 | `commitActivity` | Commits per day over `weeks` weeks as a contribution grid, with the total and the current streak. Runs `git log` in each path (`sh -c` with fixed script and arguments). | `paths` (required), `weeks` (30), `author` (each repository's `user.email`), `levels`, `cell`, `gap`, `refresh` (`10m`) |
-| `flakeInputs` | How old each locked flake input is, coloured by age, and with `behind` how many commits each GitHub input has gained since. | `path` (required), `behind` (`false`), `fresh`, `warn`, `bad` (3, 14, 30 days), `sort` (`age`), `limit` (8), `refresh` (`1h`) |
+| `flakeInputs` | How old each locked flake input is, colored by age, and with `behind` how many commits each GitHub input has gained since. | `path` (required), `behind` (`false`), `fresh`, `warn`, `bad` (3, 14, 30 days), `sort` (`age`), `limit` (8), `refresh` (`1h`) |
 
 ### `headlines`
 
@@ -956,14 +956,14 @@ Symbol, the session's line, last price and day change per stock, and the market 
 
 ### `homeAssistant`
 
-Home Assistant entities as tiles (icon, label, state with unit, a second line), coloured by state or thresholds; the token is the secret named `homeAssistant`. New in 0.4.
+Home Assistant entities as tiles (icon, label, state with unit, a second line), colored by state or thresholds; the token is the secret named `homeAssistant`. New in 0.4.
 
 | Key | Type | Default | |
 |---|---|---|---|
 | `entities` | list | required | `[{id, label, icon, attribute, attributeUnit, attributeLabel, since, precision, unit, thresholds, colors, color}]`, or plain ids. |
 | `url` | string | `"http://homeassistant.local:8123"` | The base URL. |
 | `columns` | integer | `3` | Tiles per row. |
-| `stateColors` | object | `locked`, `closed` good; `on`, `open`, `unlocked` warn; `unavailable`, `unknown` dim | State word to colour. |
+| `stateColors` | object | `locked`, `closed` good; `on`, `open`, `unlocked` warn; `unavailable`, `unknown` dim | State word to color. |
 
 ### `nowPlaying`
 

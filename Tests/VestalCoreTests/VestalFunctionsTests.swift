@@ -154,7 +154,7 @@ final class VestalFunctionsTests: XCTestCase {
         XCTAssertEqual(try one("try (\"n/a\" | fmt_int) catch \"caught\""), .string("caught"), "catchable")
     }
 
-    // MARK: Colours and thresholds
+    // MARK: Colors and thresholds
 
     func testStep() throws {
         let stops = "[[0,\"good\"],[70,\"warn\"],[90,\"bad\"]]"

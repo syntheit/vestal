@@ -1,7 +1,7 @@
 {
   "kind": "widget",
   "title": "Badge",
-  "description": "A small coloured pill with optional icon.",
+  "description": "A small colored pill with optional icon.",
   "preset": "badge",
   "size": [
     680,

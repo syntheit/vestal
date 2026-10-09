@@ -17,7 +17,7 @@ import Foundation
 //
 // "Current session" is `session`; "Current week (all models)" (or a plain
 // "Current week") is `weekly`; any other "Current week (<name>)" is an
-// `extra` window labelled <name>. The rest is ignored. The parse is
+// `extra` window labeled <name>. The rest is ignored. The parse is
 // tolerant: ANSI codes, bar and box characters, notice lines, and the
 // percentage or reset on a line of its own under the heading (the
 // interactive layout) all work. A reset time is read in the IANA zone in

@@ -1,6 +1,6 @@
 # The render model
 
-vestal turns config and data into a resolved tree of nodes, and a UI only draws that tree. Every text is a string, every size a number, every icon a name plus its glyph, every colour a palette name or `#rrggbbaa`. A UI never evaluates an expression, reads a source or runs an action: it lays out and draws nodes, and reports clicks and keys (`vestal docs protocol`).
+vestal turns config and data into a resolved tree of nodes, and a UI only draws that tree. Every text is a string, every size a number, every icon a name plus its glyph, every color a palette name or `#rrggbbaa`. A UI never evaluates an expression, reads a source or runs an action: it lays out and draws nodes, and reports clicks and keys (`vestal docs protocol`).
 
 `vestal render --format json` prints it; `--format tree` prints the same as an outline, the cheapest way for an agent to see what is on screen.
 
@@ -63,7 +63,7 @@ Keys are sorted and defaults are left out, so output is deterministic.
 | `width`, `height` | fit | A number, or `"fill"`. |
 | `minWidth`, `maxWidth`, `minHeight`, `maxHeight` | none | |
 | `padding` | `[0, 0, 0, 0]` | `[top, right, bottom, left]`, inside the frame. |
-| `background` | none | A colour, painted on the padded frame. |
+| `background` | none | A color, painted on the padded frame. |
 | `radius` | `0` | |
 | `border` | none | `{ "color", "width" }` |
 | `opacity` | `1` | Multiplies the subtree. |
@@ -79,9 +79,9 @@ Keys are sorted and defaults are left out, so output is deterministic.
 | Type | Fields (default) | Draws |
 |---|---|---|
 | `stack` | `axis` (`v` or `h`), `gap` (0), `align` (`start`; also `center`, `end`, `stretch`, and `baseline` for `h`), `justify` (`start`, `center`, `end`, `between`), `children` | Nothing itself; lays out its children. |
-| `grid` | `columns` (`[{ "width": number \| "fill" \| "fit", "align" }]`), `gap` (0), `rowGap` (0), `children` | Children row by row, honouring `span`; cells centred vertically. |
+| `grid` | `columns` (`[{ "width": number \| "fill" \| "fit", "align" }]`), `gap` (0), `rowGap` (0), `children` | Children row by row, honoring `span`; cells centered vertically. |
 | `text` | `text`, `size` (13), `weight` (400), `font` (`sans`), `color` (`text`), `tracking` (0), `lines` (unlimited), `textAlign` (`start`) | One run of text, case already applied; cut at the tail with `…` beyond `lines`. |
-| `icon` | `name`, `glyph` (one character; absent for `sf:` names), `weight` (`regular` or `fill`), `size` (13), `color` (`text`) | The glyph in the icon font, centred in a `size`×`size` box. |
+| `icon` | `name`, `glyph` (one character; absent for `sf:` names), `weight` (`regular` or `fill`), `size` (13), `color` (`text`) | The glyph in the icon font, centered in a `size`×`size` box. |
 | `bar` | `value` (0…1), `start` (0), `overlay` (0…1), `overlayPosition` (`above`), `tick` (0…1), `tickColor`, `color`, `trackColor`, `overlayColor`, `radius` (2) | A rounded track, the fill from `start` to `value`, the overlay above or below it, and a 1.5 point mark at `tick`. |
 | `ring` | `value` (0…1), `sweep` (270), `thickness` (6), `color`, `trackColor`, `center` (a node), `dot` (false), `dotColor` (`text`), `ticks` (0), `labels` (`[]`) | An arc track with its gap at the bottom, the fill arc with round caps, and `center` inside. A `sweep` of 360 has no gap and starts at the top. `dot` draws a dot, `thickness` × 1.1 in radius, on the fill's end. `ticks` marks the outside: that many marks evenly spaced over the sweep (a full circle: round it; an arc: the first and last on its ends), every fourth longer and brighter (`text` at 50%, 1.5 wide, against 20%, 1 wide), and the arc moves 15 points inwards to leave room. `labels` (up to four) are drawn inside the arc, 20 points from it, in the same way along the sweep, in `dim`, size 10, mono. Its size is its `width`. |
 | `spark` | `values`, `min`, `max`, `color`, `fill`, `strokeWidth` (1.5), `dot` (false), `dotAt` (0…1), `dotColor` | A polyline, x evenly spaced, y scaled to `min`…`max`; fewer than two values draw nothing. A dot on the last point, or with `dotAt` at that fraction of the width, on the line. |
@@ -89,7 +89,7 @@ Keys are sorted and defaults are left out, so output is deterministic.
 | `spacer` | `min` (0) | Nothing. |
 | `bars` | `values` (one number per column), `max` (1), `colors` (one per column), `barWidth` (columns share the width), `gap` (3) | Columns from the left edge on the bottom line, each `value / max` tall (clamped, at least 1 when above 0), corners rounded by 2. |
 | `stackedBar` | `segments` (`[{ "value": 0…1, "color" }]`), `trackColor` (`track`), `radius` (4) | A track and the segments from the leading edge, each `value` of the width, all inside one rounded shape. |
-| `heatmap` | `cells` (a colour or `null` per cell), `rows` (7), `direction` (`columns`), `cell` (8), `gap` (2), `radius` (2), `trackColor` (`track`) | Square cells. `columns`: cell `i` is at column `i / rows`, row `i % rows`. `rows`: row-major with `ceil(count / rows)` columns. `null` draws a `trackColor` cell; positions past the last cell draw nothing. |
+| `heatmap` | `cells` (a color or `null` per cell), `rows` (7), `direction` (`columns`), `cell` (8), `gap` (2), `radius` (2), `trackColor` (`track`) | Square cells. `columns`: cell `i` is at column `i / rows`, row `i % rows`. `rows`: row-major with `ceil(count / rows)` columns. `null` draws a `trackColor` cell; positions past the last cell draw nothing. |
 | `timeline` | `items` (`[{ "start", "end", "label", "color", "lane" }]`), `ticks` (`[{ "at", "label" }]`), `lanes` (1), `now`, `nowColor` (`accent`) | A time axis, everything as fractions 0…1 of the width (`end` absent: a point marker). The bottom 12 points are tick labels (dim, 9); above them a faint line at each tick, the items on `lanes` equal rows 2 apart (a bar at least 3 wide, corners 3; a point is a dot at most 8 across), then a 1.5 wide `nowColor` line at `now`. An item's `label` is drawn inside its bar (10, medium, in `bg`) only when it fits with 4 either side and the lane is 12 or taller; a tick label only when it clears the previous one by 4. |
 | `analog` | `size` (236), `ticks` (`hours`; `none`, `minutes`), `seconds` (`none`; `step`, `sweep`), `dateWindow` (false), `numerals` (false), `zone` (the system's), `color` (`text`), `faceColor`, `secondsColor` (`bad`), `pivotColor` (`accent`) | A round clock the UI draws and runs by itself: the core sends it once and never again for a tick. The UI reads the time in `zone` and moves the hands: the hour and minute hands continuously, the seconds hand once a second (`step`) or every frame (`sweep`), and only while the dashboard is shown (nothing runs, and no timer, while it is hidden). Reduced motion turns `sweep` into `step`. `size` is its width and height. The face is a circle (`faceColor`, stroked in `color` at 20%); with `ticks` `none` it has a dot at twelve, short hands and no tails, otherwise sixty marks (`minutes`) or twelve (`hours`), heavier at the hours, and hands with tails. `dateWindow` is a box with the day of the month right of the pivot; `numerals` draw 1 to 12. The seconds hand has a counterweight dot. Proportions are fixed by the face's size (`AnalogGeometry` in VestalCore). |
 | `flip` | `text`, `small` (`""`), `size` (90), `smallSize` (40), `color` (`text`), `tile`, `tileBottom`, `animate` (true) | Split-flap tiles in a row with their bottoms on one line: one tile per character of `text` (80 × 114 at `size` 90, scaling with it), then the characters of `small` on smaller tiles (36 × 52 at `smallSize` 40, 14 apart from the big ones). `:` is two small squares in a colon cell, a space a gap. Each tile is two halves, `tile` above and `tileBottom` below, with a seam. The UI keeps the characters it last drew: when a later model changes a tile's character it folds over (the top half falls to the seam over 170 ms, then the new bottom half rises over 170 ms) and the other tiles stay; a node that is new, or whose number of tiles changed, appears without a fold, as does everything with `animate` false or under reduced motion. Its size follows from the text (`FlipLayout` in VestalCore). |
@@ -109,7 +109,7 @@ Units are logical points (macOS points, Wayland logical pixels).
 2. **Stacks** place children in order with each child's `spaceBefore`, else the `gap`, before every child but the first. Fixed and fit children are measured first; the rest is shared equally by the `fill` children (never below 0). `alignSelf` or `align` places each child across; `stretch` makes it as wide as the stack. `justify` spreads leftover space when no child fills.
 3. **Grids**: fixed columns take their width, `fit` columns their widest cell, `fill` columns share the rest. A row is as tall as its tallest cell.
 4. `padding` is inside the frame; `background`, `border` and `radius` paint the padded frame; `min…`/`max…` clamp after sizing (`maxWidth` includes padding).
-5. The root is centred on the screen both ways, `min(maxWidth, window width)` wide.
+5. The root is centered on the screen both ways, `min(maxWidth, window width)` wide.
 6. A fit text is as wide as its line, capped by the offer; it wraps unless `lines` is 1. `baseline` lines up the first baselines of text children.
 7. Hidden widgets have no node.
 8. Nothing scrolls: content taller than the window is clipped at the bottom.
@@ -159,4 +159,4 @@ The diff runs top-down: a node whose own fields or ordered child ids changed is 
 { "id": "main/exchange/1/@BRL/1", "field": "text", "severity": "error", "code": "expr-runtime", "message": "tonumber: cannot parse \"n/a\" as a number" }
 ```
 
-Expression runtime errors, unknown icons and colours used at render time, duplicate row ids, failed sources. UIs needn't show them; `vestal render` prints them, and `vestal render --strict` exits 3 when there are any.
+Expression runtime errors, unknown icons and colors used at render time, duplicate row ids, failed sources. UIs needn't show them; `vestal render` prints them, and `vestal render --strict` exits 3 when there are any.

@@ -4,7 +4,7 @@ import Foundation
 //
 // `{"cmd": "subscribe", …}` on the socket turns a connection into a stream
 // (IPCServer, IPCSubscription). The hub follows the one `RenderEngine` of
-// the process and serialises exactly its updates for each subscriber:
+// the process and serializes exactly its updates for each subscriber:
 //
 //   → {"cmd":"subscribe","role":"ui","protocol":[1],"minor":0,"client":"x/1",
 //      "capabilities":["copy","notify"],"whileHidden":false}
@@ -28,7 +28,7 @@ import Foundation
 // `hide` and `view` count. When it leaves, the previous `ui` takes over.
 // `observer`s (and `control`, an observer with `"control": true`) get the
 // model and visibility; only a controlling observer's input counts.
-// `snapshot` (a resync) is honoured from anyone.
+// `snapshot` (a resync) is honored from anyone.
 //
 // A client that asks for another protocol gets `{"type":"error","code":
 // "protocol",…,"supported":[1]}` and is closed. A client whose `minor` is

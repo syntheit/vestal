@@ -1,7 +1,7 @@
 {
   "id": "media",
   "title": "Media",
-  "pitch": "Now playing, large. The background takes the album's colours.",
+  "pitch": "Now playing, large. The background takes the album's colors.",
   "kind": "dashboard",
   "background": "artmesh",
   "pages": [

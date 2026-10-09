@@ -119,7 +119,7 @@ private struct ICSExpander {
         }
 
         // UIDs whose overrides are settled: shown with their master, or left
-        // out with a cancelled or unsupported one. A second master with the
+        // out with a canceled or unsupported one. A second master with the
         // same UID does not repeat them.
         var settled = Set<String>()
 

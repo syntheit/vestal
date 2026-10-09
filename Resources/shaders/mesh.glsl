@@ -1,5 +1,5 @@
-// mesh: four soft colour fields drifting over minutes (also artmesh).
-// p.x is the opacity; c0..c3 the four colours.
+// mesh: four soft color fields drifting over minutes (also artmesh).
+// p.x is the opacity; c0..c3 the four colors.
 vec4 background() {
     float asp = resolution.x / resolution.y;
     vec2 q = vec2(uv.x * asp, uv.y);

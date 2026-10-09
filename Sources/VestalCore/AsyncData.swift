@@ -468,7 +468,7 @@ public enum AsyncData {
         return agendaEvents(entries.filter { $0.end > now }, maxEvents: maxEvents)
     }
 
-    /// Sorted by start, capped at `maxEvents`, labelled "HH:mm" (local time;
+    /// Sorted by start, capped at `maxEvents`, labeled "HH:mm" (local time;
     /// empty for all-day events).
     public static func agendaEvents(_ entries: [CalendarEntry], maxEvents: Int) -> [CalendarEvent] {
         entries

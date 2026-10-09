@@ -204,7 +204,7 @@ public final class ExprEnvironment: @unchecked Sendable {
 
     static let tooLarge = ExprError(kind: .limit, code: "expr-limit", message: "result larger than 4 MiB")
 
-    /// Whether `value` serialises to at most 4 MiB. Walks at most that much.
+    /// Whether `value` serializes to at most 4 MiB. Walks at most that much.
     static func fits(_ value: JQValue) -> Bool {
         var budget = maxResultBytes
         func walk(_ v: JQValue) -> Bool {

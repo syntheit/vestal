@@ -91,7 +91,7 @@ struct RenderNodeView: View {
         case .stack, .grid, .text, .unknown: return .measured
         case .icon(let icon):
             // An SF Symbol keeps its own width, as v0.3's did; a font glyph
-            // is centred in a size×size box.
+            // is centered in a size×size box.
             return RenderIcon.drawsSymbol(icon, style: style) ? .measured : .fixed(width: icon.size, height: icon.size)
         case .bar: return .fixed(width: 48, height: 6)
         case .ring: return .square(40)
@@ -176,9 +176,9 @@ private struct SubtreeOpacity: ViewModifier {
 
 // MARK: - Text
 
-/// One run of text: font role, size and weight, colour, tracking, a line
+/// One run of text: font role, size and weight, color, tracking, a line
 /// limit truncating at the tail, and its alignment in the node's box
-/// (vertically centred, like a GtkLabel).
+/// (vertically centered, like a GtkLabel).
 struct RenderText: View {
     let text: RenderNode.Text
     let style: RenderStyle
@@ -218,7 +218,7 @@ struct RenderText: View {
 // MARK: - Icon
 
 /// An icon: an SF Symbol where the native mapping (or an `sf:` name) gives
-/// one, else the glyph in the Phosphor font, centred in a size×size box.
+/// one, else the glyph in the Phosphor font, centered in a size×size box.
 /// `circle` filled is v0.3's offline dot, a circle of the icon's size.
 struct RenderIcon: View {
     let icon: RenderNode.Icon
@@ -261,7 +261,7 @@ struct RenderIcon: View {
 // MARK: - Bar
 
 /// A rounded track, then the fill from the leading edge, with the overlay
-/// above or below it. Tracks default to the colour at 15%, the overlay to
+/// above or below it. Tracks default to the color at 15%, the overlay to
 /// white at 20% (v0.3's MiniBar).
 struct BarDrawing: View {
     let bar: RenderNode.Bar
@@ -300,7 +300,7 @@ struct BarDrawing: View {
 
 // MARK: - Ring
 
-/// An arc track of `sweep` degrees with its gap centred at the bottom, and
+/// An arc track of `sweep` degrees with its gap centered at the bottom, and
 /// the fill arc with round caps.
 struct RingDrawing: View {
     let ring: RenderNode.Ring
@@ -397,7 +397,7 @@ struct SparkDrawing: View {
 
 // MARK: - Divider
 
-/// A rule `thickness` thick, centred across its box: `h` fills the width,
+/// A rule `thickness` thick, centered across its box: `h` fills the width,
 /// `v` the height.
 struct DividerDrawing: View {
     let divider: RenderNode.Divider

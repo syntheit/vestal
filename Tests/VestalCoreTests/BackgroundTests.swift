@@ -65,11 +65,11 @@ final class BackgroundTests: XCTestCase {
 
     func testMeshColours() {
         let t = model(##"{"background": {"type": "mesh", "colors": ["#112233", "purple", "nope"]}}"##).theme
-        XCTAssertEqual(t.backgroundParams?.colors?.count, 2, "an unknown colour is dropped")
+        XCTAssertEqual(t.backgroundParams?.colors?.count, 2, "an unknown color is dropped")
         XCTAssertEqual(t.backgroundParams?.colors?.first, "#112233ff")
         let u = Backgrounds.uniforms("mesh", params: t.backgroundParams, hour: 0)
         XCTAssertEqual(u.colors.count, 4)
-        XCTAssertEqual(u.colors[2], u.colors[0], "two colours repeat to fill four")
+        XCTAssertEqual(u.colors[2], u.colors[0], "two colors repeat to fill four")
         XCTAssertEqual(Backgrounds.uniforms("mesh", params: nil, hour: 0).colors[0], Backgrounds.rgb("#1e2a62"))
     }
 

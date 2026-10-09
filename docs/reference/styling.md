@@ -11,8 +11,8 @@
 | `dim` | Linux `0.5`, macOS none | 0 to 1: the opacity of the palette's `bg` over the blurred desktop, for `aurora` and `blur`. About `0.75` to `0.85` hides busy windows behind the dashboard. macOS by default keeps the material's own tint; set, it adds `bg` over it. On Linux it lies over vestal's own blur (`backdrop` `self`), or over the compositor's (`compositor`), where it is the knob for how much shows through: Hyprland can't set blur strength per layer, and below its `ignore_alpha` (0.3 by default) it blurs only behind the aurora's ribbons, not the tint (check-config warns). Clamped to 0 to 1. |
 | `backdrop` | Linux `self` | Linux only (macOS ignores it). `self`: vestal captures the output it is about to cover right before it shows and blurs it itself, heavily, under `bg` at `dim` (the window is opaque). `compositor`: a translucent window over the compositor's blur. `none`: translucent, no blur. Without screen capture (`ext-image-copy-capture-v1` or `wlr-screencopy-unstable-v1`) a show falls back to `compositor`. |
 | `blur` | `48` | Linux, `backdrop` `self`: the blur radius in points, 0 to 200. |
-| `palettes` | none | Name → `{ "extends": "<palette>", "colors": { name: colour } }`. |
-| `colors` | none | Colours added to, or replacing, the chosen palette's. |
+| `palettes` | none | Name → `{ "extends": "<palette>", "colors": { name: color } }`. |
+| `colors` | none | Colors added to, or replacing, the chosen palette's. |
 | `typeface` | `system` | A named set of fonts that fills the four roles at once: `system`, `geist`, `inter`, `plex`, `instrument` or `fira` ([Fonts](#fonts)). |
 | `fonts` | the typeface's | `{ "display": family, "sans": family, "mono": family, "rounded": family }`; each entry overrides the typeface's family for that role. `null` or absent means the typeface's, else the platform default. |
 | `font` | none | Shorthand for `fonts.sans`. |
@@ -81,17 +81,17 @@ Fonts are also the usual reason for a `platform` block:
 
 | Name | Feel | Cost | Resolution | Parameters |
 |---|---|---|---|---|
-| `mesh` | Four soft colour fields drifting over minutes; fills the screen. | low | 0.25 | `colors`: up to four colours (hex or palette names; fewer repeat). Default `#1e2a62 #4a2a72 #164f5c #5a2448`. |
+| `mesh` | Four soft color fields drifting over minutes; fills the screen. | low | 0.25 | `colors`: up to four colors (hex or palette names; fewer repeat). Default `#1e2a62 #4a2a72 #164f5c #5a2448`. |
 | `topo` | Contour lines of slowly shifting terrain, every fifth brighter. | medium | 0.6 | none |
 | `stars` | Three depths of stars drifting sideways. Near-black stays near-black. | low | 0.8 | none |
 | `flow` | Short comet trails carried along an invisible current. The busiest. | medium | 0.6 | none |
 | `rain` | Drops sliding down a pane over out-of-focus city lights. Dense near the text. | high | 0.45 | none |
 | `plasma` | Very low-contrast interference bands in blue and violet. | low | 0.25 | none |
 | `grain` | Film grain and darker corners; almost no motion. | low | 0.9 | none |
-| `sky` | Sky colour, sun or moon and stars follow the local clock: navy at night, amber at dusk. | low | 0.5 | none |
+| `sky` | Sky color, sun or moon and stars follow the local clock: navy at night, amber at dusk. | low | 0.5 | none |
 | `weather` | Rain, snow, a storm with lightning, or a clear-day haze. | medium | 0.7 | `source`, `condition` |
 | `load` | The aurora, thicker, warmer and faster as the load rises. | low | 0.35 | `source`, `value` |
-| `artmesh` | The mesh coloured from the playing track's artwork. | low | 0.25 | `source`, `artwork`, `colors` |
+| `artmesh` | The mesh colored from the playing track's artwork. | low | 0.25 | `source`, `artwork`, `colors` |
 
 ```json
 { "theme": { "background": "sky" } }
@@ -113,14 +113,14 @@ Fonts are also the usual reason for a `platform` block:
 { "theme": { "background": { "type": "artmesh", "source": "media" } } }
 ```
 
-The data-driven ones read a source through the render engine: `value`, `condition` and `artwork` are expressions over the source's data (as in a widget with that `source`), evaluated again whenever the source updates; the background never polls. Without data yet they draw their idle look (load 0, clear weather, the default mesh colours).
+The data-driven ones read a source through the render engine: `value`, `condition` and `artwork` are expressions over the source's data (as in a widget with that `source`), evaluated again whenever the source updates; the background never polls. Without data yet they draw their idle look (load 0, clear weather, the default mesh colors).
 
 - `load`: `value` gives 0 to 100 (shown as 0 to 1). Default source `system`, value `.cpu.percent`. Time runs at 0.5 + 3.2 times the load.
 - `weather`: `condition` is `clear`, `rain`, `snow` or `storm` written as is, or an expression giving one of those, a description in words (thunder or storm, then snow, sleet, ice, hail or blizzard, then rain, drizzle or shower; anything else is clear: "Light rain shower", "Partly cloudy"), or a weather code. Codes below 100 are WMO (Open-Meteo): 0 to 48 clear (cloud, fog), 51 to 67 and 80 to 82 rain, 71 to 77 and 85, 86 snow, 95 to 99 storm. Codes from 100 are World Weather Online's (wttr.in's `weatherCode`): 113 to 122, 143, 248, 260 clear; 176, 182, 185, 263 to 314, 353 to 359 rain; 179, 227, 230, 317 to 338, 350, 362 to 377 snow; 200, 386 to 395 storm. Default source `weather` (the built-in wttr.in one), condition `.current_condition[0].weatherCode`.
-- `artmesh`: `artwork` gives a picture's file path or an http(s) URL (fetched once and cached, as for `image` widgets); the mesh takes four colours from its quadrants, darkened to keep white text readable. Default source `media`, artwork `.artwork`. When the media source has no `artwork` field, or the picture isn't there yet, the mesh keeps its default colours (`#2a1e4f #6a2f63 #a0504a #b07a4a`, or `colors`).
-- `sky` follows the local clock (a table of colours by hour, darkened for text); it reads no source.
+- `artmesh`: `artwork` gives a picture's file path or an http(s) URL (fetched once and cached, as for `image` widgets); the mesh takes four colors from its quadrants, darkened to keep white text readable. Default source `media`, artwork `.artwork`. When the media source has no `artwork` field, or the picture isn't there yet, the mesh keeps its default colors (`#2a1e4f #6a2f63 #a0504a #b07a4a`, or `colors`).
+- `sky` follows the local clock (a table of colors by hour, darkened for text); it reads no source.
 
-## Colours
+## Colors
 
 Prefer the **semantic** names; they follow the palette. `tokyo-night`, the only built-in palette:
 
@@ -139,7 +139,7 @@ Prefer the **semantic** names; they follow the palette. `tokyo-night`, the only 
 | `blue`, `green`, `yellow`, `red` | hue | `#7aa1f7`, `#73cf8f`, `#e3c975`, `#f06b6b` |
 | `cyan`, `purple`, `teal`, `orange` | hue | `#7dcfff`, `#ba99f7`, `#73d6c2`, `#ff9e64` |
 
-Wherever a colour goes (`color`, `background`, `trackColor`, `iconColor`, `fill`, style `color`, palette entries):
+Wherever a color goes (`color`, `background`, `trackColor`, `iconColor`, `fill`, style `color`, palette entries):
 
 | Form | Example | |
 |---|---|---|
@@ -167,7 +167,7 @@ A palette entry may name another entry. A palette of your own:
 }
 ```
 
-`color_mix(a; b; t)` and `alpha(a)` compute colours in expressions (`vestal docs functions`).
+`color_mix(a; b; t)` and `alpha(a)` compute colors in expressions (`vestal docs functions`).
 
 ## Text style
 
@@ -178,10 +178,10 @@ A palette entry may name another entry. A palette of your own:
 | `size` | points, or `xs` 10, `sm` 11, `md` 12, `base` 13, `lg` 14, `xl` 18, `2xl` 24, `3xl` 36, `display` 56 | `base` (13) |
 | `weight` | `ultralight` 100, `thin` 200, `light` 300, `regular` 400, `medium` 500, `semibold` 600, `bold` 700, `heavy` 800, `black` 900, or the number | `regular` |
 | `font` | a role (`display`, `sans`, `mono`, `rounded`) or a family name; a comma-separated list takes the first usable entry (`"display, Inter Tight"`: the theme's display font, else Inter Tight) | `sans` |
-| `color` | a colour | `text` |
+| `color` | a color | `text` |
 | `tracking` | points of letter spacing | `0` |
 | `case` | `upper`, `lower`, `none` | `none` |
-| `emphasis` | `strong` (weight +200, colour `text`), `muted` (colour `subtle`), `faint` (colour `dim`) | none |
+| `emphasis` | `strong` (weight +200, color `text`), `muted` (color `subtle`), `faint` (color `dim`) | none |
 | `scale` | multiplies sizes in this subtree | `1` |
 
 Every style field may be `{"expr": …}`:

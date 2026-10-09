@@ -293,7 +293,7 @@ final class BackdropBlur {
 
     // MARK: Shaders
 
-    /// Dual-Kawase downsample: the centre and four diagonal bilinear taps
+    /// Dual-Kawase downsample: the center and four diagonal bilinear taps
     /// one source texel away (sixteen texels), at half the size.
     private static let downSource = """
     uniform sampler2D source;
@@ -338,7 +338,7 @@ final class BackdropBlur {
     }
     """
 
-    /// One direction of a Gaussian: `taps` texels each side of the centre,
+    /// One direction of a Gaussian: `taps` texels each side of the center,
     /// `direction` apart (one texel across or down).
     private static let gaussSource = """
     uniform sampler2D source;
