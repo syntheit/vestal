@@ -360,8 +360,10 @@ final class ViewsKeysActionsTests: XCTestCase {
         h.engine.key("o")
         await eventually("open") { !h.resident.isVisible }
         #if os(macOS)
+        await eventually("open started") { h.commands.last == ["open", "https://example.com/main"] }
         XCTAssertEqual(h.commands.last, ["open", "https://example.com/main"])
         #else
+        await eventually("xdg-open started") { h.commands.last == ["xdg-open", "https://example.com/main"] }
         XCTAssertEqual(h.commands.last, ["xdg-open", "https://example.com/main"])
         #endif
         // A target that looks like an option is opened as a relative path.
@@ -370,8 +372,10 @@ final class ViewsKeysActionsTests: XCTestCase {
         h.engine.key("d")
         await eventually("open -x") { !h.resident.isVisible }
         #if os(macOS)
+        await eventually("open started") { h.commands.last == ["open", "./-x"] }
         XCTAssertEqual(h.commands.last, ["open", "./-x"])
         #else
+        await eventually("xdg-open started") { h.commands.last == ["xdg-open", "./-x"] }
         XCTAssertEqual(h.commands.last, ["xdg-open", "./-x"])
         #endif
         // refresh "*": every source fetched now.
