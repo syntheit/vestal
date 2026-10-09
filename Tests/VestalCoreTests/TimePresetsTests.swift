@@ -24,6 +24,8 @@ final class TimePresetsTests: XCTestCase {
     /// transformed) data its file source gives.
     private func render(_ widget: String, sources: [String: String] = [:], now: Date = TimePresetsTests.now,
                         zone: String = "UTC") -> RenderSnapshot {
+        var sources = sources
+        if widget.contains("aiPlan") { for name in ["claude", "codex"] where sources[name] == nil { sources[name] = "null" } }
         let declared = sources.keys.sorted().map { #""\#($0)": { "type": "file", "path": "/\#($0)" }"# }.joined(separator: ", ")
         let config = """
             { "sources": { \(declared) },

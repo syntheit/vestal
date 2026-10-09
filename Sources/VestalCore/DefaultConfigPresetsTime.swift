@@ -25,7 +25,7 @@ extension DefaultPresets {
           "hour12": { "type": "boolean", "default": false, "description": "12-hour times with AM/PM" }
         },
         "widget": {
-          "type": "list", "direction": "grid", "columns": { "param": "columns" }, "gap": 18, "rowGap": 14, "width": "fill",
+          "type": "list", "direction": "grid", "columns": { "param": "columns" }, "gap": 18, "width": "fill",
           "items": "$cities | map(select(.label != null and .zone != null and (.zone | tz_valid))) | uniq_by(.label)",
           "rowId": ".label",
           "row": {
@@ -162,23 +162,23 @@ extension DefaultPresets {
         "widget": {
           "type": "row", "gap": 26, "align": "start", "width": "fill", "source": { "param": "source" },
           "vars": {
-            "tz": ".tz",
-            "next": ".hours | map(select(.time + 3600 > now)) | .[:$hours]",
-            "base": "($next | map(.temp) | min) - 4",
+            "zone": ".tz",
+            "next": "(.hours // []) | map(select(.time + 3600 > now)) | .[:$hours]",
+            "base": "(($next | map(.temp) | min) // 0) - 4",
             "rainAt": "$next | map(select(.rain >= 40)) | first",
-            "shown": ".days | .[:$days]",
-            "lo": "$shown | map(.min) | min",
-            "hi": "$shown | map(.max) | max"
+            "shown": "(.days // []) | .[:$days]",
+            "lo": "($shown | map(.min) | min) // 0",
+            "hi": "($shown | map(.max) | max) // 0"
           },
           "children": [
             { "type": "stack", "gap": 6, "children": [
               { "type": "row", "gap": 8, "children": [
                 { "type": "text", "text": "{{ .temp | round }}°", "style": { "size": 22, "weight": "light", "font": "mono" } },
                 { "type": "text", "style": { "size": 12, "color": "subtle" },
-                  "text": "{{ if $rainAt != null then \"Rain from \" + ($rainAt.time | fmt_time(\"HH:00\"; $tz)) else \"No rain expected\" end }}" }
+                  "text": "{{ if $rainAt != null then \"Rain from \" + ($rainAt.time | fmt_time(\"HH:00\"; $zone)) else \"No rain expected\" end }}" }
               ] },
               { "type": "bars", "labels": true, "barWidth": 12, "gap": 4, "height": 40,
-                "values": "$next | map({value: (.temp - $base), label: (.time | fmt_time(\"HH\"; $tz)), color: (if .rain >= 40 then \"cyan\" else \"text@0.35\" end)})" },
+                "values": "$next | map({value: (.temp - $base), label: (.time | fmt_time(\"HH\"; $zone)), color: (if .rain >= 40 then \"cyan\" else \"text@0.35\" end)})" },
               { "type": "bars", "barWidth": 12, "gap": 4, "height": 12, "max": 100,
                 "values": "$next | map({value: .rain, color: (if .rain >= 40 then \"cyan\" else \"cyan@0.4\" end)})" },
               { "type": "text", "text": "bars: temperature · blue: rain chance ≥ 40%", "style": { "size": 10, "color": "dim" } }
@@ -187,7 +187,7 @@ extension DefaultPresets {
               "items": "$shown", "rowId": ".time",
               "row": { "type": "row", "gap": 8, "width": "fill", "children": [
                 { "type": "text", "width": 40, "lines": 1, "style": { "size": 12, "color": "subtle" },
-                  "text": "{{ if $index == 0 then \"Today\" else (.time | fmt_time(\"EEE\"; $tz)) end }}" },
+                  "text": "{{ if $index == 0 then \"Today\" else (.time | fmt_time(\"EEE\"; $zone)) end }}" },
                 { "type": "icon", "size": 13,
                   "name": { "expr": ".code | step([[0, \"sun\"], [1, \"cloud-sun\"], [3, \"cloud\"], [45, \"cloud-fog\"], [51, \"cloud-rain\"], [71, \"cloud-snow\"], [80, \"cloud-rain\"], [85, \"cloud-snow\"], [95, \"cloud-lightning\"]])" },
                   "color": { "expr": "if .code <= 1 then \"warn\" else \"subtle\" end" } },
@@ -210,7 +210,7 @@ extension DefaultPresets {
         },
         "widget": {
           "type": "stack", "gap": 7, "width": "fill",
-          "vars": { "planName": "($plan // .plan // null) | if . == null or . == \"\" then null else capitalize end" },
+          "vars": { "planName": "((if $plan == \"\" then null else $plan end) // .plan // null) | if . == null or . == \"\" then null else capitalize end" },
           "children": [
             { "type": "row", "gap": 8, "children": [
               { "type": "text", "text": { "param": "name" }, "style": { "size": 12, "weight": "semibold" } },
