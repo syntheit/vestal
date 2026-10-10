@@ -29,7 +29,7 @@ A view is one screen of widgets. The dashboard opens `defaultView` (default `mai
 | `padding` | `48` | Inside `maxWidth`: a number or `[top, right, bottom, left]`. |
 | `maxWidth` | `680` | The root is at most this wide, centered on the screen both ways. |
 | `keys` | `{}` | Key bindings of this view only (`vestal docs keys`). |
-| `enabled` | `true` | `false` turns the view off (see Pages). |
+| `enabled` | `true` | `false` turns the view off; an expression such as `$sources.calendar.events \| length > 0` turns it on and off with the data (see Pages). |
 
 - `views.main.children` in your file replaces the default list whole. To add a widget to the default dashboard, write the full list: `vestal print-config` shows the current one.
 - In a view written with `children`, the first *visible* child gets no space before it. A view written with `order` keeps the older rule: only the first *listed* entry gets none.
@@ -55,6 +55,8 @@ Without `pages.order`, the pages are the views your own config defines (the file
 `left` and `right` go to the previous and next page, and `tab` and `shift+tab` keep cycling, unless you bind those keys yourself: your bindings win (see keys). On Linux the swipe assumes natural scrolling.
 
 Set `enabled` to `false` on a view to turn it off, as you would a lock screen: it has no key, is not paged to, `vestal show <view>` exits 4 as for an unknown view, and nothing in it is evaluated. If `defaultView` is disabled, check-config warns and the first enabled page is shown instead.
+
+`enabled` can also be an expression, evaluated like a widget's `when` (`$sources` and the other variables work): `"enabled": "$sources.calendar.events | length > 0"` shows the view only while there are events. False, null or an error skips the view exactly as `false` does, for paging, the dots, `tab`, its key and `pages.order`; the expression is re-evaluated when the sources it reads change, and every second if it calls `now`. When the current view turns off, the dashboard moves to the nearest enabled page (the next one first, then the previous), else the default view. A `defaultView` that is off at the moment is replaced by the first enabled page, and `vestal show <view>` on a view that is off now stays on the current view. check-config validates the expression.
 
 ```json
 {

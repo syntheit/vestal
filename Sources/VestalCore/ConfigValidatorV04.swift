@@ -211,8 +211,13 @@ struct V04Checker {
                 }
             }
         }
-        if let enabled = view["enabled"], enabled != .null, case .bool = enabled {} else if let enabled = view["enabled"], enabled != .null {
-            add(.wrongType, "\(path).enabled", "expected true or false, found \(enabled.kindDescription); the view stays enabled",
+        switch view["enabled"] {
+        case nil, .null?, .bool?:
+            break
+        case .string?:
+            expr(view["enabled"], path: "\(path).enabled", scope: Self.baseScope)
+        case let enabled?:
+            add(.wrongType, "\(path).enabled", "expected true, false or an expression, found \(enabled.kindDescription); the view stays enabled",
                 severity: .warning)
         }
         text(view["title"], path: "\(path).title", scope: Self.baseScope)

@@ -190,6 +190,13 @@ public final class RenderEngine {
             queue.async { [worker] in
                 worker.session.setView(target)
                 worker.session.closePopup()
+                // A view whose `enabled` expression is false stays where it was.
+                let actual = worker.session.view
+                if actual != target {
+                    Task { @MainActor [weak self] in
+                        if let self, self.currentView == target { self.currentView = actual }
+                    }
+                }
             }
             fullPending = true
         }
@@ -421,14 +428,19 @@ public final class RenderEngine {
             let data = worker.data(inputs)
             let next = worker.session.render(data: data, now: now, changed: full ? nil : changed, tick: isTick)
             let usesNow = worker.session.usesNow
-            Task { @MainActor [weak self] in self?.publish(next, full: full, usesNow: usesNow) }
+            // A page came or went, or the current view with it: send the whole model.
+            let moved = worker.session.viewsChanged
+            worker.session.viewsChanged = false
+            Task { @MainActor [weak self] in self?.publish(next, full: full || moved, usesNow: usesNow, viewMoved: moved) }
         }
     }
 
-    private func publish(_ fresh: RenderSnapshot, full: Bool, usesNow: Bool) {
+    private func publish(_ fresh: RenderSnapshot, full: Bool, usesNow: Bool, viewMoved: Bool = false) {
         guard isEvaluating else { return }
         var next = fresh
         next.visible = isVisible
+        // The session left a view that is no longer enabled.
+        if viewMoved, next.view != currentView { currentView = next.view }
         next.diagnostics += failures
         if full || snapshot == nil {
             // A show, a resync or a view change: the whole model.

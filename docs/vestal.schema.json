@@ -7465,15 +7465,12 @@
         },
         "enabled": {
           "default": true,
-          "description": "false: the view does not exist as far as the dashboard goes. No key, no paging, vestal show refuses it, nothing in it is evaluated.",
+          "description": "false: the view does not exist as far as the dashboard goes. No key, no paging, vestal show refuses it, nothing in it is evaluated. An expression (true or false, like when) turns the view on and off with the data; false or null skips it, and a current view that turns off is left for the nearest enabled page.",
           "examples": [
-            false
+            false,
+            "$sources.calendar.events | length > 0"
           ],
-          "type": [
-            "boolean",
-            "null"
-          ],
-          "x-vestal-kind": "literal",
+          "x-vestal-kind": "expr",
           "x-vestal-since": "0.4"
         },
         "gap": {

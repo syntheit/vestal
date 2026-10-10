@@ -112,10 +112,66 @@ public final class RenderSession {
     /// `pages` so a UI knows which way to slide.
     public private(set) var pageDirection: Int?
 
+    // MARK: Enabled views
+
+    /// The last result of each `enabled` expression, with what it read.
+    private var enabledStates: [String: (enabled: Bool, child: RenderedChild)] = [:]
+    /// The pages or the current view moved in the last render, so a UI
+    /// needs the whole model (the patch has no op for `pages`).
+    public internal(set) var viewsChanged = false
+
+    /// Whether `name` is a view that is enabled now. A view whose
+    /// `enabled` expression has not been evaluated yet counts as enabled.
+    public func isActive(_ name: String) -> Bool {
+        model.views[name] != nil && enabledStates[name]?.enabled != false
+    }
+
+    /// The model's paging order without the views that are not enabled now.
+    public var pageOrder: [String] {
+        model.enabledExpressions.isEmpty ? model.pageOrder : model.pageOrder.filter(isActive)
+    }
+
+    /// The views as the snapshot lists them, those enabled now.
+    public var viewInfos: [RenderViewInfo] {
+        model.enabledExpressions.isEmpty ? model.viewInfos : model.infos(of: model.viewNames.filter(isActive))
+    }
+
+    /// Evaluates the `enabled` expressions that depend on `changed` (all on
+    /// `changed == nil`; those that call `now` on a tick), then leaves a
+    /// current view that is no longer enabled.
+    private func refreshEnabled(data: RenderData, now: Date, changed: Set<String>?, tick: Bool) {
+        guard !model.enabledExpressions.isEmpty else { return }
+        let before = Set(model.enabledExpressions.keys.filter { !isActive($0) })
+        let pass = RenderPass(model: model, data: data, now: now, view: view, timeZone: timeZone, locale: locale, os: os)
+        for (name, expression) in model.enabledExpressions.sorted(by: { $0.key < $1.key }) {
+            if let old = enabledStates[name]?.child, let changed, !old.dependsOn(changed), !(tick && old.usesNow) { continue }
+            enabledStates[name] = pass.renderEnabled(expression, view: name)
+        }
+        let after = Set(model.enabledExpressions.keys.filter { !isActive($0) })
+        if after != before { viewsChanged = true }
+        guard !isActive(view) else { return }
+        // The current view went away: the nearest enabled page (the one
+        // after it first), else the default view, else the first page.
+        let order = model.pageOrder
+        var target: String?
+        if let index = order.firstIndex(of: view) {
+            for distance in 1..<max(order.count, 1) {
+                if index + distance < order.count, isActive(order[index + distance]) { target = order[index + distance]; break }
+                if index - distance >= 0, isActive(order[index - distance]) { target = order[index - distance]; break }
+            }
+        }
+        target = target ?? (isActive(model.defaultView) ? model.defaultView : nil)
+            ?? order.first(where: isActive) ?? model.cycleOrder.first(where: isActive)
+        guard let target else { return }
+        setView(target)
+        closePopup()
+        viewsChanged = true
+    }
+
     /// Switches to `name`. The direction of the change is `direction`, else
     /// taken from where the two views sit in the paging order.
     public func setView(_ name: String, direction: Int? = nil) {
-        guard model.views[name] != nil else { return }
+        guard isActive(name) else { return }
         if name != view {
             if let direction {
                 pageDirection = direction
@@ -149,6 +205,7 @@ public final class RenderSession {
     /// the last render (nil: everything, as on show); `tick` re-evaluates
     /// what calls `now`.
     public func render(data: RenderData, now: Date, changed: Set<String>? = nil, tick: Bool = false) -> RenderSnapshot {
+        refreshEnabled(data: data, now: now, changed: changed, tick: tick)
         let pass = RenderPass(model: model, data: data, now: now, view: view, timeZone: timeZone, locale: locale, os: os)
         let spec = model.views[view] ?? ViewSpec(name: view, json: [:], density: model.density)
         let full = changed == nil || renderedView != view || children.count != spec.children.count
@@ -206,6 +263,7 @@ public final class RenderSession {
             diagnostics.append(RenderDiagnostic(id: nil, field: source, severity: "error", code: "expr-runtime",
                                                 message: "source \(source): \(problem)"))
         }
+        for child in enabledStates.sorted(by: { $0.key < $1.key }) { diagnostics += child.value.child.diagnostics }
         for child in children { diagnostics += child.diagnostics }
         if let popupChild { diagnostics += popupChild.diagnostics }
         diagnostics += backgroundDiagnostics
@@ -213,8 +271,8 @@ public final class RenderSession {
         let renderedPopup = popup.flatMap { state in
             popupChild?.node.map { RenderPopup(width: state.width, node: $0) }
         }
-        return RenderSnapshot(seq: 1, view: view, views: model.viewInfos,
-                              pages: model.renderPages(view: view, direction: pageDirection),
+        return RenderSnapshot(seq: 1, view: view, views: viewInfos,
+                              pages: model.renderPages(view: view, direction: pageDirection, order: pageOrder),
                               visible: true, theme: theme, root: root, popup: renderedPopup, diagnostics: diagnostics)
     }
 
@@ -230,6 +288,7 @@ public final class RenderSession {
     public var sourcesRead: Set<String> {
         var all = Set<String>()
         for child in children { all.formUnion(child.sources) }
+        for state in enabledStates.values { all.formUnion(state.child.sources) }
         all.formUnion(backgroundSources)
         if let popupChild { all.formUnion(popupChild.sources) }
         return all
@@ -237,6 +296,6 @@ public final class RenderSession {
 
     /// Whether anything rendered calls `now` (the 1 s tick is needed).
     public var usesNow: Bool {
-        children.contains(where: \.usesNow) || popupChild?.usesNow == true
+        children.contains(where: \.usesNow) || popupChild?.usesNow == true || enabledStates.values.contains { $0.child.usesNow }
     }
 }

@@ -198,6 +198,16 @@ final class RenderPass {
         return finish(node)
     }
 
+    /// A view's `enabled` expression: whether it holds, with what it read.
+    /// Like `when`, false, null and an error (reported) all mean no.
+    func renderEnabled(_ expression: String, view name: String) -> (enabled: Bool, child: RenderedChild) {
+        begin()
+        var scope = baseScope()
+        scope.vars["view"] = .string(name)
+        let result = eval(expression, id: "views/\(Self.encode(name))", field: "enabled", scope: scope)
+        return (result?.isTruthy ?? false, finish(nil))
+    }
+
     private func begin(replay: [MemoEntry] = []) {
         diagnostics = []
         diagnosticKeys = []

@@ -14,6 +14,10 @@ public final class RenderConfigModel: @unchecked Sendable {
     /// View names, sorted (the snapshot's `views` order).
     public let viewNames: [String]
     public let defaultView: String
+    /// Views whose `enabled` is an expression, view → expression. They are
+    /// in `views` and `pageOrder`; a session leaves out those that yield
+    /// false (`RenderSession.pageOrder`).
+    public let enabledExpressions: [String: String]
     /// `pages`, and the views it pages between, in order.
     public let pages: PagesConfig
     public let pageOrder: [String]
@@ -50,13 +54,16 @@ public final class RenderConfigModel: @unchecked Sendable {
         density = ThemeConfig.density(top["theme"])
         var views: [String: ViewSpec] = [:]
         var disabled = Set<String>()
+        var expressions: [String: String] = [:]
         for (name, json) in top["views"]?.objectValue ?? [:] {
             guard let object = json.objectValue else { continue }
             // A disabled view does not exist as far as the dashboard goes.
             if case .bool(false)? = object["enabled"] { disabled.insert(name); continue }
+            if case .string(let expression)? = object["enabled"] { expressions[name] = expression }
             views[name] = ViewSpec(name: name, json: object, density: density)
         }
         self.views = views
+        enabledExpressions = expressions
         viewNames = views.keys.sorted()
         let pagesConfig = PagesConfig(top["pages"])
         pages = pagesConfig
@@ -127,14 +134,19 @@ public final class RenderConfigModel: @unchecked Sendable {
 
     /// The views as the snapshot lists them.
     public var viewInfos: [RenderViewInfo] {
-        viewNames.map { name in
+        infos(of: viewNames)
+    }
+
+    func infos(of names: [String]) -> [RenderViewInfo] {
+        names.map { name in
             let spec = views[name]!
             return RenderViewInfo(name: name, title: spec.title, key: spec.key)
         }
     }
 
-    /// The snapshot's `pages` for `view`: nil with fewer than two pages.
-    func renderPages(view: String, direction: Int?) -> RenderPages? {
+    /// The snapshot's `pages` for `view` over `order` (the pages that are
+    /// enabled now): nil with fewer than two pages.
+    func renderPages(view: String, direction: Int?, order pageOrder: [String]) -> RenderPages? {
         guard pageOrder.count > 1 else { return nil }
         let items = pageOrder.map { name -> RenderViewInfo in
             let spec = views[name]!

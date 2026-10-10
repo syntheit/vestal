@@ -289,9 +289,11 @@ public enum SchemaRegistry {
                       "Shown by UIs that list views. Default: the name, capitalized."),
             SchemaKey("key", .string, since: "0.4", examples: [.string("2")],
                       "A key that switches to this view (a global binding)."),
-            SchemaKey("enabled", .boolean, default: .bool(true), since: "0.4", examples: [.bool(false)],
+            SchemaKey("enabled", .any, kind: .expr, default: .bool(true), since: "0.4", examples: [.bool(false), .string("$sources.calendar.events | length > 0")],
                       "false: the view does not exist as far as the dashboard goes. No key, no paging, vestal show "
-                      + "refuses it, nothing in it is evaluated."),
+                      + "refuses it, nothing in it is evaluated. An expression (true or false, like when) turns the view "
+                      + "on and off with the data; false or null skips it, and a current view that turns off is left for "
+                      + "the nearest enabled page."),
             SchemaKey("columns", .integer(minimum: 1), default: .int(2), since: "0.4", examples: [.int(3)],
                       "Columns, for layout grid."),
             SchemaKey("gap", .number, default: .int(24), since: "0.4", examples: [.int(32)],

@@ -88,10 +88,10 @@ extension RenderSession {
         if let action = model.keys.first(where: { RenderKeyMap.normalize($0.key) == key })?.value {
             return RenderKeyBinding(level: "global", action: action)
         }
-        if let target = model.viewInfos.first(where: { $0.key.map(RenderKeyMap.normalize) == key })?.name {
+        if let target = viewInfos.first(where: { $0.key.map(RenderKeyMap.normalize) == key })?.name {
             return RenderKeyBinding(level: "view-key", action: .object(["view": .string(target)]))
         }
-        let order = model.pageOrder
+        let order = pageOrder
         if key == "tab" || key == "shift+tab", order.count > 1, let index = order.firstIndex(of: view) {
             let step = key == "tab" ? 1 : order.count - 1
             return RenderKeyBinding(level: "tab", action: .object(["view": .string(order[(index + step) % order.count])]))
@@ -105,7 +105,7 @@ extension RenderSession {
     /// The page `step` away from the current view (wrapping with `pages.wrap`),
     /// or nil at an end or when the view is not a page.
     public func pageTarget(step: Int) -> String? {
-        let order = model.pageOrder
+        let order = pageOrder
         guard order.count > 1, let index = order.firstIndex(of: view) else { return nil }
         let target = index + step
         if order.indices.contains(target) { return order[target] }
@@ -232,7 +232,7 @@ extension RenderSession {
             closePopup()
             effects.append(.changed)
         } else if let name = text(members["view"]) {
-            if model.views[name] != nil {
+            if isActive(name) {
                 setView(name)
                 closePopup()
                 effects.append(.changed)
