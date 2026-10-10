@@ -62,17 +62,11 @@ struct NodeSpec: Equatable {
     }
 
     func clampWidth(_ w: Double) -> Double {
-        var w = w
-        if let m = maxWidth { w = min(w, m) }
-        if let m = minWidth { w = max(w, m) }
-        return max(0, w)
+        RenderNode.clamp(w, minimum: minWidth, maximum: maxWidth)
     }
 
     func clampHeight(_ h: Double) -> Double {
-        var h = h
-        if let m = maxHeight { h = min(h, m) }
-        if let m = minHeight { h = max(h, m) }
-        return max(0, h)
+        RenderNode.clamp(h, minimum: minHeight, maximum: maxHeight)
     }
 
     var fillsWidth: Bool { width == .fill }

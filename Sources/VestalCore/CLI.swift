@@ -318,8 +318,7 @@ public enum CLI {
     }
 
     /// Nil when the config vestal loads has a view named `view`; otherwise
-    /// exit 4 with a did-you-mean. Views can't be switched yet (v0.4 phase
-    /// 7), but a name that isn't in the config is a mistake now already.
+    /// exit 4 with a did-you-mean. A name that isn't in the config is a mistake.
     public static func checkView(
         _ view: String,
         environment: [String: String] = ProcessInfo.processInfo.environment,
@@ -461,7 +460,7 @@ public enum CLI {
             let nameWidth = status.sources.map(\.name.count).max() ?? 0
             let typeWidth = status.sources.map(\.type.count).max() ?? 0
             for source in status.sources {
-                var line = "  " + pad(source.name, nameWidth) + "  " + pad(source.type, typeWidth) + "  "
+                var line = "  " + padRight(source.name, nameWidth) + "  " + padRight(source.type, typeWidth) + "  "
                 line += source.age(at: now).map { "fetched \(age($0)) ago" } ?? "not fetched yet"
                 if let error = source.lastError { line += ", failed: \(error)" }
                 lines.append(line)
@@ -484,7 +483,7 @@ public enum CLI {
             lines.append("  disks:")
             let width = stats.mounts.map(\.mountpoint.count).max() ?? 0
             for mount in stats.mounts {
-                lines.append("    \(pad(mount.mountpoint, width))  \(usedPercent(mount.totalBytes, mount.freeBytes))% used of \(Format.bytes(mount.totalBytes))")
+                lines.append("    \(padRight(mount.mountpoint, width))  \(usedPercent(mount.totalBytes, mount.freeBytes))% used of \(Format.bytes(mount.totalBytes))")
             }
         }
         if let battery = stats.battery {
@@ -523,10 +522,6 @@ public enum CLI {
         if s < 3600 { return "\(s / 60)m" }
         if s < 86400 { return "\(s / 3600)h \(s % 3600 / 60)m" }
         return "\(s / 86400)d \(s % 86400 / 3600)h"
-    }
-
-    private static func pad(_ text: String, _ width: Int) -> String {
-        text.count >= width ? text : text + String(repeating: " ", count: width - text.count)
     }
 
     // MARK: Starting an instance

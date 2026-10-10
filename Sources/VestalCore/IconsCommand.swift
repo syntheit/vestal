@@ -73,7 +73,7 @@ public enum IconsCommand {
         for name in shown {
             let weights = IconMap.weights(name).joined(separator: ",")
             let code = IconMap.codePoint(name, weight: "regular") ?? IconMap.codePoint(name, weight: "fill")
-            out += pad(name, width) + "  " + pad(weights, 12) + "  " + (code.map(hex) ?? "") + "\n"
+            out += padRight(name, width) + "  " + padRight(weights, 12) + "  " + (code.map(hex) ?? "") + "\n"
         }
         let note = more > 0 ? "vestal: \(more) more; --limit 0 lists all\n" : ""
         return Output(status: 0, stdout: out, stderr: note)
@@ -100,9 +100,5 @@ public enum IconsCommand {
     static func hex(_ code: UInt32) -> String {
         let digits = String(code, radix: 16, uppercase: true)
         return "U+" + String(repeating: "0", count: max(0, 4 - digits.count)) + digits
-    }
-
-    private static func pad(_ text: String, _ width: Int) -> String {
-        text.count >= width ? text : text + String(repeating: " ", count: width - text.count)
     }
 }

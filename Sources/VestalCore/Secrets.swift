@@ -78,14 +78,6 @@ public enum LoadTimeText {
         return out
     }
 
-    /// `$name` or `$name.field`.
-    static func isVariablePath(_ text: String) -> Bool {
-        guard text.hasPrefix("$"), text.count > 1 else { return false }
-        return text.dropFirst().split(separator: ".", omittingEmptySubsequences: false).allSatisfy { part in
-            !part.isEmpty && part.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" }
-        }
-    }
-
     /// The secret names `text` refers to (`{{ $secrets.x }}`), for the draft
     /// and literal-token checks.
     public static func secretNames(in text: String) -> [String] {

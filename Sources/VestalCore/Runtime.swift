@@ -6,7 +6,7 @@ import Foundation
 // piece of work is a job:
 //
 //   - a source: every source in the config, the inline
-//     ones and those the v0.3 widgets read (`Config.runtimeSources`). An
+//     ones and those the legacy widgets read (`Config.runtimeSources`). An
 //     `always` source runs whether or not the dashboard is visible, every
 //     `refresh`, counted from the start of its last run so its cadence
 //     doesn't drift. A `visible` source (`system`, `media` and `claude` by
@@ -372,7 +372,8 @@ public final class AppRuntime {
     /// previous one returned. `aligned` puts runs on whole multiples of the
     /// interval (a clock ticks on the second). `startNow` false waits one
     /// interval before the first run, for a caller that has fresh values
-    /// already. A ticker with the same name is replaced.
+    /// already. A ticker with the same name is replaced. The scheduler's
+    /// general periodic job, exercised by the tests; no source uses it today.
     public func addTicker(
         name: String,
         interval: TimeInterval,

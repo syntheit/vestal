@@ -50,6 +50,13 @@ These are committed. A test fails when one drifts from its source, so rerun the 
 | `docs/vestal.schema.json` | the widget and source registries | `vestal schema --out docs/vestal.schema.json` |
 | `Tests/VestalCoreTests/Fixtures/expr-cases.json` | `expr-cases.txt`, run through the real jq | `scripts/gen-expr-fixtures.py` |
 
+## Benchmarks
+
+Two hidden macOS-only subcommands measure CPU use headlessly (no window opens). They are not in `vestal --help`.
+
+- `vestal bench-render --config <path> --data <dir> [--seconds <n>] [--at <time>] [--size <w>x<h>] [--view <name>] [--poll <n>] [--realtime] [--verify]` runs what a shown dashboard does every second (render the tick, diff, apply the patch, lay out in an offscreen view) and prints CPU time per step. `--verify` also checks that patched layouts match a fresh render and exits 1 when they differ.
+- `vestal bench-background [name... | all | burst <name>] [--seconds <n>] [--fps <n>] [--size <w>x<h>] [--scale <x>] [--mode view|texture]` draws backgrounds (default: all, aurora first) and prints the process CPU percentage. `view` drives a real `MTKView`, `texture` encodes into an offscreen texture.
+
 ## More
 
 - [expression-engine.md](expression-engine.md): the jq interpreter, its API and how it differs from jq 1.7.1.

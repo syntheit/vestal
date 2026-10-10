@@ -134,7 +134,8 @@ final class HeadlessTests: XCTestCase {
         }
         // New: created 0700.
         let fresh = root.appendingPathComponent("fresh").path
-        SnapshotCache(directory: fresh).saveNowPlaying(.off, player: "x")
+        SnapshotCache(directory: fresh).save(SourceSnapshot(data: Data("{}".utf8), fetchedAt: Date()),
+                                             source: SourceConfig(type: "command", argv: ["true"]), as: "s")
         XCTAssertEqual(try mode(fresh), 0o700)
         // Left world-readable by an older build: tightened on the next write.
         let old = root.appendingPathComponent("old").path

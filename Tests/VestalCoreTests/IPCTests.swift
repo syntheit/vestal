@@ -414,6 +414,7 @@ final class IPCTests: XCTestCase {
         let stuck = try RawIPCSocket(connectingTo: path)
         stuck.transmit("status\n")  // and doesn't read the (large) reply for now
         XCTAssertEqual(handedOver.wait(timeout: .now() + 30), .success)
+        let stuckSince = Date()
 
         // Served well before the stuck write's deadline (1s after it began).
         let start = Date()
@@ -421,8 +422,10 @@ final class IPCTests: XCTestCase {
         XCTAssertLessThan(Date().timeIntervalSince(start), 0.8)
 
         // Past that deadline the server gives up: what fit in the socket
-        // buffer, then EOF.
-        Thread.sleep(forTimeInterval: 2)
+        // buffer, then EOF. Reading earlier would drain the buffer and let
+        // the write finish, so wait out the deadline (measured from when the
+        // write began, not a fixed pause) before reading.
+        Thread.sleep(forTimeInterval: max(0, stuckSince.addingTimeInterval(2).timeIntervalSinceNow))
         let received = try XCTUnwrap(stuck.readToEOF(timeout: 10), "never hung up")
         XCTAssertGreaterThan(received.count, 0)
         XCTAssertLessThan(received.count, IPCResponse.status(big).jsonLine().count)

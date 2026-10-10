@@ -121,10 +121,6 @@ public enum SchemaRegistry {
         return result
     }
 
-    public static func sourceType(_ name: String) -> SchemaEntityType? {
-        sourceTypes.first { $0.name == name || $0.aliases.contains(name) }
-    }
-
     public static func widgetType(_ name: String) -> SchemaEntityType? {
         widgetTypes.first { $0.name == name || $0.aliases.contains(name) }
     }

@@ -91,22 +91,6 @@ public struct SnapshotCache: Sendable {
         try? FileManager.default.removeItem(atPath: path(for: name))
     }
 
-    /// What `player` was last seen playing; nil if nothing was saved.
-    public func loadNowPlaying(player: String) -> NowPlaying? {
-        guard let raw = try? Data(contentsOf: URL(fileURLWithPath: path(for: Self.mediaName(player)))) else {
-            return nil
-        }
-        return try? JSONDecoder().decode(NowPlaying.self, from: raw)
-    }
-
-    public func saveNowPlaying(_ playing: NowPlaying, player: String) {
-        makeDirectory()
-        guard let raw = try? JSONEncoder().encode(playing) else { return }
-        Self.writePrivate(raw, to: path(for: Self.mediaName(player)))
-    }
-
-    private static func mediaName(_ player: String) -> String { "media:\(player)" }
-
     /// The cache holds fetched data and each source's definition hash, so
     /// only the owner may read it: 0700, also when it exists already
     /// (~/.cache is often world-readable on Linux).
@@ -192,7 +176,7 @@ public struct SnapshotCache: Sendable {
         /// What older versions wrote instead of `fetchedAt`; still read, so
         /// an existing cache serves after an upgrade.
         var lastFetch: Date?
-        /// What v0.3 wrote instead of `definition`: the definition's JSON.
+        /// What older versions wrote instead of `definition`: the definition's JSON.
         /// Read so an old file still loads; it never matches a hash, so the
         /// source refetches once.
         var source: String?

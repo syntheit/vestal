@@ -94,15 +94,6 @@ func afterMilliseconds(_ ms: UInt32, _ body: @escaping VoidHandler) -> guint {
     return g_timeout_add_full(G_PRIORITY_DEFAULT, ms, thunk, Box<VoidHandler>(body).retained(), releaseBox)
 }
 
-/// Runs `body` once when the main loop is idle.
-func whenIdle(_ body: @escaping VoidHandler) {
-    let thunk: GSourceFunc = { data in
-        Box<VoidHandler>.from(data)()
-        return gboolean(0)
-    }
-    g_idle_add_full(G_PRIORITY_DEFAULT_IDLE, thunk, Box<VoidHandler>(body).retained(), releaseBox)
-}
-
 // MARK: - Dispatch main queue on the GLib main loop
 
 /// libdispatch's hooks for a foreign run loop (CoreFoundation uses the

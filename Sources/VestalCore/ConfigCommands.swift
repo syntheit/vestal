@@ -7,8 +7,8 @@ import Foundation
 // `stdout` and `stderr` and exits with `status`:
 // 0 ok (warnings included), 1 when the file can't be read or parsed (vestal
 // would run on the built-in defaults), 2 for bad usage, 3 when the config has
-// errors (or, with --strict, warnings). v0.3 findings are all warnings, so a
-// v0.3 config never gets 3 without --strict.
+// errors (or, with --strict, warnings). Legacy findings are all warnings, so a
+// legacy config never gets 3 without --strict.
 
 public enum ConfigCommands {
     public struct Output: Equatable, Sendable {
@@ -83,7 +83,7 @@ public enum ConfigCommands {
             return Output(status: status, stdout: ConfigDiagnostics.report(file: label, diagnostics).prettyPrinted() + "\n")
         }
 
-        // The v0.3 lines, each followed by a hint line (pointer, did-you-mean).
+        // The legacy lines, each followed by a hint line (pointer, did-you-mean).
         if input.loaded.hasErrors {
             return Output(status: status, stdout: input.loaded.warnings.map { "\(label): \($0)\n" }.joined())
         }
@@ -97,7 +97,7 @@ public enum ConfigCommands {
             text = "\(label): \(errors) error\(errors == 1 ? "" : "s")"
                 + (warnings > 0 ? ", \(warnings) warning\(warnings == 1 ? "" : "s")" : "") + "\n"
         }
-        // Errors and warnings in the v0.3 line format; info (the legacy
+        // Errors and warnings in the legacy line format; info (the legacy
         // adapter's notes) after them.
         for diagnostic in diagnostics.filter({ $0.severity != .info }) + diagnostics.filter({ $0.severity == .info }) {
             let prefix = diagnostic.severity == .warning ? "" : "\(diagnostic.severity.rawValue): "
@@ -207,7 +207,7 @@ public enum ConfigCommands {
                 break
             }
         }
-        // v0.4: named sources whose type is a source template (`foyer`, the
+        // Named sources whose type is a source template (`foyer`, the
         // user's own) run what their expanded body says.
         let expanded = ConfigExpansion.expand(merged)
         let expandedSources = expanded.top["sources"]?.objectValue ?? [:]
@@ -273,7 +273,7 @@ public enum ConfigCommands {
                 }
             }
         }
-        // v0.4: command secrets, `run` actions and inline command sources
+        // Command secrets, `run` actions and inline command sources
         // anywhere in widgets, views, keys and templates.
         for (name, value) in (top["secrets"]?.objectValue ?? [:]).sorted(by: { $0.key < $1.key }) {
             if let argv = strings(value.objectValue?["command"]), !argv.isEmpty {
@@ -445,7 +445,7 @@ public enum ConfigCommands {
         let pointerWidth = rows.map(\.pointer.count).max() ?? 0
         let valueWidth = min(40, rows.map(\.value.count).max() ?? 0)
         return rows.map { row in
-            pad(row.pointer, pointerWidth) + "  " + pad(row.value, valueWidth) + "  " + row.layer + "\n"
+            padRight(row.pointer, pointerWidth) + "  " + padRight(row.value, valueWidth) + "  " + row.layer + "\n"
         }.joined()
     }
 
@@ -602,9 +602,5 @@ public enum ConfigCommands {
         var error: [String: AnyJSON] = ["code": .string(code), "message": .string(message)]
         if let suggestion { error["suggestion"] = .string(suggestion) }
         return AnyJSON.object(["error": .object(error)]).compactPrinted() + "\n"
-    }
-
-    private static func pad(_ text: String, _ width: Int) -> String {
-        text.count >= width ? text : text + String(repeating: " ", count: width - text.count)
     }
 }

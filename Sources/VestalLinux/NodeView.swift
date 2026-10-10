@@ -208,19 +208,9 @@ class NodeView {
 
     var padding: RenderInsets { node.padding }
 
-    func clampWidth(_ w: Double) -> Double {
-        var w = w
-        if let m = node.maxWidth { w = min(w, m) }
-        if let m = node.minWidth { w = max(w, m) }
-        return max(0, w)
-    }
+    func clampWidth(_ w: Double) -> Double { node.clampWidth(w) }
 
-    func clampHeight(_ h: Double) -> Double {
-        var h = h
-        if let m = node.maxHeight { h = min(h, m) }
-        if let m = node.minHeight { h = max(h, m) }
-        return max(0, h)
-    }
+    func clampHeight(_ h: Double) -> Double { node.clampHeight(h) }
 
     /// GTK's measure. Overridden by the stage, scrim and card.
     func measure(horizontal: Bool, forSize: Double) -> Measure {
@@ -267,7 +257,7 @@ class NodeView {
         case .icon(let icon):
             return icon.size
         case .bar:
-            return 48 // v0.3's mini bar; a bar normally has a width or fills.
+            return 48 // the original mini bar; a bar normally has a width or fills.
         case .ring:
             return 40
         case .spark:
