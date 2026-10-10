@@ -10,9 +10,9 @@ import VestalCore
 // that change), line for line the macOS UI's (VestalMac/Render/RenderClockFaces.swift).
 // Everything is drawn with cairo, text with Pango through cairo.
 //
-// Nothing runs while the dashboard is hidden: the sweeping hand and a fold
-// use the widget's frame clock (it stops with the window), and the stepping
-// hand's timer exists only between the widget's `map` and `unmap`.
+// Nothing runs while the dashboard is hidden: a fold uses the widget's
+// frame clock (it stops with the window), and a hand's timer exists only
+// between the widget's `map` and `unmap`.
 
 /// What a clock face keeps: its animation sources, and a fold in progress.
 final class FaceState {
@@ -47,20 +47,15 @@ extension NodeView {
             guard let self, let state else { return }
             state.stop(self.widget)
             if mode == "sweep" {
-                // The frame clock, but a frame at most `sweepFPS` times a
-                // second: a smooth hand needs no more.
-                var last: gint64 = 0
-                let due: (WidgetPtr?) -> Void = { widget in
-                    let now = g_get_monotonic_time()
-                    guard now - last >= 1_000_000 / gint64(FaceState.sweepFPS) * 9 / 10 else { return }
-                    last = now
-                    if let widget { gtk_widget_queue_draw(widget) }
+                // A timer at `sweepFPS`, not the frame clock: a smooth hand
+                // needs no more, and the clock stays asleep between frames.
+                let widget = self.widget
+                let body: () -> Void = { if let widget { gtk_widget_queue_draw(widget) } }
+                let thunk: GSourceFunc = { data in
+                    Box<() -> Void>.from(data)()
+                    return 1
                 }
-                let tick: GtkTickCallback = { widget, _, data in
-                    Box<(WidgetPtr?) -> Void>.from(data)(widget)
-                    return 1 // G_SOURCE_CONTINUE
-                }
-                state.tick = gtk_widget_add_tick_callback(self.widget, tick, Box(due).retained(), releaseBox)
+                state.timer = g_timeout_add_full(G_PRIORITY_DEFAULT, guint(1000 / FaceState.sweepFPS), thunk, Box(body).retained(), releaseBox)
             } else {
                 let seconds: guint = mode == "step" ? 1 : 5
                 let widget = self.widget

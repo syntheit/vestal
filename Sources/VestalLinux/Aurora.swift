@@ -11,9 +11,9 @@ import VestalCore
 // GTK 4 gives the area an RGBA texture it composites as premultiplied, over
 // the window's translucent `bg` tint and the compositor's blur, so no
 // channel may exceed alpha. It renders only while the dashboard is shown: a
-// tick callback queues a frame when one is due, `theme.backgroundFPS` times
-// a second, and `stop()` removes it, so a hidden dashboard draws nothing. Without GL (no EGL, or a context
-// that fails) the area hides itself and the background is the plain blur.
+// timer queues a frame `theme.backgroundFPS` times a second, and `stop()`
+// removes it, so a hidden dashboard draws nothing. Without GL (no EGL, or a
+// context that fails) the area hides itself and the background is the plain blur.
 // A background of the library (BackgroundLibrary.swift) takes the ribbons'
 // place in the same area, drawn at theme.backgroundFPS.
 //
@@ -30,7 +30,7 @@ final class AuroraArea {
     private var program: GLuint = 0
     private var vao: GLuint = 0
     private var header = ""
-    private var tickId: guint = 0
+    private var timerId: guint = 0
     private let startTime = g_get_monotonic_time()
     private(set) var failed = false
     private var running = false
@@ -80,7 +80,7 @@ final class AuroraArea {
         widget = gtk_gl_area_new()
         gtk_gl_area_set_has_depth_buffer(area, 0)
         gtk_gl_area_set_has_stencil_buffer(area, 0)
-        // Frames come from the tick callback only.
+        // Frames come from the frame timer only.
         gtk_gl_area_set_auto_render(area, 0)
         gtk_widget_set_can_target(widget, 0)
         g_object_ref_sink(UnsafeMutableRawPointer(widget))
@@ -106,32 +106,29 @@ final class AuroraArea {
         running = true
         guard !failed else { return }
         guard animates else { return gtk_gl_area_queue_render(area) }
-        guard tickId == 0 else { return }
-        // At most `fps` frames a second (the library background's, or the
-        // ribbons'): the tick comes with every display refresh and queues
-        // a frame when one is due.
-        let interval = 1_000_000 / max(library?.fps ?? fps, 1)
-        var last = 0
-        let due: () -> Void = { [weak self] in
-            guard let self else { return }
-            let now = g_get_monotonic_time()
-            guard now - last >= interval * 9 / 10 else { return }
-            last = now
+        guard timerId == 0 else { return }
+        // `fps` frames a second (the library background's, or the
+        // ribbons'): a timer at that rate queues each frame, so the frame
+        // clock wakes only when one is due. The shader is time-based, so a
+        // late timer drops no motion.
+        let interval = guint(max(1000 / max(library?.fps ?? fps, 1), 1))
+        let due: VoidHandler = { [weak self] in
+            guard let self, gtk_widget_get_mapped(self.widget) != 0 else { return }
             gtk_gl_area_queue_render(self.area)
         }
-        let tick: GtkTickCallback = { _, _, data in
-            Box<() -> Void>.from(data)()
+        let thunk: GSourceFunc = { data in
+            Box<VoidHandler>.from(data)()
             return 1 // G_SOURCE_CONTINUE
         }
-        tickId = gtk_widget_add_tick_callback(widget, tick, Box(due).retained(), releaseBox)
+        timerId = g_timeout_add_full(G_PRIORITY_DEFAULT, interval, thunk, Box<VoidHandler>(due).retained(), releaseBox)
     }
 
     /// Stop drawing (the dashboard is hidden).
     func stop() {
         running = false
-        if tickId != 0 {
-            gtk_widget_remove_tick_callback(widget, tickId)
-            tickId = 0
+        if timerId != 0 {
+            g_source_remove(timerId)
+            timerId = 0
         }
     }
 
@@ -169,7 +166,7 @@ final class AuroraArea {
         let es = gtk_gl_area_get_api(area) == GDK_GL_API_GLES
         header = es ? "#version 300 es\nprecision highp float;\n" : "#version 150\n"
         switch GLShader.program(header: header, vertex: GLShader.fullscreenVertex, fragment: Self.fragmentSource) {
-        case .success(let p): program = p
+        case .success(let p): program = p; locations = [:]
         case .failure(let error): return fail(error.description)
         }
         // Core profiles need a vertex array bound, even with no buffers.
@@ -185,7 +182,7 @@ final class AuroraArea {
         guard gtk_gl_area_get_error(area) == nil else { return }
         blur.destroy()
         libraryPass.destroy()
-        if program != 0 { epoxy_glDeleteProgram!(program); program = 0 }
+        if program != 0 { epoxy_glDeleteProgram!(program); program = 0; locations = [:] }
         if vao != 0 { epoxy_glDeleteVertexArrays!(1, &vao); vao = 0 }
         // A backdrop set while realized is gone with its texture; the next
         // show captures again.
@@ -244,7 +241,15 @@ final class AuroraArea {
         return drawn
     }
 
-    private func location(_ name: String) -> GLint { epoxy_glGetUniformLocation!(program, name) }
+    /// Uniform locations of `program`, looked up once after linking.
+    private var locations: [String: GLint] = [:]
+
+    private func location(_ name: String) -> GLint {
+        if let cached = locations[name] { return cached }
+        let found = epoxy_glGetUniformLocation!(program, name)
+        locations[name] = found
+        return found
+    }
 
     /// Runs the blur (inside `render`, with the context current), then
     /// rebinds the area's own framebuffer and viewport.
