@@ -1,6 +1,6 @@
 # Vestal configuration
 
-One JSON file drives vestal on macOS and Linux. This page is the contract for v0.4: every key the config language has, its type and its default. `vestal check-config` reports anything else.
+One JSON file drives vestal on macOS and Linux. This page is the contract: every key the config language has, its type and its default. `vestal check-config` reports anything else.
 
 The same reference ships in the binary, so an agent with only `vestal` has it: `vestal docs` lists the topics, `vestal docs config` prints this page's rules followed by a table of every key generated from the schema registry, and `vestal schema` prints the JSON Schema. Where a table here would only repeat those, this page points to them.
 
@@ -29,7 +29,7 @@ Merging works on the JSON:
 - A value of a different kind replaces the old one, for example an object over a string.
 - Redefining a default source or widget under its own name merges too, even with another `type`: the default's other keys stay. `{"sources": {"weather": {"type": "command", "argv": ["~/bin/weather"]}}}` keeps the default `url` (and `check-config` warns about it). Use a new name, or delete the leftover with `"url": null`.
 
-After merging, templates are expanded (the built-in presets and your own, see [Templates](#templates)), and the legacy adapter links the v0.3 widgets that depend on each other (see [Presets](#presets)). `vestal print-config --expanded` shows the result.
+After merging, templates are expanded (the built-in presets and your own, see [Templates](#templates)), and the legacy adapter links the widgets that depend on each other (see [Presets](#presets)). `vestal print-config --expanded` shows the result.
 
 Decoding is permissive:
 
@@ -72,7 +72,7 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 
 | Key | Type | Default | |
 |---|---|---|---|
-| `version` | integer | `1` | Schema version. Only `1` exists; v0.4 only adds keys. |
+| `version` | integer | `1` | Schema version. Only `1` exists. |
 | `hotkey` | string or `null` | `null` | Built-in toggle hotkey, such as `"f3"` or `"cmd+shift+space"`: keys `f1`-`f20`, letters, digits, `space`, `escape` (or `esc`), `home`, `end`, with modifiers `cmd` (or `super`, the same key: Super on Linux), `ctrl`, `alt` (or `opt`) and `shift`, joined with `+`, case-insensitive. The hotkey is taken from every app, so letters, digits, `space` and `escape` need `cmd`, `ctrl` or `alt` (`shift` alone is not enough); `f1`-`f20`, `home` and `end` may stand alone. One that doesn't parse registers nothing and is a warning (`check-config`, `vestal status`). `null` registers nothing; bind `vestal toggle` in skhd, Hyprland or similar instead. On Linux vestal registers no hotkey itself (Wayland has no global hotkeys); the Home Manager module's `programs.vestal.hyprland.enable` turns this key into a Hyprland bind. On macOS, letters and digits are key positions on a US layout. |
 | `gesture` | `"pinch"` or `null` | `null` | Trackpad gesture for the dashboard, like `hotkey`. `"pinch"` is the old Launchpad gesture with a thumb and three fingers: pinching in opens the dashboard when it is hidden, spreading the fingers closes it when it is shown (the other way round does nothing). The dashboard fades in or out with the fingers; lifting past halfway (or with a quick flick) completes it, lifting earlier puts it back. macOS only, read from the trackpad through the private MultitouchSupport framework (no permission needed), so a `"pinch"` on macOS also needs the system's own use of that gesture turned off (System Settings > Trackpad > More Gestures > Apps, or `defaults write com.apple.dock showLaunchpadGestureEnabled -bool false`). Any other value is a warning and watches nothing. On Linux the key is accepted and ignored (an info note in `check-config`); bind `vestal toggle` in the compositor. `null` watches nothing. |
 | `theme` | object | see [theme](#theme) | Palette, background, colors, fonts, scale, density, icons. |
@@ -104,8 +104,8 @@ A whole number above zero followed by `s`, `m`, `h` or `d`: `"30s"`, `"5m"`, `"4
 | `fonts` | object | the typeface's | A family per role: `{"display": …, "sans": …, "mono": …, "rounded": …}` (`display` is for clocks and big numbers); an entry overrides the typeface's. `null` (or absent) is the typeface's, else the platform's default: SF Pro, SF Mono and SF Pro Rounded on macOS; Geist and Geist Mono on Linux (shipped by the Nix package; fontconfig's `sans-serif` and `monospace` without them; `rounded` is `sans` there). A family that isn't installed falls back to the default. On Linux, text is drawn with FreeType's stem darkening and text below bold one weight step heavier (400 as 500, 600 as 700), which matches macOS's heavier glyphs (`docs/screenshots/linux/fonts/`); `VESTAL_FONT_WEIGHT_OFFSET=0` in vestal's environment draws the weights as given, and a `FREETYPE_PROPERTIES` of your own replaces the darkening. |
 | `font` | string | none | Shorthand for `fonts.sans`. |
 | `scale` | number | `1` | Multiplies every text, icon and fixed size (numeric widths and heights, min/max sizes, column widths, the view's `maxWidth`, popup widths; not gaps or padding), for large screens or reading distance. |
-| `density` | string | `"comfortable"` | How much room the built-in presets take. `"comfortable"`: the v0.3 look. `"compact"`: about half the height: a clock (every `face`) about two thirds the size with the date and world clocks on one line under it, no section titles or rules where the rows explain themselves (hosts, currencies, weather; the agenda keeps a small title), shorter and thinner bars, currencies and weather on one line each, plan-usage resets beside the bars, and about half the space between blocks. Same parameters at both; a template you override stays yours. The `title` of `systemHealth`, `keyValueList` and `weatherCard` is accepted and not drawn; a `section` (yours too) gets a small title and no rule. `vestal docs preset/<name>` shows both bodies. Views without a `gap` use `12` instead of `24`. Screenshots: `docs/screenshots/compact/`. |
-| `icons` | string | `"native"` on macOS | `"native"`: the macOS UI draws the icons the presets use as the SF Symbols v0.3 drew. `"phosphor"`: the bundled Phosphor font everywhere. Linux always uses Phosphor. |
+| `density` | string | `"comfortable"` | How much room the built-in presets take. `"comfortable"`: the full-size look. `"compact"`: about half the height: a clock (every `face`) about two thirds the size with the date and world clocks on one line under it, no section titles or rules where the rows explain themselves (hosts, currencies, weather; the agenda keeps a small title), shorter and thinner bars, currencies and weather on one line each, plan-usage resets beside the bars, and about half the space between blocks. Same parameters at both; a template you override stays yours. The `title` of `systemHealth`, `keyValueList` and `weatherCard` is accepted and not drawn; a `section` (yours too) gets a small title and no rule. `vestal docs preset/<name>` shows both bodies. Views without a `gap` use `12` instead of `24`. Screenshots: `docs/screenshots/compact/`. |
+| `icons` | string | `"native"` on macOS | `"native"`: the macOS UI draws the icons the presets use as SF Symbols. `"phosphor"`: the bundled Phosphor font everywhere. Linux always uses Phosphor. |
 
 ```json
 {
@@ -202,7 +202,7 @@ These names are reserved: a template parameter or a `vars` entry can't use them.
 
 The functions vestal adds to jq (`fmt_fixed`, `fmt_bytes`, `fmt_relative`, `fmt_time`, `step`, `color_mix`, `to_epoch`, `find`, `pct`, …) are listed with examples by `vestal docs functions`. Numbers are formatted the American way (`5.19`, `1,234,567` where a function groups digits) whatever the system locale. The jq subset itself is in [docs/dev/expression-engine.md](dev/expression-engine.md).
 
-Legacy paths. The v0.3 fields `pick`, `picks` and `weatherCard.fields` keep v0.3's paths (`rates.BRL`, `.nearest_area[0].areaName[0].value`: the leading dot is optional and keys are not jq). Every other expression is strict jq: write `.rates.BRL`. `check-config` suggests the jq form when a new field holds a path.
+Dot paths. The fields `pick`, `picks` and `weatherCard.fields` take paths (`rates.EUR`, `.nearest_area[0].areaName[0].value`: the leading dot is optional and keys are not jq). Every other expression is strict jq: write `.rates.EUR`. `check-config` suggests the jq form when a new field holds a path.
 
 ## `functions`
 
@@ -365,7 +365,7 @@ By default (`backend` `"auto"`) vestal asks Anthropic's usage endpoint, the one 
 | `backend` | `"auto"`, `"api"` or `"cli"` | `"auto"` | `api`: only the endpoint (a failure is an error); `cli`: only the command; `auto`: the endpoint, else the command. |
 | `argv` | list of strings | `["claude", "-p", "--no-session-persistence", "/usage"]` | The command to run for the `cli` backend (and `auto`'s fallback), when `claude` is not on `PATH`, in the Nix and Homebrew directories or in `~/.local/bin` (Claude Code's native installer). A draft config (`--config`) runs a custom one only with `--allow-commands`. |
 
-v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an `info` finding.
+The old `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an `info` finding.
 
 ### `codex`
 
@@ -388,7 +388,7 @@ Sun and moon for a place, computed offline: sunrise, sunset, day length, the sun
 
 ### `flake`
 
-The inputs a Nix flake has locked, from `nix flake metadata --json <path>` (the lock file is read; nothing is fetched or built), and optionally how many commits each GitHub input's branch has gained since its locked revision. New in 0.4. `nix` must be on the daemon's `PATH`; `vestal check-config --commands` lists it, and a draft config (`--config`) runs it only with `--allow-commands`. The data is `{"path", "inputs": [{name, type, owner, repo, ref, rev, lastModified, url, behind}]}`: `vestal docs source/flake` has the shape.
+The inputs a Nix flake has locked, from `nix flake metadata --json <path>` (the lock file is read; nothing is fetched or built), and optionally how many commits each GitHub input's branch has gained since its locked revision. `nix` must be on the daemon's `PATH`; `vestal check-config --commands` lists it, and a draft config (`--config`) runs it only with `--allow-commands`. The data is `{"path", "inputs": [{name, type, owner, repo, ref, rev, lastModified, url, behind}]}`: `vestal docs source/flake` has the shape.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -584,7 +584,7 @@ Templates are expanded once, when the config loads:
 | Key | Type | Default | |
 |---|---|---|---|
 | `children` | list | `[]` | Widget keys or inline widgets. |
-| `order` | list of strings | `[]` | v0.3's name for `children` (keys only). When both are set, `children` wins. See [Changes in 0.4](#changes-in-04) for the one difference. |
+| `order` | list of strings | `[]` | An older name for `children` (keys only). When both are set, `children` wins. See [Older configs](#older-configs) for the one difference. |
 | `title` | text | the name, capitalized | Shown by UIs that list views. |
 | `key` | string | none | A key that switches to this view while the dashboard is shown (a global binding). |
 | `layout` | string | `"stack"` | The root container: `"stack"` (top to bottom), `"row"` or `"grid"`. |
@@ -646,7 +646,7 @@ A key is written like `hotkey`: `"h"`, `"2"`, `"tab"`, `"shift+tab"`, `"space"`,
 4. the top-level `keys`, and the views' `key` shorthands;
 5. `left` and `right` paging, and `tab` and `shift+tab` view cycling.
 
-`escape` (close the popup, else hide) and `alt+i` (the info popup) are reserved. `"key": "auto"` gives a widget the first letter of its `keyHint` that no explicit key took, in tree order, never `i` or `p` (v0.3's host letters). `vestal render --press <key>` shows what a key does to the model, without running commands.
+`escape` (close the popup, else hide) and `alt+i` (the info popup) are reserved. `"key": "auto"` gives a widget the first letter of its `keyHint` that no explicit key took, in tree order, never `i` or `p` (the info and privacy keys). `vestal render --press <key>` shows what a key does to the model, without running commands.
 
 ```json
 {
@@ -716,9 +716,9 @@ Every action also takes `hide: true` or `false` to override the last column. `ve
 
 ## Presets
 
-The eight v0.3 widget types are built-in templates with the same names and parameters, so every v0.3 config means what it did. They are written in the config language (`vestal docs preset/<name>` prints each one's JSON, and `vestal print-config --expanded` what an instance becomes). New configs can use them, or build the same things from the primitives. Each preset sets the space before it that v0.3's dashboard used: 28 points before `systemBar` and `claudeUsage`, 20 before `media`, 24 before the sections, none before `clock`.
+The eight original widget types are built-in templates. They are written in the config language (`vestal docs preset/<name>` prints each one's JSON, and `vestal print-config --expanded` what an instance becomes). New configs can use them, or build the same things from the primitives. Each preset sets its own space before it: 28 points before `systemBar` and `claudeUsage`, 20 before `media`, 24 before the sections, none before `clock`.
 
-Two v0.3 behaviors link separate widgets; a small legacy adapter keeps them, and reports each as an `info` finding with code `legacy`: the first `systemBar` in the default view whose privacy item shows gets the key `p`; and every `systemHealth` host with a `url` gets a source named `host:<name>` (`{"type": <provider>, "url": …, "refresh": <interval>}`), which any widget can read.
+Two behaviors link separate widgets; a small legacy adapter keeps them, and reports each as an `info` finding with code `legacy`: the first `systemBar` in the default view whose privacy item shows gets the key `p`; and every `systemHealth` host with a `url` gets a source named `host:<name>` (`{"type": <provider>, "url": …, "refresh": <interval>}`), which any widget can read.
 
 ### `clock`
 
@@ -727,7 +727,7 @@ The local time and date.
 | Key | Type | Default | |
 |---|---|---|---|
 | `worldClocks` | list of `{ "label": string, "tz": string }` | none | Extra clocks under the date. `tz` is an IANA zone such as `"America/New_York"`. A clock in the local time zone, or with an unknown zone, is skipped. Both keys are required. |
-| `face` | string | `"mono"` | The look: `mono` (v0.3's), `thin`, `stacked`, `serif`, `condensed`, `rounded` or `breathe` (`vestal docs preset/clock`). |
+| `face` | string | `"mono"` | The look: `mono` (the default), `thin`, `stacked`, `serif`, `condensed`, `rounded` or `breathe` (`vestal docs preset/clock`). |
 | `hour12` | boolean or `"auto"` | `false` | `true`: 12-hour times with AM/PM (`1:46:38 PM`, world clocks `1:46 PM`). `false`: 24-hour (`13:46:38`, `13:46`) whatever the system's locale. `"auto"`: whichever the system is set to (macOS: the user's time format setting; Linux: `LC_ALL`, `LC_TIME` or `LANG`). The date follows the locale. |
 | `seconds` | boolean | the face's | Show seconds. `mono`, `condensed` and `rounded` show them by default; `thin`, `serif` and `breathe` do not (set, they add them to the time); `stacked` has `secondsBar` instead. |
 | `date` | `"auto"`, `"full"`, `"words"`, `"none"` | `"auto"` | The date line. `auto` and `full`: the locale's (with the year on `mono`). `words`: "It is Sunday, the twenty-seventh of September" (English phrasing; weekday and month follow the locale). `none`: no date line. |
@@ -836,7 +836,7 @@ An item:
 | `picks` | `{ "buy": string, "sell": string }` | none | Paths of two values, shown as `buy / sell`. A missing one shows as empty. |
 | `format` | string | as is | `"int"` (alias `"integer"`): a whole number. `"decimal"` (alias `"%.2f"`): two decimals. Absent: strings as they are; numbers whole when they are whole, else with two decimals. |
 
-An item needs `pick` or `picks`. Paths are v0.3 paths, not jq: `.nearest_area[0].areaName[0].value` or `rates.BRL`, field names separated by dots (the leading dot is optional) and `[N]` list indexes.
+An item needs `pick` or `picks`. Paths are dot paths, not jq: `.nearest_area[0].areaName[0].value` or `rates.EUR`, field names separated by dots (the leading dot is optional) and `[N]` list indexes.
 
 ### `weatherCard`
 
@@ -845,17 +845,17 @@ Current weather from a JSON source. The fields are paths, so any weather API wor
 | Key | Type | Default | |
 |---|---|---|---|
 | `source` | string | required | A JSON source (`http` or `command`). |
-| `fields` | object of paths | required | Any of `location`, `region` (shown as `location, region`), `condition`, `temp`, `sunrise`, `sunset`, as v0.3 paths. Sun times may read `06:15 AM` or `06:15`. |
+| `fields` | object of paths | required | Any of `location`, `region` (shown as `location, region`), `condition`, `temp`, `sunrise`, `sunset`, as dot paths. Sun times may read `06:15 AM` or `06:15`. |
 | `units` | string | `"metric"` | `"metric"` or `"imperial"`. This only picks the `°C` or `°F` suffix: point `fields.temp` at the matching value yourself (`.current_condition[0].temp_F` for wttr.in). |
 | `title` | string | `"Weather"` | Section title. |
 
 ### `claudeUsage`
 
-The Claude plan's usage from the [`claude` source](#claude): an hourglass and `session% / weekly%`, as Claude reports them (`–` for a window it doesn't report). Listed in a view, the widget is a row of its own, like a system bar with that one item; a `systemBar`'s `"claudeUsage"` item is the same. v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an `info` finding: the percentages are Anthropic's own now, not estimates.
+The Claude plan's usage from the [`claude` source](#claude): an hourglass and `session% / weekly%`, as Claude reports them (`–` for a window it doesn't report). Listed in a view, the widget is a row of its own, like a system bar with that one item; a `systemBar`'s `"claudeUsage"` item is the same. The old `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an `info` finding: the percentages are Anthropic's own now, not estimates.
 
 ### `aiUsage`
 
-Claude and Codex plan usage in one row: for each, the 5-hour and weekly windows as small bars with their percentage, each followed by when it resets (`in 4h`), all on one line. A bar turns red from 90%. A Codex plan without a 5-hour window shows only the weekly one, and a service whose source has no data yet (`claude` or `codex` missing or logged out) is left out. New in 0.4; `vestal docs ai-usage` has the setup.
+Claude and Codex plan usage in one row: for each, the 5-hour and weekly windows as small bars with their percentage, each followed by when it resets (`in 4h`), all on one line. A bar turns red from 90%. A Codex plan without a 5-hour window shows only the weekly one, and a service whose source has no data yet (`claude` or `codex` missing or logged out) is left out. `vestal docs ai-usage` has the setup.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -865,7 +865,7 @@ Claude and Codex plan usage in one row: for each, the 5-hour and weekly windows 
 
 ### `worldClocks`
 
-Cities side by side: the time there, a sun or moon for day or night, the offset from here and `· working` during working hours. New in 0.4.
+Cities side by side: the time there, a sun or moon for day or night, the offset from here and `· working` during working hours.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -876,7 +876,7 @@ Cities side by side: the time there, a sun or moon for day or night, the offset 
 
 ### `sunMoon`
 
-The sun's arc with a dot for now, sunrise and sunset, day length and its daily change, and the moon's phase, from an [`astro` source](#astro). New in 0.4.
+The sun's arc with a dot for now, sunrise and sunset, day length and its daily change, and the moon's phase, from an [`astro` source](#astro).
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -885,7 +885,7 @@ The sun's arc with a dot for now, sunrise and sunset, day length and its daily c
 
 ### `countdowns`
 
-Days until each date, soonest first, with a bar of the time passed since `since`. New in 0.4.
+Days until each date, soonest first, with a bar of the time passed since `since`.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -894,7 +894,7 @@ Days until each date, soonest first, with a bar of the time passed since `since`
 
 ### `forecast`
 
-Twelve hours of temperature bars with the rain chance marked, and five days as low-to-high range bars, from an [`openMeteo` source](#source-templates). New in 0.4.
+Twelve hours of temperature bars with the rain chance marked, and five days as low-to-high range bars, from an [`openMeteo` source](#source-templates).
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -904,7 +904,7 @@ Twelve hours of temperature bars with the rain chance marked, and five days as l
 
 ### `aiPlan`
 
-Claude and Codex plan windows as full-width bars with reset times and an even-pace tick on the weekly ones. New in 0.4; `vestal docs ai-usage` has the setup.
+Claude and Codex plan windows as full-width bars with reset times and an even-pace tick on the weekly ones. `vestal docs ai-usage` has the setup.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -916,7 +916,7 @@ Claude and Codex plan windows as full-width bars with reset times and an even-pa
 
 ### Developer widgets
 
-New in 0.4: `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`. The first, the second and the third with `behind` ask GitHub's GraphQL API through the `github` source template, with the [`github` secret](#secrets) (`gh auth token` unless you define it). They fetch only while the dashboard is shown. `vestal docs preset/<name>` has each one's parameters and sample, and `vestal docs presets` the setup.
+The developer widgets are `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`. The first, the second and the third with `behind` ask GitHub's GraphQL API through the `github` source template, with the [`github` secret](#secrets) (`gh auth token` unless you define it). They fetch only while the dashboard is shown. `vestal docs preset/<name>` has each one's parameters and sample, and `vestal docs presets` the setup.
 
 | Preset | Shows | Parameters |
 |---|---|---|
@@ -927,7 +927,7 @@ New in 0.4: `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`. The f
 
 ### `headlines`
 
-Numbered top stories with points and comments, source badges and the data's age; a row (or the first free letter of its title) opens its link. New in 0.4.
+Numbered top stories with points and comments, source badges and the data's age; a row (or the first free letter of its title) opens its link.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -938,7 +938,7 @@ Numbered top stories with points and comments, source badges and the data's age;
 
 ### `cryptoTicker`
 
-Symbol, name, a day's line, price and 24-hour change per coin (CoinGecko, no key). New in 0.4.
+Symbol, name, a day's line, price and 24-hour change per coin (CoinGecko, no key).
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -948,7 +948,7 @@ Symbol, name, a day's line, price and 24-hour change per coin (CoinGecko, no key
 
 ### `watchlist`
 
-Symbol, the session's line, last price and day change per stock, and the market state under them (Yahoo Finance's unofficial chart endpoint, no key). New in 0.4.
+Symbol, the session's line, last price and day change per stock, and the market state under them (Yahoo Finance's unofficial chart endpoint, no key).
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -958,7 +958,7 @@ Symbol, the session's line, last price and day change per stock, and the market 
 
 ### `homeAssistant`
 
-Home Assistant entities as tiles (icon, label, state with unit, a second line), colored by state or thresholds; the token is the secret named `homeAssistant`. New in 0.4.
+Home Assistant entities as tiles (icon, label, state with unit, a second line), colored by state or thresholds; the token is the secret named `homeAssistant`.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -969,7 +969,7 @@ Home Assistant entities as tiles (icon, label, state with unit, a second line), 
 
 ### `nowPlaying`
 
-Album art, title, `artist — album`, progress with times, and previous / pause / next on the `media` actions. Hidden while nothing plays. New in 0.4.
+Album art, title, `artist — album`, progress with times, and previous / pause / next on the `media` actions. Hidden while nothing plays.
 
 | Key | Type | Default | |
 |---|---|---|---|
@@ -1055,13 +1055,9 @@ Five widgets for a home server or a few machines, each reading a data pack (a bu
 }
 ```
 
-## Changes in 0.4
+## Older configs
 
-Every v0.3 config loads unchanged and means the same thing: `version` stays `1`, and v0.4 only adds keys, types and values. The v0.3 widget types became [presets](#presets) drawn by the same renderer as everything else; `order` is an alias of `children`; the per-type spacing v0.3 hardcoded moved into each preset. `vestal print-config --expanded` shows the v0.4 form of any v0.3 widget. On purpose, these behave differently:
-
-- (a) `hotkey` on Linux. Wayland has no global hotkeys, so vestal grabs none there: bind `vestal toggle` in the compositor (the Home Manager module's `programs.vestal.hyprland.enable` does it for Hyprland from `hotkey`). v0.3 ignored the key silently; v0.4 reports it as unsupported.
-- (b) Space before the first child. In a `stack`, a `row`, and a view written with `children`, the first *visible* child gets no space before it. A view written with v0.3's `order` keeps v0.3's rule exactly: only the first *listed* entry gets none, so when it is hidden the second entry keeps its `spaceBefore`. v0.3 configs therefore don't move by a point.
-- (c) Uptime under a day. The system bar's uptime still reads `0h 12m` within an hour of boot (`fmt_uptime_long` keeps v0.3's form). Only the new `fmt_duration` says `12m`.
+Configs written for the pre-release versions (0.3 and 0.4) load unchanged: `version` stays `1`. A few things keep their old behavior on purpose. A view written with `order` keeps its spacing rule: only the first listed entry gets no space before it, so when that entry is hidden the second keeps its `spaceBefore`. `pick`, `picks` and `weatherCard`'s `fields` use dot paths, not jq. The adapter reports the widget links it applies as `info` findings with code `legacy`. The system bar's uptime still reads `0h 12m` within an hour of boot (`fmt_uptime_long`); only `fmt_duration` says `12m`. `vestal print-config --expanded` shows the current form of any older widget.
 
 ## Built-in defaults
 

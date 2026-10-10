@@ -62,4 +62,4 @@ Both sources give the same shape:
 - `vestal fetch claude` says `claude not found` (the cli backend, or auto with no valid token): set `argv` (see above). `source` in the data says which backend answered; `"backend": "cli"` skips the endpoint, and `vestal capabilities` shows which one will be used. `not logged in`: run `claude` and `/login`. `shows no plan usage`: Claude Code is logged in with an API key, not a Pro or Max subscription.
 - `vestal fetch codex` says `codex not found`: set `argv`. An error from `codex app-server` usually means `codex login` is needed.
 - `vestal capabilities` lists both sources and whether their programs are found.
-- v0.3's `path`, `fiveHourLimit` and `weeklyLimit` on a `claude` source or `claudeUsage` widget are ignored now (an info finding says so); remove them.
+- The old `path`, `fiveHourLimit` and `weeklyLimit` on a `claude` source or `claudeUsage` widget are ignored now (an info finding says so); remove them.

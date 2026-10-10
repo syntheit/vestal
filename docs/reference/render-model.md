@@ -158,7 +158,7 @@ The diff runs top-down: a node whose own fields or ordered child ids changed is 
 ## Diagnostics
 
 ```jsonc
-{ "id": "main/exchange/1/@BRL/1", "field": "text", "severity": "error", "code": "expr-runtime", "message": "tonumber: cannot parse \"n/a\" as a number" }
+{ "id": "main/exchange/1/@EUR/1", "field": "text", "severity": "error", "code": "expr-runtime", "message": "tonumber: cannot parse \"n/a\" as a number" }
 ```
 
 Expression runtime errors, unknown icons and colors used at render time, duplicate row ids, failed sources. UIs needn't show them; `vestal render` prints them, and `vestal render --strict` exits 3 when there are any.

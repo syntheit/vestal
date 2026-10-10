@@ -253,9 +253,9 @@ programs.vestal.settings.widgets.flake = { type = "flakeInputs"; path = "~/confi
 programs.vestal.extraPackages = [ pkgs.nix pkgs.gh ];
 ```
 
-## The v0.3 widgets
+## The original widgets
 
-These keep their v0.3 names, parameters and look, so v0.3 configs work unchanged.
+These are the original widget types, kept as presets.
 
 ### `clock`
 
@@ -313,11 +313,11 @@ Hosts under `title` (`Systems`), each a row with CPU and RAM bars, temperature a
 
 ### `keyValueList`
 
-Labeled values picked out of JSON sources with v0.3 paths: `items` of `{label, source, match, pick | picks, format}`. New configs: use `keyValue`, whose values are jq.
+Labeled values picked out of JSON sources with dot paths: `items` of `{label, source, match, pick | picks, format}`. New configs: use `keyValue`, whose values are jq.
 
 ### `weatherCard`
 
-Current weather from `source` with v0.3 paths in `fields` (`location`, `region`, `condition`, `temp`, `sunrise`, `sunset`); `units` (`metric` or `imperial`) picks the °C or °F suffix.
+Current weather from `source` with dot paths in `fields` (`location`, `region`, `condition`, `temp`, `sunrise`, `sunset`); `units` (`metric` or `imperial`) picks the °C or °F suffix.
 
 ### `claudeUsage`
 

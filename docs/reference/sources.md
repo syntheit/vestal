@@ -280,7 +280,7 @@ On macOS the dashboard follows Spotify's and Music's own notifications, so a cha
 
 ### `claude`
 
-The Claude plan's usage (Pro and Max), from Anthropic's usage endpoint or from `claude -p /usage`: `session` is the 5-hour window, `weekly` the week's (all models), `extra` the per-model weekly limits Claude Code lists (`label` is the name in parentheses). v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an info finding.
+The Claude plan's usage (Pro and Max), from Anthropic's usage endpoint or from `claude -p /usage`: `session` is the 5-hour window, `weekly` the week's (all models), `extra` the per-model weekly limits Claude Code lists (`label` is the name in parentheses). The old `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an info finding.
 
 ```jsonc
 { "session": { "percent": 25, "resetsAt": 1790547000, "resetsText": "Sep 27 at 7:10pm (America/Buenos_Aires)" },

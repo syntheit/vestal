@@ -93,9 +93,9 @@ A source template that takes a `url` can also be `systemHealth`'s `provider`.
 
 Data parameters are `$name` variables in the source body's `url`, `path`, `body`, `headers`, `argv` and `env` (evaluated once when the config loads), and in its `transform`, which has them bound in front of it as `(value) as $name | …`, so a template can build a URL and its transform from the same list (`coingecko`, `yahooQuotes`).
 
-## The v0.3 adapter
+## The legacy adapter
 
-Two v0.3 behaviors link separate widgets, so a small adapter applies them before expansion, each reported by check-config as an info note with code `legacy`:
+Two behaviors link separate widgets, so a small adapter applies them before expansion, each reported by check-config as an info note with code `legacy`:
 
 1. The first `systemBar` of the default view whose privacy item shows gets the key `p`.
 2. Each `systemHealth` host with a `url` becomes the source `host:<name>` (`{"type": <provider>, "url": …, "refresh": <interval or 5s>}`).

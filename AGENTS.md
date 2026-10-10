@@ -12,7 +12,7 @@ Vestal is a full-screen dashboard for macOS and Linux, opened with a key and dri
 4. One config serves macOS and Linux. Use the built-in sources (`system`, `media`, `calendar`, `claude`, `codex`) rather than OS commands. Put what is truly OS-specific (fonts, a command that exists on one OS, a player name) in `platform.macos` or `platform.linux`, and check both OSes: `vestal check-config --platform linux`.
 5. Validate before you claim success: `vestal check-config --json` must say `"error": 0` (exit 0, not 3), and `vestal render` must end with `diagnostics: 0`. Then look at it (`vestal screenshot`).
 6. Prefer what exists: presets (`vestal docs presets`; each ships a sample you can look at without any source: `vestal docs samples`, `vestal gallery --only <name>`), semantic colors (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
-7. Tell the user what runs. `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists every program the config can run (command sources, inline or from a template too; `command` secrets; `run` actions in widgets, views, keys and templates; the v0.3 privacy toggle and foyer hosts), with what triggers it and whether it is on `PATH`. Mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
+7. Tell the user what runs. `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists every program the config can run (command sources, inline or from a template too; `command` secrets; `run` actions in widgets, views, keys and templates; the privacy toggle and foyer hosts), with what triggers it and whether it is on `PATH`. Mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
 8. Lists replace, objects merge. Your file is merged over the built-in defaults: objects merge key by key, but a list (such as `views.main.children`) replaces the default list whole, and `null` deletes a default. When you add a widget to a view, write the view's full list.
 
 ## 2. The loop
@@ -170,7 +170,7 @@ $ vestal check-config --json /tmp/vestal-draft.json
 }
 ```
 
-Each finding has a JSON `pointer` into the file, its `line` and `column`, and a did-you-mean when there is one. Exit 3 means errors; fix them all. Warnings mean something is ignored or defaulted: fix those too (`--strict` makes them exit 3). `info` findings are advice (`legacy` notes about v0.3 widgets are normal). `--platform linux` (or `macos`) checks the file as that OS loads it.
+Each finding has a JSON `pointer` into the file, its `line` and `column`, and a did-you-mean when there is one. Exit 3 means errors; fix them all. Warnings mean something is ignored or defaulted: fix those too (`--strict` makes them exit 3). `info` findings are advice (`legacy` notes about linked widgets are normal). `--platform linux` (or `macos`) checks the file as that OS loads it.
 
 ### Step 5: test expressions
 
@@ -292,7 +292,7 @@ Common mistakes:
 
 | Symptom | Fix |
 |---|---|
-| `unknown function 'rates'` | A path in a new field needs a leading dot: `.rates.BRL`. |
+| `unknown function 'rates'` | A path in a new field needs a leading dot: `.rates.EUR`. |
 | Text shows `\(` or a JSON parse error | Use `{{ }}` in text fields, not jq's `"\(…)"`. |
 | `fmt_time(…; .tz)` is wrong or fails | Arguments see the piped input; use `$item.tz`, or `.tz as $z \| now \| fmt_time("HH:mm"; $z)`. |
 | The widget never appears | `vestal explain <key>`: usually its source has no data (a draft `command` source needs `--allow-commands`), or `when` is false, or its key isn't in the view's `children`. |

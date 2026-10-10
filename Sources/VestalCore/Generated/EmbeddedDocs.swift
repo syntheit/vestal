@@ -90,7 +90,7 @@ Vestal is a full-screen dashboard for macOS and Linux, opened with a key and dri
 4. One config serves macOS and Linux. Use the built-in sources (`system`, `media`, `calendar`, `claude`, `codex`) rather than OS commands. Put what is truly OS-specific (fonts, a command that exists on one OS, a player name) in `platform.macos` or `platform.linux`, and check both OSes: `vestal check-config --platform linux`.
 5. Validate before you claim success: `vestal check-config --json` must say `"error": 0` (exit 0, not 3), and `vestal render` must end with `diagnostics: 0`. Then look at it (`vestal screenshot`).
 6. Prefer what exists: presets (`vestal docs presets`; each ships a sample you can look at without any source: `vestal docs samples`, `vestal gallery --only <name>`), semantic colors (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
-7. Tell the user what runs. `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists every program the config can run (command sources, inline or from a template too; `command` secrets; `run` actions in widgets, views, keys and templates; the v0.3 privacy toggle and foyer hosts), with what triggers it and whether it is on `PATH`. Mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
+7. Tell the user what runs. `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists every program the config can run (command sources, inline or from a template too; `command` secrets; `run` actions in widgets, views, keys and templates; the privacy toggle and foyer hosts), with what triggers it and whether it is on `PATH`. Mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
 8. Lists replace, objects merge. Your file is merged over the built-in defaults: objects merge key by key, but a list (such as `views.main.children`) replaces the default list whole, and `null` deletes a default. When you add a widget to a view, write the view's full list.
 
 ## 2. The loop
@@ -248,7 +248,7 @@ $ vestal check-config --json /tmp/vestal-draft.json
 }
 ```
 
-Each finding has a JSON `pointer` into the file, its `line` and `column`, and a did-you-mean when there is one. Exit 3 means errors; fix them all. Warnings mean something is ignored or defaulted: fix those too (`--strict` makes them exit 3). `info` findings are advice (`legacy` notes about v0.3 widgets are normal). `--platform linux` (or `macos`) checks the file as that OS loads it.
+Each finding has a JSON `pointer` into the file, its `line` and `column`, and a did-you-mean when there is one. Exit 3 means errors; fix them all. Warnings mean something is ignored or defaulted: fix those too (`--strict` makes them exit 3). `info` findings are advice (`legacy` notes about linked widgets are normal). `--platform linux` (or `macos`) checks the file as that OS loads it.
 
 ### Step 5: test expressions
 
@@ -370,7 +370,7 @@ Common mistakes:
 
 | Symptom | Fix |
 |---|---|
-| `unknown function 'rates'` | A path in a new field needs a leading dot: `.rates.BRL`. |
+| `unknown function 'rates'` | A path in a new field needs a leading dot: `.rates.EUR`. |
 | Text shows `\(` or a JSON parse error | Use `{{ }}` in text fields, not jq's `"\(…)"`. |
 | `fmt_time(…; .tz)` is wrong or fails | Arguments see the piped input; use `$item.tz`, or `.tz as $z \| now \| fmt_time("HH:mm"; $z)`. |
 | The widget never appears | `vestal explain <key>`: usually its source has no data (a draft `command` source needs `--allow-commands`), or `when` is false, or its key isn't in the view's `children`. |
@@ -1039,7 +1039,7 @@ Both sources give the same shape:
 - `vestal fetch claude` says `claude not found` (the cli backend, or auto with no valid token): set `argv` (see above). `source` in the data says which backend answered; `"backend": "cli"` skips the endpoint, and `vestal capabilities` shows which one will be used. `not logged in`: run `claude` and `/login`. `shows no plan usage`: Claude Code is logged in with an API key, not a Pro or Max subscription.
 - `vestal fetch codex` says `codex not found`: set `argv`. An error from `codex app-server` usually means `codex login` is needed.
 - `vestal capabilities` lists both sources and whether their programs are found.
-- v0.3's `path`, `fiveHourLimit` and `weeklyLimit` on a `claude` source or `claudeUsage` widget are ignored now (an info finding says so); remove them.
+- The old `path`, `fiveHourLimit` and `weeklyLimit` on a `claude` source or `claudeUsage` widget are ignored now (an info finding says so); remove them.
 
 """#,
         "cli": #"""
@@ -1111,17 +1111,17 @@ Fetches a source now and prints its data, after `transform`, as pretty JSON with
 
 `vestal check-config [path|-] [--json] [--strict] [--platform macos|linux|all] [--commands]`
 
-Checks a config file (default: the one vestal loads; `-` reads stdin) after merging, template expansion and the v0.3 adapter: unknown keys, types, sources, templates, views, widgets, colors and icons (each with a did-you-mean), type mismatches, bad durations and keys, key conflicts, template parameters, expressions that don't compile (with the position), unknown functions and variables, `sf:` icons outside `platform.macos`, literal-looking tokens. It prints `<file>: ok`, or one line per finding with its JSON path, and under it a line with the RFC 6901 pointer into your file, the line and column, and a did-you-mean. Exit 0 when the file is usable (warnings included), 1 when it can't be read or parsed, 2 for bad usage, 3 with error findings or, with `--strict`, any warning.
+Checks a config file (default: the one vestal loads; `-` reads stdin) after merging, template expansion and the legacy adapter: unknown keys, types, sources, templates, views, widgets, colors and icons (each with a did-you-mean), type mismatches, bad durations and keys, key conflicts, template parameters, expressions that don't compile (with the position), unknown functions and variables, `sf:` icons outside `platform.macos`, literal-looking tokens. It prints `<file>: ok`, or one line per finding with its JSON path, and under it a line with the RFC 6901 pointer into your file, the line and column, and a did-you-mean. Exit 0 when the file is usable (warnings included), 1 when it can't be read or parsed, 2 for bad usage, 3 with error findings or, with `--strict`, any warning.
 
 - `--json`: `{"file", "status", "counts": {"error", "warning", "info"}, "diagnostics": [...]}`. Each diagnostic has `severity`, `code`, `pointer`, `layer` (`user`, `platform.macos`, `platform.linux` or `defaults`), `message`, and where they apply `suggestion` (the best) and `suggestions` (up to 3), `expected` and `found`, `line` and `column`, `exprOffset`, and `platform` (for a finding only the other OS's block causes).
 - `--platform macos|linux`: check as that OS loads the file. The default, `all`, checks this OS and also the other OS's block.
 - `--commands`: list every program the config can run: `command` sources (named, inline, from a source template, or made by a preset such as `containers`), `command` secrets, `run` actions in widgets, views, global keys and templates, the `systemBar` privacy toggle and `systemHealth` foyer hosts. For each: where it is defined (pointer), what triggers it, the environment keys it adds, whether the program is on this machine's `PATH`, and the argv as written (text holes are never evaluated). Exit 0.
 
-Severities: error (that part won't work; the rest still runs), warning (ignored or defaulted), info (advice, such as `legacy` notes about v0.3 widgets).
+Severities: error (that part won't work; the rest still runs), warning (ignored or defaulted), info (advice, such as `legacy` notes about linked widgets).
 
 `vestal print-config [path|-] [--origins | --expanded | --templates]`
 
-The effective config: all layers merged, as pretty JSON with sorted keys. `--origins` prints each value as `pointer  value  layer`, showing which layer won. `--expanded` shows the config after template expansion and the v0.3 adapter, which is how you learn what a preset becomes. `--templates` prints every template, built-ins included.
+The effective config: all layers merged, as pretty JSON with sorted keys. `--origins` prints each value as `pointer  value  layer`, showing which layer won. `--expanded` shows the config after template expansion and the legacy adapter, which is how you learn what a preset becomes. `--templates` prints every template, built-ins included.
 
 `vestal schema [--config <path>] [--out <file>]`
 
@@ -1590,9 +1590,9 @@ These names are reserved: a template parameter or a `vars` entry may not use `va
 - Limits: one evaluation may take at most 100,000 steps and 50 ms, and produce at most 4 MiB. Past a limit it fails like any runtime error (`expr-limit`), so `range(1e9)` can't freeze the dashboard.
 - jq's `//` treats `false` like `null`: `.enabled // true` is `true` when `.enabled` is `false`. Use `if .enabled == null then true else .enabled end`.
 
-## Legacy paths
+## Dot paths
 
-The v0.3 path fields `pick`, `picks.*` and `weatherCard`'s `fields.*` keep their v0.3 meaning: dot-separated field names (a leading dot optional) and `[N]` indexes, never jq. So there `rates.BRL` means the field `BRL` of `rates`. Every new expr field is strict jq: write `.rates.BRL`. When a new field looks like a legacy path, check-config suggests the jq form.
+The path fields `pick`, `picks.*` and `weatherCard`'s `fields.*` are dot paths: dot-separated field names (a leading dot optional) and `[N]` indexes, never jq. So there `rates.EUR` means the field `BRL` of `rates`. Every new expr field is strict jq: write `.rates.EUR`. When a new field looks like a dot path, check-config suggests the jq form.
 
 ## When things are evaluated
 
@@ -1866,7 +1866,7 @@ Numbers are written the American way on every system, whatever its locale (`LC_N
 | `titlecase` | every word capitalized | `"new york"` → `"New York"` |
 | `truncate(n)` | text cut to `n` characters, with `…` when cut | `"Windowlicker" \| truncate(6)` → `"Window…"` |
 
-The `format` field of `text`, table columns and `keyValue` items names these: `int`, `number`, `fixed:N`, `percent`, `percent:N`, `thousands`, `thousands:N`, `compact`, `bytes`, `rate`, `duration`, `duration:N`, `uptime`, `relative`, `startsIn`, `time:<pattern>`, `localized:<skeleton>`, and the v0.3 names `integer` and `decimal`.
+The `format` field of `text`, table columns and `keyValue` items names these: `int`, `number`, `fixed:N`, `percent`, `percent:N`, `thousands`, `thousands:N`, `compact`, `bytes`, `rate`, `duration`, `duration:N`, `uptime`, `relative`, `startsIn`, `time:<pattern>`, `localized:<skeleton>`, and the older names `integer` and `decimal`.
 
 Arguments see the piped input, not the row: inside `now | fmt_time("HH:mm"; …)` the argument's `.` is `now`. Use `$item.tz`, or bind first: `.tz as $z | now | fmt_time("HH:mm"; $z)`.
 
@@ -1894,21 +1894,21 @@ Arguments see the piped input, not the row: inside `now | fmt_time("HH:mm"; …)
 | `meta(name)` | a source's metadata, as `$meta`: `{name, fetchedAt, age, ok, error, stale, loaded}` | `meta("weather").age` |
 | `history(source; name)` | the same as `$history[source][name]` | `history("stats"; "cpu") \| last` |
 | `history_times(source; name)` | the epoch times of those samples | |
-| `path_get(path)` | resolves a v0.3 path (`rates.BRL`, `list[0].x`) against the input | `path_get("rates.BRL")` |
+| `path_get(path)` | resolves a dot path (`rates.EUR`, `list[0].x`) against the input | `path_get("rates.EUR")` |
 
 `$meta`: `fetchedAt` is the last successful fetch (or `null`), `age` its age in seconds, `ok` whether the latest fetch succeeded, `error` its message, `stale` whether the age is over twice the source's `refresh`, `loaded` whether there is data.
 
 ## Legacy helpers
 
-These reuse the v0.3 Swift code, so the built-in presets match v0.3 exactly. New configs don't need them.
+The original presets use these. New configs don't need them.
 
 | Function | Meaning |
 |---|---|
-| `kv_legacy(item; defaultSource)` | a v0.3 `keyValueList` item (`label`, `source`, `match`, `pick`, `picks`, `format`) → `{label, text}`, or `null` when its data is missing |
-| `weather_legacy(fields; units)` | weather JSON and v0.3 `fields` paths → `{location, condition, temp, sunrise, sunset}` |
+| `kv_legacy(item; defaultSource)` | a `keyValueList` item (`label`, `source`, `match`, `pick`, `picks`, `format`) → `{label, text}`, or `null` when its data is missing |
+| `weather_legacy(fields; units)` | weather JSON and `fields` dot paths → `{location, condition, temp, sunrise, sunset}` |
 | `foyer_health` | a foyer `/api/health` payload → the `system` data shape (`vestal docs source/system`); missing numbers are `0` |
-| `host_health(host; provider)` | a v0.3 `systemHealth` host → `{data, ok, seen}` |
-| `fmt_legacy(format)` | the v0.3 item formats: `"int"`, `"integer"`, `"decimal"`, `"%.2f"`, or `null` for as is |
+| `host_health(host; provider)` | a `systemHealth` host → `{data, ok, seen}` |
+| `fmt_legacy(format)` | the `keyValueList` item formats: `"int"`, `"integer"`, `"decimal"`, `"%.2f"`, or `null` for as is |
 
 """#,
         "icons": #"""
@@ -1934,7 +1934,7 @@ Vestal bundles Phosphor Icons (MIT, about 1,500 icons) on both operating systems
 
 ## SF Symbols on macOS
 
-`sf:<symbol>` draws an SF Symbol, for example `"icon": "sf:hourglass"`. It is allowed only inside `platform.macos` (check-config error elsewhere), because Linux can't draw it: a Linux UI draws nothing for an `sf:` name. With `theme.icons: "native"` (the default on macOS) the macOS UI already draws the icons of the built-in presets as the SF Symbols v0.3 used; `"phosphor"` draws the Phosphor glyphs there too.
+`sf:<symbol>` draws an SF Symbol, for example `"icon": "sf:hourglass"`. It is allowed only inside `platform.macos` (check-config error elsewhere), because Linux can't draw it: a Linux UI draws nothing for an `sf:` name. With `theme.icons: "native"` (the default on macOS) the macOS UI already draws the icons of the built-in presets as SF Symbols; `"phosphor"` draws the Phosphor glyphs there too.
 
 ## The font files
 
@@ -2038,7 +2038,7 @@ Where bindings come from, highest precedence first:
 
 A widget's key is bound only while that widget is drawn on the current view, and widget keys beat the view's `keys` and the top-level ones, so a preset can bind plain keys without taking them from other pages: `focusTimer` binds space, `R` and `N`, and a top-level `r` still works on every view without it. In a view that does have the widget, the widget wins.
 
-`"key": "auto"` gives a widget the first letter of its `keyHint` (letters only, in order) that no other binding took. Explicit keys are assigned first, then `auto` ones in tree order. `auto` never assigns `i` or `p` (v0.3's info and privacy keys). The `systemHealth` preset gives each host `auto` with its name as the hint, so `h` opens `harbor`.
+`"key": "auto"` gives a widget the first letter of its `keyHint` (letters only, in order) that no other binding took. Explicit keys are assigned first, then `auto` ones in tree order. `auto` never assigns `i` or `p` (the info and privacy keys). The `systemHealth` preset gives each host `auto` with its name as the hint, so `h` opens `harbor`.
 
 check-config reports keys that aren't keys (`invalid-key`) and bindings of the reserved ones (`key-conflict`). When two widgets bind the same key explicitly, the first in tree order wins: check with `vestal render --press <key>`.
 
@@ -2301,9 +2301,9 @@ programs.vestal.settings.widgets.flake = { type = "flakeInputs"; path = "~/confi
 programs.vestal.extraPackages = [ pkgs.nix pkgs.gh ];
 ```
 
-## The v0.3 widgets
+## The original widgets
 
-These keep their v0.3 names, parameters and look, so v0.3 configs work unchanged.
+These are the original widget types, kept as presets.
 
 ### `clock`
 
@@ -2361,11 +2361,11 @@ Hosts under `title` (`Systems`), each a row with CPU and RAM bars, temperature a
 
 ### `keyValueList`
 
-Labeled values picked out of JSON sources with v0.3 paths: `items` of `{label, source, match, pick | picks, format}`. New configs: use `keyValue`, whose values are jq.
+Labeled values picked out of JSON sources with dot paths: `items` of `{label, source, match, pick | picks, format}`. New configs: use `keyValue`, whose values are jq.
 
 ### `weatherCard`
 
-Current weather from `source` with v0.3 paths in `fields` (`location`, `region`, `condition`, `temp`, `sunrise`, `sunset`); `units` (`metric` or `imperial`) picks the °C or °F suffix.
+Current weather from `source` with dot paths in `fields` (`location`, `region`, `condition`, `temp`, `sunrise`, `sunset`); `units` (`metric` or `imperial`) picks the °C or °F suffix.
 
 ### `claudeUsage`
 
@@ -3281,7 +3281,7 @@ The diff runs top-down: a node whose own fields or ordered child ids changed is 
 ## Diagnostics
 
 ```jsonc
-{ "id": "main/exchange/1/@BRL/1", "field": "text", "severity": "error", "code": "expr-runtime", "message": "tonumber: cannot parse \"n/a\" as a number" }
+{ "id": "main/exchange/1/@EUR/1", "field": "text", "severity": "error", "code": "expr-runtime", "message": "tonumber: cannot parse \"n/a\" as a number" }
 ```
 
 Expression runtime errors, unknown icons and colors used at render time, duplicate row ids, failed sources. UIs needn't show them; `vestal render` prints them, and `vestal render --strict` exits 3 when there are any.
@@ -3647,7 +3647,7 @@ On macOS the dashboard follows Spotify's and Music's own notifications, so a cha
 
 ### `claude`
 
-The Claude plan's usage (Pro and Max), from Anthropic's usage endpoint or from `claude -p /usage`: `session` is the 5-hour window, `weekly` the week's (all models), `extra` the per-model weekly limits Claude Code lists (`label` is the name in parentheses). v0.3's `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an info finding.
+The Claude plan's usage (Pro and Max), from Anthropic's usage endpoint or from `claude -p /usage`: `session` is the 5-hour window, `weekly` the week's (all models), `extra` the per-model weekly limits Claude Code lists (`label` is the name in parentheses). The old `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored, with an info finding.
 
 ```jsonc
 { "session": { "percent": 25, "resetsAt": 1790547000, "resetsText": "Sep 27 at 7:10pm (America/Buenos_Aires)" },
@@ -4056,7 +4056,7 @@ programs.vestal.starter = "agentops";
 | `fonts` | the typeface's | `{ "display": family, "sans": family, "mono": family, "rounded": family }`; each entry overrides the typeface's family for that role. `null` or absent means the typeface's, else the platform default. |
 | `font` | none | Shorthand for `fonts.sans`. |
 | `scale` | `1` | Multiplies every text, icon and fixed size (numeric widths and heights, min/max sizes, column widths, the view's `maxWidth`, popup widths; not gaps or padding): for large screens or reading from afar. |
-| `density` | `comfortable` | How much room the built-in presets take. `"comfortable"`: the v0.3 look. `"compact"`: about half the height: a clock (every `face`) about two thirds the size with the date and world clocks on one line under it, no section titles or rules where the rows explain themselves (hosts, currencies, weather; the agenda keeps a small title), shorter and thinner bars, currencies and weather on one line each, plan-usage resets beside the bars, and about half the space between blocks. Same parameters at both; a template you override stays yours. The `title` of `systemHealth`, `keyValueList` and `weatherCard` is accepted and not drawn; a `section` (yours too) gets a small title and no rule. `vestal docs preset/<name>` shows both bodies. Views without a `gap` use `12` instead of `24`. `vestal print-config --expanded` shows the bodies in use. |
+| `density` | `comfortable` | How much room the built-in presets take. `"comfortable"`: the full-size look. `"compact"`: about half the height: a clock (every `face`) about two thirds the size with the date and world clocks on one line under it, no section titles or rules where the rows explain themselves (hosts, currencies, weather; the agenda keeps a small title), shorter and thinner bars, currencies and weather on one line each, plan-usage resets beside the bars, and about half the space between blocks. Same parameters at both; a template you override stays yours. The `title` of `systemHealth`, `keyValueList` and `weatherCard` is accepted and not drawn; a `section` (yours too) gets a small title and no rule. `vestal docs preset/<name>` shows both bodies. Views without a `gap` use `12` instead of `24`. `vestal print-config --expanded` shows the bodies in use. |
 | `icons` | platform | `native`: the macOS UI draws the presets' icons as SF Symbols (the default on macOS). `phosphor`: the bundled Phosphor font everywhere (`vestal docs icons`). |
 
 ## Fonts
@@ -4328,9 +4328,9 @@ A source template that takes a `url` can also be `systemHealth`'s `provider`.
 
 Data parameters are `$name` variables in the source body's `url`, `path`, `body`, `headers`, `argv` and `env` (evaluated once when the config loads), and in its `transform`, which has them bound in front of it as `(value) as $name | …`, so a template can build a URL and its transform from the same list (`coingecko`, `yahooQuotes`).
 
-## The v0.3 adapter
+## The legacy adapter
 
-Two v0.3 behaviors link separate widgets, so a small adapter applies them before expansion, each reported by check-config as an info note with code `legacy`:
+Two behaviors link separate widgets, so a small adapter applies them before expansion, each reported by check-config as an info note with code `legacy`:
 
 1. The first `systemBar` of the default view whose privacy item shows gets the key `p`.
 2. Each `systemHealth` host with a `url` becomes the source `host:<name>` (`{"type": <provider>, "url": …, "refresh": <interval or 5s>}`).
@@ -4358,7 +4358,7 @@ A view is one screen of widgets. The dashboard opens `defaultView` (default `mai
 | Key | Default | |
 |---|---|---|
 | `children` | `[]` | Widget keys or inline widgets, top to bottom. |
-| `order` | `[]` | v0.3's name for `children` (keys only). When both are set, `children` wins and check-config warns. |
+| `order` | `[]` | An older name for `children` (keys only). When both are set, `children` wins and check-config warns. |
 | `title` | the name, capitalized | Shown by UIs that list views. |
 | `key` | none | A key that switches to this view while the dashboard is open. |
 | `layout` | `stack` | The root container: `stack` (top to bottom), `row` or `grid`. |
@@ -4371,7 +4371,7 @@ A view is one screen of widgets. The dashboard opens `defaultView` (default `mai
 | `enabled` | `true` | `false` turns the view off (see Pages). |
 
 - `views.main.children` in your file replaces the default list whole. To add a widget to the default dashboard, write the full list: `vestal print-config` shows the current one.
-- In a view written with `children`, the first *visible* child gets no space before it. A view written with v0.3's `order` keeps v0.3's rule: only the first *listed* entry gets none.
+- In a view written with `children`, the first *visible* child gets no space before it. A view written with `order` keeps the older rule: only the first *listed* entry gets none.
 - `left`, `right`, `tab` and `shift+tab` page through the views (in key order, or `pages.order`) when there is more than one and those keys are unbound; a view's `key` jumps to it. A swipe pages too (see Pages). From a shell or a compositor: `vestal show <view>` opens the dashboard on that view, and `vestal toggle <view>` hides it when it shows that view and shows that view otherwise. An unknown view exits 4.
 - A view that isn't shown costs nothing: its `visible` sources aren't fetched and nothing in it is evaluated.
 
@@ -4436,7 +4436,7 @@ A widget is a JSON object with a `type`. Define it under `widgets.<key>` and lis
 | Charts | `bars`, `stackedBar`, `heatmap`, `timeline`, `image` |
 | Clocks | `analog`, `flip`, `matrix` (the faces of the `clock` preset) |
 | Sky | `moon` (the moon's phase) |
-| Built-in templates | `section`, `stat`, `badge`, and the v0.3 widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the system presets `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and the developer widgets `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`, and the homelab widgets `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers`, and `headlines`, `cryptoTicker`, `watchlist`, `dayTimeline`, `nextMeeting`, `focusTimer`, `todoFile`, `habits`, `homeAssistant` and `nowPlaying` (`vestal docs presets`) |
+| Built-in templates | `section`, `stat`, `badge`, and the original widgets `clock`, `systemBar`, `media` (alias `spotify`), `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`, `claudeUsage`, `aiUsage` (Claude and Codex plan usage), and the system presets `cpuCores`, `memoryBreakdown`, `diskBreakdown`, `networkRates`, `topProcesses`, `batteryPower`, and the developer widgets `reviewQueue`, `ciStatus`, `commitActivity` and `flakeInputs`, and the homelab widgets `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers`, and `headlines`, `cryptoTicker`, `watchlist`, `dayTimeline`, `nextMeeting`, `focusTimer`, `todoFile`, `habits`, `homeAssistant` and `nowPlaying` (`vestal docs presets`) |
 | Your templates | any name under `templates` (`vestal docs templates`) |
 
 ## Fields every widget takes

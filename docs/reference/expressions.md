@@ -76,9 +76,9 @@ These names are reserved: a template parameter or a `vars` entry may not use `va
 - Limits: one evaluation may take at most 100,000 steps and 50 ms, and produce at most 4 MiB. Past a limit it fails like any runtime error (`expr-limit`), so `range(1e9)` can't freeze the dashboard.
 - jq's `//` treats `false` like `null`: `.enabled // true` is `true` when `.enabled` is `false`. Use `if .enabled == null then true else .enabled end`.
 
-## Legacy paths
+## Dot paths
 
-The v0.3 path fields `pick`, `picks.*` and `weatherCard`'s `fields.*` keep their v0.3 meaning: dot-separated field names (a leading dot optional) and `[N]` indexes, never jq. So there `rates.BRL` means the field `BRL` of `rates`. Every new expr field is strict jq: write `.rates.BRL`. When a new field looks like a legacy path, check-config suggests the jq form.
+The path fields `pick`, `picks.*` and `weatherCard`'s `fields.*` are dot paths: dot-separated field names (a leading dot optional) and `[N]` indexes, never jq. So there `rates.EUR` means the field `BRL` of `rates`. Every new expr field is strict jq: write `.rates.EUR`. When a new field looks like a dot path, check-config suggests the jq form.
 
 ## When things are evaluated
 

@@ -31,7 +31,7 @@ Numbers are written the American way on every system, whatever its locale (`LC_N
 | `titlecase` | every word capitalized | `"new york"` → `"New York"` |
 | `truncate(n)` | text cut to `n` characters, with `…` when cut | `"Windowlicker" \| truncate(6)` → `"Window…"` |
 
-The `format` field of `text`, table columns and `keyValue` items names these: `int`, `number`, `fixed:N`, `percent`, `percent:N`, `thousands`, `thousands:N`, `compact`, `bytes`, `rate`, `duration`, `duration:N`, `uptime`, `relative`, `startsIn`, `time:<pattern>`, `localized:<skeleton>`, and the v0.3 names `integer` and `decimal`.
+The `format` field of `text`, table columns and `keyValue` items names these: `int`, `number`, `fixed:N`, `percent`, `percent:N`, `thousands`, `thousands:N`, `compact`, `bytes`, `rate`, `duration`, `duration:N`, `uptime`, `relative`, `startsIn`, `time:<pattern>`, `localized:<skeleton>`, and the older names `integer` and `decimal`.
 
 Arguments see the piped input, not the row: inside `now | fmt_time("HH:mm"; …)` the argument's `.` is `now`. Use `$item.tz`, or bind first: `.tz as $z | now | fmt_time("HH:mm"; $z)`.
 
@@ -59,18 +59,18 @@ Arguments see the piped input, not the row: inside `now | fmt_time("HH:mm"; …)
 | `meta(name)` | a source's metadata, as `$meta`: `{name, fetchedAt, age, ok, error, stale, loaded}` | `meta("weather").age` |
 | `history(source; name)` | the same as `$history[source][name]` | `history("stats"; "cpu") \| last` |
 | `history_times(source; name)` | the epoch times of those samples | |
-| `path_get(path)` | resolves a v0.3 path (`rates.BRL`, `list[0].x`) against the input | `path_get("rates.BRL")` |
+| `path_get(path)` | resolves a dot path (`rates.EUR`, `list[0].x`) against the input | `path_get("rates.EUR")` |
 
 `$meta`: `fetchedAt` is the last successful fetch (or `null`), `age` its age in seconds, `ok` whether the latest fetch succeeded, `error` its message, `stale` whether the age is over twice the source's `refresh`, `loaded` whether there is data.
 
 ## Legacy helpers
 
-These reuse the v0.3 Swift code, so the built-in presets match v0.3 exactly. New configs don't need them.
+The original presets use these. New configs don't need them.
 
 | Function | Meaning |
 |---|---|
-| `kv_legacy(item; defaultSource)` | a v0.3 `keyValueList` item (`label`, `source`, `match`, `pick`, `picks`, `format`) → `{label, text}`, or `null` when its data is missing |
-| `weather_legacy(fields; units)` | weather JSON and v0.3 `fields` paths → `{location, condition, temp, sunrise, sunset}` |
+| `kv_legacy(item; defaultSource)` | a `keyValueList` item (`label`, `source`, `match`, `pick`, `picks`, `format`) → `{label, text}`, or `null` when its data is missing |
+| `weather_legacy(fields; units)` | weather JSON and `fields` dot paths → `{location, condition, temp, sunrise, sunset}` |
 | `foyer_health` | a foyer `/api/health` payload → the `system` data shape (`vestal docs source/system`); missing numbers are `0` |
-| `host_health(host; provider)` | a v0.3 `systemHealth` host → `{data, ok, seen}` |
-| `fmt_legacy(format)` | the v0.3 item formats: `"int"`, `"integer"`, `"decimal"`, `"%.2f"`, or `null` for as is |
+| `host_health(host; provider)` | a `systemHealth` host → `{data, ok, seen}` |
+| `fmt_legacy(format)` | the `keyValueList` item formats: `"int"`, `"integer"`, `"decimal"`, `"%.2f"`, or `null` for as is |

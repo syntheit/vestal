@@ -20,7 +20,7 @@ Vestal bundles Phosphor Icons (MIT, about 1,500 icons) on both operating systems
 
 ## SF Symbols on macOS
 
-`sf:<symbol>` draws an SF Symbol, for example `"icon": "sf:hourglass"`. It is allowed only inside `platform.macos` (check-config error elsewhere), because Linux can't draw it: a Linux UI draws nothing for an `sf:` name. With `theme.icons: "native"` (the default on macOS) the macOS UI already draws the icons of the built-in presets as the SF Symbols v0.3 used; `"phosphor"` draws the Phosphor glyphs there too.
+`sf:<symbol>` draws an SF Symbol, for example `"icon": "sf:hourglass"`. It is allowed only inside `platform.macos` (check-config error elsewhere), because Linux can't draw it: a Linux UI draws nothing for an `sf:` name. With `theme.icons: "native"` (the default on macOS) the macOS UI already draws the icons of the built-in presets as SF Symbols; `"phosphor"` draws the Phosphor glyphs there too.
 
 ## The font files
 

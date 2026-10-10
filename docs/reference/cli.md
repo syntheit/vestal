@@ -66,17 +66,17 @@ Fetches a source now and prints its data, after `transform`, as pretty JSON with
 
 `vestal check-config [path|-] [--json] [--strict] [--platform macos|linux|all] [--commands]`
 
-Checks a config file (default: the one vestal loads; `-` reads stdin) after merging, template expansion and the v0.3 adapter: unknown keys, types, sources, templates, views, widgets, colors and icons (each with a did-you-mean), type mismatches, bad durations and keys, key conflicts, template parameters, expressions that don't compile (with the position), unknown functions and variables, `sf:` icons outside `platform.macos`, literal-looking tokens. It prints `<file>: ok`, or one line per finding with its JSON path, and under it a line with the RFC 6901 pointer into your file, the line and column, and a did-you-mean. Exit 0 when the file is usable (warnings included), 1 when it can't be read or parsed, 2 for bad usage, 3 with error findings or, with `--strict`, any warning.
+Checks a config file (default: the one vestal loads; `-` reads stdin) after merging, template expansion and the legacy adapter: unknown keys, types, sources, templates, views, widgets, colors and icons (each with a did-you-mean), type mismatches, bad durations and keys, key conflicts, template parameters, expressions that don't compile (with the position), unknown functions and variables, `sf:` icons outside `platform.macos`, literal-looking tokens. It prints `<file>: ok`, or one line per finding with its JSON path, and under it a line with the RFC 6901 pointer into your file, the line and column, and a did-you-mean. Exit 0 when the file is usable (warnings included), 1 when it can't be read or parsed, 2 for bad usage, 3 with error findings or, with `--strict`, any warning.
 
 - `--json`: `{"file", "status", "counts": {"error", "warning", "info"}, "diagnostics": [...]}`. Each diagnostic has `severity`, `code`, `pointer`, `layer` (`user`, `platform.macos`, `platform.linux` or `defaults`), `message`, and where they apply `suggestion` (the best) and `suggestions` (up to 3), `expected` and `found`, `line` and `column`, `exprOffset`, and `platform` (for a finding only the other OS's block causes).
 - `--platform macos|linux`: check as that OS loads the file. The default, `all`, checks this OS and also the other OS's block.
 - `--commands`: list every program the config can run: `command` sources (named, inline, from a source template, or made by a preset such as `containers`), `command` secrets, `run` actions in widgets, views, global keys and templates, the `systemBar` privacy toggle and `systemHealth` foyer hosts. For each: where it is defined (pointer), what triggers it, the environment keys it adds, whether the program is on this machine's `PATH`, and the argv as written (text holes are never evaluated). Exit 0.
 
-Severities: error (that part won't work; the rest still runs), warning (ignored or defaulted), info (advice, such as `legacy` notes about v0.3 widgets).
+Severities: error (that part won't work; the rest still runs), warning (ignored or defaulted), info (advice, such as `legacy` notes about linked widgets).
 
 `vestal print-config [path|-] [--origins | --expanded | --templates]`
 
-The effective config: all layers merged, as pretty JSON with sorted keys. `--origins` prints each value as `pointer  value  layer`, showing which layer won. `--expanded` shows the config after template expansion and the v0.3 adapter, which is how you learn what a preset becomes. `--templates` prints every template, built-ins included.
+The effective config: all layers merged, as pretty JSON with sorted keys. `--origins` prints each value as `pointer  value  layer`, showing which layer won. `--expanded` shows the config after template expansion and the legacy adapter, which is how you learn what a preset becomes. `--templates` prints every template, built-ins included.
 
 `vestal schema [--config <path>] [--out <file>]`
 
