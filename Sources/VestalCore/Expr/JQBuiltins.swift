@@ -555,9 +555,12 @@ enum JQBuiltins {
 
         // Collections
         // def add: reduce .[] as $x (null; . + $x), accumulating in place.
-        simple("add") { v in
+        value("add", 0) { interp, v, _ in
             var acc = JQValue.null
-            try JQOps.iterate(v) { _, x in try JQOps.addInPlace(&acc, x) }
+            try JQOps.iterate(v) { _, x in
+                try JQOps.addInPlace(&acc, x)
+                try interp.checkSize(acc)
+            }
             return acc
         }
         // def join($x): reduce .[] as $i (null; (if .==null then "" else .+$x end)
@@ -579,6 +582,7 @@ enum JQBuiltins {
                     default: piece = item
                     }
                     try JQOps.addInPlace(&acc, piece)
+                    try interp.checkSize(acc)
                 }
                 try out(acc.isTruthy ? acc : .string(""))
             }

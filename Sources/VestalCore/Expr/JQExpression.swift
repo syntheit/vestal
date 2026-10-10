@@ -227,13 +227,26 @@ public struct JQLimits: Sendable, Equatable {
     public var maxDepth: Int
     /// Outputs of one evaluation.
     public var maxOutputs: Int
+    /// Largest single string (UTF-8 bytes) or array (elements) that an
+    /// operator or builtin may produce. The wall clock is only checked every
+    /// 256 steps, so this bounds what one step can allocate.
+    public var maxValueSize: Int
+    /// Longest string (UTF-8 bytes) a regex may be run against. ICU cannot
+    /// be interrupted, so the subject is capped before matching.
+    public var maxRegexSubject: Int
+    /// Longest regex pattern (UTF-8 bytes).
+    public var maxRegexPattern: Int
 
     public init(maxSteps: Int = 1_000_000, maxDuration: TimeInterval? = 1, maxDepth: Int = 20_000,
-                maxOutputs: Int = 100_000) {
+                maxOutputs: Int = 100_000, maxValueSize: Int = 10_000_000,
+                maxRegexSubject: Int = 1_000_000, maxRegexPattern: Int = 4_096) {
         self.maxSteps = maxSteps
         self.maxDuration = maxDuration
         self.maxDepth = maxDepth
         self.maxOutputs = maxOutputs
+        self.maxValueSize = maxValueSize
+        self.maxRegexSubject = maxRegexSubject
+        self.maxRegexPattern = maxRegexPattern
     }
 
     public static let `default` = JQLimits()

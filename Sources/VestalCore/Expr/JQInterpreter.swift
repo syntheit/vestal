@@ -158,6 +158,21 @@ final class JQInterpreter {
         }
     }
 
+    /// Fail with `.limit` when a string or array is larger than
+    /// `limits.maxValueSize`. Applied to what operators and builtins produce.
+    @inline(__always)
+    func checkSize(_ v: JQValue) throws {
+        switch v {
+        case .string(let s): if s.utf8.count > limits.maxValueSize { throw sizeError("string", s.utf8.count) }
+        case .array(let a): if a.count > limits.maxValueSize { throw sizeError("array", a.count) }
+        default: break
+        }
+    }
+
+    func sizeError(_ what: String, _ size: Int) -> JQError {
+        JQError(kind: .limit, message: "\(what) of \(size) \(what == "string" ? "bytes" : "elements") is larger than the limit of \(limits.maxValueSize)")
+    }
+
     @inline(__always)
     func enter() throws {
         depth += 1
@@ -188,7 +203,10 @@ final class JQInterpreter {
             try eval(r, input, env, out)
         case .tryCatch(let body, let handler): try evalTry(body, handler, input, env, out)
         case .string(let parts, let format): try interpolate(parts, format, parts.count - 1, "", input, env, out)
-        case .format(let f): try out(.string(try JQFormats.apply(f, input)))
+        case .format(let f):
+            let text = JQValue.string(try JQFormats.apply(f, input))
+            try checkSize(text)
+            try out(text)
         case .array(let e): try evalArray(e, input, env, out)
         case .object(let entries): try buildObject(entries, 0, JQObject(), input, env, out)
         case .neg(let e): try evalNeg(e, input, env, out)
@@ -282,6 +300,7 @@ final class JQInterpreter {
                 items.append(v)
             }
         }
+        if items.count > limits.maxValueSize { throw sizeError("array", items.count) }
         try out(.array(items))
     }
 
@@ -298,7 +317,11 @@ final class JQInterpreter {
     @inline(never)
     func evalBinary(_ op: JQBinOp, _ l: JQOp, _ r: JQOp, _ input: JQValue, _ env: JQEnv?, _ out: JQEmit) throws {
         try eval(r, input, env) { rv in
-            try self.eval(l, input, env) { lv in try out(try JQOps.binary(op, lv, rv)) }
+            try self.eval(l, input, env) { lv in
+                let result = try JQOps.binary(op, lv, rv, maxSize: self.limits.maxValueSize)
+                try self.checkSize(result)
+                try out(result)
+            }
         }
     }
 
@@ -444,15 +467,22 @@ final class JQInterpreter {
         switch native.impl {
         case .value(let fn):
             if args.isEmpty {
-                try out(try fn(self, input, []))
+                let result = try fn(self, input, [])
+                try checkSize(result)
+                try out(result)
             } else {
                 var values = [JQValue](repeating: .null, count: args.count)
                 try cartesianLastOuter(args, args.count - 1, &values, input, env) {
-                    try out(try fn(self, input, $0))
+                    let result = try fn(self, input, $0)
+                    try self.checkSize(result)
+                    try out(result)
                 }
             }
         case .generator(let fn):
-            try fn(self, args, input, env, out)
+            try fn(self, args, input, env) { v in
+                try self.checkSize(v)
+                try out(v)
+            }
         }
     }
 
@@ -500,7 +530,11 @@ final class JQInterpreter {
                      _ input: JQValue, _ env: JQEnv?, _ out: JQEmit) throws {
         try enter()
         defer { depth -= 1 }
-        if k < 0 { try out(.string(suffix)); return }
+        if k < 0 {
+            if suffix.utf8.count > limits.maxValueSize { throw sizeError("string", suffix.utf8.count) }
+            try out(.string(suffix))
+            return
+        }
         switch parts[k] {
         case .literal(let s):
             try interpolate(parts, format, k - 1, s + suffix, input, env, out)

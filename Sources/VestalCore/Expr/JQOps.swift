@@ -129,11 +129,11 @@ enum JQOps {
 
     // MARK: Arithmetic
 
-    static func binary(_ op: JQBinOp, _ l: JQValue, _ r: JQValue) throws -> JQValue {
+    static func binary(_ op: JQBinOp, _ l: JQValue, _ r: JQValue, maxSize: Int = maxArrayIndex) throws -> JQValue {
         switch op {
         case .add: return try add(l, r)
         case .sub: return try subtract(l, r)
-        case .mul: return try multiply(l, r)
+        case .mul: return try multiply(l, r, maxSize: maxSize)
         case .div: return try divide(l, r)
         case .mod: return try modulo(l, r)
         case .eq: return .bool(JQValue.compare(l, r) == 0)
@@ -209,23 +209,23 @@ enum JQOps {
         }
     }
 
-    static func multiply(_ l: JQValue, _ r: JQValue) throws -> JQValue {
+    static func multiply(_ l: JQValue, _ r: JQValue, maxSize: Int = maxArrayIndex) throws -> JQValue {
         switch (l, r) {
         case (.number(let a), .number(let b)): return .number(a * b)
         case (.string(let s), .number(let n)), (.number(let n), .string(let s)):
-            return try repeatString(s, n)
+            return try repeatString(s, n, maxSize: maxSize)
         case (.object(let a), .object(let b)):
             return .object(deepMerge(a, b))
         default: throw typeError2(l, r, "cannot be multiplied")
         }
     }
 
-    static func repeatString(_ s: String, _ n: Double) throws -> JQValue {
+    static func repeatString(_ s: String, _ n: Double, maxSize: Int) throws -> JQValue {
         if n.isNaN || n < 0 { return .null }
         let times = n >= Double(Int32.max) ? Int(Int32.max) : Int(n)
         if times == 0 { return .string("") }
-        if s.utf8.count * times > maxArrayIndex {
-            throw JQError(kind: .limit, message: "string repetition would be too long (\(s.utf8.count * times) bytes)")
+        if s.utf8.count > 0 && times > maxSize / s.utf8.count {
+            throw JQError(kind: .limit, message: "string repetition would be too long (more than \(maxSize) bytes)")
         }
         return .string(String(repeating: s, count: times))
     }

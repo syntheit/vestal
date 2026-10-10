@@ -301,6 +301,12 @@ enum JQRegex {
         default:
             throw JQError.runtime("\(flags.errorDescription()) is not a string")
         }
+        if pattern.utf8.count > interp.limits.maxRegexPattern {
+            throw JQError(kind: .limit, message: "regex pattern of \(pattern.utf8.count) bytes is longer than the limit of \(interp.limits.maxRegexPattern)")
+        }
+        if str.utf8.count > interp.limits.maxRegexSubject {
+            throw JQError(kind: .limit, message: "regex subject of \(str.utf8.count) bytes is longer than the limit of \(interp.limits.maxRegexSubject)")
+        }
         let compiled = try interp.regexCache.compile(pattern, options)
         let ns = NSString(string: str)
         let length = ns.length

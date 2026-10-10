@@ -344,6 +344,51 @@ final class ExprTests: XCTestCase {
         XCTAssertEqual(try JQExpression("[range(50)] | length", limits: small).first(.null), .number(50))
     }
 
+    func testValueSizeLimit() throws {
+        let small = JQLimits(maxValueSize: 100)
+        func kind(_ src: String, _ input: JQValue = .null) -> JQError.Kind? {
+            do { _ = try JQExpression(src, limits: small).run(input: input); return nil } catch { return (error as? JQError)?.kind }
+        }
+        XCTAssertEqual(kind(#""ab" * 51"#), .limit)
+        XCTAssertEqual(kind(#""ab" * 50 | length"#), nil)
+        XCTAssertEqual(kind(#""x" * 60 | . + ."#), .limit)
+        XCTAssertEqual(kind(#"[range(101)]"#), .limit)
+        XCTAssertEqual(kind(#"[range(100)] | length"#), nil)
+        XCTAssertEqual(kind(#"[range(60)] | . + ."#), .limit)
+        XCTAssertEqual(kind(#"[range(60)] | add"#), nil)
+        XCTAssertEqual(kind(#"["abcdefghij"] * 20 | join(",")"#), nil)
+        XCTAssertEqual(kind(#"[range(20)] | map("abcdefghij") | join(",")"#), .limit)
+        XCTAssertEqual(kind(#"[range(20)] | map("abcdefghij") | add"#), .limit)
+        XCTAssertEqual(kind(#"[range(40)] | map("abc") | tojson"#), .limit)
+        XCTAssertEqual(kind(#""x" * 60 | "\(.)\(.)""#), .limit)
+        XCTAssertEqual(kind(#""x" * 60 | @base64 | "\(.)""#), nil)
+        XCTAssertEqual(kind(#"[range(200)] | implode"#), .limit)
+        XCTAssertEqual(kind(#"[range(90)] | tojson | explode"#), .limit)
+        // Not catchable.
+        XCTAssertEqual(kind(#"try ("ab" * 51) catch 0"#), .limit)
+        // Defaults leave ordinary work alone.
+        XCTAssertEqual(try JQExpression(#"[range(100000)] | map(tostring) | join(",") | length"#).first(.null), .number(588_889))
+        XCTAssertEqual(try JQExpression(#""ab" * 1000000 | length"#).first(.null), .number(2_000_000))
+        XCTAssertEqual(JQLimits.default.maxValueSize, 10_000_000)
+    }
+
+    func testRegexLimits() throws {
+        let small = JQLimits(maxRegexSubject: 10, maxRegexPattern: 8)
+        func kind(_ src: String) -> JQError.Kind? {
+            do { _ = try JQExpression(src, limits: small).run(input: .null); return nil } catch { return (error as? JQError)?.kind }
+        }
+        XCTAssertEqual(kind(#""aaaaaaaaaaa" | test("a")"#), .limit)
+        XCTAssertEqual(kind(#""aaaaaaaaaa" | test("a")"#), nil)
+        XCTAssertEqual(kind(#""aaaa" | test("aaaaaaaaa")"#), .limit)
+        XCTAssertEqual(kind(#""aaaaaaaaaaa" | gsub("a"; "b")"#), .limit)
+        XCTAssertEqual(kind(#"try ("aaaaaaaaaaa" | test("a")) catch 0"#), .limit)
+        let hostile = String(repeating: "a", count: 1_000_001)
+        XCTAssertThrowsError(try JQExpression(#"test("^(a+)+$")"#).run(input: .string(hostile))) { error in
+            XCTAssertEqual((error as? JQError)?.kind, .limit)
+        }
+        XCTAssertEqual(try JQExpression(#"test("^(a+)+$")"#).first(.string("aaaa")), .bool(true))
+    }
+
     func testDeadline() {
         let limits = JQLimits(maxSteps: .max, maxDuration: 0.05)
         let start = Date()

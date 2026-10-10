@@ -42,8 +42,11 @@ Value arguments follow jq's C-builtin order: when an argument yields several val
 | `maxDuration` | 1 s | wall clock, checked every 256 steps |
 | `maxDepth` | 20,000 | nested evaluation frames |
 | `maxOutputs` | 100,000 | outputs of one evaluation |
+| `maxValueSize` | 10,000,000 | largest string (UTF-8 bytes) or array (elements) one operator or builtin may produce: `*` on strings, `+`, `add`, `join`, `tostring`, `tojson`, `@format`, string interpolation, `implode`, `split`, `explode` and array construction |
+| `maxRegexSubject` | 1,000,000 | UTF-8 bytes of the string a regex (`test`, `match`, `sub`, `scan`, ...) runs against |
+| `maxRegexPattern` | 4,096 | UTF-8 bytes of a regex pattern |
 
-Evaluation also stops before the thread runs out of stack: a guard compares the stack pointer with the thread's bounds. As a result, runaway recursion is a `.limit` error, even on a 512 KiB background-thread stack. In a release build that allows about 550 levels of evaluation nesting on 512 KiB and about 10,000 on the 8 MiB main thread. Values may nest at most 512 levels deep. Strings made by `*` may be at most 10 MB, and `setpath` may not create an array index above 10,000,000. `.limit` errors are not catchable by `try` or `?`.
+Evaluation also stops before the thread runs out of stack: a guard compares the stack pointer with the thread's bounds. As a result, runaway recursion is a `.limit` error, even on a 512 KiB background-thread stack. In a release build that allows about 550 levels of evaluation nesting on 512 KiB and about 10,000 on the 8 MiB main thread. Values may nest at most 512 levels deep. The wall clock is only checked every 256 steps, so `maxValueSize` bounds what one step can allocate (a string `*` or `+` that would pass it fails before or just after allocating). `setpath` may not create an array index above 10,000,000. `.limit` errors are not catchable by `try` or `?`.
 
 `until`, `while` and `repeat` run as loops when their arguments yield at most one value each, so a 100,000-iteration `until` does not recurse. With generator arguments they fall back to jq's recursive definitions, which gives the same outputs.
 
@@ -90,7 +93,7 @@ Added from jq 1.6 and 1.8: `leaf_paths`, `ascii`, `add(f)`, `trim`, `ltrim`, `rt
 ## Known costs and limits
 
 - `add`, `join`, `=`, `|=` and the other update operators build their result in place, so they are linear, as in jq. A `reduce` whose update copies its accumulator is quadratic, because the evaluator cannot hand the accumulator over: `reduce .[] as $x ({}; .[$x.k] = $x)` over 2,000 items takes about 60 ms in a release build. For large inputs, prefer `map`, `group_by` and `from_entries`.
-- One regex match cannot be interrupted, since ICU has no time limit in NSRegularExpression. A catastrophic pattern such as `^(a+)+$` on a long string is not stopped by `maxDuration`.
+- One regex match cannot be interrupted, since ICU has no time limit in NSRegularExpression. A catastrophic pattern such as `^(a+)+$` on a long string is not stopped by `maxDuration`; `maxRegexSubject` and `maxRegexPattern` only bound the damage. `uregex_setTimeLimit` is not reachable from Foundation without C, so no time limit is set.
 - Printing, comparing and freeing a value recurse once per nesting level. Values built by expressions are capped at 512 levels, and `JQValue.parse` at 256 by default. Values built in Swift (`JQValue(foundation:)`, `JQValue(_: AnyJSON)`) are not checked, so keep them shallow.
 - On Linux, `JQValue(foundation:)` detects booleans by `NSNumber.objCType`, so an `NSNumber` made from an `Int8` reads as a boolean. JSONSerialization never produces those.
 
