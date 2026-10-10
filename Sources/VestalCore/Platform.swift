@@ -385,6 +385,19 @@ public protocol MediaBackend: Sendable {
     func read(_ wanted: [String]) async -> MediaReading
     /// The provider for one player, for play/pause, next and previous.
     func provider(for player: String) -> MediaProvider
+    /// Starts following these `player` lists (one per `media` source) for
+    /// changes and stops following any other, for backends that are told
+    /// when a player changes by a long-lived process (Linux); `changed` runs
+    /// (on any thread) after a change, and `read` then answers from what was
+    /// said. An empty list stops all of it. The runtime calls this with the
+    /// sources a shown dashboard reads, and with `[]` while hidden. Calling
+    /// it again with the same lists changes nothing. By default nothing
+    /// follows (macOS has its own notifications).
+    func follow(_ wanted: [[String]], changed: @escaping @Sendable () -> Void)
+}
+
+extension MediaBackend {
+    public func follow(_ wanted: [[String]], changed: @escaping @Sendable () -> Void) {}
 }
 
 // MARK: Calendar

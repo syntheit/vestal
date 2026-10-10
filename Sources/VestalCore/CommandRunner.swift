@@ -194,7 +194,7 @@ public enum CommandRunner {
 }
 
 /// The pids of the children that are running, for `killRunningChildren`.
-private final class RunningChildren: @unchecked Sendable {
+final class RunningChildren: @unchecked Sendable {
     static let shared = RunningChildren()
 
     private let lock = NSLock()

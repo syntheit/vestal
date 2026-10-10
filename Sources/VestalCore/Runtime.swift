@@ -170,6 +170,13 @@ public final class AppRuntime {
     /// replaced run never matches the job that took its place.
     private var lastGeneration = 0
     private var started = false
+    /// The `player` lists of the `media` sources last handed to the fetcher
+    /// to follow (`syncMediaFollow`).
+    private var followedMedia: [[String]] = []
+    /// Media sources being read because a player changed, and the ones that
+    /// changed again meanwhile.
+    private var mediaFetching = Set<RuntimeKey>()
+    private var mediaDirty = Set<RuntimeKey>()
     /// Set by `shutdown()`: nothing runs any more.
     private var stopped = false
     private var timer: Task<Void, Never>?
@@ -283,6 +290,7 @@ public final class AppRuntime {
         guard !started, !stopped else { return }
         started = true
         startDueJobs()
+        syncMediaFollow()
     }
 
     /// Stops for good, when the app quits: cancels the timer and every
@@ -297,6 +305,7 @@ public final class AppRuntime {
         timer?.cancel()
         timer = nil
         for id in Array(tasks.keys) { cancel(id) }
+        syncMediaFollow()
         CommandRunner.killRunningChildren()
     }
 
@@ -495,6 +504,56 @@ public final class AppRuntime {
     /// nothing on its own.
     private func replan() {
         if started { startDueJobs() }
+        syncMediaFollow()
+    }
+
+    /// The `media` sources a shown dashboard reads.
+    private func readMediaKeys() -> [RuntimeKey] {
+        guard started, !stopped, isVisible else { return [] }
+        var found: [RuntimeKey] = []
+        for (id, job) in jobs {
+            guard case .snapshot(let key) = id, job.problem == nil, let plan = job.plan, plan.wanted,
+                  plan.source.type == "media" else { continue }
+            found.append(key)
+        }
+        return found.sorted { $0.description < $1.description }
+    }
+
+    /// Has the fetcher follow the players of the `media` sources while the
+    /// dashboard is shown (a backend told by a process, as on Linux, then
+    /// pushes a change at once), and stop when it is hidden or the runtime
+    /// stops. A repeat with the same sources changes nothing.
+    private func syncMediaFollow() {
+        var lists: [[String]] = []
+        for key in readMediaKeys() {
+            let list = jobs[.snapshot(key)]?.plan?.source.player ?? [SourceConfig.defaultPlayer]
+            if !lists.contains(list) { lists.append(list) }
+        }
+        guard lists != followedMedia else { return }
+        followedMedia = lists
+        fetcher.followMedia(lists) { [weak self] in
+            Task { @MainActor in self?.mediaChanged() }
+        }
+    }
+
+    /// A followed player changed: reads every shown `media` source now (once
+    /// at a time each, and again if it changed meanwhile).
+    private func mediaChanged() {
+        for key in readMediaKeys() {
+            if mediaFetching.contains(key) {
+                mediaDirty.insert(key)
+                continue
+            }
+            mediaFetching.insert(key)
+            Task { @MainActor in
+                repeat {
+                    mediaDirty.remove(key)
+                    _ = await fetchNow(key)
+                } while mediaDirty.contains(key) && !readMediaKeys().isEmpty
+                mediaFetching.remove(key)
+                mediaDirty.remove(key)
+            }
+        }
     }
 
     /// When `job` should next start; nil while it runs, can never run, waits

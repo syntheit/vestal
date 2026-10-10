@@ -142,20 +142,80 @@ public final class PlayerctlMedia: MediaProvider {
     }
 }
 
-/// The `media` source on Linux: MPRIS players through playerctl
+/// The `media` source on Linux: MPRIS players through playerctl.
 /// `players` is `playerctl -l`'s list without
 /// instance suffixes; a `player` matches a listed one by bus name
 /// (`LinuxProc.playerctlMatches`), and `auto` is the first one playing,
 /// else the first listed. Without playerctl, or with no players, it reads
 /// off with no players.
-public final class PlayerctlBackend: MediaBackend {
-    private let run: CommandRun
+///
+/// While the runtime follows (`follow`, when the dashboard is shown), one
+/// `playerctl --follow` per `player` list tells when a player changes, and
+/// `changed` runs at once. A read is then answered from what was said while
+/// it holds, as on macOS (`MediaHeard`): a playing track's position runs on
+/// from the last reading and is asked again every half minute, a paused one
+/// is not asked at all until it changes. For one named player the follow
+/// line is the reading itself; for `auto` or several names it only says
+/// that something changed, and the next read picks the player as always.
+/// Without a live follow process (playerctl missing, no player yet, not
+/// shown) every read asks, as before.
+public final class PlayerctlBackend: MediaBackend, @unchecked Sendable {
+    /// A paused or stopped reading is trusted this long without a change.
+    static let maxAge: TimeInterval = 600
 
-    public init(run: @escaping CommandRun = LinuxCommands.live) {
+    private final class Followed {
+        let wanted: [String]
+        /// A line is the whole reading (one named player).
+        let single: Bool
+        var follower: PlayerctlFollower?
+        /// True from the first line of the running process until it ends.
+        var live = false
+        var heard: Heard?
+        /// When the last event came: a read that started before it is stale.
+        var eventAt = Date.distantPast
+        init(wanted: [String], single: Bool) {
+            self.wanted = wanted
+            self.single = single
+        }
+    }
+
+    private struct Heard {
+        var media: MediaHeard
+        var player: String?
+        var players: [String]
+    }
+
+    private let run: CommandRun
+    private let startFollow: LineStreamStart
+    private let backoff: [TimeInterval]
+    private let now: @Sendable () -> Date
+    private let lock = NSLock()
+    private var followed: [String: Followed] = [:]
+    private var changed: (@Sendable () -> Void)?
+
+    public init(run: @escaping CommandRun = LinuxCommands.live, follow: @escaping LineStreamStart = LineProcess.live,
+                backoff: [TimeInterval] = PlayerctlFollower.backoff, now: @escaping @Sendable () -> Date = { Date() }) {
         self.run = run
+        startFollow = follow
+        self.backoff = backoff
+        self.now = now
+    }
+
+    deinit {
+        for entry in followed.values { entry.follower?.stop() }
     }
 
     public func read(_ wanted: [String]) async -> MediaReading {
+        let key = Self.key(wanted)
+        let started = now()
+        if let known = answer(key, at: started) { return known }
+        let reading = await poll(wanted)
+        remember(reading, key: key, started: started)
+        return reading
+    }
+
+    /// Asks playerctl: the whole resolution, `list` and `status` and `metadata`.
+    private func poll(_ wanted: [String]) async -> MediaReading {
         let listed = await list()
         let players = LinuxProc.playerctlDiscoveryNames(listed)
         var auto: String?
@@ -185,5 +245,102 @@ public final class PlayerctlBackend: MediaBackend {
             if result.stdoutString.trimmingCharacters(in: .whitespacesAndNewlines) == "Playing" { return player }
         }
         return listed.first
+    }
+
+    // MARK: Following
+
+    public func follow(_ wanted: [[String]], changed: @escaping @Sendable () -> Void) {
+        var commands: [String: (argv: [String], single: Bool, wanted: [String])] = [:]
+        for list in wanted {
+            if let command = LinuxProc.playerctlFollowCommand(list) {
+                commands[Self.key(list)] = (command.argv, command.single, list)
+            }
+        }
+        var stopping: [PlayerctlFollower] = []
+        var starting: [PlayerctlFollower] = []
+        lock.lock()
+        self.changed = commands.isEmpty ? nil : changed
+        for (key, entry) in followed where commands[key] == nil {
+            if let follower = entry.follower { stopping.append(follower) }
+            followed[key] = nil
+        }
+        for (key, command) in commands where followed[key] == nil {
+            let entry = Followed(wanted: command.wanted, single: command.single)
+            entry.follower = PlayerctlFollower(
+                argv: command.argv, start: startFollow, backoff: backoff,
+                onLine: { [weak self] line in self?.heard(line, key: key) },
+                onLost: { [weak self] in self?.lost(key: key) })
+            followed[key] = entry
+            if let follower = entry.follower { starting.append(follower) }
+        }
+        lock.unlock()
+        for follower in stopping { follower.stop() }
+        for follower in starting { follower.start() }
+    }
+
+    /// One follow line: a named player's own reading replaces what was
+    /// known; anything else makes the next read ask.
+    private func heard(_ line: String, key: String) {
+        guard let event = LinuxProc.playerctlFollowEvent(line) else { return }
+        let moment = now()
+        lock.lock()
+        guard let entry = followed[key] else {
+            lock.unlock()
+            return
+        }
+        entry.live = true
+        entry.eventAt = moment
+        switch event {
+        case .reading(let playing):
+            if entry.single, var known = entry.heard {
+                known.media = MediaHeard(playing: playing, at: moment, complete: playing.position != nil)
+                entry.heard = known
+            } else {
+                entry.heard = nil
+            }
+        case .gone:
+            entry.heard = nil
+        }
+        let notify = changed
+        lock.unlock()
+        notify?()
+    }
+
+    /// The process ended (or did not start): nothing it said holds.
+    private func lost(key: String) {
+        lock.lock()
+        let entry = followed[key]
+        let wasLive = entry?.live ?? false
+        entry?.live = false
+        entry?.heard = nil
+        // A process that never said anything (no playerctl) changes nothing.
+        let notify = wasLive ? changed : nil
+        lock.unlock()
+        notify?()
+    }
+
+    /// The reading that was said, nil when the player has to be asked.
+    private func answer(_ key: String, at moment: Date) -> MediaReading? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let entry = followed[key], entry.live, let known = entry.heard,
+              moment.timeIntervalSince(known.media.at) < Self.maxAge,
+              let playing = known.media.reading(at: moment) else { return nil }
+        return MediaReading(player: known.player, playing: playing, players: known.players)
+    }
+
+    /// Keeps a poll's answer while a follow process is alive, unless an event
+    /// came since it started. Only a playing or paused track is kept.
+    private func remember(_ reading: MediaReading, key: String, started: Date) {
+        guard reading.player != nil, reading.playing.state == "playing" || reading.playing.state == "paused" else { return }
+        lock.lock()
+        defer { lock.unlock() }
+        guard let entry = followed[key], entry.live, entry.eventAt <= started else { return }
+        entry.heard = Heard(media: MediaHeard(playing: reading.playing, at: started, complete: reading.playing.position != nil),
+                            player: reading.player, players: reading.players)
+    }
+
+    private static func key(_ wanted: [String]) -> String {
+        wanted.map(LinuxProc.playerctlName).joined(separator: "\u{1F}")
     }
 }

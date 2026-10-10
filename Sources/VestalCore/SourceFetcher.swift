@@ -36,6 +36,10 @@ public protocol SourceFetcher: Sendable {
     /// Reads `source` synchronously if its type allows (`system`, `file`),
     /// for the dashboard's first frame; nil otherwise (the default).
     func fetchNow(_ source: SourceConfig) -> Data?
+    /// Follows the `player` lists of the `media` sources a shown dashboard
+    /// reads (`MediaBackend.follow`); `changed` runs after a player changed,
+    /// and `[]` stops. Nothing by default.
+    func followMedia(_ wanted: [[String]], changed: @escaping @Sendable () -> Void)
 }
 
 extension SourceFetcher {
@@ -46,6 +50,8 @@ extension SourceFetcher {
     }
 
     public func fetchNow(_ source: SourceConfig) -> Data? { nil }
+
+    public func followMedia(_ wanted: [[String]], changed: @escaping @Sendable () -> Void) {}
 }
 
 /// A successful fetch.
@@ -213,6 +219,10 @@ public struct LiveFetcher: SourceFetcher {
         case "timer": return TimerStore.shared.data(settings: TimerSettings(source), at: now()).canonicalData()
         default: return nil
         }
+    }
+
+    public func followMedia(_ wanted: [[String]], changed: @escaping @Sendable () -> Void) {
+        platform.media?.follow(wanted, changed: changed)
     }
 
     // MARK: HTTP
