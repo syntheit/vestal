@@ -145,7 +145,7 @@ section.part { padding-block: 72px 24px; scroll-margin-top: 52px; }
 .asks .ask-prev { left: 0; }
 .asks .ask-next { right: 0; }
 .dots { display: flex; justify-content: center; gap: 2px; margin-top: 20px; }
-.dot { width: 26px; height: 26px; padding: 0; border: 0; border-radius: 13px; background: transparent; cursor: pointer; display: grid; place-items: center; }
+.dot { width: 30px; height: 36px; padding: 0; border: 0; border-radius: 15px; background: transparent; cursor: pointer; display: grid; place-items: center; }
 .dot::before { content: ""; width: 8px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.26); transition: width .2s, background-color .2s; }
 .dot:hover::before { background: rgba(255,255,255,.5); }
 .dot[aria-current="true"]::before { width: 20px; background: var(--accent); }

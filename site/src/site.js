@@ -159,7 +159,7 @@ function asks() {
     token: `ask-${a.id}`, kind: "Result", title: a.title, html: `<p>${esc(a.ask)}</p>`,
     open: (box, onView) => screen(box, { ...render(a), contain: true, now: true, animate: true, onView }),
   })));
-  dots.innerHTML = list.map((a, i) => `<button type="button" class="dot" aria-label="Request ${i + 1}: ${esc(a.ask)}"></button>`).join("");
+  dots.innerHTML = list.map((a, i) => `<button type="button" class="dot" aria-label="Request ${i + 1} of ${list.length}" title="${esc(a.ask)}"></button>`).join("");
 
   let at = -1;
   function show(i, { announce = true, from = 0 } = {}) {
@@ -169,6 +169,8 @@ function asks() {
     if (was) {
       // The render it held goes; the frame keeps its size.
       if (was.ctl) { was.ctl.destroy(); was.ctl = null; }
+      for (const m of was.frame.querySelectorAll(".render-failed")) m.remove();
+      if (was.art.contains(document.activeElement)) root.focus({ preventScroll: true });
       was.art.classList.remove("on", "from-left", "from-right");
       was.art.setAttribute("aria-hidden", "true");
       was.art.inert = true;
@@ -182,8 +184,16 @@ function asks() {
     s.ctl = screen(s.frame, render(s.a));
     dots.querySelectorAll(".dot").forEach((d, k) => { if (k === i) d.setAttribute("aria-current", "true"); else d.removeAttribute("aria-current"); });
     if (announce) live.textContent = `Request ${i + 1} of ${list.length}: ${s.a.ask}`;
-    // The neighbors' render models, so a step draws at once.
-    if (!saveData()) for (const k of [i - 1, i + 1]) sample(list[(k + list.length) % list.length].key).catch(() => {});
+    if (announce) prefetch();
+  }
+  // The neighbors' render models, so a step draws at once: once the
+  // carousel is near, and after each step.
+  const prefetch = () => {
+    if (!saveData()) for (const k of [at - 1, at + 1]) sample(list[(k + list.length) % list.length].key).catch(() => {});
+  };
+  if (hasIO) {
+    const near = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { near.disconnect(); prefetch(); } }, { rootMargin: "100% 0px" });
+    near.observe(root);
   }
   slides.forEach((s, i) => { if (i) { s.art.setAttribute("aria-hidden", "true"); s.art.inert = true; } });
   show(0, { announce: false });
@@ -228,7 +238,7 @@ function asks() {
     if (Math.abs(dx) > 50 && Math.abs(dx) > 1.5 * Math.abs(dy)) { swiped = Date.now(); step(dx < 0 ? 1 : -1); }
   });
   // The click that ends a drag of the result does not open the lightbox.
-  root.addEventListener("click", (e) => { if (Date.now() - swiped < 400) { e.stopPropagation(); e.preventDefault(); } }, { capture: true });
+  root.addEventListener("click", (e) => { if (Date.now() - swiped < 400 && e.target.closest(".frame")) { e.stopPropagation(); e.preventDefault(); } }, { capture: true });
   root.addEventListener("pointercancel", () => { swipe = null; });
   // A two-finger swipe on a trackpad: one step per gesture.
   let wheel = 0, quietUntil = 0, idle = null;

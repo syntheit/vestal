@@ -395,7 +395,9 @@ function askTranscript(a, s) {
       }
     } else if (st.eval) {
       const input = st.source ? ["--source", st.source, "--config", config, "--data", data] : ["--null-input"];
-      cmd = `vestal eval ${quoted(label, st.eval)}${st.source ? ` --source ${st.source}${commandFlag(st.source)} --config ${DRAFT}` : ""}${st.at ? ` --at ${st.at}` : ""}`;
+      // `--at` shows when the step names a time or the expression reads the clock.
+      const shownAt = st.at || (/\bnow\b/.test(st.eval) ? at : null);
+      cmd = `vestal eval ${quoted(label, st.eval)}${st.source ? ` --source ${st.source}${commandFlag(st.source)} --config ${DRAFT}` : ""}${shownAt ? ` --at ${shownAt}` : ""}`;
       out = vestal(["eval", st.eval, ...input, "--at", at]).stdout;
     } else if (st.check) {
       cmd = `vestal check-config --json ${DRAFT} | jq -c`;

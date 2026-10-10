@@ -23,7 +23,7 @@
     "steps": [
       { "note": "The `headlines` preset draws any list of stories in its shape, and Hacker News search on Algolia can filter by points.", "docs": "preset/headlines", "grep": "any source whose data is [^|]*", "only": true },
       { "note": "Algolia matches word prefixes, so a search for `nix` also returns a story about Nixie tubes:", "fetch": "nixNews", "raw": true, "jq": ".hits[].title" },
-      { "note": "The transform keeps the titles with the word nix, nixos or nixpkgs (five of the six), and maps the fields to what `headlines` reads.", "eval": "length", "source": "nixNews" },
+      { "note": "The transform keeps the titles with the word nix, nixos or nixpkgs, and maps the fields to what `headlines` reads.", "eval": "length", "source": "nixNews" },
       { "check": true },
       { "render": true, "grep": "\"(Nix flakes|Show HN)[^\"]*\" lines|^diagnostics" },
       { "screenshot": true }

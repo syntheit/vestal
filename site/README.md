@@ -43,7 +43,7 @@ Its result is the sample `Resources/samples/agent-<id>/` (kind `page`), so `vest
 |---|---|
 | `{ "docs": "<topic>" }` | `vestal docs <topic>` |
 | `{ "shape": "<source>" }`, `{ "fetch": "<source>", "raw": true }` | `vestal fetch <source> [--shape] [--raw]`, through a twin of the source that reads `data/<source>.json` with the same `transform`, so nothing is fetched and no command runs. `jq` pipes the output through a filter (vestal's own jq, shown as `jq`). |
-| `{ "eval": "<expr>", "source": "<name>", "at": "<time>" }` | `vestal eval` on the source's data, or with no input; `at` defaults to the sample's time and is shown only when given. |
+| `{ "eval": "<expr>", "source": "<name>", "at": "<time>" }` | `vestal eval` on the source's data, or with no input; `at` defaults to the sample's time and is shown when given or when the expression reads `now`. |
 | `{ "check": true }` | `vestal check-config --json`, shown on one line as `jq -c` prints it. |
 | `{ "render": true, "at": "<time>" }` | `vestal render` (the tree). |
 | `{ "screenshot": true }` | `vestal screenshot --json` at the sample's size; where nothing draws offscreen (Linux), the line a clean screenshot prints. |
