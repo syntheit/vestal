@@ -121,6 +121,22 @@ for id in $WIDGETS; do set -- "$@" "$TMP/w-$id.png"; done
   --trim 40 --bg 101116 --masonry "$@"
 fit "$TMP/widgets.png" 1800 "$OUT/widgets.png"
 
+# MARK: - Asking an agent
+
+# The results of three of the site's agent requests, each drawn from its
+# sample (config, data and time) over the aurora.
+for id in word-heatmap hn-nix weekend-garden; do
+  d=Resources/samples/agent-$id
+  if [ ! -d "$d" ]; then
+    echo "no $d; kept $OUT/ask-$id.png as it is" >&2
+    continue
+  fi
+  set -- $(python3 -c 'import json, sys; s = json.load(open(sys.argv[1])); print(s["at"], "%dx%d" % tuple(s["size"]))' "$d/sample.json")
+  "$BIN" screenshot "$TMP/ask-$id.png" --config "$d/config.json" --data "$d/data" --at "$1" --size "$2" --scale 2 >/dev/null
+  fit "$TMP/ask-$id.png" 1200 "$OUT/ask-$id.png"
+done
+set --
+
 # MARK: - Flip clock, animated
 
 # Ten seconds across a minute at 10 frames a second; the aurora drifts

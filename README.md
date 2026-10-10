@@ -36,6 +36,24 @@ vestal is a full-screen dashboard that a hotkey shows and hides. One JSON config
 </tr>
 </table>
 
+## Ask your agent
+
+vestal has no settings window. You tell your agent what you want, and it reads `vestal docs`, writes the config and checks it with `vestal check-config`, `vestal render` and `vestal screenshot`. Three requests an agent carried out, with what it built:
+
+Make a heatmap of how many words I write each day in my Obsidian daily notes, for the last twelve weeks.
+
+<p align="center"><img src="docs/images/ask-word-heatmap.png" alt="A heatmap of words written per day over twelve weeks, with today's count, the last seven days and the streak"></p>
+
+Show the Hacker News stories about Nix that got more than 100 points.
+
+<p align="center"><img src="docs/images/ask-hn-nix.png" alt="Five Hacker News stories about Nix with their points and comment counts"></p>
+
+On weekends, put my Home Assistant garden sensors at the top of the dashboard, and hide them during the week.
+
+<p align="center"><img src="docs/images/ask-weekend-garden.png" alt="Six garden tiles from Home Assistant: soil moisture, greenhouse, drip line, rain, compost and the gate"></p>
+
+The commands each agent ran, and the config it wrote, are on [the site](https://vestal.matv.io/#asks).
+
 ## Clock faces
 
 <p align="center"><img src="docs/images/clocks.png" alt="Eight clock faces: flip, analog, dot matrix, ring, thin, serif, stacked and condensed"></p>
