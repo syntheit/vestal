@@ -242,7 +242,7 @@ public enum SchemaRegistry {
                       "Multiplies every text, icon and fixed size (not gaps or padding)."),
             SchemaKey("density", .oneOf(ThemeConfig.densities), default: .string("comfortable"), since: "0.4",
                       examples: [.string("compact")],
-                      "How much room the built-in presets take. comfortable: the v0.3 look. compact: a smaller clock with the "
+                      "How much room the built-in presets take. comfortable: the default look. compact: a smaller clock with the "
                       + "date and world clocks on one line, no section titles or rules, tighter rows and gaps, one-line "
                       + "currencies and weather. Views' default gap follows it."),
             SchemaKey("icons", .oneOf(["native", "phosphor"]), since: "0.4", examples: [.string("phosphor")],
@@ -282,7 +282,7 @@ public enum SchemaRegistry {
         SchemaShape("view", "A view: the widgets it shows, top to bottom.", keys: [
             SchemaKey("order", .list(.string), default: .array([]),
                       examples: [.array([.string("clock"), .string("systemBar"), .string("agenda")])],
-                      "Widget keys, top to bottom. Each key may appear once. v0.3's name for children: only the first "
+                      "Widget keys, top to bottom. Each key may appear once. The older name for children: only the first "
                       + "listed entry gets no space before it."),
             SchemaKey("layout", .oneOf(ViewConfig.layouts), default: .string("stack"), examples: [.string("stack")],
                       "The root container: stack (top to bottom), row or grid."),
@@ -497,7 +497,7 @@ public enum SchemaRegistry {
         ] + common("1h", "visible")),
     ]
 
-    /// The v0.3 Claude options: accepted and ignored (an info
+    /// The older Claude options: accepted and ignored (an info
     /// finding), on the claude source and the claudeUsage widget.
     static let ignoredClaudeKeys: [SchemaKey] = [
         SchemaKey("path", .string, examples: [.string("~/.claude/projects")],

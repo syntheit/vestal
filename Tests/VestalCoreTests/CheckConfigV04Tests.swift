@@ -89,7 +89,7 @@ final class CheckConfigV04Tests: XCTestCase {
         let all = diagnostics(#"{"widgets": {"r": {"type": "text", "value": "rates.BRL"}}}"#)
         let d = try XCTUnwrap(find(all, "/widgets/r/value"))
         XCTAssertEqual(d.suggestions.first, ".rates.BRL")
-        // v0.3 path fields stay paths (full.json's picks are checked clean above).
+        // dot path fields stay paths (full.json's picks are checked clean above).
     }
 
     func testSourceExpressions() {

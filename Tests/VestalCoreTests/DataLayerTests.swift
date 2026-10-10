@@ -325,7 +325,7 @@ final class BuiltinShapeTests: XCTestCase {
 
     func testSystemShapeIsTheSameOnBothOperatingSystems() async {
         let mac = await SystemSampler(stats: FixedStats(), audio: FixedAudio(VolumeInfo(level: 42, muted: false)),
-                                      host: "swift", os: "macos").read(SourceConfig(type: "system"))
+                                      host: "atlas", os: "macos").read(SourceConfig(type: "system"))
         let linux = await SystemSampler(stats: FixedStats(), audio: FixedAudio(nil), host: "mantle", os: "linux")
             .read(SourceConfig(type: "system"))
         XCTAssertEqual(keys(mac), keys(linux))
@@ -338,7 +338,7 @@ final class BuiltinShapeTests: XCTestCase {
             "network.today", "network.tx", "os", "processes", "services", "temperature", "temperature.cpu", "uptime",
         ])
         let expected: AnyJSON = .object([
-            "host": .string("swift"), "os": .string("macos"), "uptime": .int(273_600),
+            "host": .string("atlas"), "os": .string("macos"), "uptime": .int(273_600),
             "cpu": .object(["percent": .int(12), "cores": .int(10), "load": .array([.double(1.21), .double(1.43), .double(1.5)]),
                             "perCore": .null]),
             "memory": .object(["percent": .int(61), "pressure": .int(12), "compressed": .int(12), "psi": .null,

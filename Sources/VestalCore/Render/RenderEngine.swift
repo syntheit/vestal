@@ -9,7 +9,7 @@ import Foundation
 //   let engine = RenderEngine(runtime: runtime, loaded: loaded)
 //   engine.observe { update in ... }   // .snapshot, .patch, .visibility, .effect
 //   engine.setVisible(true)            // evaluates, sends a snapshot
-//   engine.handle(.invoke(id: "main/systems/1/@harbor"))
+//   engine.handle(.invoke(id: "main/systems/1/@nas"))
 //   engine.handle(.key("h"))
 //
 // While hidden nothing is evaluated. On show the whole view is evaluated

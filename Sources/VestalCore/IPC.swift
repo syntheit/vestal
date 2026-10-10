@@ -290,7 +290,7 @@ public struct IPCSourceInfo: Codable, Equatable, Sendable {
     public var refresh: String
     /// "always" or "visible".
     public var when: String
-    /// "config", "builtin", "inline", "adapter" (a v0.3 widget's) or
+    /// "config", "builtin", "inline", "adapter" (an original widget's) or
     /// "health" (a foyer host).
     public var origin: String
     /// The main view's widgets that read it, as `view/widget`.

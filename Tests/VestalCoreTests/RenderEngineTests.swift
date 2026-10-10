@@ -330,14 +330,14 @@ final class RenderEngineTests: XCTestCase {
             walk(s.root)
             return found
         }
-        let short = names(["harbor", "raven", "conduit"])
-        XCTAssertEqual(short.map { text($0)?.text }, ["harbor", "raven", "conduit"])
+        let short = names(["nas", "edge", "backup"])
+        XCTAssertEqual(short.map { text($0)?.text }, ["nas", "edge", "backup"])
         for n in short {
             XCTAssertNil(n.width)
             XCTAssertEqual(n.minWidth, 60)
             XCTAssertEqual(text(n)?.lines, 1)
         }
-        XCTAssertEqual(names(["raven", "workstation-01"]).map(\.minWidth), [112, 112])
+        XCTAssertEqual(names(["edge", "workstation-01"]).map(\.minWidth), [112, 112])
     }
 
     func testGaugeSparklineKeyValueDividerSpacer() {
@@ -513,7 +513,7 @@ final class RenderEngineTests: XCTestCase {
         model("""
             { "keys": { "g": { "open": "https://example.com" } },
               "widgets": {
-                "hosts": { "type": "list", "items": [ {"name": "harbor"}, {"name": "hub"}, {"name": "iphone"} ], "rowId": ".name",
+                "hosts": { "type": "list", "items": [ {"name": "nas"}, {"name": "hub"}, {"name": "iphone"} ], "rowId": ".name",
                   "row": { "type": "text", "text": "{{ .name }}", "key": "auto", "keyHint": "{{ .name }}",
                            "action": { "popup": { "type": "text", "text": { "expr": ".name | ascii_upcase" },
                                                   "key": "x", "action": { "close": true } }, "width": 300 } } },
@@ -529,8 +529,8 @@ final class RenderEngineTests: XCTestCase {
         let session = self.session(m)
         let d = data(m, [:])
         _ = session.render(data: d, now: Self.now)
-        XCTAssertEqual(session.widgetKeys["h"], "main/hosts/@harbor")
-        XCTAssertEqual(session.widgetKeys["u"], "main/hosts/@hub")
+        XCTAssertEqual(session.widgetKeys["n"], "main/hosts/@nas")
+        XCTAssertEqual(session.widgetKeys["h"], "main/hosts/@hub")
         XCTAssertEqual(session.widgetKeys["o"], "main/hosts/@iphone")  // i and p are never auto keys
         XCTAssertEqual(session.widgetKeys["shift+e"], "main/explicit")
         XCTAssertEqual(session.key("Shift+E", data: d, now: Self.now), [.copy("copied 2")])
@@ -553,7 +553,7 @@ final class RenderEngineTests: XCTestCase {
         s = session.render(data: d, now: Self.now)
         XCTAssertNil(s.popup)
         // Escape closes an open popup, else hides.
-        _ = session.key("h", data: d, now: Self.now)
+        _ = session.key("n", data: d, now: Self.now)
         XCTAssertNotNil(session.popup)
         XCTAssertEqual(session.key("escape", data: d, now: Self.now), [.changed])
         XCTAssertNil(session.popup)

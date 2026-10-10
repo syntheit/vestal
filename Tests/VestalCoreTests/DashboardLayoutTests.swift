@@ -92,10 +92,10 @@ final class DashboardLayoutTests: XCTestCase {
 
     func testExplicitKeysWin() {
         let hosts = [
-            HostConfig(name: "swift", source: "local"),
-            HostConfig(name: "sierra", url: "https://s.example", key: "S"),
+            HostConfig(name: "atlas", source: "local"),
+            HostConfig(name: "sierra", url: "https://s.example", key: "A"),
         ]
-        XCTAssertEqual(HostKeys.assign(hosts: hosts), ["s": "sierra", "w": "swift"])
+        XCTAssertEqual(HostKeys.assign(hosts: hosts), ["a": "sierra", "t": "atlas"])
     }
 
     func testUnusableExplicitKeysFallBackToALetter() {

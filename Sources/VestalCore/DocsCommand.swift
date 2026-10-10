@@ -37,11 +37,11 @@ public enum DocsCommand {
         "config": "Where the file is, layers and merging, decoding rules, and every key",
         "cli": "Every command, its flags and exit codes",
         "expressions": "The three kinds of field, jq, {{ }} text, what an expression sees, nulls and errors",
-        "functions": "Every vestal function and jq builtin (--legacy: the v0.3 helpers too)",
+        "functions": "Every vestal function and jq builtin (--legacy: the older helpers too)",
         "sources": "Fetching data: common keys, secrets, history, and every source type's data shape",
         "widgets": "Containers and primitives, the fields every widget takes, and layout",
         "templates": "Defining your own parameterized widgets and sources",
-        "presets": "The built-in templates: section, stat, badge, the v0.3 widgets and the system, time, developer, homelab, feed and personal widgets",
+        "presets": "The built-in templates: section, stat, badge, the original widgets and the system, time, developer, homelab, feed and personal widgets",
         "starters": "Eight complete dashboards to start from: `vestal init`, `programs.vestal.starter`, what each needs",
         "samples": "The sample every preset ships, its format, and `vestal gallery`, which draws them all",
         "styling": "Theme, palettes and colors, text style, fonts",
@@ -370,7 +370,7 @@ public enum DocsCommand {
         var text = prose
         if !legacy, let range = text.range(of: "\n## Legacy helpers") {
             text = String(text[..<range.lowerBound]) + "\n"
-            text += "(The v0.3 legacy helpers are left out: `vestal docs functions --legacy`.)\n"
+            text += "(The legacy helpers are left out: `vestal docs functions --legacy`.)\n"
         }
         let legacyNames: Set<String> = ["kv_legacy", "weather_legacy", "foyer_health", "host_health", "fmt_legacy"]
         let vestal = (VestalFunctions.table.map { "\($0.name)/\($0.arity)" } + ["uniq_by/1"])

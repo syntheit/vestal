@@ -145,7 +145,7 @@ public enum ConfigSchema {
             let builtIn = types.flatMap { [$0.name] + $0.aliases }.sorted()
             defs["\(what).template"] = .object([
                 "type": .string("object"),
-                "description": .string("A \(what) of a type defined by a template (v0.4); its keys are the template's parameters. "
+                "description": .string("A \(what) of a type defined by a template; its keys are the template's parameters. "
                                        + "check-config reports a type that is neither built in nor defined."),
                 "properties": .object(["type": .object([
                     "type": .string("string"),

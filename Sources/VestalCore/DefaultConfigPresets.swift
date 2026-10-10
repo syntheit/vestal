@@ -93,7 +93,7 @@ public enum DefaultPresets {
       },
 
       "clock": {
-        "description": "Local time and date, with world clocks under them. The face parameter picks the look (vestal docs presets); mono is the v0.3 clock",
+        "description": "Local time and date, with world clocks under them. The face parameter picks the look (vestal docs presets); mono is the default",
         "params": {
           "face": { "type": "string", "default": "mono", "description": "The look: mono, thin, stacked, serif, condensed, rounded, breathe, or a drawn one: analog, flip, ring, matrix" },
           "worldClocks": { "type": "array", "default": [], "description": "[{\"label\": \"NYC\", \"tz\": \"America/New_York\"}]; clocks in the local zone or with an unknown zone are skipped" },
@@ -130,11 +130,11 @@ public enum DefaultPresets {
       },
 
       "claudeUsage": {
-        "description": "Claude plan usage as a status row, from the claude source (v0.3 claudeUsage)",
+        "description": "Claude plan usage as a status row, from the claude source",
         "params": {
-          "path": { "type": "any", "description": "Ignored (v0.3)" },
-          "fiveHourLimit": { "type": "any", "description": "Ignored (v0.3)" },
-          "weeklyLimit": { "type": "any", "description": "Ignored (v0.3)" }
+          "path": { "type": "any", "description": "Ignored (no longer used)" },
+          "fiveHourLimit": { "type": "any", "description": "Ignored (no longer used)" },
+          "weeklyLimit": { "type": "any", "description": "Ignored (no longer used)" }
         },
         "widget": {
           "type": "row", "spaceBefore": 28, "height": 24, "gap": 16, "width": "fill",
@@ -199,10 +199,10 @@ public enum DefaultPresets {
       },
 
       "keyValueList": {
-        "description": "Labeled values picked from JSON sources (v0.3 keyValueList). New configs: use keyValue.",
+        "description": "Labeled values picked from JSON sources. New configs: use keyValue.",
         "params": {
           "source": { "type": "string", "description": "The items' default source" },
-          "items": { "type": "array", "required": true, "description": "v0.3 items: label, source, match, pick, picks, format" },
+          "items": { "type": "array", "required": true, "description": "The items: label, source, match, pick, picks, format" },
           "title": { "type": "text", "default": "{{ $widget | capitalize }}" }
         },
         "widget": {
@@ -222,7 +222,7 @@ public enum DefaultPresets {
       },
 
       "media": {
-        "description": "What a music player is playing, with play/pause and the output volume (v0.3 media)",
+        "description": "What a music player is playing, with play/pause and the output volume",
         "params": {
           "player": { "type": "string", "default": "Spotify" },
           "hideWhenOff": { "type": "boolean", "default": true }
@@ -255,7 +255,7 @@ public enum DefaultPresets {
       },
 
       "agendaList": {
-        "description": "The next events of a calendar source (v0.3 agendaList)",
+        "description": "The next events of a calendar source",
         "params": {
           "source": { "type": "source", "required": true },
           "maxEvents": { "type": "integer", "default": 5 },
@@ -289,7 +289,7 @@ public enum DefaultPresets {
       },
 
       "weatherCard": {
-        "description": "Current weather and sun times from a JSON source (v0.3 weatherCard)",
+        "description": "Current weather and sun times from a JSON source",
         "params": {
           "source": { "type": "source", "required": true },
           "fields": { "type": "object", "required": true, "description": "Legacy paths: location, region, condition, temp, sunrise, sunset" },
@@ -324,7 +324,7 @@ public enum DefaultPresets {
       },
 
       "systemBar": {
-        "description": "A row of system stats, with the privacy toggle at the right end (v0.3 systemBar)",
+        "description": "A row of system stats, with the privacy toggle at the right end",
         "params": {
           "show": { "type": "array", "default": [], "description": "uptime, disk, battery, claudeUsage, codexUsage, network, privacy; empty shows every item but codexUsage" },
           "privacy": { "type": "object", "description": "{command: [argv], stateFile: path}" },
@@ -395,7 +395,7 @@ public enum DefaultPresets {
       },
 
       "systemHealth": {
-        "description": "CPU, memory, temperature and uptime of hosts; a row or its key opens the host's popup (v0.3 systemHealth)",
+        "description": "CPU, memory, temperature and uptime of hosts; a row or its key opens the host's popup",
         "params": {
           "hosts": { "type": "array", "required": true, "description": "[{name, url | source, key, interval}]; source \"local\" is this machine" },
           "provider": { "type": "string", "default": "foyer", "description": "A source template with a url parameter" },
@@ -435,7 +435,7 @@ public enum DefaultPresets {
       },
 
       "hostDetail": {
-        "description": "A host's detail popup: CPU, RAM, GPU, pools or mounts, network and services (v0.3 host popup)",
+        "description": "A host's detail popup: CPU, RAM, GPU, pools or mounts, network and services",
         "params": {
           "host": { "type": "object", "required": true, "description": "A systemHealth host" },
           "provider": { "type": "string", "default": "foyer" }

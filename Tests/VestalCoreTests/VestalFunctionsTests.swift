@@ -342,24 +342,24 @@ final class VestalFunctionsTests: XCTestCase {
     func testHostHealth() throws {
         let data = TestData()
         data.sources["system"] = try JQValue.parse(#"{"cpu": {"percent": 12}}"#)
-        data.sources["host:harbor"] = try JQValue.parse(#"{"cpu": {"percent": 8}}"#)
-        data.metas["host:harbor"] = try JQValue.parse(#"{"ok": true, "loaded": true, "error": null}"#)
-        data.sources["host:conduit"] = try JQValue.parse(#"{"cpu": {"percent": 50}}"#)
-        data.metas["host:conduit"] = try JQValue.parse(#"{"ok": false, "loaded": true, "error": "timed out"}"#)
-        data.metas["host:raven"] = try JQValue.parse(#"{"ok": false, "loaded": false, "error": null}"#)
+        data.sources["host:nas"] = try JQValue.parse(#"{"cpu": {"percent": 8}}"#)
+        data.metas["host:nas"] = try JQValue.parse(#"{"ok": true, "loaded": true, "error": null}"#)
+        data.sources["host:backup"] = try JQValue.parse(#"{"cpu": {"percent": 50}}"#)
+        data.metas["host:backup"] = try JQValue.parse(#"{"ok": false, "loaded": true, "error": "timed out"}"#)
+        data.metas["host:edge"] = try JQValue.parse(#"{"ok": false, "loaded": false, "error": null}"#)
         data.sources["health"] = try json("foyer-health.json")
         data.metas["health"] = try JQValue.parse(#"{"ok": true, "loaded": true, "error": null}"#)
 
         func health(_ host: String) throws -> JQValue {
             try one("\(host) | host_health(.; \"foyer\")", data: data)
         }
-        XCTAssertEqual(try health(#"{"name": "swift", "source": "local"}"#),
+        XCTAssertEqual(try health(#"{"name": "atlas", "source": "local"}"#),
                        try JQValue.parse(#"{"data": {"cpu": {"percent": 12}}, "ok": true, "seen": true}"#))
-        XCTAssertEqual(try health(#"{"name": "harbor", "url": "https://h"}"#),
+        XCTAssertEqual(try health(#"{"name": "nas", "url": "https://nas.example.com"}"#),
                        try JQValue.parse(#"{"data": {"cpu": {"percent": 8}}, "ok": true, "seen": true}"#))
-        XCTAssertEqual(try health(#"{"name": "conduit", "url": "https://c"}"#),
+        XCTAssertEqual(try health(#"{"name": "backup", "url": "https://backup.example.com"}"#),
                        try JQValue.parse(#"{"data": null, "ok": false, "seen": true}"#), "offline: no data")
-        XCTAssertEqual(try health(#"{"name": "raven", "url": "https://r"}"#),
+        XCTAssertEqual(try health(#"{"name": "edge", "url": "https://edge.example.com"}"#),
                        try JQValue.parse(#"{"data": null, "ok": false, "seen": false}"#), "not reported yet")
         XCTAssertEqual(try one(".data.cpu.percent", try health(#"{"name": "nas", "source": "health"}"#)), .number(23),
                        "a source host goes through foyer_health")

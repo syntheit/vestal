@@ -756,12 +756,12 @@ struct V04Checker {
         switch environment.compile(source) {
         case .failure(var error):
             error = error.shifted(by: offset)
-            // A v0.3 path in a jq field: suggest the jq form.
+            // A dot path in a jq field: suggest the jq form.
             let trimmed = source.trimmingCharacters(in: .whitespaces)
             if legacyHint, !trimmed.hasPrefix("."), JQExpression.isLegacyPath(trimmed),
                error.code == "expr-unknown-function" || error.code == "expr-syntax" {
                 let jq = JQExpression.normalizeLegacyPath(trimmed)
-                error.message += " (a v0.3 path? in jq it is \(jq))"
+                error.message += " (a dot path? in jq it is \(jq))"
                 error.suggestion = jq
             }
             report(error, path: path)

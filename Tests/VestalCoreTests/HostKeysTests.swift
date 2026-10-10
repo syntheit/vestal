@@ -4,8 +4,8 @@ import XCTest
 /// Regression: duplicate initials used to crash the app at launch.
 final class HostKeysTests: XCTestCase {
     func testFirstLetters() {
-        XCTAssertEqual(HostKeys.assign(["swift", "harbor", "raven", "conduit"]),
-                       ["s": "swift", "h": "harbor", "r": "raven", "c": "conduit"])
+        XCTAssertEqual(HostKeys.assign(["atlas", "nas", "edge", "backup"]),
+                       ["a": "atlas", "n": "nas", "e": "edge", "b": "backup"])
     }
 
     func testCollisionsFallBackToTheNextFreeLetter() {
@@ -43,6 +43,6 @@ final class HostKeysTests: XCTestCase {
     }
 
     func testCustomReservedSet() {
-        XCTAssertEqual(HostKeys.assign(["swift"], reserved: ["s"]), ["w": "swift"])
+        XCTAssertEqual(HostKeys.assign(["atlas"], reserved: ["a"]), ["t": "atlas"])
     }
 }

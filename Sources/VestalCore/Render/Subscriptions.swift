@@ -8,7 +8,7 @@ import Foundation
 //
 //   → {"cmd":"subscribe","role":"ui","protocol":[1],"minor":0,"client":"x/1",
 //      "capabilities":["copy","notify"],"whileHidden":false}
-//   ← {"type":"hello","protocol":1,"minor":0,"server":"0.4.0 (abc1234)","os":"linux","role":"ui","primary":true}
+//   ← {"type":"hello","protocol":1,"minor":0,"server":"0.5.0 (abc1234)","os":"linux","role":"ui","primary":true}
 //   ← {"type":"snapshot","seq":1,…}           (when the dashboard is shown)
 //   ← {"type":"visibility","visible":true,"view":"main"}
 //   ← {"type":"patch","seq":2,"base":1,"ops":[…]}

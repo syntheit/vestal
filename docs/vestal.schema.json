@@ -7250,7 +7250,7 @@
         },
         "density": {
           "default": "comfortable",
-          "description": "How much room the built-in presets take. comfortable: the v0.3 look. compact: a smaller clock with the date and world clocks on one line, no section titles or rules, tighter rows and gaps, one-line currencies and weather. Views' default gap follows it.",
+          "description": "How much room the built-in presets take. comfortable: the default look. compact: a smaller clock with the date and world clocks on one line, no section titles or rules, tighter rows and gaps, one-line currencies and weather. Views' default gap follows it.",
           "enum": [
             "comfortable",
             "compact",
@@ -7553,7 +7553,7 @@
         },
         "order": {
           "default": [],
-          "description": "Widget keys, top to bottom. Each key may appear once. v0.3's name for children: only the first listed entry gets no space before it.",
+          "description": "Widget keys, top to bottom. Each key may appear once. The older name for children: only the first listed entry gets no space before it.",
           "examples": [
             [
               "clock",
@@ -25709,7 +25709,7 @@
     },
     "widget.hostDetail": {
       "additionalProperties": false,
-      "description": "A host's detail popup: CPU, RAM, GPU, pools or mounts, network and services (v0.3 host popup)",
+      "description": "A host's detail popup: CPU, RAM, GPU, pools or mounts, network and services",
       "properties": {
         "action": {
           "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",
@@ -42724,7 +42724,7 @@
       "x-vestal-since": "0.4"
     },
     "widget.template": {
-      "description": "A widget of a type defined by a template (v0.4); its keys are the template's parameters. check-config reports a type that is neither built in nor defined.",
+      "description": "A widget of a type defined by a template; its keys are the template's parameters. check-config reports a type that is neither built in nor defined.",
       "properties": {
         "type": {
           "description": "A template's name.",

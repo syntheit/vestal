@@ -8,7 +8,7 @@ import Foundation
 //     name. Each becomes a source named `inline:<sha8>` after its canonical
 //     JSON (SourceConfig.inlineName), so identical definitions share one
 //     fetch.
-//   - the v0.3 widgets' own data, now served by the `media` and `claude`
+//   - the original widgets' own data, now served by the `media` and `claude`
 //     source types: a media widget's player and a claudeUsage widget's
 //     options become inline sources too. This is the part of the legacy
 //     adapter the data layer needs.
@@ -66,23 +66,23 @@ public enum InlineSources {
     }
 }
 
-// MARK: - The v0.3 widgets' sources
+// MARK: - The original widgets' sources
 
 public enum LegacySources {
     /// The defaults layer's own sources.
     static let builtin = DefaultConfig.config.sources
 
-    /// What a v0.3 media widget with `player` reads.
+    /// What an original media widget with `player` reads.
     public static func media(player: String) -> SourceConfig {
         SourceConfig(type: "media", player: [player])
     }
 
-    /// The named sources a v0.3 claudeUsage widget, and a system bar's
+    /// The named sources an original claudeUsage widget, and a system bar's
     /// claudeUsage and codexUsage items, read (the defaults define both).
     public static let claude = "claude"
     public static let codex = "codex"
 
-    /// The sources the main view's v0.3 widgets read (media players), by
+    /// The sources the main view's original widgets read (media players), by
     /// their inline names.
     public static func sources(of config: Config) -> [String: SourceConfig] {
         var all: [String: SourceConfig] = [:]
@@ -92,7 +92,7 @@ public enum LegacySources {
         return all
     }
 
-    /// The adapter-made sources one v0.3 widget reads.
+    /// The adapter-made sources one original widget reads.
     static func sources(for entry: DashboardLayout.Entry, in config: Config) -> [SourceConfig] {
         switch entry.kind {
         case .media:
@@ -102,7 +102,7 @@ public enum LegacySources {
         }
     }
 
-    /// The named sources one v0.3 widget reads besides its `source`.
+    /// The named sources one original widget reads besides its `source`.
     static func named(for entry: DashboardLayout.Entry) -> [String] {
         switch entry.kind {
         case .claudeUsage:
@@ -118,14 +118,14 @@ public enum LegacySources {
 
 extension Config {
     /// Every source the runtime runs: `sources` (inline ones included, see
-    /// ConfigLoader.decode) and the adapter-made ones of the v0.3 widgets.
+    /// ConfigLoader.decode) and the adapter-made ones of the original widgets.
     public var runtimeSources: [String: SourceConfig] {
         sources.merging(LegacySources.sources(of: self)) { named, _ in named }
     }
 
     /// Where a source comes from, for `vestal sources`: "config" (the user's
     /// `sources`), "builtin" (the defaults' own, unchanged), "inline" or
-    /// "adapter" (a v0.3 widget's).
+    /// "adapter" (an original widget's).
     public func origin(ofSource name: String) -> String {
         if let source = sources[name] {
             if name.hasPrefix("inline:") {
@@ -145,7 +145,7 @@ public enum SourceReaders {
 
     /// Source name → the widgets of `view` that read it, as `view/widget`,
     /// in view order. A visible-only source nobody reads is not fetched.
-    /// For the v0.3 widgets: system bars, local
+    /// For the original widgets: system bars, local
     /// hosts and media rows (the volume) read `system`; media and Claude
     /// usage read their adapter-made sources; the rest read their `source`,
     /// their items' and their hosts'.

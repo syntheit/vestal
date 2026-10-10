@@ -96,7 +96,7 @@ Added from jq 1.6 and 1.8: `leaf_paths`, `ascii`, `add(f)`, `trim`, `ltrim`, `rt
 
 ## Legacy paths
 
-`JQExpression.normalizeLegacyPath(_:)` turns a v0.3 path string into jq. `rates.BRL` becomes `.rates.BRL`, `BRL-X.rate` becomes `."BRL-X".rate`, `[0].name` becomes `.[0].name`, and a path already starting with `.` is returned unchanged. A bare word is a field: `length` becomes `.length`. `JSONPath` itself is unchanged.
+`JQExpression.normalizeLegacyPath(_:)` turns a dot path string into jq. `rates.BRL` becomes `.rates.BRL`, `BRL-X.rate` becomes `."BRL-X".rate`, `[0].name` becomes `.[0].name`, and a path already starting with `.` is returned unchanged. A bare word is a field: `length` becomes `.length`. `JSONPath` itself is unchanged.
 
 ## Fixtures
 
