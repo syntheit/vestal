@@ -10,16 +10,16 @@ node site/build.mjs                    # writes site/dist/ and site/dist-preview
 python3 -m http.server -d site/dist 8000   # http://localhost:8000/
 ```
 
-`--vestal <path>` uses another binary; `--no-preview` skips the single-file preview. The build needs Node 18 or later and nothing from npm. It fails when a composed config, the agent exchange's draft, a snippet in `site/snippets/` or a JSON example in `docs/guide/` does not pass `vestal check-config` (the guides' examples must also render from the test fixtures with no diagnostics), and warns when a render has diagnostics or (on macOS, where `vestal screenshot` draws offscreen) when a page clips at 1512x945.
+`--vestal <path>` uses another binary; `--no-preview` skips the single-file preview. The build needs Node 18 or later and nothing from npm. It fails when a composed config, an agent request's result, a snippet in `site/snippets/` or a JSON example in `docs/guide/` does not pass `vestal check-config` (the guides' examples must also render from the test fixtures with no diagnostics), and warns when a render has diagnostics or (on macOS, where `vestal screenshot` draws offscreen) when a page clips at 1512x945.
 
 What it does:
 
 1. Runs `web/build-gallery.mjs` into `site/.cache/gallery/`: one render model per sample, and one per page for samples with several views.
 2. Composes any starter that has no sample yet from widget samples (below), checks each config and renders each page with that page's own samples' data and time. The hero is the starters that `content.json` `hero.starters` names (each must have its sample), one page each: the first view of each, with a pages model and view list that name the starters, so the tabs, number keys, swipes and dots move between them and each keeps its own background, typefaces and blurred desktop (the renderer crossfades the background).
-3. Runs the agent exchange for real: `check-config --json` on the draft, `render` and `screenshot --json` on the result, and puts their output on the page.
+3. Runs the agent requests of `asks.json` for real (below) and puts their commands and output on the page.
 4. Draws each recipe (`examples/showcase/<name>.json`) from the test fixtures its test uses (`Tests/VestalCoreTests/Fixtures/full` with `showcase/<name>` over it), for the recipes page.
 5. Reads text from the repository: each widget's JSON from the first example under its heading in `docs/reference/presets.md` (or the sample's widget, whichever `check-config` accepts first), the backgrounds table in `docs/reference/styling.md`, the aurora's comment in `Resources/shaders/aurora.glsl`, and `vestal docs` for the agents section.
-6. Writes `site/dist/`: `index.html`, `site.css`, `site.js`, `common.js`, `mounts.js`, `data/`, `renderer/` (a copy of `web/renderer/`), `assets/icons/` (the Phosphor fonts), `assets/fonts/` (the typefaces), `assets/shaders/` and `assets/samples/` (pictures sample data points at). `data/index.json` is everything the pages say and size (names, captions, JSON, render sizes, page lists); `data/<key>.json` holds the render models of one preview (`hero-<starter>`, `exchange`, `starter-<id>`, `widget-<sample>` with its compact form, `recipe-<name>`), fetched when that preview first comes near. The home page carries the index and the hero's first page inline (`#vestal-data`), so its first paint fetches no data, and preloads every module from its head. Every script, stylesheet and the index is loaded with `?v=<hash of the site>` (module imports included), and each `data/<key>.json` with `?v=<hash of that file>` (from the index), so a browser never pairs a cached renderer with new data and keeps the previews that did not change.
+6. Writes `site/dist/`: `index.html`, `site.css`, `site.js`, `common.js`, `mounts.js`, `data/`, `renderer/` (a copy of `web/renderer/`), `assets/icons/` (the Phosphor fonts), `assets/fonts/` (the typefaces), `assets/shaders/` and `assets/samples/` (pictures sample data points at). `data/index.json` is everything the pages say and size (names, captions, JSON, render sizes, page lists); `data/<key>.json` holds the render models of one preview (`hero-<starter>`, `ask-<id>`, `starter-<id>`, `widget-<sample>` with its compact form, `recipe-<name>`), fetched when that preview first comes near. The home page carries the index and the hero's first page inline (`#vestal-data`), so its first paint fetches no data, and preloads every module from its head. Every script, stylesheet and the index is loaded with `?v=<hash of the site>` (module imports included), and each `data/<key>.json` with `?v=<hash of that file>` (from the index), so a browser never pairs a cached renderer with new data and keeps the previews that did not change.
 7. Writes the docs (below), `llms.txt` and `llms-full.txt`.
 8. Writes `site/dist-preview.html`: the same page in one file, for places that allow no other fetches (the renderer and page script bundled into one module, the data, shaders, icon fonts and pictures inline; only Google Fonts is fetched). It has no `<html>`, `<head>` or `<body>`: it starts with `<title>` and `<style>`, for hosts that wrap a fragment.
 
@@ -33,16 +33,36 @@ What it does:
 
 The guides are also `vestal docs first-dashboard` and `vestal docs config-syntax`: `nix/gen-docs.py` embeds `docs/guide/*.md` as topics, and the tests check their JSON examples like the reference's.
 
+## Asking an agent
+
+"Asking an agent for a change" shows requests an agent carried out, one at a time, with arrows, dots, swipes, a trackpad swipe and the arrow keys. Each entry of `asks.json` is a request (`ask`, one plain sentence), the steps the agent took, the parts of the config it changed (`change`: `"widgets.<key>"`, `"sources.<name>"`, ...), a closing sentence (`done`), and the blurred desktop (`wall`) and `background` its result is drawn over.
+
+Its result is the sample `Resources/samples/agent-<id>/` (kind `page`), so `vestal gallery` and the tests check it like every sample: its config must pass `vestal check-config` with no errors or warnings, and it must render from its data with no diagnostics. The build runs every step for real against that sample (its config, data and time) and shows the command as an agent would type it on its draft, `/tmp/vestal-draft.json`:
+
+| Step | Runs |
+|---|---|
+| `{ "docs": "<topic>" }` | `vestal docs <topic>` |
+| `{ "shape": "<source>" }`, `{ "fetch": "<source>", "raw": true }` | `vestal fetch <source> [--shape] [--raw]`, through a twin of the source that reads `data/<source>.json` with the same `transform`, so nothing is fetched and no command runs. `jq` pipes the output through a filter (vestal's own jq, shown as `jq`). |
+| `{ "eval": "<expr>", "source": "<name>", "at": "<time>" }` | `vestal eval` on the source's data, or with no input; `at` defaults to the sample's time and is shown only when given. |
+| `{ "check": true }` | `vestal check-config --json`, shown on one line as `jq -c` prints it. |
+| `{ "render": true, "at": "<time>" }` | `vestal render` (the tree). |
+| `{ "screenshot": true }` | `vestal screenshot --json` at the sample's size; where nothing draws offscreen (Linux), the line a clean screenshot prints. |
+
+Any step may add `grep` (an extended regular expression, shown as `| grep -E`; with `only`, `grep -oE`) and a `note`, a sentence the agent says first. A note starts a new terminal block; the steps after it share it. Lines over 110 characters end in "…".
+
+Only the request on show has a live render, made when it is shown and dropped when another is; the frames keep their size, and the neighbors' data is fetched while one shows.
+
 ## Previews in the lightbox
 
-Every dashboard, starter, widget and background has an expand button (and a click on a starter, widget or background opens it too). The lightbox draws it as large as the window allows, live and pageable; the arrow keys and the side buttons move through its set, Escape and the close button close it, and focus stays inside. The URL's hash names what is open, so a link opens it: `#hero`, `#exchange`, `#starter-<id>`, `#widget-<sample>`, `#background-<name>`, and on the docs pages `#recipe-<name>` too.
+Every dashboard, starter, widget and background has an expand button (and a click on a starter, widget or background opens it too). The lightbox draws it as large as the window allows, live and pageable; the arrow keys and the side buttons move through its set, Escape and the close button close it, and focus stays inside. The URL's hash names what is open, so a link opens it: `#hero`, `#ask-<id>`, `#starter-<id>`, `#widget-<sample>`, `#background-<name>`, and on the docs pages `#recipe-<name>` too.
 
 ## Files
 
 | File | |
 |---|---|
 | `build.mjs` | The build. |
-| `content.json` | What the page says that the repository can't: the hero's starters, the starters' names, pitches and pages, the exchange, widget categories, labels for data sources, and the blurred-desktop wallpapers. |
+| `content.json` | What the page says that the repository can't: the hero's starters, the starters' names, pitches and pages, widget categories, labels for data sources, and the blurred-desktop wallpapers. |
+| `asks.json` | The requests in "Asking an agent for a change" (below). |
 | `snippets/*.json` | Config snippets shown on the page (`data-snippet="<name>"` in the markup); each is checked. |
 | `src/index.html`, `src/site.css`, `src/site.js` | The page. `site.js` imports `./common.js`. |
 | `src/common.js` | What the home page and the docs share: the index and the per-preview data, drawing a render in a frame, page tabs, the lightbox. Imports `./renderer/index.js` and `./mounts.js`. |
@@ -78,6 +98,7 @@ Point any static server at `result/` (nginx: `root = inputs.vestal.packages.${pk
 ## When things change
 
 - **A starter lands** as `Resources/samples/starter-<id>/`: nothing to do. The build uses it in place of the composition with the same `id` in `content.json` (its pages, background and description come from the sample; the name and wallpaper from `content.json`). Remove the `pages` list from that starter's entry once its sample exists, if you like; it is no longer read. A starter sample with no entry in `content.json` is reported and left out: add an entry with its `id`, `name`, `pitch`, `background` and `wall`.
+- **An agent request is added**: add its sample as `Resources/samples/agent-<id>/` and its entry to `asks.json`. The build fails when a step's command fails or its `grep` matches nothing.
 - **A widget preset is added**: give it a sample (as every preset must) and it appears in the gallery, in the category of its first tag that `content.json` `categories` lists (else under "More"). Its JSON comes from its section in `docs/reference/presets.md`. If its data source reads badly, add the preset to `presetSources`.
 - **A background is added**: it appears when it has a row in the table under "Backgrounds" in `docs/reference/styling.md` and a `.glsl` file in `Resources/shaders/`.
 - **Commands or install steps change**: the install, hero and "For agents" text is in `src/index.html`.

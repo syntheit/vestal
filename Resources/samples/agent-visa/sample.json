@@ -1,0 +1,8 @@
+{
+  "kind": "page",
+  "title": "Visa countdown",
+  "description": "A countdown to a visa's expiry that turns yellow under 30 days and red under 7, above the countdowns preset.",
+  "size": [680, 220],
+  "at": "2026-10-10T20:00:00Z",
+  "tags": ["agent", "time"]
+}

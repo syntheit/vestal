@@ -1,0 +1,8 @@
+{
+  "kind": "page",
+  "title": "Garden sensors on weekends",
+  "description": "Home Assistant garden sensors in a section that shows only on Saturdays and Sundays, by a when expression on the weekday.",
+  "size": [680, 250],
+  "at": "2026-10-10T09:20:00Z",
+  "tags": ["agent", "home"]
+}

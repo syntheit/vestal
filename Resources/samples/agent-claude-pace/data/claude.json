@@ -1,0 +1,23 @@
+{
+  "plan": null,
+  "session": {
+    "percent": 34,
+    "resetsAt": 1791669600,
+    "resetsText": null
+  },
+  "weekly": {
+    "percent": 68,
+    "resetsAt": 1791922400,
+    "resetsText": null
+  },
+  "extra": [
+    {
+      "label": "Opus",
+      "percent": 74,
+      "resetsAt": 1791922400,
+      "resetsText": null
+    }
+  ],
+  "updatedAt": 1791662100,
+  "source": "api"
+}

@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "sources": {
+    "words": {
+      "type": "command",
+      "argv": ["sh", "-c", "cd ~/Notes/Daily || exit 1; for i in $(seq 83 -1 0); do d=$(date -v-${i}d +%F); if [ -f \"$d.md\" ]; then echo \"$d $(wc -w < \"$d.md\" | tr -d ' ')\"; else echo \"$d 0\"; fi; done"],
+      "parse": "lines",
+      "refresh": "1h",
+      "transform": "map(split(\" \") | {date: .[0], words: (.[1] | tonumber)})"
+    }
+  },
+  "widgets": {
+    "writing": {
+      "type": "section",
+      "title": "Daily notes",
+      "source": "words",
+      "children": [
+        {
+          "type": "row",
+          "gap": 28,
+          "align": "center",
+          "children": [
+            { "type": "heatmap", "values": "map(.words)", "cell": 13, "gap": 3, "radius": 3, "steps": [[0, "track"], [1, "good@0.3"], [300, "good@0.6"], [700, "good"]] },
+            {
+              "type": "stack",
+              "gap": 10,
+              "children": [
+                { "type": "stat", "label": "Today", "value": "last.words", "format": "thousands", "suffix": " words", "size": "md" },
+                { "type": "stat", "label": "Last 7 days", "value": ".[-7:] | map(.words) | add", "format": "thousands", "suffix": " words", "size": "sm" },
+                { "type": "stat", "label": "Streak", "value": "map(.words) | reverse | (index(0) // length)", "suffix": " days", "size": "sm" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["writing"], "padding": 32 } }
+}

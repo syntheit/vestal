@@ -1,0 +1,97 @@
+[
+  {
+    "id": "word-heatmap",
+    "ask": "Make a heatmap of how many words I write each day in my Obsidian daily notes, for the last twelve weeks.",
+    "background": "aurora",
+    "wall": "moss",
+    "steps": [
+      { "note": "A `command` source can count the words in each day's note, and `heatmap` draws one cell per value, seven to a column, colored by thresholds:", "docs": "widget/heatmap", "grep": "^\\| `steps`" },
+      { "note": "The command prints a line per day, `0` for a day with no note, and the transform turns each line into a date and a number. Then the streak, the check and a look:", "shape": "words" },
+      { "eval": "map(.words) | reverse | (index(0) // length)", "source": "words" },
+      { "check": true },
+      { "render": true, "grep": "heatmap|306 words|^diagnostics" },
+      { "screenshot": true }
+    ],
+    "change": ["sources.words", "widgets.writing"],
+    "done": "The heatmap reads `~/Notes/Daily/<date>.md`; change the folder in `argv` if your vault is elsewhere. The command uses macOS's `date -v`, so on Linux it needs GNU `date -d` instead."
+  },
+  {
+    "id": "hn-nix",
+    "ask": "Show the Hacker News stories about Nix that got more than 100 points.",
+    "background": "aurora",
+    "wall": "night",
+    "steps": [
+      { "note": "The `headlines` preset draws any list of stories in its shape, and Hacker News search on Algolia can filter by points.", "docs": "preset/headlines", "grep": "any source whose data is [^|]*", "only": true },
+      { "note": "Algolia matches word prefixes, so a search for `nix` also returns a story about Nixie tubes:", "fetch": "nixNews", "raw": true, "jq": ".hits[].title" },
+      { "note": "The transform keeps the titles with the word nix, nixos or nixpkgs (five of the six), and maps the fields to what `headlines` reads.", "eval": "length", "source": "nixNews" },
+      { "check": true },
+      { "render": true, "grep": "\"(Nix flakes|Show HN)[^\"]*\" lines|^diagnostics" },
+      { "screenshot": true }
+    ],
+    "change": ["sources.nixNews", "widgets.nix"],
+    "done": "It asks Algolia every 30 minutes while the dashboard is shown. A row opens the story's link on a click or its key."
+  },
+  {
+    "id": "visa",
+    "ask": "Count down the days until my visa expires on November 2, in yellow under 30 days and red under 7.",
+    "background": "aurora",
+    "wall": "blue",
+    "steps": [
+      { "note": "`countdowns` colors by its own rule, and an item's `color` is fixed:", "docs": "preset/countdowns", "grep": "The color is automatic[^.]*\\.", "only": true },
+      { "note": "So this one is a row of its own, drawn like the countdowns under it. The day count, and the color it steps to: red from 0, yellow from 7, plain from 30.", "eval": "((\"2026-11-02\" | to_epoch) - (now | fmt_time(\"yyyy-MM-dd\") | to_epoch)) / 86400 | round" },
+      { "eval": "45, 23, 6 | step([[0, \"bad\"], [7, \"warn\"], [30, \"text\"]])" },
+      { "check": true },
+      { "render": true, "grep": "text \"23\"|^diagnostics" },
+      { "screenshot": true }
+    ],
+    "change": ["widgets.visa"],
+    "done": "The row is above your other countdowns in the Dates section. The bar under it shows how much of the visa's year has passed."
+  },
+  {
+    "id": "claude-pace",
+    "ask": "Warn me when my Claude usage this week is ahead of an even pace.",
+    "background": "aurora",
+    "wall": "night",
+    "steps": [
+      { "note": "The `claude` source gives the week's percentage and when the week resets.", "docs": "source/claude", "grep": "\"weekly\": \\{[^}]*\\}", "only": true },
+      { "note": "An even pace is the share of the week gone by: 100 minus the seconds left divided by 6048 (a week is 604,800 seconds).", "eval": ".weekly.percent - (100 - (.weekly.resetsAt - now) / 6048) | round", "source": "claude" },
+      { "check": true },
+      { "render": true, "grep": "points ahead|^diagnostics" },
+      { "screenshot": true }
+    ],
+    "change": ["widgets.pace"],
+    "done": "The badge is under the plan's bars and hides itself while you are less than 5 points ahead."
+  },
+  {
+    "id": "parents-city",
+    "ask": "Add my parents' city, Vancouver: their time, and their sunrise, sunset and moon.",
+    "background": "aurora",
+    "wall": "blue",
+    "steps": [
+      { "note": "`sunMoon` would draw this, but it writes sunrise and sunset in this Mac's time zone:", "docs": "preset/sunMoon", "grep": "\\{\\{ \\.sunrise \\| fmt_time[^}]*\\}\\}", "only": true },
+      { "note": "So the clock is `worldClocks`, and the rest is a row over an `astro` source at Vancouver's coordinates, with the times in its zone.", "shape": "vancouver", "grep": "^\\.(sunrise|sunset|moon\\.name|moon\\.phase) " },
+      { "eval": ".sunrise | fmt_time(\"HH:mm\"; \"America/Vancouver\")", "source": "vancouver" },
+      { "check": true },
+      { "render": true, "grep": "Sunrise|New moon|^diagnostics" },
+      { "screenshot": true }
+    ],
+    "change": ["sources.vancouver", "widgets.parents"],
+    "done": "The sun and moon are computed on this machine from the coordinates, so nothing is fetched."
+  },
+  {
+    "id": "weekend-garden",
+    "ask": "On weekends, put my Home Assistant garden sensors at the top of the dashboard, and hide them during the week.",
+    "background": "aurora",
+    "wall": "moss",
+    "steps": [
+      { "note": "A view can't follow a schedule, but any widget hides while its `when` is false. On a Saturday, then a Monday:", "eval": "now | fmt_time(\"EEE\") | IN(\"Sat\", \"Sun\")", "at": "2026-10-10T09:20:00Z" },
+      { "eval": "now | fmt_time(\"EEE\") | IN(\"Sat\", \"Sun\")", "at": "2026-10-12T09:20:00Z" },
+      { "check": true },
+      { "render": true, "grep": "text \"(28%|Locked)\"|^diagnostics" },
+      { "note": "On a Monday the section is gone:", "render": true, "at": "2026-10-12T09:20:00Z" },
+      { "screenshot": true }
+    ],
+    "change": ["secrets.homeAssistant", "sources.garden", "widgets.garden"],
+    "done": "It reads Home Assistant with the token in `~/.config/vestal/secrets/home-assistant.token`, every 30 seconds while the dashboard is shown."
+  }
+]

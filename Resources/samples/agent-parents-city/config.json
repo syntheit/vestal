@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "sources": {
+    "vancouver": { "type": "astro", "latitude": 49.28, "longitude": -123.12 }
+  },
+  "widgets": {
+    "parents": {
+      "type": "section",
+      "title": "Mom and Dad",
+      "children": [
+        { "type": "worldClocks", "cities": [{ "label": "Vancouver", "zone": "America/Vancouver" }], "columns": 1 },
+        {
+          "type": "row",
+          "source": "vancouver",
+          "gap": 16,
+          "align": "center",
+          "style": { "size": 12, "color": "subtle" },
+          "children": [
+            { "type": "text", "icon": "sun-horizon", "text": "Sunrise {{ .sunrise | fmt_time(\"HH:mm\"; \"America/Vancouver\") }}, sunset {{ .sunset | fmt_time(\"HH:mm\"; \"America/Vancouver\") }}, their time" },
+            { "type": "row", "gap": 6, "align": "center", "children": [
+              { "type": "moon", "phase": ".moon.phase", "size": 14 },
+              { "type": "text", "text": "{{ .moon.name }}, full in {{ .moon.daysToFull | round }} days" }
+            ] }
+          ]
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["parents"], "padding": 32 } }
+}

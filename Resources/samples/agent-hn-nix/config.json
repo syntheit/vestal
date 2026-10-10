@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "sources": {
+    "nixNews": {
+      "type": "http",
+      "url": "https://hn.algolia.com/api/v1/search_by_date?query=nix&tags=story&numericFilters=points%3E100&hitsPerPage=40",
+      "refresh": "30m",
+      "when": "visible",
+      "transform": "[.hits[] | select(.title | test(\"\\\\bnix(os|pkgs)?\\\\b\"; \"i\")) | {title, link: (.url // \"https://news.ycombinator.com/item?id=\\(.objectID)\"), published: .created_at_i, source: \"HN\", points, comments: .num_comments}]"
+    }
+  },
+  "widgets": {
+    "nix": {
+      "type": "section",
+      "title": "Nix on Hacker News",
+      "children": [
+        { "type": "headlines", "source": "nixNews", "limit": 5 }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["nix"], "padding": 32 } }
+}

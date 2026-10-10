@@ -332,40 +332,125 @@ for (const m of styling.matchAll(/^\| `(\w+)` \| ([^|]+) \| (low|medium|high) \|
 }
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
-// MARK: The agent exchange
+// MARK: Asking an agent
 
-console.log("site: the agent exchange");
-const ex = content.exchange;
-const draft = { version: 1, widgets: ex.widget, views: { main: { children: ex.children } } };
-mkdirSync(join(cache, "exchange"), { recursive: true });
-const draftPath = join(cache, "exchange", "vestal-draft.json");
-writeFileSync(draftPath, JSON.stringify(draft, null, 2) + "\n");
+// Requests an agent carried out (site/asks.json). Each one's result is the
+// sample Resources/samples/agent-<id>/, which `vestal gallery` and the tests
+// check too. The commands of its transcript run here, for real, against that
+// sample (its config, data and time), and their output goes on the page. They
+// are shown as an agent types them on its draft, with the pipes that shorten
+// their output (`grep`, `jq`) done here; a `fetch` reads the sample's data
+// through a twin of the source that reads the data file, so it needs no
+// network and runs no command.
+console.log("site: asking an agent");
+const DRAFT = "/tmp/vestal-draft.json";
+const SHOT = "/tmp/vestal.png";
+const CUT = 110; // longer lines end in "…"
 const scrub = (text, from, to) => text.split(from).join(to);
-const checkOut = vestal(["check-config", "--json", draftPath], { allowFail: true });
-if (checkOut.code !== 0) fail(`the exchange draft does not check:\n${checkOut.stdout}`);
-const exSize = ex.size || content.screen;
-const exResult = compose(ex.result, "exchange", exSize);
-const exArgs = ["--config", exResult.configPath, "--data", exResult.run.data, "--at", exResult.run.at];
-const tree = vestal(["render", ...exArgs]).stdout.trimEnd().split("\n");
-const keyLine = tree.findIndex((l) => /\[main\/reviews\]$/.test(l));
-const treeExcerpt = keyLine >= 0 ? ["…", ...tree.slice(keyLine, keyLine + 6).map((l) => l.slice(2)), "…", tree[tree.length - 1]] : [tree[tree.length - 1]];
-const shotPath = join(cache, "exchange", "vestal.png");
-const shot = vestal(["screenshot", shotPath, "--json", "--size", `${exSize[0]}x${exSize[1]}`, ...exArgs], { allowFail: true });
-const shotLine = shot.code === 0 ? scrub(shot.stdout.trim(), shotPath, "/tmp/vestal.png")
-  : `{"clipped":0,"diagnostics":0,"frames":null,"height":${exSize[1] * 2},"path":"/tmp/vestal.png","scale":2,"truncated":0,"width":${exSize[0] * 2}}`;
-if (shot.code === 0 && (JSON.parse(shot.stdout).clipped || JSON.parse(shot.stdout).truncated)) warn("the exchange result clips; the agent says it does not");
-const exchange = {
-  ask: ex.ask,
-  edit: oneLine(ex.widget),
-  children: JSON.stringify(ex.children).replace(/,/g, ", "),
-  check: scrub(checkOut.stdout.trim(), draftPath, "/tmp/vestal-draft.json"),
-  tree: treeExcerpt.join("\n"),
-  shot: shotLine,
-  background: ex.result.background, wall: ex.result.wall, size: exSize,
-  snapshot: exResult.snapshot,
-};
 
-// Every config snippet on the page is a file in site/snippets/, checked like the exchange's draft.
+// The part of a config that `paths` ("widgets.writing") name, in that order.
+function fragment(config, paths) {
+  const out = {};
+  for (const path of paths) {
+    const [top, key] = path.split(".");
+    if (!config[top] || config[top][key] === undefined) fail(`asks.json: the sample has no ${path}`);
+    (out[top] ||= {})[key] = config[top][key];
+  }
+  return out;
+}
+
+function askTranscript(a, s) {
+  const config = join(s.dir, "config.json");
+  const data = join(s.dir, "data");
+  const dir = join(cache, "asks", a.id);
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  const show = (text) => [[config, DRAFT], [dir, "/tmp"], [s.dir, "/tmp"]].reduce((t, [from, to]) => scrub(t, from, to), text);
+  const sources = s.config.sources || {};
+  const commandFlag = (name) => (sources[name] && sources[name].type === "command" ? " --allow-commands" : "");
+  const quoted = (label, text) => { if (text.includes("'")) fail(`${label}: ${text} has a single quote`); return `'${text}'`; };
+  return a.steps.map((st, n) => {
+    const at = st.at || s.meta.at;
+    const label = `asks.json ${a.id} step ${n + 1}`;
+    let cmd, out, cut = CUT;
+    if (st.docs) {
+      cmd = `vestal docs ${st.docs}`;
+      out = vestal(["docs", st.docs]).stdout;
+    } else if (st.shape || st.fetch) {
+      const name = st.shape || st.fetch;
+      const def = sources[name];
+      if (!def) fail(`${label}: the sample has no source ${name}`);
+      const twin = { ...s.config, sources: { ...sources, [name]: { type: "file", path: join(data, `${name}.json`), parse: "json", ...(def.transform ? { transform: def.transform } : {}) } } };
+      const twinPath = join(dir, "draft.json");
+      writeFileSync(twinPath, JSON.stringify(twin, null, 2));
+      const flags = [...(st.shape ? ["--shape"] : []), ...(st.raw ? ["--raw"] : [])];
+      cmd = `vestal fetch ${name} ${flags.join(" ")}${commandFlag(name)} --config ${DRAFT}`.replace(/ {2,}/g, " ");
+      out = vestal(["fetch", name, ...flags, "--config", twinPath]).stdout;
+      if (st.jq) {
+        // `| jq '<filter>'`, through vestal's own jq, which prints as jq does for these filters.
+        const file = join(dir, "fetched.json");
+        writeFileSync(file, out);
+        cmd += ` | jq ${quoted(label, st.jq)}`;
+        out = vestal(["eval", st.jq, "--input", file]).stdout;
+      }
+    } else if (st.eval) {
+      const input = st.source ? ["--source", st.source, "--config", config, "--data", data] : ["--null-input"];
+      cmd = `vestal eval ${quoted(label, st.eval)}${st.source ? ` --source ${st.source}${commandFlag(st.source)} --config ${DRAFT}` : ""}${st.at ? ` --at ${st.at}` : ""}`;
+      out = vestal(["eval", st.eval, ...input, "--at", at]).stdout;
+    } else if (st.check) {
+      cmd = `vestal check-config --json ${DRAFT} | jq -c`;
+      const r = vestal(["check-config", "--json", config], { allowFail: true });
+      const report = JSON.parse(r.stdout);
+      if (report.counts.error || report.counts.warning) fail(`${label}: the sample does not check:\n${r.stdout}`);
+      out = JSON.stringify(report);
+      cut = Infinity;
+    } else if (st.render) {
+      cmd = `vestal render --config ${DRAFT}${st.at ? ` --at ${st.at}` : ""}`;
+      out = vestal(["render", "--config", config, "--data", data, "--at", at]).stdout;
+      if (!/^diagnostics: 0$/m.test(out)) fail(`${label}: the render has diagnostics:\n${out.slice(-600)}`);
+    } else if (st.screenshot) {
+      const [w, h] = s.meta.size;
+      const png = join(dir, "vestal.png");
+      cmd = `vestal screenshot ${SHOT} --size ${w}x${h} --config ${DRAFT} --json`;
+      const r = vestal(["screenshot", png, "--json", "--size", `${w}x${h}`, "--config", config, "--data", data, "--at", at], { allowFail: true });
+      if (r.code === 0) {
+        const info = JSON.parse(r.stdout);
+        if (info.clipped || info.truncated) warn(`${label}: ${info.clipped} clipped and ${info.truncated} truncated nodes`);
+      }
+      // Where nothing can be drawn offscreen (Linux without Wayland), the line a clean screenshot prints.
+      out = r.code === 0 ? scrub(r.stdout, png, SHOT)
+        : JSON.stringify({ clipped: 0, diagnostics: 0, frames: null, height: h, path: SHOT, scale: 2, truncated: 0, width: w });
+      cut = Infinity;
+    } else {
+      fail(`${label}: no command`);
+    }
+    let lines = show(out).trimEnd().split("\n");
+    if (st.grep) {
+      // `| grep -E '<re>'`, or `-oE` (only the matches) with `only`.
+      const re = new RegExp(st.grep, "g");
+      cmd += ` | grep ${st.only ? "-oE" : "-E"} ${quoted(label, st.grep)}`;
+      lines = st.only ? lines.flatMap((l) => l.match(re) || []) : lines.filter((l) => l.match(re));
+      if (!lines.length) fail(`${label}: nothing in the output of \`${cmd}\` matches`);
+    }
+    return { note: st.note || null, cmd, out: lines.map((l) => (l.length > cut ? `${l.slice(0, cut - 1)}…` : l)).join("\n") };
+  });
+}
+
+const asks = readJSON(join(here, "asks.json")).map((a) => {
+  const name = `agent-${a.id}`;
+  const g = byName.get(name);
+  if (!g) fail(`asks.json: no sample ${name} in Resources/samples`);
+  const s = readSample(name);
+  if ((g.snapshot.diagnostics || []).length) fail(`${name}: ${g.snapshot.diagnostics.length} render diagnostics`);
+  return {
+    id: a.id, ask: a.ask, title: s.meta.title, done: a.done, background: a.background || "aurora", wall: a.wall || "blue", size: s.meta.size,
+    steps: askTranscript(a, s),
+    change: folded(fragment(s.config, a.change)),
+    snapshot: g.snapshot,
+  };
+});
+
+// Every config snippet on the page is a file in site/snippets/, checked like the asks' configs.
 const snippets = {};
 for (const file of readdirSync(join(here, "snippets")).filter((f) => f.endsWith(".json"))) {
   const r = vestal(["check-config", "--json", join(here, "snippets", file)], { allowFail: true });
@@ -476,7 +561,7 @@ for (const name of readdirSync(samplesDir)) {
 const samplesOut = {}; // key -> render models
 const strip = (o, ...keys) => Object.fromEntries(Object.entries(o).filter(([k]) => !keys.includes(k)));
 for (const [id, snap] of Object.entries(hero.views)) samplesOut[`hero-${id}`] = snap;
-samplesOut.exchange = { snapshot: exchange.snapshot };
+for (const a of asks) samplesOut[`ask-${a.id}`] = { snapshot: a.snapshot };
 for (const s of starters) samplesOut[`starter-${s.id}`] = { snapshot: s.snapshot, views: s.views };
 for (const w of widgets) samplesOut[`widget-${w.name}`] = { snapshot: w.snapshot, compact: w.compact ? w.compact.snapshot : null };
 for (const [name, r] of Object.entries(recipeRenders)) samplesOut[`recipe-${name}`] = { snapshot: r.snapshot, views: r.views };
@@ -489,7 +574,7 @@ const site = {
   starters: starters.map((s) => ({ ...strip(s, "snapshot", "views"), key: `starter-${s.id}`, view: s.snapshot.view })),
   widgets: widgets.map((w) => ({ ...strip(w, "snapshot", "compact"), key: `widget-${w.name}`, compact: w.compact ? { size: w.compact.size } : null })),
   recipes: Object.fromEntries(Object.entries(recipeRenders).map(([name, r]) => [name, { ...strip(r, "snapshot", "views"), key: `recipe-${name}`, view: r.snapshot.view }])),
-  exchange: { ...strip(exchange, "snapshot"), key: "exchange" },
+  asks: asks.map((a) => ({ ...strip(a, "snapshot"), key: `ask-${a.id}` })),
   overlay: heroFirst,
   categories, backgrounds, docsIndex, snippets,
   files: Object.fromEntries(Object.entries(sampleText).map(([k, t]) => [k, fileHash(t)])),
@@ -617,10 +702,9 @@ ${safe(code)}
 function homePage() {
   const ratio = (size) => `style="aspect-ratio:${size[0]}/${size[1]}"`;
   const html = readFileSync(join(src, "index.html"), "utf8").replace(/\{\{version\}\}/g, version);
-  for (const id of ["hero-frame", "exchange-frame"]) if (!html.includes(`id="${id}"></div>`)) fail(`index.html has no empty #${id}; update homePage() in site/build.mjs`);
+  if (!html.includes('id="hero-frame"></div>')) fail("index.html has no empty #hero-frame; update homePage() in site/build.mjs");
   return html
-    .replace('id="hero-frame"></div>', `id="hero-frame" ${ratio(content.screen)}></div>`)
-    .replace('id="exchange-frame"></div>', `id="exchange-frame" ${ratio(exchange.size)}></div>`);
+    .replace('id="hero-frame"></div>', `id="hero-frame" ${ratio(content.screen)}></div>`);
 }
 
 // A small bundler for these ES modules: each module becomes a function scope,

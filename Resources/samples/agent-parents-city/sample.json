@@ -1,0 +1,8 @@
+{
+  "kind": "page",
+  "title": "Another city's time, sun and moon",
+  "description": "A world clock for one city with its sunrise, sunset and moon from an astro source, the times written in that city's zone.",
+  "size": [680, 190],
+  "at": "2026-10-10T04:30:00Z",
+  "tags": ["agent", "time"]
+}

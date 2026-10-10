@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "secrets": {
+    "homeAssistant": { "file": "~/.config/vestal/secrets/home-assistant.token" }
+  },
+  "sources": {
+    "garden": {
+      "type": "haStates",
+      "url": "http://homeassistant.local:8123",
+      "entities": ["sensor.raised_bed_moisture", "sensor.greenhouse_temperature", "switch.drip_line", "sensor.rain_last_24h", "sensor.compost_temperature", "lock.garden_gate"]
+    }
+  },
+  "widgets": {
+    "garden": {
+      "type": "section",
+      "title": "Garden",
+      "when": "now | fmt_time(\"EEE\") | IN(\"Sat\", \"Sun\")",
+      "children": [
+        {
+          "type": "homeAssistant",
+          "source": "garden",
+          "entities": [
+            { "id": "sensor.raised_bed_moisture", "label": "Raised beds", "icon": "plant", "precision": 0, "since": true, "thresholds": [[0, "bad"], [20, "warn"], [35, "good"]] },
+            { "id": "sensor.greenhouse_temperature", "label": "Greenhouse", "attribute": "humidity", "attributeUnit": "%", "attributeLabel": "humidity" },
+            { "id": "switch.drip_line", "label": "Drip line", "icon": "drop", "since": true },
+            { "id": "sensor.rain_last_24h", "label": "Rain, 24h", "icon": "cloud-rain", "color": "cyan", "since": true },
+            { "id": "sensor.compost_temperature", "label": "Compost", "icon": "thermometer-hot", "precision": 0, "since": true, "thresholds": [[0, "cyan"], [40, "good"], [65, "warn"]] },
+            { "id": "lock.garden_gate", "label": "Gate", "since": true }
+          ]
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["garden"], "padding": 32 } }
+}

@@ -1,0 +1,8 @@
+{
+  "kind": "page",
+  "title": "Daily notes heatmap",
+  "description": "Words written per day in a folder of daily notes, counted by a command source and drawn as a heatmap.",
+  "size": [680, 240],
+  "at": "2026-10-10T20:00:00Z",
+  "tags": ["agent", "notes"]
+}

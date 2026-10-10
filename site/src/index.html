@@ -96,14 +96,15 @@ programs.vestal = {
         </article>
       </div>
 
-      <div class="group-h"><h3>Asking an agent for a change</h3><small>vestal has no settings window. You describe the change, and the agent edits the JSON and checks it with the vestal binary.</small></div>
-      <div class="exchange">
-        <div class="chat" id="chat"></div>
-        <div class="result">
-          <div class="frame" id="exchange-frame"></div>
-          <p class="note">The dashboard drawn from the config the agent checked.</p>
-        </div>
-      </div>
+      <div class="group-h"><h3 id="h-asks">Asking an agent for a change</h3><small>vestal has no settings window. You describe the change, and the agent edits the JSON and checks it with the vestal binary.</small></div>
+      <section class="asks" id="asks" aria-roledescription="carousel" aria-labelledby="h-asks" tabindex="0">
+        <button type="button" class="hero-arrow ask-prev" aria-controls="asks-track" aria-label="Previous request">&#8249;</button>
+        <button type="button" class="hero-arrow ask-next" aria-controls="asks-track" aria-label="Next request">&#8250;</button>
+        <div class="asks-track" id="asks-track" aria-live="off"></div>
+        <div class="dots" id="asks-dots" role="group" aria-label="Requests"></div>
+        <p class="visually-hidden" id="asks-live" aria-live="polite" aria-atomic="true"></p>
+      </section>
+      <p class="note asks-note">Each result is drawn from a config and sample data in the repository (<code>Resources/samples/agent-*</code>), and the command output is from runs against them.</p>
     </div>
   </section>
 

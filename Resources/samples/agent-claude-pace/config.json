@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "widgets": {
+    "plan": { "type": "aiPlan", "show": ["claude"], "claudePlan": "Max" },
+    "pace": {
+      "type": "badge",
+      "source": "claude",
+      "vars": { "ahead": ".weekly.percent - (100 - (.weekly.resetsAt - now) / 6048)" },
+      "when": ".weekly.resetsAt != null and $ahead >= 5",
+      "icon": "warning",
+      "color": "warn",
+      "text": "{{ $ahead | round }} points ahead of an even pace this week",
+      "alignSelf": "start"
+    }
+  },
+  "views": { "main": { "children": ["plan", "pace"], "gap": 14, "padding": 32 } }
+}

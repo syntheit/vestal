@@ -10,17 +10,6 @@
   "hero": {
     "starters": ["default", "markets", "media"]
   },
-  "exchange": {
-    "ask": "Put the pull requests waiting on my review under the clock.",
-    "size": [840, 880],
-    "widget": { "reviews": { "type": "reviewQueue", "limit": 4 } },
-    "children": ["clock", "systemBar", "reviews", "agenda", "weather"],
-    "result": {
-      "background": "aurora",
-      "wall": "moss",
-      "pages": [ { "name": "main", "title": "Main", "samples": ["clock", "systemBar", "reviewQueue:reviews", "agendaList:agenda", "weatherCard:weather"] } ]
-    }
-  },
   "starters": [
     { "id": "default", "name": "Default", "background": "aurora", "wall": "blue",
       "pitch": "The time, this machine, music, the agenda, your hosts and the weather.",

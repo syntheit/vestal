@@ -18,7 +18,7 @@ async function main() {
   data = await boot();
   fillStatic();
   hero();
-  exchange();
+  asks();
   starters();
   widgets();
   backgrounds();
@@ -112,29 +112,139 @@ function hero() {
   }
 }
 
-function exchange() {
-  const ex = data.exchange;
-  const chat = document.getElementById("chat");
-  const run = (cmd, out) => `<div class="run"><span class="p">$</span> ${esc(cmd)}${out ? `\n<span class="o">${esc(out)}</span>` : ""}</div>`;
-  chat.innerHTML = `
-    <div class="msg user"><span class="who">You</span>${esc(ex.ask)}</div>
-    <div class="msg agent"><span class="who">Agent</span><p>Adding the <code>reviewQueue</code> preset to a draft of your config, then checking it.</p>
-      <div class="run"><span class="o">// /tmp/vestal-draft.json
-"widgets": ${esc(ex.edit)}
-"views": { "main": { "children": ${esc(ex.children)} } }</span></div>
-      ${run("vestal check-config --json /tmp/vestal-draft.json", ex.check)}
-      ${run("vestal render --config /tmp/vestal-draft.json", ex.tree)}
-      ${run("vestal screenshot /tmp/vestal.png --config /tmp/vestal-draft.json --json", ex.shot)}
-    </div>
-    <div class="msg agent"><span class="who">Agent</span><p>The check found no errors and the screenshot has no clipped nodes. The queue is under the clock, and a row's number key opens its pull request. It reads GitHub with <code>gh auth token</code>, so <code>gh</code> must be on vestal's PATH.</p></div>`;
-  const frame = document.getElementById("exchange-frame");
-  const render = { key: ex.key, size: ex.size, background: ex.background, wall: ex.wall, label: "The dashboard with the review queue added" };
-  screen(frame, render);
-  lightboxSet("exchange", () => [{
-    token: "exchange", kind: "Result", title: "The review queue under the clock",
-    open: (box, onView) => screen(box, { ...render, contain: true, now: true, animate: true, onView }),
-  }]);
-  expandable(frame, "exchange");
+// Requests an agent carried out, one at a time: the request, the commands it
+// ran with their output, the config it wrote and the result. Only the shown
+// request's render is in the page (the mount manager mounts it as it comes
+// near); its neighbors' data is fetched while it shows.
+function asks() {
+  const root = document.getElementById("asks");
+  const track = document.getElementById("asks-track");
+  const dots = document.getElementById("asks-dots");
+  const live = document.getElementById("asks-live");
+  const list = data.asks || [];
+  if (!list.length) { root.hidden = true; return; }
+  // `code` spans in the prose; everything else escaped.
+  const prose = (s) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+  const render = (a) => ({ key: a.key, size: a.size, background: a.background, wall: a.wall, label: `The result: ${a.ask}` });
+  // The steps as terminal blocks: a note starts a new block, and the commands
+  // after it share one.
+  const run = (s) => `<span class="p">$</span> ${esc(s.cmd)}${s.out ? `\n<span class="o">${esc(s.out)}</span>` : ""}`;
+  const log = (steps) => {
+    const blocks = [];
+    for (const s of steps) {
+      if (s.note || !blocks.length) blocks.push({ note: s.note, runs: [] });
+      blocks[blocks.length - 1].runs.push(run(s));
+    }
+    return blocks.map((b) => `${b.note ? `<p>${prose(b.note)}</p>` : ""}<div class="run">${b.runs.join("\n")}</div>`).join("");
+  };
+  // On a phone the config starts folded, under the result.
+  const narrow = typeof matchMedia === "function" && matchMedia("(max-width: 900px)").matches;
+  const slides = list.map((a, i) => {
+    const art = document.createElement("article");
+    art.className = "ask";
+    art.id = `ask-${a.id}`;
+    art.setAttribute("role", "group");
+    art.setAttribute("aria-roledescription", "slide");
+    art.setAttribute("aria-label", `${i + 1} of ${list.length}`);
+    art.innerHTML = `<h4 class="ask-q">${esc(a.ask)}</h4>
+      <div class="ask-log">${log(a.steps)}<p>${prose(a.done)}</p></div>
+      <figure class="ask-result"><div class="frame" style="aspect-ratio:${a.size[0]}/${a.size[1]}"></div><figcaption class="note">The result, drawn from the config the agent checked.</figcaption></figure>
+      <details class="ask-change"${narrow ? "" : " open"}><summary>The change to the config</summary><pre class="code">${highlightJSON(a.change)}</pre></details>`;
+    track.appendChild(art);
+    const frame = art.querySelector(".frame");
+    expandable(frame, `ask-${a.id}`, { label: "Show the result larger" });
+    return { a, art, frame, ctl: null };
+  });
+  lightboxSet("asks", () => list.map((a) => ({
+    token: `ask-${a.id}`, kind: "Result", title: a.title, html: `<p>${esc(a.ask)}</p>`,
+    open: (box, onView) => screen(box, { ...render(a), contain: true, now: true, animate: true, onView }),
+  })));
+  dots.innerHTML = list.map((a, i) => `<button type="button" class="dot" aria-label="Request ${i + 1}: ${esc(a.ask)}"></button>`).join("");
+
+  let at = -1;
+  function show(i, { announce = true, from = 0 } = {}) {
+    i = (i + list.length) % list.length;
+    if (i === at) return;
+    const was = slides[at];
+    if (was) {
+      // The render it held goes; the frame keeps its size.
+      if (was.ctl) { was.ctl.destroy(); was.ctl = null; }
+      was.art.classList.remove("on", "from-left", "from-right");
+      was.art.setAttribute("aria-hidden", "true");
+      was.art.inert = true;
+    }
+    at = i;
+    const s = slides[i];
+    s.art.removeAttribute("aria-hidden");
+    s.art.inert = false;
+    s.art.classList.add("on");
+    if (from && !reduced()) s.art.classList.add(from > 0 ? "from-right" : "from-left");
+    s.ctl = screen(s.frame, render(s.a));
+    dots.querySelectorAll(".dot").forEach((d, k) => { if (k === i) d.setAttribute("aria-current", "true"); else d.removeAttribute("aria-current"); });
+    if (announce) live.textContent = `Request ${i + 1} of ${list.length}: ${s.a.ask}`;
+    // The neighbors' render models, so a step draws at once.
+    if (!saveData()) for (const k of [i - 1, i + 1]) sample(list[(k + list.length) % list.length].key).catch(() => {});
+  }
+  slides.forEach((s, i) => { if (i) { s.art.setAttribute("aria-hidden", "true"); s.art.inert = true; } });
+  show(0, { announce: false });
+  const step = (d) => show(at + d, { from: d });
+
+  root.querySelector(".ask-prev").addEventListener("click", () => step(-1));
+  root.querySelector(".ask-next").addEventListener("click", () => step(1));
+  dots.addEventListener("click", (e) => {
+    const b = e.target.closest(".dot");
+    if (!b) return;
+    const i = [...dots.children].indexOf(b);
+    show(i, { from: i - at });
+  });
+  // Can this element scroll sideways in the direction `dx` asks?
+  const scrolls = (el, dx) => {
+    for (let n = el; n && n !== root; n = n.parentElement) {
+      if (n.scrollWidth <= n.clientWidth + 1 || !/auto|scroll/.test(getComputedStyle(n).overflowX)) continue;
+      if (dx < 0 ? n.scrollLeft > 0 : n.scrollLeft + n.clientWidth < n.scrollWidth - 1) return true;
+    }
+    return false;
+  };
+  root.addEventListener("keydown", (e) => {
+    if (e.defaultPrevented || e.altKey || e.metaKey || e.ctrlKey || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+    const d = e.key === "ArrowRight" ? 1 : -1;
+    // The dashboard and a code block that can still scroll keep their keys.
+    if (e.target.closest(".vr-root, input, textarea") || (e.target.closest(".run, .code") && scrolls(e.target, d))) return;
+    e.preventDefault();
+    step(d);
+  });
+  // A horizontal swipe (touch or pen) or a drag of the result (mouse).
+  let swipe = null, swiped = 0;
+  root.addEventListener("pointerdown", (e) => {
+    swipe = null;
+    if (!e.isPrimary || e.target.closest("button, a, summary, .ask-change, .run")) return;
+    if (e.pointerType === "mouse" && !e.target.closest(".frame")) return;
+    swipe = { x: e.clientX, y: e.clientY, id: e.pointerId };
+  });
+  root.addEventListener("pointerup", (e) => {
+    if (!swipe || e.pointerId !== swipe.id) return;
+    const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+    swipe = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > 1.5 * Math.abs(dy)) { swiped = Date.now(); step(dx < 0 ? 1 : -1); }
+  });
+  // The click that ends a drag of the result does not open the lightbox.
+  root.addEventListener("click", (e) => { if (Date.now() - swiped < 400) { e.stopPropagation(); e.preventDefault(); } }, { capture: true });
+  root.addEventListener("pointercancel", () => { swipe = null; });
+  // A two-finger swipe on a trackpad: one step per gesture.
+  let wheel = 0, quietUntil = 0, idle = null;
+  root.addEventListener("wheel", (e) => {
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) || scrolls(e.target, e.deltaX)) return;
+    e.preventDefault();
+    clearTimeout(idle);
+    idle = setTimeout(() => { wheel = 0; quietUntil = 0; }, 220);
+    if (performance.now() < quietUntil) return;
+    wheel += e.deltaX;
+    if (Math.abs(wheel) > 60) {
+      step(wheel > 0 ? 1 : -1);
+      wheel = 0;
+      quietUntil = Infinity; // until the gesture's events stop
+    }
+  }, { passive: false });
 }
 
 function starters() {

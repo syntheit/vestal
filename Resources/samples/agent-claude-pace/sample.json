@@ -1,0 +1,8 @@
+{
+  "kind": "page",
+  "title": "Claude pace warning",
+  "description": "The Claude plan's windows with a badge that shows only while the week's usage runs ahead of an even pace.",
+  "size": [680, 230],
+  "at": "2026-10-10T20:00:00Z",
+  "tags": ["agent", "ai"]
+}

@@ -121,18 +121,39 @@ section.part { padding-block: 72px 24px; scroll-margin-top: 52px; }
 .code.term .p { color: var(--dim); }
 .more { margin: 4px 16px 16px; }
 
-/* the agent exchange */
-.exchange { display: grid; gap: 16px; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; }
-.chat { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.msg { max-width: 100%; border-radius: 12px; padding: 10px 14px; font-size: 14px; }
-.msg.user { align-self: flex-end; background: rgba(122,161,247,.16); border: 1px solid rgba(122,161,247,.3); color: #dbe4ff; max-width: 88%; }
-.msg.agent { background: var(--panel); border: 1px solid var(--line); color: var(--subtle); }
-.msg .who { display: block; font: 500 12px/1 var(--sans); color: var(--dim); margin-bottom: 6px; }
-.msg.agent p { margin: 0 0 6px; color: var(--text); }
+/* asking an agent: one request at a time */
+.asks { position: relative; border-radius: 12px; }
+.asks:focus-visible { outline-offset: 8px; }
+.asks-track { display: grid; touch-action: pan-y; overscroll-behavior-x: contain; }
+.ask { grid-area: 1 / 1; min-width: 0; visibility: hidden; display: grid; gap: 14px 24px; align-items: start; align-content: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr; grid-template-areas: "q q" "log result" "log change"; }
+.ask.on { visibility: visible; }
+.ask.from-right { animation: ask-in .28s ease-out; --from: 28px; }
+.ask.from-left { animation: ask-in .28s ease-out; --from: -28px; }
+@keyframes ask-in { from { opacity: 0; transform: translateX(var(--from)); } }
+.ask-q { grid-area: q; min-height: 44px; padding: 0 60px; display: grid; place-items: center; text-align: center; font: 500 19px/1.35 var(--sans); text-wrap: balance; }
+.ask-log { grid-area: log; min-width: 0; display: flex; flex-direction: column; }
+.ask-log > p { margin: 12px 0 0; color: var(--subtle); font-size: 14px; }
+.ask-log > p:first-child { margin-top: 0; }
+.ask-result { grid-area: result; min-width: 0; margin: 0; }
+.ask-change { grid-area: change; min-width: 0; }
+.ask-change summary { width: max-content; max-width: 100%; margin-top: 2px; font: 500 12.5px/1.4 var(--sans); color: var(--subtle); cursor: pointer; }
+.ask-change summary:hover { color: var(--text); }
+.ask-change .code { margin: 8px 0 0; max-height: 340px; overflow: auto; }
+.ask-log .run { margin-top: 10px; max-height: none; }
+.asks .hero-arrow { position: absolute; top: 0; z-index: 2; }
+.asks .ask-prev { left: 0; }
+.asks .ask-next { right: 0; }
+.dots { display: flex; justify-content: center; gap: 2px; margin-top: 20px; }
+.dot { width: 26px; height: 26px; padding: 0; border: 0; border-radius: 13px; background: transparent; cursor: pointer; display: grid; place-items: center; }
+.dot::before { content: ""; width: 8px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.26); transition: width .2s, background-color .2s; }
+.dot:hover::before { background: rgba(255,255,255,.5); }
+.dot[aria-current="true"]::before { width: 20px; background: var(--accent); }
+.asks-note { margin-top: 12px; text-align: center; }
 .run { margin: 8px 0 0; padding: 10px 12px; border-radius: 8px; background: #0c0d13; border: 1px solid var(--line); font: 12px/1.5 var(--mono); color: #c0caf5; white-space: pre; overflow-x: auto; max-height: 260px; }
 .run .p { color: var(--dim); }
 .run .o { color: rgba(255,255,255,.62); }
-.result { position: sticky; top: 72px; min-width: 0; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* starters */
 .dash-grid { display: grid; gap: 36px 24px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 540px), 1fr)); }
@@ -207,8 +228,7 @@ section.part { padding-block: 72px 24px; scroll-margin-top: 52px; }
 .site-foot .wrap { display: flex; gap: 10px 22px; flex-wrap: wrap; align-items: baseline; }
 
 @media (max-width: 900px) {
-  .exchange { grid-template-columns: minmax(0, 1fr); }
-  .result { position: static; }
+  .ask { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "q" "result" "log" "change"; }
 }
 @media (max-width: 760px) {
   /* the section links scroll sideways: fade the edge so the cut reads as more */
@@ -229,10 +249,11 @@ section.part { padding-block: 72px 24px; scroll-margin-top: 52px; }
 }
 
 /* ---------- hero paging ---------- */
-.pager-frame .hero-arrow { position: absolute; top: 50%; z-index: 2; width: 44px; height: 44px; margin-top: -22px; border-radius: 50%; border: 1px solid var(--line-2); background: rgba(22,24,34,.82); color: var(--text); font: 300 26px/1 var(--sans); cursor: pointer; display: grid; place-items: center; padding-bottom: 3px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+.hero-arrow { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line-2); background: rgba(22,24,34,.82); color: var(--text); font: 300 26px/1 var(--sans); cursor: pointer; display: grid; place-items: center; padding-bottom: 3px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+.pager-frame .hero-arrow { position: absolute; top: 50%; z-index: 2; margin-top: -22px; }
 .pager-frame .hero-prev { left: -22px; }
 .pager-frame .hero-next { right: -22px; }
-.pager-frame .hero-arrow:hover { background: #262939; border-color: rgba(122,161,247,.5); }
+.hero-arrow:hover { background: #262939; border-color: rgba(122,161,247,.5); }
 .hero-pages { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 16px; }
 .pager.big { margin-top: 0; justify-content: center; }
 .pager.big .tabs { gap: 6px; justify-content: center; }
@@ -293,6 +314,8 @@ html.lb-open { overflow: hidden; }
 }
 @media (max-width: 560px) {
   .pager-frame .hero-arrow { width: 34px; height: 34px; margin-top: -17px; font-size: 22px; }
+  .asks .hero-arrow { width: 38px; height: 38px; font-size: 24px; }
+  .ask-q { min-height: 38px; padding: 0 46px; font-size: 16.5px; }
   .pager-frame .hero-prev { left: 6px; }
   .pager-frame .hero-next { right: 6px; }
   .pager.big .tab { height: 32px; padding: 0 12px; font-size: 13px; }
@@ -306,4 +329,5 @@ html.lb-open { overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) {
   .pager.big .tab.auto::after { animation: none; }
+  .ask.from-left, .ask.from-right { animation: none; }
 }

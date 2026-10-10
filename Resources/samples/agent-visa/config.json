@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "widgets": {
+    "visa": {
+      "type": "row",
+      "gap": 12,
+      "width": "fill",
+      "vars": {
+        "days": "((\"2026-11-02\" | to_epoch) - (now | fmt_time(\"yyyy-MM-dd\") | to_epoch)) / 86400 | round",
+        "passed": "pct((now | to_epoch) - (\"2025-11-03\" | to_epoch); (\"2026-11-02\" | to_epoch) - (\"2025-11-03\" | to_epoch))"
+      },
+      "style": { "color": { "steps": [[0, "bad"], [7, "warn"], [30, "text"]], "of": "$days" } },
+      "children": [
+        { "type": "text", "text": "{{ $days }}", "width": 44, "align": "end", "style": { "font": "mono", "size": 18, "weight": "light" } },
+        {
+          "type": "stack",
+          "gap": 4,
+          "width": "fill",
+          "children": [
+            {
+              "type": "row",
+              "gap": 8,
+              "align": "baseline",
+              "children": [
+                { "type": "text", "text": "Visa expires", "style": { "size": 13, "weight": "medium", "color": "text" } },
+                { "type": "text", "text": "days, on November 2", "style": { "size": 11, "color": "dim" } }
+              ]
+            },
+            { "type": "progress", "value": "$passed", "height": 3, "text": "", "color": { "steps": [[0, "bad"], [7, "warn"], [30, "text@0.4"]], "of": "$days" } }
+          ]
+        }
+      ]
+    },
+    "dates": {
+      "type": "section",
+      "title": "Dates",
+      "children": [
+        "visa",
+        {
+          "type": "countdowns",
+          "spaceBefore": 11,
+          "items": [
+            { "title": "Lease ends", "date": "2027-04-27", "since": "2026-05-03" },
+            { "title": "Trip home", "date": "2026-12-19", "since": "2026-09-01" }
+          ]
+        }
+      ]
+    }
+  },
+  "views": { "main": { "children": ["dates"], "padding": 32 } }
+}

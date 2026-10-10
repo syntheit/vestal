@@ -1,0 +1,58 @@
+[
+  {
+    "entity_id": "sensor.raised_bed_moisture",
+    "state": "28",
+    "attributes": {
+      "unit_of_measurement": "%",
+      "device_class": "moisture",
+      "friendly_name": "Raised bed moisture"
+    },
+    "last_changed": "2026-10-10T08:41:00+00:00"
+  },
+  {
+    "entity_id": "sensor.greenhouse_temperature",
+    "state": "23.6",
+    "attributes": {
+      "unit_of_measurement": "°C",
+      "device_class": "temperature",
+      "friendly_name": "Greenhouse",
+      "humidity": 71
+    },
+    "last_changed": "2026-10-10T09:02:00+00:00"
+  },
+  {
+    "entity_id": "switch.drip_line",
+    "state": "off",
+    "attributes": {
+      "friendly_name": "Drip line"
+    },
+    "last_changed": "2026-10-10T06:30:00+00:00"
+  },
+  {
+    "entity_id": "sensor.rain_last_24h",
+    "state": "0.4",
+    "attributes": {
+      "unit_of_measurement": "mm",
+      "friendly_name": "Rain, 24h"
+    },
+    "last_changed": "2026-10-10T07:15:00+00:00"
+  },
+  {
+    "entity_id": "sensor.compost_temperature",
+    "state": "54",
+    "attributes": {
+      "unit_of_measurement": "°C",
+      "device_class": "temperature",
+      "friendly_name": "Compost"
+    },
+    "last_changed": "2026-10-10T08:55:00+00:00"
+  },
+  {
+    "entity_id": "lock.garden_gate",
+    "state": "locked",
+    "attributes": {
+      "friendly_name": "Garden gate"
+    },
+    "last_changed": "2026-10-09T19:12:00+00:00"
+  }
+]

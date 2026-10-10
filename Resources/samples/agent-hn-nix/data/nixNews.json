@@ -1,0 +1,79 @@
+{
+  "hits": [
+    {
+      "title": "Nix flakes are stable now: what changed and what to migrate",
+      "url": "https://example.com/flakes-stable",
+      "author": "user1",
+      "points": 412,
+      "num_comments": 231,
+      "created_at_i": 1791644400,
+      "objectID": "51000000",
+      "_tags": [
+        "story"
+      ]
+    },
+    {
+      "title": "Building a Nixie tube clock from salvaged parts",
+      "url": "https://example.com/nixie-clock",
+      "author": "user2",
+      "points": 240,
+      "num_comments": 58,
+      "created_at_i": 1791630000,
+      "objectID": "51000001",
+      "_tags": [
+        "story"
+      ]
+    },
+    {
+      "title": "Show HN: A NixOS module for running local LLMs on a home server",
+      "url": "https://example.com/nixos-llm",
+      "author": "user3",
+      "points": 188,
+      "num_comments": 74,
+      "created_at_i": 1791612000,
+      "objectID": "51000002",
+      "_tags": [
+        "story"
+      ]
+    },
+    {
+      "title": "How we cut CI time in half with a shared Nix binary cache",
+      "url": "https://example.com/nix-cache",
+      "author": "user4",
+      "points": 305,
+      "num_comments": 96,
+      "created_at_i": 1791568800,
+      "objectID": "51000003",
+      "_tags": [
+        "story"
+      ]
+    },
+    {
+      "title": "Ask HN: Is anyone using nixpkgs for reproducible data science?",
+      "url": null,
+      "author": "user5",
+      "points": 134,
+      "num_comments": 112,
+      "created_at_i": 1791550800,
+      "objectID": "51000004",
+      "_tags": [
+        "story"
+      ]
+    },
+    {
+      "title": "Deploying NixOS to a fleet of Raspberry Pis",
+      "url": "https://example.com/nixos-pis",
+      "author": "user6",
+      "points": 167,
+      "num_comments": 52,
+      "created_at_i": 1791475200,
+      "objectID": "51000005",
+      "_tags": [
+        "story"
+      ]
+    }
+  ],
+  "nbHits": 6,
+  "page": 0,
+  "hitsPerPage": 40
+}

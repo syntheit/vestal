@@ -1,0 +1,8 @@
+{
+  "kind": "page",
+  "title": "Nix stories on Hacker News",
+  "description": "Hacker News stories about Nix with more than 100 points, from Algolia's search API filtered with jq and shown by the headlines preset.",
+  "size": [680, 290],
+  "at": "2026-10-10T20:00:00Z",
+  "tags": ["agent", "feeds"]
+}
