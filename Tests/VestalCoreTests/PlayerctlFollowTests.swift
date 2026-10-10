@@ -429,6 +429,33 @@ final class PlayerctlFollowTests: XCTestCase {
         XCTAssertEqual(seen.exitCount, 1)
     }
 
+    func testLineProcessKeepsAFinalLineWithoutNewlineAndForgetsAnInstantChild() async throws {
+        let seen = Lines()
+        _ = try LineProcess.start(["sh", "-c", "printf 'a\\nb'"], onLine: { seen.add($0) }, onExit: { seen.exited() })
+        await eventually { seen.exitCount == 1 }
+        XCTAssertEqual(seen.values, ["a", "b"])
+        for _ in 0..<5 {
+            _ = try LineProcess.start(["true"], onLine: { _ in }, onExit: {})
+        }
+        await eventually { CommandRunner.runningProcessIDs.isEmpty }
+    }
+
+    func testBackendIgnoresLinesFromAReplacedFollower() async {
+        let fake = FakeFollow(), clock = FakeClock(), polls = spotifyPolls(), changes = Counter()
+        let media = backend(fake, clock: clock, polls: polls)
+        media.follow([["spotify"]], changed: { changes.bump() })
+        await eventually { fake.processes.count == 1 }
+        let old = fake.processes[0]
+        media.follow([], changed: { changes.bump() })
+        media.follow([["spotify"]], changed: { changes.bump() })
+        await eventually { fake.processes.count == 2 }
+        old.say(trackLine("Playing"))
+        old.die()
+        try? await Task.sleep(nanoseconds: 60_000_000)
+        XCTAssertEqual(changes.value, 0, "the old process says nothing about the new one")
+        media.follow([], changed: {})
+    }
+
     func testLineProcessMissingProgramThrows() {
         XCTAssertThrowsError(try LineProcess.start(["vestal-no-such-program"], onLine: { _ in }, onExit: {})) { error in
             XCTAssertEqual(error as? CommandError, .notFound("vestal-no-such-program"))
@@ -457,7 +484,12 @@ final class PlayerctlFollowTests: XCTestCase {
         fetcher.fireChanged()
         await waitUntil { inner.count("media") > fetched }
 
+        // A change queued, then hidden before it ran: no read.
+        let beforeHide = inner.count("media")
+        fetcher.fireChanged()
         runtime.setVisible(false)
+        await settle()
+        XCTAssertEqual(inner.count("media"), beforeHide)
         XCTAssertEqual(fetcher.lists.last ?? [["x"]], [], "hiding stops it")
 
         runtime.setVisible(true)

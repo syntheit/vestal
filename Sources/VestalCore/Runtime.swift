@@ -175,7 +175,7 @@ public final class AppRuntime {
     private var followedMedia: [[String]] = []
     /// Media sources being read because a player changed, and the ones that
     /// changed again meanwhile.
-    private var mediaFetching = Set<RuntimeKey>()
+    private var mediaTasks: [RuntimeKey: Task<Void, Never>] = [:]
     private var mediaDirty = Set<RuntimeKey>()
     /// Set by `shutdown()`: nothing runs any more.
     private var stopped = false
@@ -529,6 +529,11 @@ public final class AppRuntime {
             let list = jobs[.snapshot(key)]?.plan?.source.player ?? [SourceConfig.defaultPlayer]
             if !lists.contains(list) { lists.append(list) }
         }
+        if lists.isEmpty {
+            for task in mediaTasks.values { task.cancel() }
+            mediaTasks = [:]
+            mediaDirty = []
+        }
         guard lists != followedMedia else { return }
         followedMedia = lists
         fetcher.followMedia(lists) { [weak self] in
@@ -541,18 +546,21 @@ public final class AppRuntime {
     /// at a time each, and again if it changed meanwhile).
     private func mediaChanged() {
         for key in readMediaKeys() {
-            if mediaFetching.contains(key) {
+            if mediaTasks[key] != nil {
                 mediaDirty.insert(key)
                 continue
             }
-            mediaFetching.insert(key)
-            Task { @MainActor in
+            mediaTasks[key] = Task { @MainActor in
                 repeat {
                     mediaDirty.remove(key)
+                    // Hidden or stopped since it was queued: no read.
+                    guard !Task.isCancelled, !readMediaKeys().isEmpty else { return }
                     _ = await fetchNow(key)
-                } while mediaDirty.contains(key) && !readMediaKeys().isEmpty
-                mediaFetching.remove(key)
-                mediaDirty.remove(key)
+                } while mediaDirty.contains(key) && !Task.isCancelled
+                if !Task.isCancelled {
+                    mediaTasks[key] = nil
+                    mediaDirty.remove(key)
+                }
             }
         }
     }

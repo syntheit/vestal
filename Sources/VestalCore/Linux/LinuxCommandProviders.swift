@@ -268,8 +268,8 @@ public final class PlayerctlBackend: MediaBackend, @unchecked Sendable {
             let entry = Followed(wanted: command.wanted, single: command.single)
             entry.follower = PlayerctlFollower(
                 argv: command.argv, start: startFollow, backoff: backoff,
-                onLine: { [weak self] line in self?.heard(line, key: key) },
-                onLost: { [weak self] in self?.lost(key: key) })
+                onLine: { [weak self, weak entry] line in self?.heard(line, key: key, entry: entry) },
+                onLost: { [weak self, weak entry] in self?.lost(key: key, entry: entry) })
             followed[key] = entry
             if let follower = entry.follower { starting.append(follower) }
         }
@@ -280,11 +280,13 @@ public final class PlayerctlBackend: MediaBackend, @unchecked Sendable {
 
     /// One follow line: a named player's own reading replaces what was
     /// known; anything else makes the next read ask.
-    private func heard(_ line: String, key: String) {
+    private func heard(_ line: String, key: String, entry from: Followed?) {
         guard let event = LinuxProc.playerctlFollowEvent(line) else { return }
         let moment = now()
         lock.lock()
-        guard let entry = followed[key] else {
+        // A line from a follower that was replaced (hidden and shown again)
+        // says nothing about the new one.
+        guard let entry = followed[key], entry === from else {
             lock.unlock()
             return
         }
@@ -307,9 +309,9 @@ public final class PlayerctlBackend: MediaBackend, @unchecked Sendable {
     }
 
     /// The process ended (or did not start): nothing it said holds.
-    private func lost(key: String) {
+    private func lost(key: String, entry from: Followed?) {
         lock.lock()
-        let entry = followed[key]
+        let entry = followed[key].flatMap { $0 === from ? $0 : nil }
         let wasLive = entry?.live ?? false
         entry?.live = false
         entry?.heard = nil

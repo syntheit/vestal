@@ -85,18 +85,22 @@ public final class LineProcess: LineStreamHandle, @unchecked Sendable {
     }
 
     private func launch() throws {
-        // The handler holds `self` until the child exits, which also keeps
-        // the pipe open for the read source.
-        process.terminationHandler = { _ in
-            self.queue.async { self.childExited() }
-        }
-        do {
-            try process.run()
-        } catch {
-            process.terminationHandler = nil
-            throw CommandError.launchFailed(name, "\(error)")
-        }
+        // Started and registered in one step on `queue`, so a child that
+        // exits at once is handled (on this queue too) only afterwards.
+        var failure: Error?
         queue.sync {
+            // The handler holds `self` until the child exits, which also keeps
+            // the pipe open for the read source.
+            process.terminationHandler = { _ in
+                self.queue.async { self.childExited() }
+            }
+            do {
+                try process.run()
+            } catch {
+                process.terminationHandler = nil
+                failure = CommandError.launchFailed(name, "\(error)")
+                return
+            }
             pid = process.processIdentifier
             RunningChildren.shared.insert(pid)
             let handle = stdoutPipe.fileHandleForReading
@@ -109,6 +113,7 @@ public final class LineProcess: LineStreamHandle, @unchecked Sendable {
             source.resume()
             self.source = source
         }
+        if let failure { throw failure }
     }
 
     public func stop() {
@@ -136,7 +141,10 @@ public final class LineProcess: LineStreamHandle, @unchecked Sendable {
             }
             if count < 0 && errno == EINTR { continue }
             if count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK) { return }
-            // EOF or a read error: nothing more will come.
+            // EOF or a read error: nothing more will come; a last line
+            // without its newline still counts.
+            if !skipping, !pending.isEmpty, !stopped { emit() }
+            pending.removeAll()
             source?.cancel()
             source = nil
             return
