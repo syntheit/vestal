@@ -25,6 +25,9 @@
         # SwiftPM build of the `vestal` product; see package.nix.
         vestal = pkgs.callPackage ./package.nix { commit = buildCommit; };
 
+        # The website (site/dist) as static files; see nix/site.nix.
+        site = pkgs.callPackage ./nix/site.nix { inherit vestal; };
+
         default = vestal;
       });
 
