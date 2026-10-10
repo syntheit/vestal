@@ -36,9 +36,9 @@ Your file is merged over vestal's built-in defaults, key by key: objects merge, 
 
 Three things connect:
 
-- A **source** fetches data: `"type": "http"` with a `url`, `"command"` with an `argv`, `"file"` with a `path`, or a built-in one (`system`, `media`, `calendar`, `weather`, `claude`, `codex`).
-- A **widget** draws. It names a source, and inside it `.` is that source's data.
-- A **view** lists widget keys, top to bottom. A widget that no view lists is never drawn.
+- A source fetches data: `"type": "http"` with a `url`, `"command"` with an `argv`, `"file"` with a `path`, or a built-in one (`system`, `media`, `calendar`, `weather`, `claude`, `codex`).
+- A widget draws. It names a source, and inside it `.` is that source's data.
+- A view lists widget keys, top to bottom. A widget that no view lists is never drawn.
 
 ```json
 {
@@ -63,7 +63,7 @@ Three things connect:
 
 `clock` here is the built-in default widget of that name, so it needs no entry. `section` is a preset with a title and a rule; its `children` are written inline instead of by key. Anywhere a widget goes, you can write either.
 
-Widgets come in three families: **presets** that know their data (`clock`, `agendaList`, `weatherCard`, `reviewQueue`, … `vestal docs presets`), **containers** that arrange (`stack`, `row`, `grid`, `list`, `table`, `switch`) and **primitives** that draw (`text`, `icon`, `progress`, `gauge`, `sparkline`, `bars`, `image`, … `vestal docs widgets`). A `list` repeats a row for each item of an array, with `.` set to the item.
+Widgets come in three families: presets that know their data (`clock`, `agendaList`, `weatherCard`, `reviewQueue`, … `vestal docs presets`), containers that arrange (`stack`, `row`, `grid`, `list`, `table`, `switch`) and primitives that draw (`text`, `icon`, `progress`, `gauge`, `sparkline`, `bars`, `image`, … `vestal docs widgets`). A `list` repeats a row for each item of an array, with `.` set to the item.
 
 To see what a source returns, run `vestal fetch status --shape` (an outline of every path) or `vestal fetch status`.
 
@@ -81,7 +81,7 @@ Inside JSON, a quote in an expression is written `\"`.
 
 ## Expressions (jq)
 
-Fields that compute a value (`value`, `items`, `when`, `input`, `vars`, a color's `of`) are **jq** expressions, as strings. vestal runs a large subset of jq plus its own formatting functions. With this data:
+Fields that compute a value (`value`, `items`, `when`, `input`, `vars`, a color's `of`) are jq expressions, as strings. vestal runs a large subset of jq plus its own formatting functions. With this data:
 
 ```jsonc
 { "city": "Lisbon", "temp": 18.6, "hosts": [ { "name": "nas", "up": true, "cpu": 12.4 }, { "name": "pi", "up": false, "cpu": 0 } ] }

@@ -10,7 +10,7 @@ You need a Mac with macOS 14 or later (on Linux, install through Nix and skip to
 brew install --cask syntheit/vestal/vestal
 ```
 
-This installs `Vestal.app` and a `vestal` command. Open the app once from Applications: it has no Dock icon and no menu bar item, it just stays resident while hidden. (No Homebrew? Download the DMG from the GitHub releases page; `vestal docs install` has the details.)
+This installs `Vestal.app` and a `vestal` command. Open the app once from Applications: it has no Dock icon and no menu bar item, it stays resident while hidden. (No Homebrew? Download the DMG from the GitHub releases page; `vestal docs install` has the details.)
 
 ## 2. Write a starter with `vestal init`
 
@@ -18,7 +18,7 @@ This installs `Vestal.app` and a `vestal` command. Open the app once from Applic
 vestal init
 ```
 
-This writes the Default starter to `~/.config/vestal/config.json` and prints what it needs from you:
+This writes the Default starter to `~/.config/vestal/config.json` and prints a summary:
 
 ```text
 Wrote the Default starter to /Users/you/.config/vestal/config.json
@@ -55,14 +55,14 @@ Create `~/.config/vestal/config.json` in any text editor (`open -e` opens TextEd
 }
 ```
 
-That is a whole config:
+The whole config is these four keys:
 
 - `version` is always `1`.
 - `hotkey` is the key that shows and hides the dashboard. `"f3"` works too; a letter or `space` needs a modifier.
 - `widgets` names the things you can show. `clock` is a *preset*: a ready-made widget (the time, the date and a few world clocks). `vestal docs presets` lists them all, and the site's gallery shows each one.
 - `views` are the pages. `main` shows its `children`, top to bottom.
 
-Save the file. vestal watches it and redraws at once. Press the hotkey: a clock in the middle of the screen.
+Save the file. vestal watches it and redraws at once. Press the hotkey and a clock appears in the middle of the screen.
 
 Anything you leave out comes from vestal's built-in defaults: the background, the colors, and the built-in data sources (`system`, `media`, `calendar`, `weather`).
 
@@ -96,11 +96,11 @@ Add the system bar, the agenda and the weather, all presets, plus a CPU ring bui
 
 A widget appears only when a view lists its key, so adding it to `widgets` is half the job; the other half is the `children` list.
 
-The `cpu` widget shows the three kinds of field you will meet everywhere:
+The `cpu` widget shows the kinds of field you will meet everywhere:
 
 - `"source": "system"` picks the data. The built-in `system` source has the CPU, memory, disks, battery and network.
-- `"value": ".cpu.percent"` is a **jq expression**: it reads `cpu.percent` from that data.
-- `"text": "{{ .cpu.percent | round }}%"` is **text** with an expression in `{{ }}`.
+- `"value": ".cpu.percent"` is a jq expression: it reads `cpu.percent` from that data.
+- `"text": "{{ .cpu.percent | round }}%"` is text with an expression in `{{ }}`.
 - `"color"` turns green, yellow, then red as the value passes 70 and 90.
 
 To see the data a source gives, run `vestal fetch system --shape`. To try an expression, `vestal eval '.cpu.percent' --source system`.

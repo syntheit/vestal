@@ -5,48 +5,48 @@ All notable changes to Vestal. The format follows
 
 ## [0.5.0] - 2026-10-09
 
-Covers everything since 0.3.0 (there was no 0.4 release). Every 0.3 config
+This release covers everything since 0.3.0 (there was no 0.4 release). Every 0.3 config
 still means what it did.
 
 ### Added
 
-- **Linux.** A GTK 4 and layer-shell UI for Hyprland and other Wayland
+- Linux: a GTK 4 and layer-shell UI for Hyprland and other Wayland
   compositors, drawn from the same config as the macOS app.
-- **A new config language.** Expressions are jq. Build any widget from
+- A new config language. Expressions are jq. Build any widget from
   primitives (text, rows, columns, stacks, bars, rings, sparklines, images),
   write your own templates and presets, define views and key bindings, and run
   actions (open, copy, run a command, timer, toggle a todo). The eight 0.3
   widgets are now built-in presets with the same names.
-- **About 50 widgets** as presets: system, time and weather, developer,
+- About 50 widgets as presets: system, time and weather, developer,
   homelab, feeds and markets, media, and personal (day timeline, next
   meeting, focus timer, todo file, habits). `vestal docs preset/<name>` shows
   each one.
-- **Chart primitives:** bars, stacked bars, heatmap, timeline and image.
-- **Pages.** Several views in one dashboard, with arrows, swipe, transitions
+- Chart primitives: bars, stacked bars, heatmap, timeline and image.
+- Pages: several views in one dashboard, with arrows, swipe, transitions
   and page dots.
-- **12 backgrounds** drawn by shaders, including the aurora, sky, rain and
+- 12 backgrounds, drawn by shaders, including the aurora, sky, rain and
   blur, with a `dim` setting.
-- **11 clock faces:** analog, flip, day ring, dot matrix, seven-segment and
+- 11 clock faces: analog, flip, day ring, dot matrix, seven-segment and
   text faces, with world-clock subdials and a moon phase.
-- **Typefaces and bundled fonts**, with a `typeface` key and a display role.
-- **Starters and `vestal init`.** Eight starter dashboards, each with a clock
+- Typefaces and bundled fonts, with a `typeface` key and a display role.
+- Starters and `vestal init`: eight starter dashboards, each with a clock
   face and typeface. `vestal init` writes one (backing up your config), and
   `programs.vestal.starter` does the same in Nix.
-- **Calendars from more places:** CalDAV servers (iCloud included),
+- Calendars from more places: CalDAV servers (iCloud included),
   Thunderbird's local calendars, and ics URLs with Basic auth.
-- **Claude and Codex usage** read from the OAuth usage endpoint, with the CLI
+- Claude and Codex usage is read from the OAuth usage endpoint, with the CLI
   as fallback.
-- **New sources:** astro (sunrise, sunset, moon), timer, flake, and files or
+- New sources: astro (sunrise, sunset, moon), timer, flake, and files or
   directories of JSON. HTTP sources accept secrets in headers and bodies.
-- **`vestal gallery`** renders every widget and background offscreen.
-- **A web renderer** that draws the same model in a browser, and a website at
+- `vestal gallery` renders every widget and background offscreen.
+- A web renderer that draws the same model in a browser, and a website at
   vestal.matv.io with live renders.
-- **Agent kit:** `vestal docs`, `vestal schema`, `vestal check-config` with
+- Agent kit: `vestal docs`, `vestal schema`, `vestal check-config` with
   suggestions, `vestal render --press <key>`, and `AGENTS.md`, so an LLM can
   write your config.
-- **Pinch gesture** (`gesture = "pinch"`) opens and closes the dashboard on a
+- The pinch gesture (`gesture = "pinch"`) opens and closes the dashboard on a
   trackpad.
-- **macOS release pipeline:** a signed and notarized Vestal.app in a DMG, a
+- macOS release pipeline: a signed and notarized Vestal.app in a DMG, a
   Homebrew cask, and `vestal login-item`.
 
 ### Changed
