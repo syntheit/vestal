@@ -123,9 +123,11 @@ public final class PlayerctlFollower: @unchecked Sendable {
         startedAt = Date()
         do {
             handle = try startProcess(argv, { [weak self] line in
-                self?.queue.async { self?.received(line, generation: mine) }
+                guard let self else { return }
+                self.queue.async { self.received(line, generation: mine) }
             }, { [weak self] in
-                self?.queue.async { self?.ended(generation: mine) }
+                guard let self else { return }
+                self.queue.async { self.ended(generation: mine) }
             })
         } catch {
             handle = nil

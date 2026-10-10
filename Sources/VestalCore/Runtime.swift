@@ -532,7 +532,8 @@ public final class AppRuntime {
         guard lists != followedMedia else { return }
         followedMedia = lists
         fetcher.followMedia(lists) { [weak self] in
-            Task { @MainActor in self?.mediaChanged() }
+            guard let self else { return }
+            Task { @MainActor in self.mediaChanged() }
         }
     }
 
