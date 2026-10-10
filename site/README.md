@@ -64,6 +64,16 @@ The site lives at https://vestal.matv.io. The build writes `CNAME`, `robots.txt`
 
 The page checks nothing live. Rebuild and redeploy whenever samples, presets, docs or the renderer change.
 
+## Self-hosting with Nix
+
+The flake builds the site as `packages.<system>.site` (`nix/site.nix`), offline, with the `vestal` CLI from the same flake:
+
+```
+nix build .#site        # result/ is the contents of site/dist
+```
+
+Point any static server at `result/` (nginx: `root = inputs.vestal.packages.${pkgs.system}.site;`, `try_files $uri $uri/ $uri.html =404;`). The macOS-only screenshot checks in the build are skipped on Linux, and `og.png` is the committed `site/src/og.png`. Rebuilding is a flake update: `nix flake update vestal`, then redeploy.
+
 ## When things change
 
 - **A starter lands** as `Resources/samples/starter-<id>/`: nothing to do. The build uses it in place of the composition with the same `id` in `content.json` (its pages, background and description come from the sample; the name and wallpaper from `content.json`). Remove the `pages` list from that starter's entry once its sample exists, if you like; it is no longer read. A starter sample with no entry in `content.json` is reported and left out: add an entry with its `id`, `name`, `pitch`, `background` and `wall`.
