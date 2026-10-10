@@ -15,17 +15,20 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
       - run: nix flake check -L
 
+  # Swift 5.10 itself, the toolchain the Nix build uses, is covered by the
+  # Linux job above (nixpkgs' pinned 5.10). This job checks that the sources
+  # also build with a current Apple toolchain: Xcode 16.4 has the Swift 6.1
+  # compiler, and tools-version 5.9 keeps it in Swift 5 language mode.
   macos:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 30
     env:
-      # Xcode 15.4 ships Swift 5.10, the toolchain the Nix build uses. Set via
-      # DEVELOPER_DIR so a missing Xcode fails loudly instead of silently
-      # building with a newer compiler.
-      DEVELOPER_DIR: /Applications/Xcode_15.4.app/Contents/Developer
+      # Set via DEVELOPER_DIR so a missing Xcode fails loudly instead of
+      # silently building with another compiler.
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@v5
-      - run: swift --version | tee /dev/stderr | grep -q 'Swift version 5\.10'
+      - run: swift --version | tee /dev/stderr | grep -q 'Swift version 6\.1'
       - run: swift build -c release
       - if: hashFiles('Tests/**/*.swift') != ''
         run: swift test
