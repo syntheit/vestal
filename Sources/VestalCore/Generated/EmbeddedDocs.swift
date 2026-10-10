@@ -12,7 +12,7 @@ A widget's `action` runs when it is clicked, and when its `key` is pressed. Key 
 | Action | Fields | What happens | Hides the dashboard |
 |---|---|---|---|
 | `run` | The value **is** the argv, a list of text: `{"run": ["gh", "pr", "view", "--web", "{{ .url }}"]}`. Siblings: `timeout` (`"30s"`), `env` (object of text), `optimistic` (expr), `refreshAfter` | Runs the program without a shell, in the background. A leading `~/` expands. When it exits, the widget's source is fetched again (`refreshAfter`: `false`, a name, or a list of names instead). `optimistic` computes data that replaces the source's at once, until its next fetch: `. + {exists: (.exists \| not)}`. A failure is logged. | no |
-| `open` | text: a URL or a path | `open` on macOS, `xdg-open` on Linux. | yes |
+| `open` | text: a URL or a path | `open` on macOS, `xdg-open` on Linux. A target written with a `{{ }}` hole may carry fetched data, so it opens only `http:`, `https:` and `mailto:` links (lowercase, no spaces); anything else is refused with an error. A literal target is not restricted. | yes |
 | `copy` | text | Puts the text on the clipboard (the UI does it). | no |
 | `refresh` | a source name, a list of names, `"*"` (all), or `true` (the widget's source) | Fetches now. | no |
 | `view` | a view name | Switches to that view. | no |

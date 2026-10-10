@@ -123,6 +123,7 @@ public enum PressCommand {
             if !refreshAfter.isEmpty { text += ", then refresh \(refreshAfter.joined(separator: ", "))" }
             return text
         case .open(let target): return "open \(target)"
+        case .openRefused(let target): return "refuse to open \(target) (data-derived, not http, https or mailto)"
         case .copy(let text): return "copy \(AnyJSON.string(text).canonicalText())"
         case .refresh(let names): return "refresh \(names.isEmpty ? "nothing (no source)" : names.joined(separator: ", "))"
         case .media(let command, let source): return "media \(command)" + (source.map { " on \($0)" } ?? "")

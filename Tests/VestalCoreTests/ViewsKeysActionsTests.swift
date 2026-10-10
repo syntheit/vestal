@@ -161,6 +161,53 @@ final class ViewsKeysActionsTests: XCTestCase {
         }
     }
 
+    // MARK: Open targets from data
+
+    func testOpenTargetPolicyForDataDerivedTargets() {
+        for ok in ["http://example.com/a", "https://example.com/a?b=1", "mailto:a@example.com"] {
+            XCTAssertTrue(OpenTarget.isDataSafe(ok), ok)
+        }
+        for bad in ["file:///etc/passwd", "/Applications/Foo.app", "smb://host/share", "javascript:alert(1)", "//host/x",
+                    " https://example.com", "HTTPS://example.com", "https://example.com/a b", "https://x\n.com",
+                    "x-apple.systempreferences:com.apple.preference", "-x", ""] {
+            XCTAssertFalse(OpenTarget.isDataSafe(bad), bad)
+        }
+    }
+
+    @MainActor
+    func testDataDerivedOpenOnlyAllowsWebAndMailLinks() async throws {
+        let targets = ["file:///etc/passwd", "/Applications/Foo.app", "smb://host/share", "javascript:alert(1)", "//host/x",
+                       " https://example.com", "HTTPS://example.com"]
+        var keys: [String: Any] = [
+            "a": ["open": "{{ \"https://example.com/ok\" }}"],
+            "z": ["open": "smb://host/literal"],
+        ]
+        for (n, t) in targets.enumerated() { keys[String(n)] = ["open": "{{ \"\(t)\" }}"] }
+        let json: [String: Any] = ["version": 1, "keys": keys, "widgets": [String: Any]()]
+        let config = String(decoding: try JSONSerialization.data(withJSONObject: json), as: UTF8.self)
+        let h = Harness(config: config)
+        h.resident.start(hidden: false)
+        await eventually("shown") { h.engine.snapshot != nil }
+        h.engine.key("a")
+        await eventually("http opened") { h.commands.last?.last == "https://example.com/ok" }
+        let opened = h.commands.count
+        for n in targets.indices {
+            h.resident.show()
+            await eventually("shown \(n)") { h.engine.isVisible && h.engine.snapshot != nil }
+            let before = h.effects.count
+            h.engine.key(String(n))
+            await eventually("refused \(n)") {
+                h.effects.dropFirst(before).contains { if case .notify(_, let t) = $0 { return t.contains("refused") } else { return false } }
+            }
+        }
+        XCTAssertEqual(h.commands.count, opened, "nothing refused was opened")
+        // A literal target is the user's own and stays unrestricted.
+        h.resident.show()
+        await eventually("shown z") { h.engine.isVisible && h.engine.snapshot != nil }
+        h.engine.key("z")
+        await eventually("literal opened") { h.commands.last?.last == "smb://host/literal" }
+    }
+
     // MARK: Views (7a)
 
     @MainActor

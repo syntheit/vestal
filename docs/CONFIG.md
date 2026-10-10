@@ -665,7 +665,7 @@ A key is written like `hotkey`: `"h"`, `"2"`, `"tab"`, `"shift+tab"`, `"space"`,
 | Action | Fields | What happens | Hides the dashboard |
 |---|---|---|---|
 | `run` | a list of text: the argv. `timeout` (`"30s"`), `env`, `optimistic` (expr), `refreshAfter` (true, false, or source names) | Runs the program without a shell, off the main thread (`~` expands as for `command` sources). `optimistic` gives the widget's source new data at once, until the next fetch, such as `. + {exists: (.exists \| not)}`. When the program exits, the widget's source is fetched again (`refreshAfter: true`, the default), or the named sources are. | no |
-| `open` | text: a URL or path | `open` on macOS, `xdg-open` on Linux. | yes |
+| `open` | text: a URL or path | `open` on macOS, `xdg-open` on Linux. A target written with a `{{ }}` hole may carry fetched data, so it opens only `http:`, `https:` and `mailto:` links (lowercase, no spaces); anything else is refused with an error. A literal target is not restricted. | yes |
 | `copy` | text | Put on the clipboard (by the UI). | no |
 | `refresh` | a source name, a list, `"*"`, or `true` (the widget's source) | Fetch now. | no |
 | `view` | a view name | Switch views. | no |

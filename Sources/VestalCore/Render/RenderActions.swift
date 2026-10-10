@@ -11,6 +11,17 @@ import Foundation
 // render --press` runs only the model's part: rendering never runs a
 // command.
 
+/// What an `open` action may open when its target is built from data.
+public enum OpenTarget {
+    /// `http:`, `https:` or `mailto:` (lowercase, no leading space, no
+    /// whitespace or control characters); anything else, such as `file:`,
+    /// `smb:`, `javascript:`, `//host` or a bare path, is refused.
+    public static func isDataSafe(_ target: String) -> Bool {
+        guard ["http://", "https://", "mailto:"].contains(where: { target.hasPrefix($0) }) else { return false }
+        return !target.unicodeScalars.contains { $0.properties.isWhitespace || $0.value < 0x20 || $0.value == 0x7f }
+    }
+}
+
 public enum RenderActionEffect: Equatable, Sendable {
     /// Run an argv without a shell (`~` expanded), then refresh `refreshAfter`
     /// (nil: the widget's source). `optimistic` replaces the source's data
@@ -18,6 +29,9 @@ public enum RenderActionEffect: Equatable, Sendable {
     case run(argv: [String], env: [String: String], timeout: TimeInterval?, refreshAfter: [String],
              optimistic: AnyJSON?, source: String?)
     case open(String)
+    /// An `open` whose target came from data and is not a web or mail link;
+    /// it is reported as a failed action, nothing is opened.
+    case openRefused(String)
     case copy(String)
     /// Fetch these sources now (`*`: all).
     case refresh([String])
@@ -242,8 +256,14 @@ extension RenderSession {
                                 timeout: members["timeout"]?.stringValue.flatMap(ConfigDuration.seconds),
                                 refreshAfter: refreshAfter, optimistic: optimistic, source: scope.source))
         } else if let url = text(members["open"]) {
-            effects.append(.open(url))
-            hides = true
+            // A target with a `{{ }}` hole may carry fetched data (a feed
+            // link): only web and mail links. A literal target is the user's.
+            if case .string(let raw)? = members["open"], TextTemplate.hasHoles(raw), !OpenTarget.isDataSafe(url) {
+                effects.append(.openRefused(url))
+            } else {
+                effects.append(.open(url))
+                hides = true
+            }
         } else if let copied = text(members["copy"]) {
             effects.append(.copy(copied))
         } else if let refresh = members["refresh"] {

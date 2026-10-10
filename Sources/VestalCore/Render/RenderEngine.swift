@@ -649,6 +649,9 @@ public final class RenderActionRunner: RenderActionHandler {
                     engine?.actionFinished(effect, error: "\(argv[0]): \(error)")
                 }
             }
+        case .openRefused(let target):
+            let shown = target.count > 80 ? String(target.prefix(80)) + "..." : target
+            engine.actionFinished(effect, error: "open: refused \(AnyJSON.string(shown).canonicalText()), data-derived targets may only be http, https or mailto links")
         case .copy(let text):
             #if os(Linux)
             // wl-copy forks to serve the clipboard; the text is an argument.
