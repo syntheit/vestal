@@ -15,11 +15,11 @@ python3 -m http.server -d site/dist 8000   # http://localhost:8000/
 What it does:
 
 1. Runs `web/build-gallery.mjs` into `site/.cache/gallery/`: one render model per sample, and one per page for samples with several views.
-2. Composes the hero and any starter that has no sample yet from widget samples (below), checks each config and renders each page with that page's own samples' data and time.
+2. Composes any starter that has no sample yet from widget samples (below), checks each config and renders each page with that page's own samples' data and time. The hero is the starters that `content.json` `hero.starters` names (each must have its sample), one page each: the first view of each, with a pages model and view list that name the starters, so the tabs, number keys, swipes and dots move between them and each keeps its own background, typefaces and blurred desktop (the renderer crossfades the background).
 3. Runs the agent exchange for real: `check-config --json` on the draft, `render` and `screenshot --json` on the result, and puts their output on the page.
 4. Draws each recipe (`examples/showcase/<name>.json`) from the test fixtures its test uses (`Tests/VestalCoreTests/Fixtures/full` with `showcase/<name>` over it), for the recipes page.
 5. Reads text from the repository: each widget's JSON from the first example under its heading in `docs/reference/presets.md` (or the sample's widget, whichever `check-config` accepts first), the backgrounds table in `docs/reference/styling.md`, the aurora's comment in `Resources/shaders/aurora.glsl`, and `vestal docs` for the agents section.
-6. Writes `site/dist/`: `index.html`, `site.css`, `site.js`, `common.js`, `data.json` (everything the page draws), `renderer/` (a copy of `web/renderer/`), `assets/icons/` (the Phosphor fonts), `assets/fonts/` (the typefaces), `assets/shaders/` and `assets/samples/` (pictures sample data points at). Every script, stylesheet and `data.json` is loaded with `?v=<hash of the site>` (module imports included), so a browser never pairs a cached renderer with new data.
+6. Writes `site/dist/`: `index.html`, `site.css`, `site.js`, `common.js`, `mounts.js`, `data/`, `renderer/` (a copy of `web/renderer/`), `assets/icons/` (the Phosphor fonts), `assets/fonts/` (the typefaces), `assets/shaders/` and `assets/samples/` (pictures sample data points at). `data/index.json` is everything the pages say and size (names, captions, JSON, render sizes, page lists); `data/<key>.json` holds the render models of one preview (`hero-<starter>`, `exchange`, `starter-<id>`, `widget-<sample>` with its compact form, `recipe-<name>`), fetched when that preview first comes near. The home page carries the index and the hero's first page inline (`#vestal-data`), so its first paint fetches no data, and preloads every module from its head. Every script, stylesheet and the index is loaded with `?v=<hash of the site>` (module imports included), and each `data/<key>.json` with `?v=<hash of that file>` (from the index), so a browser never pairs a cached renderer with new data and keeps the previews that did not change.
 7. Writes the docs (below), `llms.txt` and `llms-full.txt`.
 8. Writes `site/dist-preview.html`: the same page in one file, for places that allow no other fetches (the renderer and page script bundled into one module, the data, shaders, icon fonts and pictures inline; only Google Fonts is fetched). It has no `<html>`, `<head>` or `<body>`: it starts with `<title>` and `<style>`, for hosts that wrap a fragment.
 
@@ -42,10 +42,11 @@ Every dashboard, starter, widget and background has an expand button (and a clic
 | File | |
 |---|---|
 | `build.mjs` | The build. |
-| `content.json` | What the page says that the repository can't: the hero's pages, the starters' names, pitches and pages, the exchange, widget categories, labels for data sources, and the blurred-desktop wallpapers. |
+| `content.json` | What the page says that the repository can't: the hero's starters, the starters' names, pitches and pages, the exchange, widget categories, labels for data sources, and the blurred-desktop wallpapers. |
 | `snippets/*.json` | Config snippets shown on the page (`data-snippet="<name>"` in the markup); each is checked. |
 | `src/index.html`, `src/site.css`, `src/site.js` | The page. `site.js` imports `./common.js`. |
-| `src/common.js` | What the home page and the docs share: loading `data.json`, drawing a render in a frame, page tabs, the lightbox. Imports `./renderer/index.js`. |
+| `src/common.js` | What the home page and the docs share: the index and the per-preview data, drawing a render in a frame, page tabs, the lightbox. Imports `./renderer/index.js` and `./mounts.js`. |
+| `src/mounts.js` | The mount manager: which previews hold a live render and which of those move (below). Tests: `node --test site/src/*.test.mjs`. |
 | `src/docs.js`, `src/docs.css` | The docs pages' search, live examples and look (over `site.css`). |
 | `markdown.mjs` | The Markdown renderer the build uses for the docs. |
 
@@ -85,4 +86,6 @@ Point any static server at `result/` (nginx: `root = inputs.vestal.packages.${pk
 
 ## Checking it
 
-Open the page (or a docs page) with `?eager` to mount every render at once (for screenshots). Without it, renders mount as they scroll near, backgrounds share one WebGL context, pause off screen, and stand still under reduced motion.
+Open the page (or a docs page) with `?eager` to mount every render at once (for screenshots).
+
+Without it, every preview is live but only near the screen (`src/mounts.js`). A preview mounts its render (fetching its `data/<key>.json` the first time) when it comes within one viewport of the visible area, and is unmounted (renderer destroyed, its DOM freed, its timers stopped) when it is more than two away; its frame keeps its size, which is set from the render's size before anything draws, so nothing shifts. At most 16 renders are live; past that the farthest go first. While the page is idle, the next few previews' data is fetched. Only renders on screen move: one shared timer moves every analog clock, backgrounds animate only in the hero, the lightbox and the background tiles (other frames show a still frame of theirs), and the one requestAnimationFrame loop runs only while something animates. A hidden tab holds everything still, the lightbox holds everything behind it, and under reduced motion or the data saver every background is a still frame and clocks move once a minute. Backgrounds share one WebGL context.

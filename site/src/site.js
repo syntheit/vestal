@@ -1,12 +1,14 @@
 // The vestal website. Every dashboard, widget and background on the page is a
 // render model from `vestal render --json` (built by site/build.mjs into
-// data.json), drawn by web/renderer. Mounts happen as they scroll near, the
-// renderer shares one WebGL context and pauses what is off screen.
+// data/), drawn by web/renderer. The mount manager (mounts.js) mounts each
+// preview as it scrolls near and drops it once it is far, and lets only what
+// is on screen move; the renderer shares one WebGL context.
 //
-// The single-file preview sets globalThis.__VESTAL_SITE with the data, asset
-// bases and an image resolver, so nothing here fetches.
+// The single-file preview sets globalThis.__VESTAL_SITE with the asset bases
+// and an image resolver, and carries every render model inline, so nothing
+// here fetches.
 
-import { boot, screen, pager, lightboxSet, expandable, wireHash, wireCopy, esc, highlightJSON, reduced, io, EAGER } from "./common.js";
+import { boot, sample, screen, pager, lightboxSet, expandable, wireHash, wireCopy, esc, highlightJSON, reduced, saveData, hasIO, EAGER } from "./common.js";
 
 let data;
 
@@ -36,9 +38,33 @@ function fillStatic() {
 // A dashboard in the lightbox: the largest that fits, pageable.
 const dashItem = (token, kind, d, extra = {}) => ({
   token, kind, title: d.name || "Main", pages: d.pages, ...extra,
-  open: (box, onView) => screen(box, { snapshot: d.snapshot, views: d.views, size: data.screen, background: d.background, wall: d.wall,
-    contain: true, now: true, label: `${d.name || "vestal"} dashboard`, onView }),
+  open: (box, onView) => screen(box, { ...d.render, size: data.screen, contain: true, now: true, animate: true, label: `${d.name || "vestal"} dashboard`, onView }),
 });
+
+// The hero's pages are starters, each a dashboard of its own; the first is in
+// the page, the others load once it is drawn.
+let heroRest = null;
+const heroMore = () => (heroRest ||= Promise.all(data.hero.pages.slice(1).map((p) => sample(`hero-${p.name}`)))
+  .then((snaps) => Object.fromEntries(snaps.map((s, i) => [data.hero.pages[i + 1].name, s]))));
+const heroRender = () => ({ key: data.hero.key, pick: (snapshot) => ({ snapshot, views: {} }), view: data.hero.view, walls: data.hero.walls, more: heroMore });
+
+// The typefaces of the page after `view`, loaded while this one shows, so the
+// next one is measured and drawn with its own faces.
+const fontsAsked = new Set();
+function typefacesAfter(view) {
+  const pages = data.hero.pages;
+  const i = pages.findIndex((p) => p.name === view);
+  if (i < 0 || saveData() || !document.fonts || !document.fonts.load) return;
+  const next = pages[(i + 1) % pages.length].name;
+  heroMore().then((views) => {
+    const s = views[next];
+    for (const f of Object.values((s && s.theme && s.theme.fonts) || {})) {
+      if (!f || fontsAsked.has(f)) continue;
+      fontsAsked.add(f);
+      document.fonts.load(`400 16px "${f}"`).catch(() => null);
+    }
+  }).catch(() => null);
+}
 
 function hero() {
   const box = document.getElementById("hero-frame");
@@ -48,20 +74,20 @@ function hero() {
   let timer = null, visible = true, steps = 0;
   const STEP = 6000;
   let update = () => {};
-  const ctl = screen(box, { snapshot: h.snapshot, views: h.views, size: data.screen, background: h.background, wall: h.wall,
+  const ctl = screen(box, { ...heroRender(), size: data.screen, animate: true,
     label: "vestal dashboard, live: arrow keys or swipe to page", onView: (v) => update(v) });
   const tabsUpdate = pager(pagerEl, h.pages, ctl, { arrows: false });
-  update = (v) => { tabsUpdate(v); progress(); };
+  update = (v) => { tabsUpdate(v); progress(); typefacesAfter(v); };
   update(ctl.current());
   // Arrows on both sides of the frame.
   document.querySelector(".hero-prev").addEventListener("click", () => { stop(); ctl.key("ArrowLeft"); });
   document.querySelector(".hero-next").addEventListener("click", () => { stop(); ctl.key("ArrowRight"); });
 
-  lightboxSet("hero", () => [dashItem("hero", "Dashboard", { ...h, name: "Example dashboard" },
-    { html: "<p>The dashboard at the top of the page, drawn from a real config and sample data.</p>" })]);
+  lightboxSet("hero", () => [dashItem("hero", "Dashboard", { name: "Three starters", pages: h.pages, render: heroRender() },
+    { html: "<p>Three of the starters, as at the top of the page, each drawn from its config and sample data.</p>" })]);
   expandable(box, "hero", { click: false, label: "Show the dashboard larger" });
 
-  const auto = h.pages.length > 1 && !EAGER && !reduced();
+  const auto = h.pages.length > 1 && !EAGER && !reduced() && !saveData();
   function progress() {
     for (const t of pagerEl.querySelectorAll(".tab")) t.classList.toggle("auto", !!timer && t.getAttribute("aria-selected") === "true");
   }
@@ -73,11 +99,11 @@ function hero() {
   // Only a person's input: the keys the timer sends through the mount bubble here too.
   for (const t of ["pointerdown", "keydown", "wheel", "touchstart"]) box.addEventListener(t, (e) => { if (e.isTrusted) stop(); }, { passive: true });
   pagerEl.addEventListener("click", stop);
-  if (io) new IntersectionObserver((es) => { visible = es[0].isIntersecting; }).observe(box);
+  if (hasIO) new IntersectionObserver((es) => { visible = es[0].isIntersecting; }).observe(box);
   if (auto) {
     pagerEl.style.setProperty("--auto", `${STEP}ms`);
     timer = setInterval(() => {
-      if (!visible || document.hidden || !ctl.view) return;
+      if (!visible || document.hidden || !ctl.view || document.documentElement.classList.contains("lb-open")) return;
       ctl.key("Tab");
       if (++steps >= h.pages.length) stop();
       else setTimeout(progress, 0);
@@ -102,10 +128,11 @@ function exchange() {
     </div>
     <div class="msg agent"><span class="who">Agent</span><p>The check found no errors and the screenshot has no clipped nodes. The queue is under the clock, and a row's number key opens its pull request. It reads GitHub with <code>gh auth token</code>, so <code>gh</code> must be on vestal's PATH.</p></div>`;
   const frame = document.getElementById("exchange-frame");
-  screen(frame, { snapshot: ex.snapshot, size: ex.size, background: ex.background, wall: ex.wall, label: "The dashboard with the review queue added" });
+  const render = { key: ex.key, size: ex.size, background: ex.background, wall: ex.wall, label: "The dashboard with the review queue added" };
+  screen(frame, render);
   lightboxSet("exchange", () => [{
     token: "exchange", kind: "Result", title: "The review queue under the clock",
-    open: (box, onView) => screen(box, { snapshot: ex.snapshot, size: ex.size, background: ex.background, wall: ex.wall, contain: true, now: true, label: "The dashboard with the review queue added", onView }),
+    open: (box, onView) => screen(box, { ...render, contain: true, now: true, animate: true, onView }),
   }]);
   expandable(frame, "exchange");
 }
@@ -113,7 +140,8 @@ function exchange() {
 function starters() {
   const grid = document.getElementById("starter-grid");
   const caption = (s) => `<p>${esc(s.pitch)}</p><p class="mono"><span class="p">$</span> ${esc(s.init)}</p>`;
-  lightboxSet("starters", () => data.starters.map((s) => dashItem(`starter-${s.id}`, "Starter", s, { html: caption(s) })));
+  const render = (s) => ({ key: s.key, view: s.view, background: s.background, wall: s.wall });
+  lightboxSet("starters", () => data.starters.map((s) => dashItem(`starter-${s.id}`, "Starter", { ...s, render: render(s) }, { html: caption(s) })));
   for (const s of data.starters) {
     const art = document.createElement("article");
     art.className = "dash";
@@ -127,13 +155,17 @@ function starters() {
     grid.appendChild(art);
     let update = () => {};
     const frame = art.querySelector(".frame");
-    const ctl = screen(frame, { snapshot: s.snapshot, views: s.views, size: data.screen, background: s.background, wall: s.wall,
-      label: `${s.name} starter`, onView: (v) => update(v) });
+    const ctl = screen(frame, { ...render(s), size: data.screen, label: `${s.name} starter`, onView: (v) => update(v) });
     update = pager(art.querySelector(".pager"), s.pages, ctl);
     update(ctl.current());
     expandable(frame, `starter-${s.id}`, { label: `Show the ${s.name} starter larger` });
   }
 }
+
+// A widget's render: its regular sample or its compact one.
+const widgetRender = (w, compact) => (compact && w.compact
+  ? { key: w.key, pick: (d) => ({ snapshot: d.compact }), size: w.compact.size }
+  : { key: w.key, pick: (d) => ({ snapshot: d.snapshot }), size: w.size });
 
 function widgets() {
   const grid = document.getElementById("widget-grid");
@@ -151,14 +183,11 @@ function widgets() {
   const density = new Map();  // name -> "regular" | "compact", as the card shows it
   // The lightbox pages through the cards the filter shows.
   const shown = (w) => { const c = document.getElementById(`widget-${w.name}`); return !c || !c.hidden || location.hash === `#widget-${w.name}`; };
-  lightboxSet("widgets", () => list.filter(shown).map((w) => {
-    const v = density.get(w.name) === "compact" ? w.compact : w;
-    return {
-      token: `widget-${w.name}`, kind: "Widget", title: w.preset,
-      html: `<p>${esc(w.description)} <span class="dim">Data: ${esc(w.source)}.</span></p><button class="cmd" type="button" data-copy="${esc(w.json)}"><span class="j">${esc(w.json)}</span><span class="copy">Copy</span></button>`,
-      open: (box, onView) => screen(box, { snapshot: v.snapshot, size: v.size, background: "none", contain: true, maxScale: 2.5, now: true, label: `${w.preset} widget`, onView }),
-    };
-  }));
+  lightboxSet("widgets", () => list.filter(shown).map((w) => ({
+    token: `widget-${w.name}`, kind: "Widget", title: w.preset,
+    html: `<p>${esc(w.description)} <span class="dim">Data: ${esc(w.source)}.</span></p><button class="cmd" type="button" data-copy="${esc(w.json)}"><span class="j">${esc(w.json)}</span><span class="copy">Copy</span></button>`,
+    open: (box, onView) => screen(box, { ...widgetRender(w, density.get(w.name) === "compact"), background: "none", contain: true, maxScale: 2.5, now: true, label: `${w.preset} widget`, onView }),
+  })));
   for (const w of list) {
     const card = document.createElement("article");
     card.className = "card wcard";
@@ -170,7 +199,7 @@ function widgets() {
       <div class="foot"><button class="cmd" type="button" data-copy="${esc(w.json)}"><span class="j">${esc(w.json)}</span><span class="copy">Copy</span></button>${w.compact ? '<div class="density" role="group" aria-label="Density"><button type="button" aria-pressed="true" data-d="regular">Regular</button><button type="button" aria-pressed="false" data-d="compact">Compact</button></div>' : ""}</div>`;
     grid.appendChild(card);
     const stage = card.querySelector(".stage");
-    const ctl = screen(stage, { snapshot: w.snapshot, size: w.size, background: "none", maxScale: 1, label: `${w.preset} widget` });
+    const ctl = screen(stage, { ...widgetRender(w, false), background: "none", maxScale: 1, label: `${w.preset} widget` });
     expandable(stage, `widget-${w.name}`, { label: `Show ${w.preset} larger` });
     const d = card.querySelector(".density");
     if (d) d.addEventListener("click", (e) => {
@@ -178,8 +207,7 @@ function widgets() {
       if (!b || b.getAttribute("aria-pressed") === "true") return;
       for (const x of d.children) x.setAttribute("aria-pressed", String(x === b));
       density.set(w.name, b.dataset.d);
-      const v = b.dataset.d === "compact" ? w.compact : w;
-      ctl.replace(v.snapshot, v.size);
+      ctl.replace(widgetRender(w, b.dataset.d === "compact"));
     });
   }
 }
@@ -191,10 +219,12 @@ function backgrounds() {
   const grid = document.getElementById("bg-grid");
   const wallOf = (b) => (b.name === "rain" || b.name === "stars" ? "night" : "blue");
   const feel = (b) => `${esc(b.feel)}${b.data ? " It follows live data; this page draws its idle state." : ""}`;
+  // The dashboard over each one is the hero's first page.
+  const render = (b) => ({ key: data.overlay, pick: (snapshot) => ({ snapshot }), size: data.screen, background: b.name, wall: wallOf(b), animate: true });
   lightboxSet("backgrounds", () => data.backgrounds.map((b) => ({
     token: `background-${b.name}`, kind: "Background", title: b.name, bg: true,
     html: `<p>${feel(b)} <span class="dim">${POWER[b.cost]} power use.</span></p><div class="row"><button class="btn sm" type="button" aria-pressed="false" data-overlay>Dashboard over it</button><code>"theme": { "background": "${esc(b.name)}" }</code></div>`,
-    open: (box, onView) => screen(box, { snapshot: data.overlay, size: data.screen, background: b.name, wall: wallOf(b), contain: true, now: true, label: `${b.name} background`, onView }),
+    open: (box, onView) => screen(box, { ...render(b), contain: true, now: true, label: `${b.name} background`, onView }),
   })));
   for (const b of data.backgrounds) {
     const art = document.createElement("article");
@@ -205,7 +235,7 @@ function backgrounds() {
       <div class="ctls"><button class="btn sm" type="button" aria-pressed="false">Dashboard over it</button><code>"theme": { "background": "${esc(b.name)}" }</code></div>`;
     grid.appendChild(art);
     const frame = art.querySelector(".frame");
-    screen(frame, { snapshot: data.overlay, size: data.screen, background: b.name, wall: wallOf(b), label: `${b.name} background` });
+    screen(frame, { ...render(b), label: `${b.name} background` });
     expandable(frame, `background-${b.name}`, { label: `Show ${b.name} larger` });
     const t = art.querySelector(".ctls .btn");
     t.addEventListener("click", () => {
@@ -219,7 +249,7 @@ function backgrounds() {
 // MARK: Chrome
 
 function wireNav() {
-  if (!io) return;
+  if (!hasIO) return;
   const links = [...document.querySelectorAll(".nav .links a[href^='#']")];
   const watch = new IntersectionObserver((es) => es.forEach((e) => {
     if (e.isIntersecting) links.forEach((a) => a.setAttribute("aria-current", String(a.getAttribute("href") === `#${e.target.id}`)));

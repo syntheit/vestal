@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  analogTime, handAngles, analogGeometry, analogTicks, polar, flipLayout, colonSquares, changedTiles, ringGeometry, analogSVG, analogDots, isDay, matrixLayout,
+  analogTime, handAngles, analogGeometry, analogTicks, polar, flipLayout, colonSquares, changedTiles, ringGeometry, analogSVG, analogDots, isDay, matrixLayout, nextBeat,
 } from "./clock.js";
 import { makePalette } from "./color.js";
 
@@ -120,4 +120,11 @@ test("matrix cells match the native layout", () => {
   const top = segs.cells[0].points;
   assert.equal(top.length, 12);
   assert.ok(top[3] < top[9], "the top bar sits above its lower edge");
+});
+
+test("the shared beat lands on whole seconds and minutes", () => {
+  assert.equal(nextBeat(1000, 1000), 2000);
+  assert.equal(nextBeat(1999, 1000), 2000);
+  assert.equal(nextBeat(61_500, 60000), 120000);
+  assert.equal(nextBeat(4_999, 5000), 5000);
 });

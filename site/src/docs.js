@@ -1,6 +1,7 @@
 // The docs pages: search over every page's headings, the contents toggle on
 // small screens, copy buttons, and the live examples: a widget, starter or
-// recipe drawn by web/renderer from its sample data, as on the home page.
+// recipe drawn by web/renderer from its sample data, as on the home page, and
+// mounted, dropped and paused by the same manager.
 
 import { boot, fetchJSON, screen, pager, lightboxSet, expandable, wireHash, wireCopy, esc } from "../common.js";
 
@@ -24,30 +25,30 @@ async function main() {
 
 async function live(lives) {
   const data = await boot();
-  const recipes = document.querySelector("[data-recipe]") ? await fetchJSON("docs/recipes.json") : {};
+  const recipes = data.recipes || {};
   const items = [];
   const dashboard = (el, token, kind, d) => {
     const frame = el.querySelector(".frame");
+    const render = { key: d.key, view: d.view, size: d.size || data.screen, background: d.background, wall: d.wall };
     let update = () => {};
-    const ctl = screen(frame, { snapshot: d.snapshot, views: d.views, size: d.size || data.screen, background: d.background, wall: d.wall,
-      label: `${d.name} ${kind.toLowerCase()}`, onView: (v) => update(v) });
+    const ctl = screen(frame, { ...render, label: `${d.name} ${kind.toLowerCase()}`, onView: (v) => update(v) });
     update = pager(el.querySelector(".pager"), d.pages, ctl);
     update(ctl.current());
     expandable(frame, token, { label: `Show ${d.name} larger` });
     items.push({ token, kind, title: d.name, pages: d.pages,
-      open: (box, onView) => screen(box, { snapshot: d.snapshot, views: d.views, size: d.size || data.screen, background: d.background, wall: d.wall,
-        contain: true, now: true, label: d.name, onView }) });
+      open: (box, onView) => screen(box, { ...render, contain: true, now: true, animate: true, label: d.name, onView }) });
   };
   for (const el of lives) {
     if (el.dataset.widget) {
       const w = data.widgets.find((x) => x.name === el.dataset.widget);
       if (!w) continue;
       const stage = el.querySelector(".stage");
-      screen(stage, { snapshot: w.snapshot, size: w.size, background: "none", maxScale: 1, label: `${w.preset} widget` });
+      const render = { key: w.key, pick: (d) => ({ snapshot: d.snapshot }), size: w.size, background: "none" };
+      screen(stage, { ...render, maxScale: 1, label: `${w.preset} widget` });
       const token = `widget-${w.name}`;
       expandable(stage, token, { label: `Show ${w.preset} larger` });
       items.push({ token, kind: "Widget", title: w.preset, html: `<p>${esc(w.description)}</p>`,
-        open: (box, onView) => screen(box, { snapshot: w.snapshot, size: w.size, background: "none", contain: true, maxScale: 2.5, now: true, label: `${w.preset} widget`, onView }) });
+        open: (box, onView) => screen(box, { ...render, contain: true, maxScale: 2.5, now: true, label: `${w.preset} widget`, onView }) });
     } else if (el.dataset.starter) {
       const s = data.starters.find((x) => x.id === el.dataset.starter);
       if (s) dashboard(el, `starter-${s.id}`, "Starter", s);

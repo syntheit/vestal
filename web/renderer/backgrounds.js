@@ -1,8 +1,9 @@
 // Animated backgrounds. One shared WebGL2 context renders every surface into
 // a small offscreen target and copies it to the surface's 2D canvas, so a page
 // with dozens of mounts (the gallery) stays under the browser's context limit.
-// One requestAnimationFrame loop drives all of them; surfaces off screen
-// (IntersectionObserver) or under `prefers-reduced-motion` don't animate.
+// One requestAnimationFrame loop drives all of them, and runs only while one
+// moves; surfaces off screen (IntersectionObserver, or the host's word), set
+// still, or under `prefers-reduced-motion` don't animate.
 //
 // Shader sources are GLSL ES 3.00 fragment shaders. `aurora` is built in (a
 // port of AuroraView.metal); any other name is fetched from
@@ -269,26 +270,37 @@ function fallback(s, w, h) {
   s.ctx.fillRect(0, 0, w, h);
 }
 
+// A surface moves while it is on screen, may animate, and the page shows.
+const moving = (s) => s.visible && s.animate && s.source && !reduced();
+
 function tick(now) {
-  if (!surfaces.size) { looping = false; return; }
+  // The loop runs only while some surface moves: a page of still frames
+  // asks for no frames at all.
+  let any = false;
+  for (const s of surfaces) if (moving(s)) { any = true; break; }
+  if (!any || document.hidden) { looping = false; return; }
   requestAnimationFrame(tick);
-  if (document.hidden) { last = now; return; }
   if (now - last < 31) return; // ~30 fps is plenty for slow backgrounds
   const dt = Math.min(0.1, (now - last) / 1000 || 0);
   last = now;
   for (const s of surfaces) {
-    if (!s.visible || reduced()) continue;
+    if (!moving(s)) continue;
     s.t += dt;
     draw(s);
   }
 }
 
 function ensureLoop() {
-  if (looping || typeof requestAnimationFrame !== "function") return;
+  if (looping || typeof requestAnimationFrame !== "function" || (typeof document !== "undefined" && document.hidden)) return;
   looping = true;
   last = performance.now();
   requestAnimationFrame(tick);
 }
+
+if (typeof document !== "undefined" && document.addEventListener) {
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) ensureLoop(); });
+}
+if (reducedQuery && reducedQuery.addEventListener) reducedQuery.addEventListener("change", () => ensureLoop());
 
 const io = typeof IntersectionObserver === "function"
   ? new IntersectionObserver((entries) => {
@@ -296,25 +308,32 @@ const io = typeof IntersectionObserver === "function"
       const s = e.target.__vestalBg;
       if (!s) continue;
       s.visible = e.isIntersecting;
-      if (s.visible) draw(s);
+      if (s.visible) { draw(s); ensureLoop(); }
     }
   }, { rootMargin: "120px" })
   : null;
+
+/** Starts loading a background's shader, so a later `set` draws at once. */
+export function preloadBackground(name, shaderBase = "../../Resources/shaders/") {
+  if (name && !SOLID.has(name)) loadSource(shaderBase, name);
+}
 
 // MARK: - Public
 
 /**
  * Attaches a background to `canvas` (which fills its container). `name` is
- * `aurora`, `blur`, `none` or a shader name. Returns { set(name), redraw(),
- * destroy() }.
+ * `aurora`, `blur`, `none` or a shader name. By default the surface watches
+ * `observe` and moves while it is on screen; with `observe: null` the host
+ * says so with `setVisible`. With `animate: false` it draws one still frame.
+ * Returns { set(name), redraw(), setVisible(on), setAnimate(on), destroy() }.
  */
-export function attachBackground(canvas, name, { shaderBase = "../../Resources/shaders/", observe = canvas } = {}) {
+export function attachBackground(canvas, name, { shaderBase = "../../Resources/shaders/", observe = canvas, visible = true, animate = true } = {}) {
+  const watch = observe && io ? observe : null;
   const s = {
-    canvas, ctx: canvas.getContext("2d"), t: T0, visible: !io, res: 0.35,
+    canvas, ctx: canvas.getContext("2d"), t: T0, visible: watch ? false : (observe ? true : !!visible), animate: !!animate, res: 0.35,
     name: null, source: null, aurora: PRELUDE + AURORA, token: 0, host: observe,
   };
-  observe.__vestalBg = s;
-  if (io) io.observe(observe);
+  if (watch) { watch.__vestalBg = s; io.observe(watch); }
   surfaces.add(s);
 
   function set(next) {
@@ -335,11 +354,20 @@ export function attachBackground(canvas, name, { shaderBase = "../../Resources/s
   return {
     set,
     redraw: () => draw(s),
+    setVisible(on) {
+      if (s.visible === !!on) return;
+      s.visible = !!on;
+      if (s.visible) { draw(s); ensureLoop(); }
+    },
+    setAnimate(on) {
+      if (s.animate === !!on) return;
+      s.animate = !!on;
+      if (s.animate) ensureLoop();
+    },
     destroy() {
       s.token++;
       surfaces.delete(s);
-      if (io) io.unobserve(observe);
-      delete observe.__vestalBg;
+      if (watch) { io.unobserve(watch); delete watch.__vestalBg; }
     },
   };
 }

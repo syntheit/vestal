@@ -1,4 +1,5 @@
-// What the home page and the docs pages share: loading data.json, drawing a
+// What the home page and the docs pages share: the site's index and the
+// render models (one file per preview, fetched as it comes near), drawing a
 // render model in a frame (`screen`), page tabs under it (`pager`), and the
 // lightbox that shows any preview as large as the window allows.
 //
@@ -6,6 +7,7 @@
 // import it as ../common.js and find the same data, renderer and assets.
 
 import { mount } from "./renderer/index.js";
+import { MountManager } from "./mounts.js";
 
 const S = globalThis.__VESTAL_SITE || {};
 const base = S.base || new URL("./", import.meta.url).href;
@@ -16,12 +18,30 @@ const BUILD = "dev";
 export const params = new URLSearchParams(location.search);
 export const EAGER = params.has("eager");          // mount everything at once (screenshots)
 export const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+export const saveData = () => !!(typeof navigator !== "undefined" && navigator.connection && navigator.connection.saveData);
+export const hasIO = typeof IntersectionObserver === "function";
 
 export const ctx = { data: null, assets: null, resolveImage: null, walls: {} };
+export const mounts = new MountManager({ eager: EAGER });
 
-/** data.json (or the preview's inline copy), the asset bases and the image resolver. */
+// MARK: Data
+
+// The index (names, sizes, captions: everything but the render models) and
+// the first renders come inline in the home page (`#vestal-data`); the docs
+// pages fetch data/index.json. Each preview's render models are
+// data/<key>.json, versioned by their own hash.
+const inline = (() => {
+  if (S.index) return { index: S.index, samples: S.samples || {} };
+  const el = typeof document !== "undefined" && document.getElementById("vestal-data");
+  return el ? JSON.parse(el.textContent) : null;
+})();
+const samples = new Map(); // key -> render models, once here
+const pending = new Map(); // key -> Promise
+
+/** The index, the asset bases and the image resolver. */
 export async function boot() {
-  ctx.data = S.data || await (await fetch(new URL(`data.json?v=${BUILD}`, base))).json();
+  ctx.data = inline ? inline.index : await (await fetch(new URL(`data/index.json?v=${BUILD}`, base))).json();
+  if (inline) for (const [k, v] of Object.entries(inline.samples || {})) samples.set(k, v);
   ctx.walls = ctx.data.walls || {};
   ctx.assets = S.assets || { icons: new URL("assets/icons/", base).href, fonts: new URL("assets/fonts/", base).href, shaders: new URL("assets/shaders/", base).href };
   ctx.resolveImage = S.image || ((p) => (p.startsWith("Resources/samples/") ? new URL(`assets/samples/${p.slice(18)}`, base).href : null));
@@ -29,7 +49,23 @@ export async function boot() {
   return ctx.data;
 }
 
-/** A JSON file next to this module (docs data), versioned like data.json. */
+/** The render models of a preview, if they are here already. */
+export const sampleNow = (key) => samples.get(key);
+
+/** The render models of a preview: data/<key>.json, fetched once. */
+export function sample(key) {
+  if (samples.has(key)) return Promise.resolve(samples.get(key));
+  if (!pending.has(key)) {
+    const v = (ctx.data.files && ctx.data.files[key]) || BUILD;
+    pending.set(key, fetch(new URL(`data/${key}.json?v=${v}`, base))
+      .then((r) => { if (!r.ok) throw new Error(`data/${key}.json: ${r.status}`); return r.json(); })
+      .then((d) => { samples.set(key, d); pending.delete(key); return d; })
+      .catch((err) => { pending.delete(key); throw err; }));
+  }
+  return pending.get(key);
+}
+
+/** A JSON file next to this module (docs data), versioned like the scripts. */
 export async function fetchJSON(path) {
   if (S.files && S.files[path]) return S.files[path];
   return (await fetch(new URL(`${path}?v=${BUILD}`, base))).json();
@@ -45,34 +81,25 @@ async function fontsSettled() {
 
 // MARK: Mounting
 
-export const io = typeof IntersectionObserver === "function"
-  ? new IntersectionObserver((entries) => {
-    for (const e of entries) {
-      if (!e.isIntersecting || !e.target.__mount) continue;
-      io.unobserve(e.target);
-      const fn = e.target.__mount; delete e.target.__mount;
-      try { fn(); } catch (err) { console.error("vestal site:", err); }
-    }
-  }, { rootMargin: "600px 0px" })
-  : null;
-
-export function lazy(el, fn) {
-  if (EAGER || !io) { fn(); return; }
-  el.__mount = fn;
-  io.observe(el);
-}
-
 /**
- * Draws a snapshot at its own size in points inside `box`. By default it is
+ * Draws a render at its own size in points inside `box`. By default it is
  * scaled to the box's width (never above `maxScale`) and the box takes its
- * height; with `contain`, the box's size is fixed and the render is the
- * largest that fits in it, centered. Returns a controller for paging.
+ * height, set before anything is drawn; with `contain`, the box's size is
+ * fixed and the render is the largest that fits in it, centered.
+ *
+ * The render models come from `o.key` (a preview's file; `o.pick` takes the
+ * part to draw, default { snapshot, views }) or `o.snapshot` and `o.views`.
+ * The mount manager mounts the render as the box comes near and drops it as
+ * it goes away; `now` mounts it at once and keeps it (the lightbox).
+ * `animate` lets its background move while it is on screen; `more` loads
+ * further views ({ name: snapshot }) after the first is drawn.
+ * Returns a controller for paging.
  */
 export function screen(box, o) {
   const host = document.createElement("div");
   host.className = "mount";
   box.appendChild(host);
-  const ctl = { view: null, size: o.size, snapshot: o.snapshot, views: o.views, box };
+  const ctl = { view: null, size: o.size, data: null, box, token: 0, wanted: false, more: null };
   const maxScale = o.maxScale || Infinity;
   const scale = () => {
     const w = box.clientWidth || ctl.size[0];
@@ -87,38 +114,96 @@ export function screen(box, o) {
     const v = ctl.view;
     if (v && Math.abs(v.scale - k) > 1e-4) { v.scale = k; v.measure(); v.render(); }
   };
-  const background = typeof o.background === "string" && o.wall
-    ? { name: o.background, wallpaper: ctx.walls[o.wall] }
-    : o.background;
-  ctl.mount = () => {
-    if (ctl.view || ctl.failed) return;
+  // The blurred desktop: one for the frame, or one per view (`walls`).
+  const background = o.walls
+    ? (snap) => ({ name: "auto", wallpaper: ctx.walls[o.walls[snap.view]] })
+    : typeof o.background === "string" && o.wall ? { name: o.background, wallpaper: ctx.walls[o.wall] } : o.background;
+  let key = o.key, pick = o.pick || ((d) => d);
+  const direct = o.snapshot ? { snapshot: o.snapshot, views: o.views } : null;
+  const ready = () => direct || (samples.has(key) ? pick(samples.get(key)) : null);
+  const load = () => (direct ? Promise.resolve(direct) : sample(key).then(pick));
+  let motion = { visible: true, background: !!o.animate, coarse: false };
+
+  const draw = () => {
+    const d = ctl.data;
     try {
-      ctl.view = mount(host, ctl.snapshot, {
+      ctl.view = mount(host, d.snapshot, {
         size: { width: ctl.size[0], height: ctl.size[1] }, scale: scale(), background,
-        views: ctl.views || undefined, assets: ctx.assets, resolveImage: ctx.resolveImage,
+        views: d.views || undefined, assets: ctx.assets, resolveImage: ctx.resolveImage,
         onInput: () => setTimeout(ctl.changed, 0),
+        observe: false, motion,
       });
     } catch (err) {
       // One render that fails says so instead of leaving an empty frame.
-      ctl.failed = true;
-      console.error("vestal site: could not draw", o.label, err);
-      host.replaceChildren();
-      const msg = document.createElement("p");
-      msg.className = "render-failed";
-      msg.textContent = "This preview could not be drawn in this browser.";
-      box.appendChild(msg);
+      fail(err);
       return;
     }
     host.setAttribute("aria-label", o.label || "vestal dashboard");
     host.setAttribute("role", "region");
+    if (o.more) {
+      ctl.more = ctl.more || o.more();
+      ctl.more.then((views) => { if (ctl.view) ctl.view.addViews(views); }).catch((err) => console.error("vestal site:", err));
+    }
     ctl.changed();
   };
+  const fail = (err) => {
+    ctl.failed = true;
+    console.error("vestal site: could not draw", o.label, err);
+    host.replaceChildren();
+    const msg = document.createElement("p");
+    msg.className = "render-failed";
+    msg.textContent = "This preview could not be drawn in this browser.";
+    box.appendChild(msg);
+  };
+  const handle = {
+    animates: !!o.animate, pinned: !!o.now,
+    mount(m) {
+      if (m) motion = { ...m, background: m.background && !!o.animate };
+      if (ctl.view || ctl.failed || ctl.destroyed) return;
+      ctl.wanted = true;
+      ctl.data = ctl.data || ready();
+      if (ctl.data) { draw(); return; }
+      const token = ++ctl.token;
+      load().then((d) => {
+        if (token !== ctl.token || !ctl.wanted || ctl.view) return;
+        ctl.data = d;
+        draw();
+      }, (err) => {
+        // A fetch that failed is tried again on the next mount.
+        if (token === ctl.token) console.error("vestal site: could not load", o.label, err);
+      });
+    },
+    unmount() {
+      ctl.wanted = false;
+      ctl.token++;
+      if (ctl.view) { ctl.view.destroy(); ctl.view = null; }
+      // The models stay in the page's cache; the frame keeps its size.
+      ctl.data = null;
+    },
+    setMotion(m) {
+      motion = { ...m, background: m.background && !!o.animate };
+      if (ctl.view) ctl.view.setMotion(motion);
+    },
+    prefetch() { if (!direct && key) sample(key).catch(() => {}); },
+    loaded: () => !!ready(),
+  };
   ctl.changed = () => { if (o.onView) o.onView(ctl.current()); };
-  ctl.current = () => (ctl.view ? ctl.view.snapshot.view : ctl.snapshot.view);
-  // Keys go through the mount as typed keys would, so paging is the renderer's own.
-  ctl.key = (key, shiftKey = false) => {
-    ctl.mount();
-    if (!ctl.view) return;
+  ctl.current = () => (ctl.view ? ctl.view.snapshot.view : ctl.data ? ctl.data.snapshot.view : (ready() ? ready().snapshot.view : o.view));
+  // Keys go through the mount as typed keys would, so paging is the renderer's
+  // own; they wait for the render (and its further views) if it is on its way.
+  ctl.key = async (key, shiftKey = false) => {
+    if (ctl.destroyed) return;
+    if (!ctl.view) {
+      // Through the manager, so the render it makes is one it tracks.
+      if (!ctl.item.live) mounts.mountItem(ctl.item);
+      if (!ctl.view) {
+        try { await load(); } catch { return; }
+        if (ctl.destroyed || !ctl.item.live) return;
+        if (!ctl.view) handle.mount();
+      }
+    }
+    if (ctl.more) await ctl.more.catch(() => null);
+    if (ctl.destroyed || !ctl.view) return;
     ctl.view.el.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, bubbles: true, cancelable: true }));
     setTimeout(ctl.changed, 0);
   };
@@ -130,21 +215,24 @@ export function screen(box, o) {
     const from = pages.findIndex((x) => x.name === ctl.current()), to = pages.indexOf(p);
     for (let i = 0; i < Math.abs(to - from); i++) ctl.key(to > from ? "ArrowRight" : "ArrowLeft");
   };
-  ctl.replace = (snapshot, size) => {
+  // Another render in the same frame (a widget's density): { key, pick, size }.
+  ctl.replace = (next) => {
     const was = !!ctl.view;
-    if (ctl.view) { ctl.view.destroy(); ctl.view = null; }
-    ctl.snapshot = snapshot; ctl.size = size;
+    handle.unmount();
+    key = next.key; pick = next.pick || ((d) => d); ctl.size = next.size;
     fit();
-    if (was) ctl.mount();
+    if (was || ctl.item.live) handle.mount();
   };
   ctl.destroy = () => {
+    ctl.destroyed = true;
     if (ctl.ro) ctl.ro.disconnect();
-    if (ctl.view) { ctl.view.destroy(); ctl.view = null; }
+    mounts.remove(ctl.item);
+    handle.unmount();
     host.remove();
   };
   if (typeof ResizeObserver === "function") { ctl.ro = new ResizeObserver(fit); ctl.ro.observe(box); }
   fit();
-  if (o.now) ctl.mount(); else lazy(box, ctl.mount);
+  ctl.item = mounts.add(box, handle);
   return ctl;
 }
 
@@ -271,6 +359,8 @@ function buildLightbox() {
     stage.appendChild(box);
     let update = () => {};
     ctl = item.open(box, (v) => update(v));
+    // The lightbox's render alone moves while it is open.
+    mounts.focus(ctl.item);
     const pagerEl = $(".lb-pager");
     update = item.pages ? pager(pagerEl, item.pages, ctl) : (pagerEl.hidden = true, () => {});
     update(ctl.current());

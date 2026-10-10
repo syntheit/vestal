@@ -15,7 +15,7 @@ import { createMeasurer } from "./text.js";
 import { fontFaceCSS } from "./typefaces.js";
 import { syncNode } from "./dom.js";
 import { applyPatch } from "./patch.js";
-import { attachBackground } from "./backgrounds.js";
+import { attachBackground, preloadBackground } from "./backgrounds.js";
 import { ClockDriver, FLIP_CSS } from "./clock.js";
 import {
   neighbor, transitionKind, showsDots, PageSwipe, layerMotion, keyName, SLIDE_MS, FADE_MS,
@@ -34,7 +34,7 @@ const DEFAULT_ASSETS = {
 const CSS = `
 .vr-root{position:relative;overflow:hidden;outline:none;color-scheme:dark;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;-webkit-text-size-adjust:none;text-size-adjust:none}
 .vr-root *{box-sizing:border-box}
-.vr-base,.vr-wall,.vr-bg{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+.vr-base,.vr-wall,.vr-bg,.vr-bgfade{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
 .vr-wall{background-size:cover;background-position:center;filter:blur(28px);transform:scale(1.15)}
 .vr-stage{position:absolute;left:0;top:0;transform-origin:0 0}
 .vr-layer{position:absolute;left:0;top:0;width:100%;height:100%;will-change:transform}
@@ -93,7 +93,9 @@ const clone = (x) => (typeof structuredClone === "function" ? structuredClone(x)
  *   size        { width, height } of the screen in points; default: the element's size, tracked.
  *   scale       CSS pixels per point (default 1).
  *   background  "auto" (the snapshot's theme.background), "aurora", "blur", "none", a shader name,
- *               or { name, color, wallpaper } (a CSS background for the blurred "desktop").
+ *               { name, color, wallpaper } (a CSS background for the blurred "desktop"), or a
+ *               function of the snapshot that returns one of these (views with a look of their
+ *               own); a new background with a new view crossfades.
  *   onInput     (message) => void: { cmd: "invoke", id }, { cmd: "key", key }, { cmd: "page", step },
  *               { cmd: "snapshot" } as in docs/reference/protocol.md.
  *   views       { name: snapshot }: lets the mount page between views on its own (static sites).
@@ -104,6 +106,11 @@ const clone = (x) => (typeof structuredClone === "function" ? structuredClone(x)
  *   now         a Date (or ISO string) the analog clock faces show, frozen; default: the present, moving
  *               while the mount is on screen.
  *   timeZone    the IANA zone of an analog face that names none (default: the browser's).
+ *   observe     true (default): the mount watches whether it is on screen and moves only then;
+ *               false: the host says so with setMotion({ visible }).
+ *   motion      { visible, background, coarse }: on screen (with observe: false); the background
+ *               moves (default true; false: one still frame); every clock hand moves once a
+ *               minute. setMotion(partial) changes them later.
  */
 export function mount(element, snapshot, options = {}) {
   return new Mount(element, snapshot, options);
@@ -127,10 +134,14 @@ class Mount {
     this.listeners = [];
     this.bgName = null;
     this.bg = null;
+    this.observe = options.observe !== false;
+    this.motionState = { visible: true, background: true, coarse: false, ...(options.motion || {}) };
 
     this.build();
     this.measure();
-    this.clocks = new ClockDriver(this.el, { now: options.now || null, reduced: () => this.reduced });
+    const m = this.motionState;
+    this.clocks = new ClockDriver(this.el, { now: options.now || null, reduced: () => this.reduced, observe: this.observe, visible: m.visible, coarse: m.coarse });
+    if (this.views) for (const v of Object.values(this.views)) this.preload(v);
     this.render();
     this.wire();
   }
@@ -141,14 +152,23 @@ class Mount {
     const el = this.el;
     el.classList.add("vr-root");
     if (!el.hasAttribute("tabindex")) el.tabIndex = 0;
-    this.base = document.createElement("div"); this.base.className = "vr-base";
-    this.wall = document.createElement("div"); this.wall.className = "vr-wall"; this.wall.hidden = true;
-    this.canvas = document.createElement("canvas"); this.canvas.className = "vr-bg";
     this.stage = document.createElement("div"); this.stage.className = "vr-stage";
     this.dots = document.createElement("div"); this.dots.className = "vr-dots";
     this.stage.appendChild(this.dots);
-    el.append(this.wall, this.base, this.canvas, this.stage);
+    el.append(this.stage);
+    this.backdrop();
     el.style.touchAction = "pan-y";
+  }
+
+  /** The blurred desktop, the palette's base and the background's canvas, under the stage. */
+  backdrop() {
+    this.wall = document.createElement("div"); this.wall.className = "vr-wall"; this.wall.hidden = true;
+    this.base = document.createElement("div"); this.base.className = "vr-base";
+    this.canvas = document.createElement("canvas"); this.canvas.className = "vr-bg";
+    for (const x of [this.wall, this.base, this.canvas]) this.el.insertBefore(x, this.stage);
+    this.bg = null;
+    this.bgName = null;
+    this.bgKey = null;
   }
 
   get reduced() {
@@ -265,11 +285,28 @@ class Mount {
     if (this.scrim) this.stage.insertBefore(this.dots, this.scrim);
   }
 
-  paintBackground() {
-    const opt = this.opts.background;
+  /** The background option for `snap`, as { name, color, wallpaper }. */
+  backgroundFor(snap) {
+    let opt = this.opts.background;
+    if (typeof opt === "function") opt = opt(snap);
     const o = typeof opt === "object" && opt ? opt : { name: opt };
-    const name = !o.name || o.name === "auto" ? this.theme.background || "aurora" : o.name;
+    const theme = snap.theme || {};
+    const name = !o.name || o.name === "auto" ? theme.background || "aurora" : o.name;
+    return { ...o, name };
+  }
+
+  preload(snap) {
+    if (snap) preloadBackground(this.backgroundFor(snap).name, this.assets.shaders);
+  }
+
+  paintBackground() {
+    const o = this.backgroundFor(this.snapshot);
+    const name = o.name;
     const bg = o.color ? o.color : this.pal.css("bg");
+    const key = JSON.stringify([name, o.wallpaper || null, bg, this.theme.dim ?? null]);
+    // A new look with a new view: the old backdrop fades out over the new one.
+    if (this.bgKey && key !== this.bgKey && this.fading) this.fadeBackdrop(this.fading);
+    this.bgKey = key;
     this.base.style.opacity = "1";
     this.wall.hidden = true;
     if (name === "none") {
@@ -285,8 +322,49 @@ class Mount {
     }
     if (this.bgName !== name) {
       this.bgName = name;
-      if (!this.bg) this.bg = attachBackground(this.canvas, name, { shaderBase: this.assets.shaders, observe: this.el });
-      else this.bg.set(name);
+      const m = this.motionState;
+      if (!this.bg) {
+        this.bg = attachBackground(this.canvas, name, {
+          shaderBase: this.assets.shaders, observe: this.observe ? this.el : null, visible: m.visible, animate: m.background,
+        });
+      } else this.bg.set(name);
+    }
+  }
+
+  /** Moves the backdrop into a layer that fades out, and starts a new one under it. */
+  fadeBackdrop(ms) {
+    const old = document.createElement("div");
+    old.className = "vr-bgfade";
+    old.append(this.wall, this.base, this.canvas);
+    if (this.bg) this.bg.destroy(); // the canvas keeps its last frame
+    this.backdrop();
+    this.el.insertBefore(old, this.stage); // over the new backdrop, under the stage
+    if (!old.animate) { old.remove(); return; }
+    this.fades = this.fades || new Set();
+    this.fades.add(old);
+    const a = old.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms, easing: "ease-out", fill: "both" });
+    a.onfinish = () => { old.remove(); this.fades.delete(old); };
+  }
+
+  /** On screen, background moving, coarse clocks: `motion` in the options. */
+  setMotion(next) {
+    const m = this.motionState;
+    Object.assign(m, next);
+    if (this.destroyed) return;
+    if (this.bg) {
+      this.bg.setAnimate(m.background);
+      if (!this.observe) this.bg.setVisible(m.visible);
+    }
+    if (!this.observe) this.clocks.setVisible(m.visible);
+    this.clocks.setCoarse(m.coarse);
+  }
+
+  /** More views to page to, as { name: snapshot } (as `views` in the options). */
+  addViews(views) {
+    if (!this.views) this.views = {};
+    for (const [name, snap] of Object.entries(views)) {
+      this.views[name] = clone(snap);
+      this.preload(snap);
     }
   }
 
@@ -333,7 +411,9 @@ class Mount {
     const kind = transitionKind((pages && pages.transition) || "slide", pages && pages.direction, this.reduced);
     const outgoing = this.layer;
     this.layer = null;
+    this.fading = kind === "none" ? 0 : kind === "slide" ? SLIDE_MS : FADE_MS;
     this.render(); // builds the new layer
+    this.fading = 0;
     if (kind === "none") { outgoing.el.remove(); this.dragOffset = 0; return; }
     this.outgoing = outgoing;
     const dir = (pages && pages.direction) || 0;
@@ -533,6 +613,7 @@ class Mount {
     for (const [t, type, fn, opts] of this.listeners) t.removeEventListener(type, fn, opts);
     if (this.ro) this.ro.disconnect();
     if (this.bg) this.bg.destroy();
+    for (const f of this.fades || []) f.remove();
     this.clocks.destroy();
     this.finishTransition();
     this.el.classList.remove("vr-root");

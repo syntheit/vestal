@@ -169,10 +169,6 @@ const pagesOf = (snapshot, spec) => {
   return [{ name: snapshot.view, title: (spec && spec.pages && spec.pages[0].title) || "Main", key: null }];
 };
 
-console.log("site: composing the hero");
-const heroRender = compose(content.hero, "hero");
-const hero = { background: content.hero.background, wall: content.hero.wall, snapshot: heroRender.snapshot, views: heroRender.views, pages: pagesOf(heroRender.snapshot) };
-
 // MARK: Starters
 
 console.log("site: starters");
@@ -193,6 +189,31 @@ const starters = content.starters.map((st) => {
 for (const s of gallery.filter((s) => s.name.startsWith("starter-"))) {
   if (!starters.some((st) => `starter-${st.id}` === s.name)) warn(`sample ${s.name} has no entry in content.json "starters"; it is not on the site`);
 }
+
+// MARK: Hero
+
+// A few starters, each its own dashboard (its look, typefaces and first
+// view from its sample), paged as the views of one: the pages model and the
+// view list name the starters, so tabs, keys and dots go between them.
+console.log("site: the hero");
+const heroIds = content.hero.starters || [];
+if (heroIds.length < 1) fail('content.json "hero" names no "starters"');
+const heroPages = heroIds.map((id, i) => {
+  const s = starters.find((x) => x.id === id);
+  if (!s || !s.real) fail(`the hero's starter ${id} has no sample starter-${id} in Resources/samples`);
+  return { name: id, title: s.name, key: String(i + 1) };
+});
+const heroViews = Object.fromEntries(heroIds.map((id, i) => {
+  const s = starters.find((x) => x.id === id);
+  const items = heroPages.map((p) => ({ key: p.key, name: p.name, title: p.title }));
+  const pages = { index: i, indicator: "dots", items, swipe: true, transition: "slide", wrap: true };
+  return [id, { ...s.snapshot, view: id, views: items, pages }];
+}));
+const hero = {
+  pages: heroPages,
+  walls: Object.fromEntries(heroIds.map((id) => [id, starters.find((x) => x.id === id).wall])),
+  snapshot: heroViews[heroIds[0]], views: heroViews,
+};
 
 // MARK: Widgets
 
@@ -448,12 +469,33 @@ for (const name of readdirSync(samplesDir)) {
   }
 }
 
+// The data: an index (names, sizes, captions, the pages of each dashboard)
+// and one file of render models per preview, data/<key>.json, which a page
+// fetches as the preview comes near. The home page carries the index and the
+// hero's first page inline, so its first paint fetches no data.
+const samplesOut = {}; // key -> render models
+const strip = (o, ...keys) => Object.fromEntries(Object.entries(o).filter(([k]) => !keys.includes(k)));
+for (const [id, snap] of Object.entries(hero.views)) samplesOut[`hero-${id}`] = snap;
+samplesOut.exchange = { snapshot: exchange.snapshot };
+for (const s of starters) samplesOut[`starter-${s.id}`] = { snapshot: s.snapshot, views: s.views };
+for (const w of widgets) samplesOut[`widget-${w.name}`] = { snapshot: w.snapshot, compact: w.compact ? w.compact.snapshot : null };
+for (const [name, r] of Object.entries(recipeRenders)) samplesOut[`recipe-${name}`] = { snapshot: r.snapshot, views: r.views };
+const sampleText = Object.fromEntries(Object.entries(samplesOut).map(([k, v]) => [k, JSON.stringify(v)]));
+const fileHash = (text) => createHash("sha256").update(text).digest("hex").slice(0, 10);
+const heroFirst = `hero-${heroIds[0]}`;
 const site = {
   version, repo: content.repo, screen: content.screen, walls: content.walls,
-  hero, starters, widgets, categories, backgrounds, exchange, docsIndex, snippets,
-  overlay: hero.views ? hero.views[hero.snapshot.view] : hero.snapshot,
+  hero: { pages: hero.pages, walls: hero.walls, key: heroFirst, view: heroIds[0] },
+  starters: starters.map((s) => ({ ...strip(s, "snapshot", "views"), key: `starter-${s.id}`, view: s.snapshot.view })),
+  widgets: widgets.map((w) => ({ ...strip(w, "snapshot", "compact"), key: `widget-${w.name}`, compact: w.compact ? { size: w.compact.size } : null })),
+  recipes: Object.fromEntries(Object.entries(recipeRenders).map(([name, r]) => [name, { ...strip(r, "snapshot", "views"), key: `recipe-${name}`, view: r.snapshot.view }])),
+  exchange: { ...strip(exchange, "snapshot"), key: "exchange" },
+  overlay: heroFirst,
+  categories, backgrounds, docsIndex, snippets,
+  files: Object.fromEntries(Object.entries(sampleText).map(([k, t]) => [k, fileHash(t)])),
 };
-const dataText = JSON.stringify(site);
+const indexText = JSON.stringify(site);
+const inlineText = JSON.stringify({ index: site, samples: { [heroFirst]: samplesOut[heroFirst] } });
 const docs = buildDocs();
 
 // Every file a page loads carries a hash of the site in its URL (`?v=`), so a
@@ -461,32 +503,49 @@ const docs = buildDocs();
 const scripts = {
   ...Object.fromEntries(readdirSync(join(root, "web", "renderer")).filter((f) => f.endsWith(".js") && !f.endsWith(".test.mjs")).map((f) => [`renderer/${f}`, readFileSync(join(root, "web", "renderer", f), "utf8")])),
   "common.js": readFileSync(join(src, "common.js"), "utf8"),
+  "mounts.js": readFileSync(join(src, "mounts.js"), "utf8"),
   "site.js": readFileSync(join(src, "site.js"), "utf8"),
   "docs/docs.js": readFileSync(join(src, "docs.js"), "utf8"),
 };
 const styles = { "site.css": readFileSync(join(src, "site.css"), "utf8"), "docs/docs.css": readFileSync(join(src, "docs.css"), "utf8") };
 const hash = createHash("sha256");
-for (const text of [...Object.values(scripts), ...Object.values(styles), dataText, ...Object.values(docs.files)]) hash.update(text);
+for (const text of [...Object.values(scripts), ...Object.values(styles), indexText, ...Object.values(docs.files)]) hash.update(text);
 const BUILD = hash.digest("hex").slice(0, 10);
 const versioned = (code) => code.replace(/(\bfrom\s+")(\.{1,2}\/[^"?]+\.js)"/g, `$1$2?v=${BUILD}"`);
 if (!scripts["common.js"].includes('const BUILD = "dev";')) fail("common.js no longer declares BUILD; update the cache-busting in site/build.mjs");
 scripts["common.js"] = scripts["common.js"].replace('const BUILD = "dev";', `const BUILD = "${BUILD}";`);
 
+// Every module of the page, preloaded from the head, so the browser fetches
+// them at once instead of one import level at a time.
+const shared = Object.keys(scripts).filter((p) => p !== "site.js" && p !== "docs/docs.js");
+const modulePreloads = (paths) => paths.map((p) => `<link rel="modulepreload" href="${p}?v=${BUILD}">`).join("\n");
+
 mkdirSync(join(dist, "docs"), { recursive: true });
-writeFileSync(join(dist, "data.json"), dataText);
+mkdirSync(join(dist, "data"), { recursive: true });
+writeFileSync(join(dist, "data", "index.json"), indexText);
+for (const [key, text] of Object.entries(sampleText)) writeFileSync(join(dist, "data", `${key}.json`), text);
 for (const [path, code] of Object.entries(scripts)) writeFileSync(join(dist, path), versioned(code));
 for (const [path, css] of Object.entries(styles)) writeFileSync(join(dist, path), css);
-for (const [path, text] of Object.entries(docs.files)) writeFileSync(join(dist, path), text.replace(/\{\{build\}\}/g, BUILD));
+for (const [path, text] of Object.entries(docs.files)) {
+  const out = path.endsWith(".html") && text.includes('src="docs.js?v={{build}}"')
+    ? text.replace("</head>", `${modulePreloads(["docs.js", ...shared.map((p) => `../${p}`)])}\n</head>`)
+    : text;
+  writeFileSync(join(dist, path), out.replace(/\{\{build\}\}/g, BUILD));
+}
 cpSync(join(src, "og.png"), join(dist, "og.png"));
 writeFileSync(join(dist, "CNAME"), "vestal.matv.io\n");
 const indexDescription = "vestal: a full-screen dashboard on one key, for macOS and Linux, from one JSON config your agent writes.";
 const urls = ["", ...Object.keys(docs.files).filter((f) => f.endsWith(".html")).map((f) => f.replace(/index\.html$/, ""))];
 writeFileSync(join(dist, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
 writeFileSync(join(dist, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE}/${u}</loc></url>`).join("\n")}\n</urlset>\n`);
-writeFileSync(join(dist, "index.html"), readFileSync(join(src, "index.html"), "utf8").replace(/\{\{version\}\}/g, version)
-  .replace("</head>", `${socialTags("", "vestal", indexDescription)}\n</head>`)
-  .replace('href="site.css"', `href="site.css?v=${BUILD}"`).replace('src="site.js"', `src="site.js?v=${BUILD}"`));
-console.log(`site: ${widgets.length} widgets, ${starters.length} starters (${starters.filter((s) => s.real).length} from starter samples), ${backgrounds.length} backgrounds, data.json ${(dataText.length / 1024).toFixed(0)} KB`);
+// JSON inside a <script> element: no "</script" or "<!--" (as JSON escapes).
+const safeJSON = (text) => text.replace(/<\/(script)/gi, "<\\/$1").replace(/<!--/g, "\\u003c!--");
+writeFileSync(join(dist, "index.html"), homePage()
+  .replace("</head>", `${socialTags("", "vestal", indexDescription)}\n${modulePreloads(["site.js", ...shared])}\n</head>`)
+  .replace('href="site.css"', `href="site.css?v=${BUILD}"`)
+  .replace('<script type="module" src="site.js"></script>', `<script type="application/json" id="vestal-data">${safeJSON(inlineText)}</script>\n<script type="module" src="site.js?v=${BUILD}"></script>`));
+const kb = (n) => `${(n / 1024).toFixed(0)} KB`;
+console.log(`site: ${widgets.length} widgets, ${starters.length} starters (${starters.filter((s) => s.real).length} from starter samples), ${backgrounds.length} backgrounds; data: index ${kb(indexText.length)} (inline with the hero ${kb(inlineText.length)}), ${Object.keys(sampleText).length} files, ${kb(Object.values(sampleText).reduce((a, t) => a + t.length, 0))}`);
 console.log(`site: ${docs.pages} docs pages, llms.txt and llms-full.txt (${(docs.files["llms-full.txt"].length / 1024).toFixed(0)} KB)`);
 
 // MARK: Preview
@@ -500,7 +559,7 @@ if (args.preview) {
 // One file that fetches nothing but Google Fonts: the renderer and the page's
 // script bundled into one module, the data, shaders, icon fonts and pictures inline.
 function preview() {
-  const html = readFileSync(join(src, "index.html"), "utf8").replace(/\{\{version\}\}/g, version);
+  const html = homePage();
   const body = html.match(/<body[^>]*>([\s\S]*)<\/body>/)[1].replace(/<script[\s\S]*?<\/script>\s*/g, "");
   const title = html.match(/<title>[\s\S]*?<\/title>/)[0];
   const fonts = html.match(/<link rel="stylesheet" href="(https:\/\/fonts\.googleapis\.com[^"]+)"/);
@@ -535,7 +594,6 @@ globalThis.fetch = (url, init) => {
   return __fetch(url, init);
 };
 globalThis.__VESTAL_SITE = {
-  data: JSON.parse(document.getElementById("vestal-data").textContent),
   assets: { icons: "inline:icons/", fonts: "inline:fonts/", shaders: "inline:shaders/" },
   image: (path) => __IMAGES[path] || null,
 };
@@ -546,12 +604,23 @@ globalThis.__VESTAL_SITE = {
 ${fonts ? `@import url("${fonts[1]}");\n` : ""}${css}
 </style>
 ${body.trim()}
-<script type="application/json" id="vestal-data">${safe(dataText)}</script>
+<script type="application/json" id="vestal-data">${safeJSON(JSON.stringify({ index: site, samples: samplesOut }))}</script>
 <script type="module">
 ${safe(boot)}
 ${safe(code)}
 </script>
 `;
+}
+
+// The home page's markup with the version filled in, and the frames whose
+// renders come first sized before any script runs (no layout shift).
+function homePage() {
+  const ratio = (size) => `style="aspect-ratio:${size[0]}/${size[1]}"`;
+  const html = readFileSync(join(src, "index.html"), "utf8").replace(/\{\{version\}\}/g, version);
+  for (const id of ["hero-frame", "exchange-frame"]) if (!html.includes(`id="${id}"></div>`)) fail(`index.html has no empty #${id}; update homePage() in site/build.mjs`);
+  return html
+    .replace('id="hero-frame"></div>', `id="hero-frame" ${ratio(content.screen)}></div>`)
+    .replace('id="exchange-frame"></div>', `id="exchange-frame" ${ratio(exchange.size)}></div>`);
 }
 
 // A small bundler for these ES modules: each module becomes a function scope,
@@ -773,7 +842,6 @@ ${groups.map((g) => `<h2 id="${g.name.toLowerCase().replace(/\s+/g, "-")}">${esc
   files["docs/index.html"] = shell({ title: "vestal docs", description: "vestal documentation: guides for configuring by hand, and the full reference.", body: index, current: null, path: "docs/",
     foot: `<span>Every page is generated from the Markdown in <a href="${content.repo}/tree/main/docs">docs/</a>.</span><span>${escHTML(version)}</span>` });
   files["docs/search.json"] = JSON.stringify(search);
-  files["docs/recipes.json"] = JSON.stringify(recipeRenders);
 
   // llms.txt (https://llmstxt.org): a title, a summary, then links to the Markdown.
   const entry = (p) => `- [${p.label}](${SITE}/docs/${p.slug}.md): ${blurb[p.slug] || topicSummaries[p.topic] || p.title}`;

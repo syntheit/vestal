@@ -8,14 +8,7 @@
     "night": "radial-gradient(36% 48% at 32% 38%, rgba(34,36,44,.6), transparent 72%), radial-gradient(36% 56% at 72% 52%, rgba(223,227,234,.32), transparent 70%), radial-gradient(40% 20% at 50% 80%, rgba(122,92,200,.5), transparent 70%), linear-gradient(180deg, #0c1024 0%, #1b2048 60%, #3a2c5a 100%)"
   },
   "hero": {
-    "background": "aurora",
-    "wall": "blue",
-    "pages": [
-      { "name": "main", "title": "Main", "key": "1", "samples": ["clock", "systemBar", "media", "agendaList", "systemHealth", "weatherCard"] },
-      { "name": "dev", "title": "Developer", "key": "2", "samples": ["clock", "aiUsage", "reviewQueue", "ciStatus"] },
-      { "name": "home", "title": "Homelab", "key": "3", "layout": "grid", "columns": 2, "maxWidth": 1120, "gap": 36,
-        "samples": ["systemHealth", "containers", "uptimeMonitors", "backups", "networkRates", "tailnet"] }
-    ]
+    "starters": ["default", "markets", "media"]
   },
   "exchange": {
     "ask": "Put the pull requests waiting on my review under the clock.",

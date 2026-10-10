@@ -400,34 +400,73 @@ export const FLIP_CSS = `
 /** A turn of `deg` about (c, c) as a CSS transform, for an animation. */
 const turn = (deg, c) => `translate(${f(c)}px, ${f(c)}px) rotate(${f(deg)}deg) translate(${f(-c)}px, ${f(-c)}px)`;
 
+// One timer for every face on the page: each running driver says when it next
+// needs a beat (the next whole second, five seconds or minute), and a single
+// timeout wakes for the earliest. Nothing is scheduled while no face runs.
+const drivers = new Set();   // every live driver, running or not
+const due = new Set();       // the running ones
+let wake = 0, wakeAt = 0;
+
+/** The next multiple of `every` ms after `now` (ms since the epoch); pure, for tests. */
+export function nextBeat(now, every) {
+  return (Math.floor(now / every) + 1) * every;
+}
+
+function schedule() {
+  let next = Infinity;
+  for (const d of due) if (d.due < next) next = d.due;
+  if (next === wakeAt && wake) return;
+  if (wake) clearTimeout(wake);
+  wake = 0; wakeAt = 0;
+  if (next === Infinity) return;
+  wakeAt = next;
+  wake = setTimeout(beat, Math.max(0, next - Date.now()));
+}
+
+function beat() {
+  wake = 0; wakeAt = 0;
+  const now = Date.now();
+  // A timer can fire a little early: draw the beat it was set for.
+  for (const d of [...due]) if (d.due <= now + 25) d.beat(Math.max(now, d.due));
+  schedule();
+}
+
+if (typeof document !== "undefined" && document.addEventListener) {
+  document.addEventListener("visibilitychange", () => { for (const d of drivers) d.update(); });
+}
+
+/** The number of drivers waiting on the shared timer (for tests). */
+export const runningClocks = () => due.size;
+
 /**
  * Keeps the hands of the analog faces under `root` turning, and only while
- * they can be seen: the page is visible and `root` is on screen. Sweeping
- * hands turn by themselves (Web Animations, one steady turn per period, set
- * again every minute), so no script runs per frame; otherwise one timer a
- * second (five without a seconds hand). A fixed `now` (a Date or a function)
- * freezes them.
+ * they can be seen: the page is visible and `root` is on screen (watched by
+ * the driver, or reported through `setVisible` when `observe` is false).
+ * Sweeping hands turn by themselves (Web Animations, one steady turn per
+ * period, set again every minute), so no script runs per frame; otherwise a
+ * beat a second (five without a seconds hand) from the one timer above.
+ * `coarse` moves every hand once a minute. A fixed `now` (a Date or a
+ * function) freezes them.
  */
 export class ClockDriver {
-  constructor(root, { now = null, reduced = () => false } = {}) {
+  constructor(root, { now = null, reduced = () => false, observe = true, visible = true, coarse = false } = {}) {
     this.root = root;
     this.now = now;
     this.reduced = reduced;
+    this.coarse = !!coarse;
     this.faces = [];
-    this.timer = 0;
-    this.sync = 0;
-    this.onScreen = true;
-    this.pageVisible = typeof document === "undefined" || document.visibilityState !== "hidden";
+    this.due = Infinity;
+    this.mode = null;
+    this.onScreen = observe ? true : !!visible;
     this.destroyed = false;
-    if (typeof IntersectionObserver === "function") {
+    if (observe && typeof IntersectionObserver === "function") {
       this.io = new IntersectionObserver((entries) => {
         for (const e of entries) this.onScreen = e.isIntersecting;
         this.update();
       });
       this.io.observe(root);
     }
-    this.vis = () => { this.pageVisible = document.visibilityState !== "hidden"; this.update(); };
-    if (typeof document !== "undefined") document.addEventListener("visibilitychange", this.vis);
+    drivers.add(this);
   }
 
   /** Looks for faces under the root (after a render). */
@@ -443,28 +482,55 @@ export class ClockDriver {
     this.update();
   }
 
+  /** On screen or not, for a host that watches (`observe: false`). */
+  setVisible(visible) {
+    if (this.onScreen === !!visible) return;
+    this.onScreen = !!visible;
+    this.update();
+  }
+
+  /** Every hand moves once a minute (reduced motion, data saver). */
+  setCoarse(coarse) {
+    if (this.coarse === !!coarse) return;
+    this.coarse = !!coarse;
+    this.update();
+  }
+
+  get pageVisible() { return typeof document === "undefined" || document.visibilityState !== "hidden"; }
+
   get running() { return !this.destroyed && !this.now && this.pageVisible && this.onScreen && this.faces.length > 0; }
 
-  update() {
-    this.stop();
-    if (!this.running) return;
-    this.tick();
+  /** How the hands move: the beat's period in ms, and whether some turn by themselves. */
+  plan() {
+    if (this.coarse) return { every: 60000, sweeps: false };
     const reduced = this.reduced();
     const sweeps = !reduced && this.faces.some((face) => face.mode === "sweep");
     const steps = this.faces.some((face) => face.mode === "step" || (face.mode === "sweep" && reduced));
     // A sweeping face's day and fill change with the minute at most.
-    const every = steps ? 1000 : sweeps ? 60000 : 5000;
-    this.timer = setInterval(() => this.tick(), every);
-    if (sweeps) {
-      this.spin();
-      this.sync = setInterval(() => this.spin(), 60000);
-    }
+    return { every: steps ? 1000 : sweeps ? 60000 : 5000, sweeps };
+  }
+
+  update() {
+    this.stop();
+    if (!this.running) return;
+    this.mode = this.plan();
+    this.tick();
+    if (this.mode.sweeps) this.spin();
+    this.due = nextBeat(Date.now(), this.mode.every);
+    due.add(this);
+    schedule();
+  }
+
+  /** The shared timer's call: draw `now` (ms), then wait for the next beat. */
+  beat(now) {
+    this.tick(new Date(now));
+    if (this.mode.sweeps) this.spin();
+    this.due = nextBeat(now, this.mode.every);
   }
 
   stop() {
-    if (this.timer) clearInterval(this.timer);
-    if (this.sync) clearInterval(this.sync);
-    this.timer = this.sync = 0;
+    if (due.delete(this)) schedule();
+    this.due = Infinity;
     for (const face of this.faces) this.unspin(face);
   }
 
@@ -492,11 +558,12 @@ export class ClockDriver {
     face.anims = null;
   }
 
-  tick() {
-    const date = new Date();
+  tick(date = new Date()) {
+    const stepped = this.coarse || this.reduced();
     for (const face of this.faces) {
       const time = analogTime(date, face.zone);
-      const a = handAngles(time, face.mode === "sweep" && this.reduced() ? "step" : face.mode);
+      if (this.coarse) time.second = 0; // the beat is the minute: a seconds hand rests at twelve
+      const a = handAngles(time, face.mode === "sweep" && stepped ? "step" : face.mode);
       const set = (el, deg) => el && el.setAttribute("transform", rotate(deg, face.c));
       set(face.h, a.hour); set(face.m, a.minute); set(face.s, a.second);
       if (face.fill && face.fill.dataset.nightfill) {
@@ -510,7 +577,7 @@ export class ClockDriver {
   destroy() {
     this.destroyed = true;
     this.stop();
+    drivers.delete(this);
     if (this.io) this.io.disconnect();
-    if (typeof document !== "undefined") document.removeEventListener("visibilitychange", this.vis);
   }
 }
