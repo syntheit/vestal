@@ -172,13 +172,40 @@ public final class SecretStore: @unchecked Sendable {
         return value
     }
 
-    /// `text` with every secret value read so far replaced by `<secret>`.
+    /// `text` with every secret value read so far replaced by `<secret>`, in
+    /// the forms it takes in a URL or a header too: percent-encoded (query
+    /// or strict), base64 and base64url, and any `Basic` credentials.
     public func scrub(_ text: String) -> String {
         let known = withLock { Array(values.values) }
+        var forms = Set<String>()
+        for value in known where !value.isEmpty {
+            forms.insert(value)
+            if let q = value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) { forms.insert(q) }
+            if let a = value.addingPercentEncoding(withAllowedCharacters: .alphanumerics) { forms.insert(a) }
+            let b64 = Data(value.utf8).base64EncodedString()
+            forms.insert(b64)
+            forms.insert(b64.replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_"))
+            forms.insert(b64.replacingOccurrences(of: "=", with: ""))
+        }
+        // Basic credentials first: user:secret holds the secret's base64 as a tail.
+        var out = text
+        if !known.isEmpty, let basic = try? NSRegularExpression(pattern: "(Authorization[:=] *\"?Basic )[A-Za-z0-9+/=_-]{8,}", options: .caseInsensitive) {
+            out = basic.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out),
+                                                 withTemplate: "$1<secret>")
+        }
         // Longest first, so a value that contains another is replaced whole.
-        return known.filter { !$0.isEmpty }.sorted { $0.count > $1.count }.reduce(text) {
+        out = forms.sorted { ($0.count, $0) > ($1.count, $1) }.reduce(out) {
             $0.replacingOccurrences(of: $1, with: "<secret>")
         }
+        return out
+    }
+
+    /// `text` with the query string of every URL in it cut off: a query
+    /// often carries a token, and an error message has no use for it.
+    public static func stripQueries(_ text: String) -> String {
+        guard text.contains("?"),
+              let urls = try? NSRegularExpression(pattern: "(https?://[^\\s?#\"'<>)]*)\\?[^\\s#\"'<>)]*") else { return text }
+        return urls.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: "$1?...")
     }
 
     /// `source` with its load-time text evaluated.

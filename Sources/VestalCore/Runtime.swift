@@ -698,7 +698,7 @@ public final class AppRuntime {
         case let error as CommandError: return error.description
         case is CancellationError: return "cancelled"
         case let error as URLError where error.code == .cancelled: return "cancelled"
-        default: return error.localizedDescription
+        default: return SecretStore.stripQueries(error.localizedDescription)
         }
     }
 
