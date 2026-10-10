@@ -118,7 +118,7 @@ public final class RenderSession {
     private var enabledStates: [String: (enabled: Bool, child: RenderedChild)] = [:]
     /// The pages or the current view moved in the last render, so a UI
     /// needs the whole model (the patch has no op for `pages`).
-    public internal(set) var viewsChanged = false
+    public var viewsChanged = false
 
     /// Whether `name` is a view that is enabled now. A view whose
     /// `enabled` expression has not been evaluated yet counts as enabled.
