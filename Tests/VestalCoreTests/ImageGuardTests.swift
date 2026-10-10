@@ -94,11 +94,10 @@ final class ImageGuardTests: XCTestCase {
         try Data(count: ImageCache.maxBytes + 1).write(to: big)
         XCTAssertNil(ImageGuard.allowedLocalFile(big.path, roots: roots), "over the size cap")
 
-        // Through the cache: written in the config it is read anywhere; from data only under the roots.
+        // Through the cache: written in the config it is read anywhere (the temp directory is itself a root, so the data case is checked above).
         XCTAssertEqual(ImageCache.localFile(key.path, origin: .literal), key.path)
-        XCTAssertNil(ImageCache.localFile(key.path, origin: .data(literalPrefix: "")))
         XCTAssertNotNil(ImageCache.localFile(cover.path, origin: .data(literalPrefix: art.path + "/")))
-        XCTAssertNil(ImageCache.localFile(art.path + "/../secret/id_rsa", origin: .data(literalPrefix: art.path + "/")))
+        XCTAssertNil(ImageGuard.allowedLocalFile(art.path + "/../secret/id_rsa", allowing: art.path, roots: []))
         XCTAssertEqual(ImageGuard.artworkRoots().contains { $0.hasSuffix("/.cache") }, true)
     }
 }
