@@ -41,4 +41,33 @@ final class SecretScrubTests: XCTestCase {
         XCTAssertEqual(SecretStore.stripQueries("\"http://h/p?q=1\" and https://h2/a?z"), "\"http://h/p?...\" and https://h2/a?...")
         XCTAssertEqual(SecretStore.stripQueries("is it ok? https://h/plain"), "is it ok? https://h/plain")
     }
+
+    private func store(_ value: String) -> SecretStore {
+        let s = SecretStore(["e": SecretConfig(env: "TOKEN")], environment: ["TOKEN": value])
+        let done = expectation(description: "read")
+        Task { _ = try? await s.value("e"); done.fulfill() }
+        wait(for: [done], timeout: 5)
+        return s
+    }
+
+    func testLowercasePercentEscapesAndUnpaddedBase64url() {
+        let s = store("ab/cd/ef+gh")
+        XCTAssertEqual(s.scrub("t=ab%2fcd%2fef%2bgh;"), "t=<secret>;")
+        XCTAssertEqual(s.scrub("t=ab%2Fcd%2Fef%2Bgh;"), "t=<secret>;")
+        let wide = store("\u{FF}\u{FF}\u{FF}\u{FF}")  // base64url "w7_Dv8O_w78"
+        XCTAssertEqual(wide.scrub("v=w7_Dv8O_w78."), "v=<secret>.")
+    }
+
+    func testBasicHeaderWithoutASecretIsLeftAlone() {
+        let s = store()
+        let other = Data("alice:hunter2hunter2".utf8).base64EncodedString()
+        XCTAssertEqual(s.scrub("Authorization: Basic \(other)"), "Authorization: Basic \(other)")
+    }
+
+    func testShortSecretsDoNotCorruptOrdinaryText() {
+        let s = store("x")
+        XCTAssertEqual(s.scrub("createAction x"), "createAction <secret>")
+        let three = store("abc")
+        XCTAssertEqual(three.scrub("YWJj abc"), "YWJj <secret>")
+    }
 }

@@ -176,26 +176,50 @@ public final class SecretStore: @unchecked Sendable {
     /// the forms it takes in a URL or a header too: percent-encoded (query
     /// or strict), base64 and base64url, and any `Basic` credentials.
     public func scrub(_ text: String) -> String {
-        let known = withLock { Array(values.values) }
+        let known = withLock { Array(values.values) }.filter { !$0.isEmpty }
+        // A secret under 4 characters is matched exactly only, and an encoded
+        // form under 8 characters is skipped: both would hit ordinary text.
+        let minSecret = 4, minEncoded = 8
         var forms = Set<String>()
-        for value in known where !value.isEmpty {
+        for value in known {
             forms.insert(value)
-            if let q = value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) { forms.insert(q) }
-            if let a = value.addingPercentEncoding(withAllowedCharacters: .alphanumerics) { forms.insert(a) }
+            guard value.count >= minSecret else { continue }
+            var encoded: [String] = []
+            for set in [CharacterSet.urlQueryAllowed, .alphanumerics] {
+                if let e = value.addingPercentEncoding(withAllowedCharacters: set) {
+                    encoded.append(e)
+                    encoded.append(Self.lowercaseEscapes(e))
+                }
+            }
             let b64 = Data(value.utf8).base64EncodedString()
-            forms.insert(b64)
-            forms.insert(b64.replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_"))
-            forms.insert(b64.replacingOccurrences(of: "=", with: ""))
+            let url = b64.replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_")
+            encoded += [b64, url, b64.replacingOccurrences(of: "=", with: ""), url.replacingOccurrences(of: "=", with: "")]
+            for e in encoded where e == value || e.count >= minEncoded { forms.insert(e) }
         }
-        // Basic credentials first: user:secret holds the secret's base64 as a tail.
         var out = text
-        if !known.isEmpty, let basic = try? NSRegularExpression(pattern: "(Authorization[:=] *\"?Basic )[A-Za-z0-9+/=_-]{8,}", options: .caseInsensitive) {
-            out = basic.stringByReplacingMatches(in: out, range: NSRange(out.startIndex..., in: out),
-                                                 withTemplate: "$1<secret>")
+        // Basic credentials first (user:secret holds the secret's base64 as a
+        // tail): redacted only when the decoded value contains a secret.
+        if !known.isEmpty, let basic = try? NSRegularExpression(pattern: "(Authorization[:=] *\"?Basic )([A-Za-z0-9+/=_-]{8,})", options: .caseInsensitive) {
+            let ns = out as NSString
+            for match in basic.matches(in: out, range: NSRange(location: 0, length: ns.length)).reversed() {
+                var token = ns.substring(with: match.range(at: 2)).replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+                while token.count % 4 != 0 { token += "=" }
+                guard let data = Data(base64Encoded: token), let decoded = String(data: data, encoding: .utf8),
+                      known.contains(where: { decoded.contains($0) }) else { continue }
+                out = (out as NSString).replacingCharacters(in: match.range(at: 2), with: "<secret>")
+            }
         }
         // Longest first, so a value that contains another is replaced whole.
-        out = forms.sorted { ($0.count, $0) > ($1.count, $1) }.reduce(out) {
+        return forms.sorted { ($0.count, $0) > ($1.count, $1) }.reduce(out) {
             $0.replacingOccurrences(of: $1, with: "<secret>")
+        }
+    }
+
+    /// `%2F` as `%2f`: servers and clients echo either case.
+    private static func lowercaseEscapes(_ text: String) -> String {
+        var out = "", pending = 0
+        for ch in text {
+            if ch == "%" { pending = 2; out.append(ch) } else if pending > 0 { pending -= 1; out.append(contentsOf: ch.lowercased()) } else { out.append(ch) }
         }
         return out
     }
