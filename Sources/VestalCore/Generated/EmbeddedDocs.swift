@@ -1592,7 +1592,7 @@ These names are reserved: a template parameter or a `vars` entry may not use `va
 
 ## Dot paths
 
-The path fields `pick`, `picks.*` and `weatherCard`'s `fields.*` are dot paths: dot-separated field names (a leading dot optional) and `[N]` indexes, never jq. So there `rates.EUR` means the field `BRL` of `rates`. Every new expr field is strict jq: write `.rates.EUR`. When a new field looks like a dot path, check-config suggests the jq form.
+The path fields `pick`, `picks.*` and `weatherCard`'s `fields.*` are dot paths: dot-separated field names (a leading dot optional) and `[N]` indexes, never jq. So there `rates.EUR` means the field `EUR` of `rates`. Every new expr field is strict jq: write `.rates.EUR`. When a new field looks like a dot path, check-config suggests the jq form.
 
 ## When things are evaluated
 
@@ -3069,7 +3069,7 @@ The connection then stays open. The server writes one JSON message per line; the
 
 | Message | |
 |---|---|
-| `{"type": "hello", "protocol": 1, "minor": 3, "server": "0.4.0 (abc1234)", "os": "linux", "role": "observer", "primary": false}` | First, after `subscribe`. `primary` says whether this subscriber is the primary UI. |
+| `{"type": "hello", "protocol": 1, "minor": 3, "server": "0.5.0 (abc1234)", "os": "linux", "role": "observer", "primary": false}` | First, after `subscribe`. `primary` says whether this subscriber is the primary UI. |
 | `snapshot` | The whole model (`vestal docs render-model`), with this connection's `seq` (1 for the first; every later snapshot or patch adds 1). `visible` in it is `false` for a `whileHidden` subscriber while the dashboard is hidden. |
 | `patch` | Changes since `base` (`vestal docs render-model`). At most one per 50 ms per subscriber; a patch bigger than half a snapshot is sent as a snapshot. |
 | `{"type": "visibility", "visible": true, "view": "main"}` | Show or hide the window. The core decides: `vestal toggle`, Escape and actions all go through it. |

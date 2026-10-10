@@ -78,7 +78,7 @@ These names are reserved: a template parameter or a `vars` entry may not use `va
 
 ## Dot paths
 
-The path fields `pick`, `picks.*` and `weatherCard`'s `fields.*` are dot paths: dot-separated field names (a leading dot optional) and `[N]` indexes, never jq. So there `rates.EUR` means the field `BRL` of `rates`. Every new expr field is strict jq: write `.rates.EUR`. When a new field looks like a dot path, check-config suggests the jq form.
+The path fields `pick`, `picks.*` and `weatherCard`'s `fields.*` are dot paths: dot-separated field names (a leading dot optional) and `[N]` indexes, never jq. So there `rates.EUR` means the field `EUR` of `rates`. Every new expr field is strict jq: write `.rates.EUR`. When a new field looks like a dot path, check-config suggests the jq form.
 
 ## When things are evaluated
 
