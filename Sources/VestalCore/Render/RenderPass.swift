@@ -1349,6 +1349,7 @@ final class RenderPass {
 
     /// The local file of a picture named by path or URL (a URL is fetched
     /// once, and the background renders again when it lands, as for `image`).
+    /// Always read as filled in from data (the field is an expression).
     private func artworkPath(_ text: String) -> String? {
         let source = text.trimmingCharacters(in: .whitespaces)
         guard !source.isEmpty else { return nil }
@@ -1356,12 +1357,10 @@ final class RenderPass {
             let cache = ImageCache.shared
             if let path = cache.cachedPath(for: source) { return path }
             sources.insert(ImageCache.sourcePrefix + ImageCache.key(for: source))
-            cache.request(source)
+            cache.request(source, origin: .data(literalPrefix: ""))
             return nil
         }
-        let expanded = ImageCache.expandedPath(source)
-        var isDirectory: ObjCBool = false
-        return FileManager.default.fileExists(atPath: expanded, isDirectory: &isDirectory) && !isDirectory.boolValue ? expanded : nil
+        return ImageCache.localFile(source, origin: .data(literalPrefix: ""))
     }
 
     // MARK: Diagnostics

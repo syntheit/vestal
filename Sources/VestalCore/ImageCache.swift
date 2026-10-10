@@ -81,9 +81,13 @@ public final class ImageCache: @unchecked Sendable {
     // MARK: Fetching
 
     /// Starts fetching `url` unless it is cached, being fetched, failed
-    /// lately, or fetching is off. Returns at once.
-    public func request(_ url: String) {
+    /// lately, or fetching is off. Returns at once. A URL filled in from data
+    /// (`origin` `.data`) is refused when its host is private or loopback
+    /// (see `ImageGuard`).
+    public func request(_ url: String, origin: ImageOrigin = .literal) {
         guard let target = Self.remoteURL(url) else { return }
+        let guarded = ImageGuard.isGuarded(origin)
+        if guarded, !ImageGuard.allowsRemote(url, origin: origin) { return }
         let key = Self.key(for: url)
         lock.lock()
         if !_fetchesRemote || inflight.contains(key) {
@@ -105,7 +109,8 @@ public final class ImageCache: @unchecked Sendable {
         Task.detached(priority: .utility) { [self] in
             var stored = false
             do {
-                let data = try await fetch(target, Self.maxBytes)
+                if guarded, let host = target.host, await Self.resolvesToPrivate(host) { throw SourceError("private address") }
+                let data = try await Self.guardRedirects.withValue(guarded) { try await fetch(target, Self.maxBytes) }
                 if data.count <= Self.maxBytes, Self.looksLikeImage(data) {
                     SnapshotCache.makePrivateDirectory(directory)
                     SnapshotCache.writePrivate(data, to: "\(directory)/\(key)")
@@ -169,14 +174,38 @@ public final class ImageCache: @unchecked Sendable {
         return false
     }
 
+    /// Whether the fetch in progress refuses redirects to private hosts.
+    static let guardRedirects = TaskLocal(wrappedValue: false)
+
+    private static func resolvesToPrivate(_ host: String) async -> Bool {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .utility).async { continuation.resume(returning: ImageGuard.resolvesToPrivate(host)) }
+        }
+    }
+
     private static let download: @Sendable (URL, Int) async throws -> Data = { url, limit in
         var request = URLRequest(url: url, timeoutInterval: 15)
         request.setValue("vestal/\(BuildInfo.version)", forHTTPHeaderField: "User-Agent")
-        let (data, response) = try await URLSession.vestalData(for: request, limit: limit)
+        var refusing: (@Sendable (URL) -> Bool)?
+        if guardRedirects.get() { refusing = { (target: URL) -> Bool in ImageGuard.isPrivateHost(target.host ?? "") } }
+        let (data, response) = try await URLSession.vestalData(for: request, limit: limit, refusing: refusing)
         if let status = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(status) {
             throw SourceError("HTTP \(status)")
         }
         return data
+    }
+
+    /// The file of a local picture, or nil when it isn't a file. A path filled
+    /// in from data is held to `ImageGuard.allowedLocalFile`.
+    public static func localFile(_ source: String, origin: ImageOrigin = .literal) -> String? {
+        let expanded = expandedPath(source)
+        switch origin {
+        case .literal:
+            var isDirectory: ObjCBool = false
+            return FileManager.default.fileExists(atPath: expanded, isDirectory: &isDirectory) && !isDirectory.boolValue ? expanded : nil
+        case .data(let prefix):
+            return ImageGuard.allowedLocalFile(expanded, allowing: ImageGuard.literalDirectory(prefix))
+        }
     }
 
     /// `~` expanded and a relative path made absolute.

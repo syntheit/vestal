@@ -630,8 +630,11 @@ extension URLSession {
     /// done. Canceling the calling task cancels the request. The request's
     /// `timeoutInterval` bounds the whole request, not only the time between
     /// two packets, so a server that trickles its answer can't hold it open.
-    static func vestalData(for request: URLRequest, limit: Int) async throws -> (Data, URLResponse) {
-        let receiver = LimitedReceiver(limit: limit)
+    /// `refusing` is asked about each redirect's target; a redirect it
+    /// answers true for is not followed (the 3xx answer is the result).
+    static func vestalData(for request: URLRequest, limit: Int,
+                           refusing: (@Sendable (URL) -> Bool)? = nil) async throws -> (Data, URLResponse) {
+        let receiver = LimitedReceiver(limit: limit, refusing: refusing)
         let session = URLSession(configuration: .ephemeral, delegate: receiver, delegateQueue: nil)
         defer { session.finishTasksAndInvalidate() }
         let pending = PendingDataTask()
@@ -682,8 +685,20 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
     private var challenged = false
     private var continuation: CheckedContinuation<(Data, URLResponse), Error>?
 
-    init(limit: Int) {
+    private let refusing: (@Sendable (URL) -> Bool)?
+
+    init(limit: Int, refusing: (@Sendable (URL) -> Bool)? = nil) {
         self.limit = limit
+        self.refusing = refusing
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+                    newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        if let refusing, let target = request.url, refusing(target) {
+            completionHandler(nil)
+        } else {
+            completionHandler(request)
+        }
     }
 
     func start(_ continuation: CheckedContinuation<(Data, URLResponse), Error>) {

@@ -476,9 +476,14 @@ extension RenderPass {
 
     func image(_ w: [String: AnyJSON], id: String, scope: Scope) -> RenderNode {
         var source: String?
+        var origin = ImageOrigin.literal
         switch w["src"] {
-        case .string(let text)?: source = renderText(text, id: id, field: "src", scope: scope)
-        case .object?: source = literal(w["src"], id: id, field: "src", scope: scope)?.stringValue
+        case .string(let text)?:
+            source = renderText(text, id: id, field: "src", scope: scope)
+            origin = ImageGuard.origin(ofTemplate: text)
+        case .object?:
+            source = literal(w["src"], id: id, field: "src", scope: scope)?.stringValue
+            origin = .data(literalPrefix: "")
         default: break
         }
         source = source?.trimmingCharacters(in: .whitespaces)
@@ -491,14 +496,10 @@ extension RenderPass {
                     // Draws empty until the fetch lands; then `image:<key>`
                     // changes and this widget renders again.
                     sources.insert(ImageCache.sourcePrefix + ImageCache.key(for: source))
-                    cache.request(source)
+                    cache.request(source, origin: origin)
                 }
             } else {
-                let expanded = ImageCache.expandedPath(source)
-                var isDirectory: ObjCBool = false
-                if FileManager.default.fileExists(atPath: expanded, isDirectory: &isDirectory), !isDirectory.boolValue {
-                    path = expanded
-                }
+                path = ImageCache.localFile(source, origin: origin)
             }
         }
         let fit = string(w["fit"], id: id, field: "fit", scope: scope) == "contain" ? "contain" : "cover"
