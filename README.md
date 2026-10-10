@@ -15,7 +15,9 @@ vestal is a full-screen dashboard that a hotkey shows and hides. One JSON config
 
 ## What it does
 
-`~/.config/vestal/config.json` drives the SwiftUI app on macOS and the GTK 4 app on Linux. The docs, schema, validation and offscreen screenshots ship in the binary, so an agent can write the config and look at the result. There are about 50 widgets and 8 starters; you pick a starter on first run and reshape it.
+- `~/.config/vestal/config.json` drives the SwiftUI app on macOS and the GTK 4 app on Linux.
+- The docs, schema, validation and offscreen screenshots ship in the binary, so an agent can write the config and look at the result.
+- There are about 50 widgets and 8 starters. Pick a starter on the first run, then reshape it.
 
 ## Starters
 
@@ -58,7 +60,8 @@ vestal init            # writes ~/.config/vestal/config.json (vestal init --list
 # then press cmd+shift+space to show it, and again to hide it
 ```
 
-You can also download `Vestal-<version>.dmg` from [Releases](https://github.com/syntheit/vestal/releases/latest) and drag `Vestal.app` onto Applications. On macOS or Linux, the Nix flake has a Home Manager module, `programs.vestal`; see [install](https://vestal.matv.io/docs/install.html).
+- DMG: download `Vestal-<version>.dmg` from [Releases](https://github.com/syntheit/vestal/releases/latest) and drag `Vestal.app` onto Applications.
+- Nix (macOS or Linux): the flake has a Home Manager module, `programs.vestal`; see [install](https://vestal.matv.io/docs/install.html).
 
 ## More
 
