@@ -261,25 +261,24 @@ final class VestalFunctionsTests: XCTestCase {
 
     func testKeyValueLegacyMatchesV03() throws {
         let data = TestData()
-        data.sources["dolares"] = try json("dolarapi-dolares.json")
-        data.sources["rates"] = try json("exchange-rates.json")
+        data.sources["rates"] = try json("full/rates.json")
         let full = try JQValue.parse(Data(try Data(contentsOf: Fixture.repository("examples/full.json"))))
         guard case .array(let items)? = full.objectValue?["widgets"]?.objectValue?["exchange"]?.objectValue?["items"] else {
             return XCTFail("examples/full.json has no exchange items")
         }
         let pickItems = try JSONDecoder().decode([PickItem].self, from: Data(JQValue.array(items).jsonText().utf8))
-        let v03 = AsyncData.exchangeRates(pickItems, defaultSource: "dolares", parsedBySource: [
-            "dolares": try Fixture.json("dolarapi-dolares.json"), "rates": try Fixture.json("exchange-rates.json"),
+        let v03 = AsyncData.exchangeRates(pickItems, defaultSource: "rates", parsedBySource: [
+            "rates": try Fixture.json("full/rates.json"),
         ])
-        let rows = try one("$items | map(kv_legacy(.; \"dolares\")) | map(select(. != null))",
+        let rows = try one("$items | map(kv_legacy(.; \"rates\")) | map(select(. != null))",
                            data: data, items: .array(items))
         let expected: [JQValue] = v03.map { rate in
             .object(JQObject([("label", .string(rate.label)),
                               ("text", .string(rate.sell.isEmpty ? rate.buy : "\(rate.buy) / \(rate.sell)"))]))
         }
         XCTAssertEqual(rows, .array(expected))
-        XCTAssertEqual(rows.arrayValue?.first?.objectValue?["text"], .string("1180 / 1200"))
-        XCTAssertEqual(rows.arrayValue?.last?.objectValue?["text"], .string("5.43"))
+        XCTAssertEqual(rows.arrayValue?.first?.objectValue?["text"], .string("0.85"))
+        XCTAssertEqual(rows.arrayValue?.last?.objectValue?["text"], .string("147.62"))
         XCTAssertEqual(try one("{label: \"X\", pick: \"a\"} | kv_legacy(.; \"missing\")", data: data), .null,
                        "no data: skipped")
     }

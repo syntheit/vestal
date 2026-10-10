@@ -329,7 +329,7 @@ final class SourceRuntimeTests: XCTestCase {
         let spotify = LegacySources.media(player: "Spotify").inlineName
         XCTAssertEqual(runtime.source(.source(spotify))?.type, "media")
         XCTAssertEqual(runtime.readers(.source(spotify)), ["main/spotify"])
-        XCTAssertEqual(runtime.readers(.host("harbor")), ["main/systems"])
+        XCTAssertEqual(runtime.readers(.host("nas")), ["main/systems"])
         XCTAssertTrue(runtime.keys.contains(.source("system")))
     }
 }

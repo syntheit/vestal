@@ -1110,7 +1110,7 @@ The bottom layer (`Sources/VestalCore/DefaultConfig.swift`): a generic dashboard
 
 ## A complete example
 
-Every v0.3 section, and the plan-usage row, merged over the defaults above. [`examples/full.json`](../examples/full.json) is another one, the setup vestal was built for, and [`examples/full-v04.json`](../examples/full-v04.json) the same dashboard written in the v0.4 style.
+Every v0.3 section, and the plan-usage row, merged over the defaults above. [`examples/full.json`](../examples/full.json) is another one, with world clocks, remote hosts, exchange rates and weather, and [`examples/full-v04.json`](../examples/full-v04.json) is the same dashboard written with `keyValue` and jq.
 
 ```json
 {

@@ -1,5 +1,5 @@
 {
-  "hostname": "server1",
+  "hostname": "nas",
   "cpu": {"usage_percent": 23.7, "cores": 16},
   "memory": {"usage_percent": 61.2, "compressed_percent": 4.8, "total_bytes": 68719476736},
   "system": {"uptime_seconds": 1234567.8, "load_avg": [0.52, 0.61, 0.7]},

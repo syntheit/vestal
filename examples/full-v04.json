@@ -8,17 +8,12 @@
   "sources": {
     "weather": {
       "type": "http",
-      "url": "https://wttr.in/?m&format=j1",
+      "url": "https://wttr.in/Lisbon?m&format=j1",
       "refresh": "30m"
-    },
-    "dolares": {
-      "type": "http",
-      "url": "https://dolarapi.com/v1/dolares",
-      "refresh": "4h"
     },
     "rates": {
       "type": "http",
-      "url": "https://raw.githubusercontent.com/syntheit/exchange-rates/refs/heads/main/rates.json",
+      "url": "https://api.frankfurter.dev/v1/latest?base=USD&symbols=EUR,GBP,JPY",
       "refresh": "4h"
     },
     "calendar": {
@@ -32,16 +27,16 @@
       "type": "clock",
       "worldClocks": [
         {
-          "label": "BA",
-          "tz": "America/Argentina/Buenos_Aires"
+          "label": "LIS",
+          "tz": "Europe/Lisbon"
         },
         {
           "label": "NYC",
           "tz": "America/New_York"
         },
         {
-          "label": "CHI",
-          "tz": "America/Chicago"
+          "label": "TYO",
+          "tz": "Asia/Tokyo"
         }
       ]
     },
@@ -58,9 +53,9 @@
       "privacy": {
         "command": [
           "bash",
-          "~/.local/bin/toggle-privacy"
+          "~/bin/toggle-privacy"
         ],
-        "stateFile": "/tmp/.privacy-mode"
+        "stateFile": "~/.cache/privacy-mode"
       }
     },
     "claude": { "type": "claudeUsage" },
@@ -80,20 +75,20 @@
       "type": "systemHealth",
       "hosts": [
         {
-          "name": "swift",
+          "name": "atlas",
           "source": "local"
         },
         {
-          "name": "harbor",
-          "url": "https://harbor.matv.io"
+          "name": "nas",
+          "url": "https://nas.example.com"
         },
         {
-          "name": "raven",
-          "url": "https://raven.matv.io"
+          "name": "edge",
+          "url": "https://edge.example.com"
         },
         {
-          "name": "conduit",
-          "url": "https://conduit.matv.io"
+          "name": "backup",
+          "url": "https://backup.example.com"
         }
       ]
     },
@@ -104,36 +99,21 @@
       "children": [
         {
           "type": "keyValue",
-          "source": "dolares",
+          "source": "rates",
           "items": [
             {
-              "label": "Blue",
-              "vars": {
-                "q": "find({casa: \"blue\"})"
-              },
-              "when": "$q != null",
-              "text": "{{ $q.compra | fmt_int }} / {{ $q.venta | fmt_int }}"
+              "label": "EUR",
+              "value": ".rates.EUR",
+              "format": "fixed:2"
             },
             {
-              "label": "Official",
-              "vars": {
-                "q": "find({casa: \"oficial\"})"
-              },
-              "when": "$q != null",
-              "text": "{{ $q.compra | fmt_int }} / {{ $q.venta | fmt_int }}"
+              "label": "GBP",
+              "value": ".rates.GBP",
+              "format": "fixed:2"
             },
             {
-              "label": "MEP",
-              "vars": {
-                "q": "find({casa: \"bolsa\"})"
-              },
-              "when": "$q != null",
-              "text": "{{ $q.compra | fmt_int }} / {{ $q.venta | fmt_int }}"
-            },
-            {
-              "label": "BRL",
-              "source": "rates",
-              "value": ".rates.BRL",
+              "label": "JPY",
+              "value": ".rates.JPY",
               "format": "fixed:2"
             }
           ]

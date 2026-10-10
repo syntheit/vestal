@@ -5,19 +5,13 @@
   "sources": {
     "weather": {
       "type": "http",
-      "url": "https://wttr.in/?m&format=j1",
+      "url": "https://wttr.in/Lisbon?m&format=j1",
       "refresh": "30m",
-      "parse": "json"
-    },
-    "dolares": {
-      "type": "http",
-      "url": "https://dolarapi.com/v1/dolares",
-      "refresh": "4h",
       "parse": "json"
     },
     "rates": {
       "type": "http",
-      "url": "https://raw.githubusercontent.com/syntheit/exchange-rates/refs/heads/main/rates.json",
+      "url": "https://api.frankfurter.dev/v1/latest?base=USD&symbols=EUR,GBP,JPY",
       "refresh": "4h",
       "parse": "json"
     },
@@ -27,17 +21,17 @@
     "clock": {
       "type": "clock",
       "worldClocks": [
-        { "label": "BA", "tz": "America/Argentina/Buenos_Aires" },
+        { "label": "LIS", "tz": "Europe/Lisbon" },
         { "label": "NYC", "tz": "America/New_York" },
-        { "label": "CHI", "tz": "America/Chicago" }
+        { "label": "TYO", "tz": "Asia/Tokyo" }
       ]
     },
     "systemBar": {
       "type": "systemBar",
       "show": ["uptime", "disk", "battery", "claudeUsage", "network", "privacy"],
       "privacy": {
-        "command": ["bash", "~/.local/bin/toggle-privacy"],
-        "stateFile": "/tmp/.privacy-mode"
+        "command": ["bash", "~/bin/toggle-privacy"],
+        "stateFile": "~/.cache/privacy-mode"
       }
     },
     "claude": { "type": "claudeUsage" },
@@ -49,21 +43,20 @@
       "title": "Systems",
       "provider": "foyer",
       "hosts": [
-        { "name": "swift", "source": "local" },
-        { "name": "harbor", "url": "https://harbor.matv.io" },
-        { "name": "raven", "url": "https://raven.matv.io" },
-        { "name": "conduit", "url": "https://conduit.matv.io" }
+        { "name": "atlas", "source": "local" },
+        { "name": "nas", "url": "https://nas.example.com" },
+        { "name": "edge", "url": "https://edge.example.com" },
+        { "name": "backup", "url": "https://backup.example.com" }
       ]
     },
     "exchange": {
       "type": "keyValueList",
       "title": "Currencies",
-      "source": "dolares",
+      "source": "rates",
       "items": [
-        { "label": "Blue", "match": { "casa": "blue" }, "picks": { "buy": "compra", "sell": "venta" }, "format": "int" },
-        { "label": "Official", "match": { "casa": "oficial" }, "picks": { "buy": "compra", "sell": "venta" }, "format": "int" },
-        { "label": "MEP", "match": { "casa": "bolsa" }, "picks": { "buy": "compra", "sell": "venta" }, "format": "int" },
-        { "label": "BRL", "source": "rates", "pick": "rates.BRL", "format": "decimal" }
+        { "label": "EUR", "pick": "rates.EUR", "format": "decimal" },
+        { "label": "GBP", "pick": "rates.GBP", "format": "decimal" },
+        { "label": "JPY", "pick": "rates.JPY", "format": "decimal" }
       ]
     },
     "weather": {

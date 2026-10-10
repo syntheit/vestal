@@ -28,7 +28,7 @@
     }
   ],
   "gpu": null,
-  "host": "swift",
+  "host": "atlas",
   "memory": {
     "compressed": 12,
     "percent": 61,

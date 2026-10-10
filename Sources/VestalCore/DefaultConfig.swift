@@ -5,7 +5,7 @@ import Foundation
 // The bottom layer of every config: a generic dashboard that works with no
 // config file at all (local clock, system bar, media, today's calendar,
 // weather for wherever wttr.in places you, this machine's health). Nothing
-// personal belongs here; the owner's setup lives in examples/full.json.
+// personal belongs here; a fuller example lives in examples/full.json.
 //
 // JSON rather than Swift values, so defaults and user files merge the same
 // way (see ConfigLoader.merge). docs/CONFIG.md shows this document; keep the

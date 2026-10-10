@@ -86,8 +86,8 @@ final class DashboardLayoutTests: XCTestCase {
 
     func testFullExampleHostKeys() {
         let layout = DashboardLayout(config: fullConfig())
-        XCTAssertEqual(layout.hosts.map(\.name), ["swift", "harbor", "raven", "conduit"])
-        XCTAssertEqual(layout.hostKeys, ["s": "swift", "h": "harbor", "r": "raven", "c": "conduit"])
+        XCTAssertEqual(layout.hosts.map(\.name), ["atlas", "nas", "edge", "backup"])
+        XCTAssertEqual(layout.hostKeys, ["a": "atlas", "n": "nas", "e": "edge", "b": "backup"])
     }
 
     func testExplicitKeysWin() {

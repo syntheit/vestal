@@ -280,7 +280,7 @@ final class TemplateExpansionTests: XCTestCase {
         XCTAssertTrue(media.hasPrefix("inline:") && media.count == "inline:".count + 8)
         XCTAssertTrue(names.contains { $0.hasPrefix("inline:") && loaded.expanded.sources[$0]?.type == "file" })
         // The runtime sees them, and the adapter's host sources.
-        for name in [media, "claude", "host:harbor", "host:raven", "host:conduit"] {
+        for name in [media, "claude", "host:nas", "host:edge", "host:backup"] {
             XCTAssertNotNil(loaded.config.sources[name], name)
         }
     }
@@ -293,11 +293,11 @@ final class TemplateExpansionTests: XCTestCase {
         let bar = loaded.expanded.top["widgets"]?.objectValue?["systemBar"]?.objectValue?["$params"]?.objectValue ?? [:]
         XCTAssertEqual(bar["privacyKey"], .string("p"))
         XCTAssertEqual(bar["claudeSource"] ?? .string("claude"), .string("claude"), "the named source; no adapter-made one")
-        let harbor = loaded.expanded.sources["host:harbor"]
-        XCTAssertEqual(harbor?.type, "command")
-        XCTAssertEqual(harbor?.transform, "foyer_health")
-        XCTAssertEqual(harbor?.refresh, "5s")
-        XCTAssertEqual(harbor?.argv, ["foyer-api", "--host", "https://harbor.matv.io", "/api/health"])
+        let nas = loaded.expanded.sources["host:nas"]
+        XCTAssertEqual(nas?.type, "command")
+        XCTAssertEqual(nas?.transform, "foyer_health")
+        XCTAssertEqual(nas?.refresh, "5s")
+        XCTAssertEqual(nas?.argv, ["foyer-api", "--host", "https://nas.example.com", "/api/health"])
     }
 
     func testAdapterLeavesV04ConfigsAlone() {
@@ -320,7 +320,7 @@ final class TemplateExpansionTests: XCTestCase {
         let expanded = ConfigCommands.printConfig([path, "--expanded"])
         XCTAssertEqual(expanded.status, 0)
         XCTAssertTrue(expanded.stdout.contains("\"$template\""))
-        XCTAssertTrue(expanded.stdout.contains("\"host:harbor\""))
+        XCTAssertTrue(expanded.stdout.contains("\"host:nas\""))
         let templates = ConfigCommands.printConfig([path, "--templates"])
         XCTAssertEqual(templates.status, 0)
         guard case .success(let json) = AnyJSON.parse(Data(templates.stdout.utf8)) else { return XCTFail("not JSON") }

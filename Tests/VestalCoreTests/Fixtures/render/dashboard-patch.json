@@ -14,7 +14,7 @@
       "op": "replace"
     },
     {
-      "id": "main/systems/1/@conduit",
+      "id": "main/systems/1/@backup",
       "node": {
         "action": true,
         "align": "center",
@@ -22,9 +22,9 @@
         "children": [
           {
             "font": "mono",
-            "id": "main/systems/1/@conduit/1",
+            "id": "main/systems/1/@backup/1",
             "lines": 1,
-            "text": "conduit",
+            "text": "backup",
             "type": "text",
             "weight": 600,
             "width": 60
@@ -35,7 +35,7 @@
             "children": [
               {
                 "color": "dim",
-                "id": "main/systems/1/@conduit/2/0",
+                "id": "main/systems/1/@backup/2/0",
                 "size": 9,
                 "text": "CPU",
                 "textAlign": "end",
@@ -46,7 +46,7 @@
               {
                 "color": "cyan",
                 "height": 6,
-                "id": "main/systems/1/@conduit/2/1",
+                "id": "main/systems/1/@backup/2/1",
                 "trackColor": "#7dcfff26",
                 "type": "bar",
                 "value": 0.04,
@@ -55,7 +55,7 @@
               {
                 "color": "subtle",
                 "font": "mono",
-                "id": "main/systems/1/@conduit/2/2",
+                "id": "main/systems/1/@backup/2/2",
                 "size": 10,
                 "text": "4%",
                 "type": "text",
@@ -63,7 +63,7 @@
               }
             ],
             "gap": 4,
-            "id": "main/systems/1/@conduit/2",
+            "id": "main/systems/1/@backup/2",
             "type": "stack"
           },
           {
@@ -72,7 +72,7 @@
             "children": [
               {
                 "color": "dim",
-                "id": "main/systems/1/@conduit/3/0",
+                "id": "main/systems/1/@backup/3/0",
                 "size": 9,
                 "text": "RAM",
                 "textAlign": "end",
@@ -83,7 +83,7 @@
               {
                 "color": "purple",
                 "height": 6,
-                "id": "main/systems/1/@conduit/3/1",
+                "id": "main/systems/1/@backup/3/1",
                 "trackColor": "#ba99f726",
                 "type": "bar",
                 "value": 0.22,
@@ -92,7 +92,7 @@
               {
                 "color": "subtle",
                 "font": "mono",
-                "id": "main/systems/1/@conduit/3/2",
+                "id": "main/systems/1/@backup/3/2",
                 "size": 10,
                 "text": "22%",
                 "type": "text",
@@ -100,13 +100,13 @@
               }
             ],
             "gap": 4,
-            "id": "main/systems/1/@conduit/3",
+            "id": "main/systems/1/@backup/3",
             "type": "stack"
           },
           {
             "color": "subtle",
             "font": "mono",
-            "id": "main/systems/1/@conduit/4",
+            "id": "main/systems/1/@backup/4",
             "size": 11,
             "text": "41°",
             "type": "text"
@@ -114,19 +114,19 @@
           {
             "color": "dim",
             "font": "mono",
-            "id": "main/systems/1/@conduit/5",
+            "id": "main/systems/1/@backup/5",
             "size": 11,
             "text": "2h",
             "type": "text"
           },
           {
-            "id": "main/systems/1/@conduit/6",
+            "id": "main/systems/1/@backup/6",
             "type": "spacer",
             "width": "fill"
           }
         ],
         "gap": 10,
-        "id": "main/systems/1/@conduit",
+        "id": "main/systems/1/@backup",
         "type": "stack",
         "width": "fill"
       },

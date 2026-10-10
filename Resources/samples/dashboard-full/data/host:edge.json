@@ -48,7 +48,7 @@
       }
     ]
   },
-  "hostname": "raven",
+  "hostname": "edge",
   "memory": {
     "compressed_percent": 30.2,
     "total_bytes": 68719476736,

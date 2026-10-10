@@ -70,7 +70,7 @@ final class RenderModelTests: XCTestCase {
         guard case .text(let clock)? = next.root.node(withId: "main/clock/0")?.content else { return XCTFail("clock") }
         XCTAssertEqual(clock.text, "14:03:23")
         XCTAssertEqual(next.root.node(withId: "main/weather"), base.root.node(withId: "main/weather"))
-        XCTAssertNotEqual(next.root.node(withId: "main/systems/1/@conduit"), base.root.node(withId: "main/systems/1/@conduit"))
+        XCTAssertNotEqual(next.root.node(withId: "main/systems/1/@backup"), base.root.node(withId: "main/systems/1/@backup"))
         XCTAssertEqual(next.root.duplicateIds, [])
     }
 
@@ -95,7 +95,7 @@ final class RenderModelTests: XCTestCase {
     }
 
     func testInputMessages() throws {
-        XCTAssertEqual(try encode(RenderInput.invoke(id: "main/systems/1/@harbor")), #"{"cmd":"invoke","id":"main/systems/1/@harbor"}"#)
+        XCTAssertEqual(try encode(RenderInput.invoke(id: "main/systems/1/@nas")), #"{"cmd":"invoke","id":"main/systems/1/@nas"}"#)
         XCTAssertEqual(try encode(RenderInput.key("shift+tab")), #"{"cmd":"key","key":"shift+tab"}"#)
         XCTAssertEqual(try encode(RenderInput.hide), #"{"cmd":"hide"}"#)
         let decoded = try RenderJSON.decoder.decode(RenderInput.self, from: Data(#"{"cmd":"view","name":"work"}"#.utf8))

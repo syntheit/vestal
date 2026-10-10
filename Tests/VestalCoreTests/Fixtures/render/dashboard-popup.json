@@ -13,7 +13,7 @@
               "font": "mono",
               "id": "popup/0/0",
               "size": 18,
-              "text": "harbor",
+              "text": "nas",
               "type": "text",
               "weight": 600
             },
@@ -466,23 +466,23 @@
                 "children": [
                   {
                     "color": "dim",
-                    "id": "main/clock/2/@BA/0",
+                    "id": "main/clock/2/@LIS/0",
                     "size": 11,
-                    "text": "BA",
+                    "text": "LIS",
                     "type": "text",
                     "weight": 600
                   },
                   {
                     "color": "subtle",
                     "font": "mono",
-                    "id": "main/clock/2/@BA/1",
+                    "id": "main/clock/2/@LIS/1",
                     "size": 11,
                     "text": "18:03",
                     "type": "text"
                   }
                 ],
                 "gap": 4,
-                "id": "main/clock/2/@BA",
+                "id": "main/clock/2/@LIS",
                 "type": "stack"
               },
               {
@@ -516,23 +516,23 @@
                 "children": [
                   {
                     "color": "dim",
-                    "id": "main/clock/2/@CHI/0",
+                    "id": "main/clock/2/@TYO/0",
                     "size": 11,
-                    "text": "CHI",
+                    "text": "TYO",
                     "type": "text",
                     "weight": 600
                   },
                   {
                     "color": "subtle",
                     "font": "mono",
-                    "id": "main/clock/2/@CHI/1",
+                    "id": "main/clock/2/@TYO/1",
                     "size": 11,
-                    "text": "16:03",
+                    "text": "02:03",
                     "type": "text"
                   }
                 ],
                 "gap": 4,
-                "id": "main/clock/2/@CHI",
+                "id": "main/clock/2/@TYO",
                 "type": "stack"
               }
             ],
@@ -946,7 +946,7 @@
                   },
                   {
                     "id": "main/agenda/1/@dinner/1",
-                    "text": "Dinner at Don Julio",
+                    "text": "Dinner with Sam",
                     "type": "text",
                     "weight": 500
                   }
@@ -1002,9 +1002,9 @@
                 "children": [
                   {
                     "font": "mono",
-                    "id": "main/systems/1/@swift/1",
+                    "id": "main/systems/1/@atlas/1",
                     "lines": 1,
-                    "text": "swift",
+                    "text": "atlas",
                     "type": "text",
                     "weight": 600,
                     "width": 60
@@ -1015,7 +1015,7 @@
                     "children": [
                       {
                         "color": "dim",
-                        "id": "main/systems/1/@swift/2/0",
+                        "id": "main/systems/1/@atlas/2/0",
                         "size": 9,
                         "text": "CPU",
                         "textAlign": "end",
@@ -1026,7 +1026,7 @@
                       {
                         "color": "cyan",
                         "height": 6,
-                        "id": "main/systems/1/@swift/2/1",
+                        "id": "main/systems/1/@atlas/2/1",
                         "trackColor": "#7dcfff26",
                         "type": "bar",
                         "value": 0.23,
@@ -1035,7 +1035,7 @@
                       {
                         "color": "subtle",
                         "font": "mono",
-                        "id": "main/systems/1/@swift/2/2",
+                        "id": "main/systems/1/@atlas/2/2",
                         "size": 10,
                         "text": "23%",
                         "type": "text",
@@ -1043,7 +1043,7 @@
                       }
                     ],
                     "gap": 4,
-                    "id": "main/systems/1/@swift/2",
+                    "id": "main/systems/1/@atlas/2",
                     "type": "stack"
                   },
                   {
@@ -1052,7 +1052,7 @@
                     "children": [
                       {
                         "color": "dim",
-                        "id": "main/systems/1/@swift/3/0",
+                        "id": "main/systems/1/@atlas/3/0",
                         "size": 9,
                         "text": "RAM",
                         "textAlign": "end",
@@ -1063,7 +1063,7 @@
                       {
                         "color": "purple",
                         "height": 6,
-                        "id": "main/systems/1/@swift/3/1",
+                        "id": "main/systems/1/@atlas/3/1",
                         "overlay": 0.12,
                         "overlayColor": "#ffffff33",
                         "trackColor": "#ba99f726",
@@ -1074,7 +1074,7 @@
                       {
                         "color": "subtle",
                         "font": "mono",
-                        "id": "main/systems/1/@swift/3/2",
+                        "id": "main/systems/1/@atlas/3/2",
                         "size": 10,
                         "text": "61%",
                         "type": "text",
@@ -1082,13 +1082,13 @@
                       }
                     ],
                     "gap": 4,
-                    "id": "main/systems/1/@swift/3",
+                    "id": "main/systems/1/@atlas/3",
                     "type": "stack"
                   },
                   {
                     "color": "subtle",
                     "font": "mono",
-                    "id": "main/systems/1/@swift/4",
+                    "id": "main/systems/1/@atlas/4",
                     "size": 11,
                     "text": "54°",
                     "type": "text"
@@ -1096,19 +1096,19 @@
                   {
                     "color": "dim",
                     "font": "mono",
-                    "id": "main/systems/1/@swift/5",
+                    "id": "main/systems/1/@atlas/5",
                     "size": 11,
                     "text": "3d",
                     "type": "text"
                   },
                   {
-                    "id": "main/systems/1/@swift/6",
+                    "id": "main/systems/1/@atlas/6",
                     "type": "spacer",
                     "width": "fill"
                   }
                 ],
                 "gap": 10,
-                "id": "main/systems/1/@swift",
+                "id": "main/systems/1/@atlas",
                 "type": "stack",
                 "width": "fill"
               },
@@ -1119,9 +1119,9 @@
                 "children": [
                   {
                     "font": "mono",
-                    "id": "main/systems/1/@harbor/1",
+                    "id": "main/systems/1/@nas/1",
                     "lines": 1,
-                    "text": "harbor",
+                    "text": "nas",
                     "type": "text",
                     "weight": 600,
                     "width": 60
@@ -1132,7 +1132,7 @@
                     "children": [
                       {
                         "color": "dim",
-                        "id": "main/systems/1/@harbor/2/0",
+                        "id": "main/systems/1/@nas/2/0",
                         "size": 9,
                         "text": "CPU",
                         "textAlign": "end",
@@ -1143,7 +1143,7 @@
                       {
                         "color": "cyan",
                         "height": 6,
-                        "id": "main/systems/1/@harbor/2/1",
+                        "id": "main/systems/1/@nas/2/1",
                         "trackColor": "#7dcfff26",
                         "type": "bar",
                         "value": 0.08,
@@ -1152,7 +1152,7 @@
                       {
                         "color": "subtle",
                         "font": "mono",
-                        "id": "main/systems/1/@harbor/2/2",
+                        "id": "main/systems/1/@nas/2/2",
                         "size": 10,
                         "text": "8%",
                         "type": "text",
@@ -1160,7 +1160,7 @@
                       }
                     ],
                     "gap": 4,
-                    "id": "main/systems/1/@harbor/2",
+                    "id": "main/systems/1/@nas/2",
                     "type": "stack"
                   },
                   {
@@ -1169,7 +1169,7 @@
                     "children": [
                       {
                         "color": "dim",
-                        "id": "main/systems/1/@harbor/3/0",
+                        "id": "main/systems/1/@nas/3/0",
                         "size": 9,
                         "text": "RAM",
                         "textAlign": "end",
@@ -1180,7 +1180,7 @@
                       {
                         "color": "purple",
                         "height": 6,
-                        "id": "main/systems/1/@harbor/3/1",
+                        "id": "main/systems/1/@nas/3/1",
                         "trackColor": "#ba99f726",
                         "type": "bar",
                         "value": 0.34,
@@ -1189,7 +1189,7 @@
                       {
                         "color": "subtle",
                         "font": "mono",
-                        "id": "main/systems/1/@harbor/3/2",
+                        "id": "main/systems/1/@nas/3/2",
                         "size": 10,
                         "text": "34%",
                         "type": "text",
@@ -1197,13 +1197,13 @@
                       }
                     ],
                     "gap": 4,
-                    "id": "main/systems/1/@harbor/3",
+                    "id": "main/systems/1/@nas/3",
                     "type": "stack"
                   },
                   {
                     "color": "subtle",
                     "font": "mono",
-                    "id": "main/systems/1/@harbor/4",
+                    "id": "main/systems/1/@nas/4",
                     "size": 11,
                     "text": "47°",
                     "type": "text"
@@ -1211,19 +1211,19 @@
                   {
                     "color": "dim",
                     "font": "mono",
-                    "id": "main/systems/1/@harbor/5",
+                    "id": "main/systems/1/@nas/5",
                     "size": 11,
                     "text": "21d",
                     "type": "text"
                   },
                   {
-                    "id": "main/systems/1/@harbor/6",
+                    "id": "main/systems/1/@nas/6",
                     "type": "spacer",
                     "width": "fill"
                   }
                 ],
                 "gap": 10,
-                "id": "main/systems/1/@harbor",
+                "id": "main/systems/1/@nas",
                 "type": "stack",
                 "width": "fill"
               },
@@ -1234,9 +1234,9 @@
                 "children": [
                   {
                     "font": "mono",
-                    "id": "main/systems/1/@raven/1",
+                    "id": "main/systems/1/@edge/1",
                     "lines": 1,
-                    "text": "raven",
+                    "text": "edge",
                     "type": "text",
                     "weight": 600,
                     "width": 60
@@ -1247,7 +1247,7 @@
                     "children": [
                       {
                         "color": "dim",
-                        "id": "main/systems/1/@raven/2/0",
+                        "id": "main/systems/1/@edge/2/0",
                         "size": 9,
                         "text": "CPU",
                         "textAlign": "end",
@@ -1258,7 +1258,7 @@
                       {
                         "color": "cyan",
                         "height": 6,
-                        "id": "main/systems/1/@raven/2/1",
+                        "id": "main/systems/1/@edge/2/1",
                         "trackColor": "#7dcfff26",
                         "type": "bar",
                         "value": 0.71,
@@ -1267,7 +1267,7 @@
                       {
                         "color": "subtle",
                         "font": "mono",
-                        "id": "main/systems/1/@raven/2/2",
+                        "id": "main/systems/1/@edge/2/2",
                         "size": 10,
                         "text": "71%",
                         "type": "text",
@@ -1275,7 +1275,7 @@
                       }
                     ],
                     "gap": 4,
-                    "id": "main/systems/1/@raven/2",
+                    "id": "main/systems/1/@edge/2",
                     "type": "stack"
                   },
                   {
@@ -1284,7 +1284,7 @@
                     "children": [
                       {
                         "color": "dim",
-                        "id": "main/systems/1/@raven/3/0",
+                        "id": "main/systems/1/@edge/3/0",
                         "size": 9,
                         "text": "RAM",
                         "textAlign": "end",
@@ -1295,7 +1295,7 @@
                       {
                         "color": "purple",
                         "height": 6,
-                        "id": "main/systems/1/@raven/3/1",
+                        "id": "main/systems/1/@edge/3/1",
                         "overlay": 0.3,
                         "overlayColor": "#ffffff33",
                         "trackColor": "#ba99f726",
@@ -1306,7 +1306,7 @@
                       {
                         "color": "subtle",
                         "font": "mono",
-                        "id": "main/systems/1/@raven/3/2",
+                        "id": "main/systems/1/@edge/3/2",
                         "size": 10,
                         "text": "78%",
                         "type": "text",
@@ -1314,13 +1314,13 @@
                       }
                     ],
                     "gap": 4,
-                    "id": "main/systems/1/@raven/3",
+                    "id": "main/systems/1/@edge/3",
                     "type": "stack"
                   },
                   {
                     "color": "bad",
                     "font": "mono",
-                    "id": "main/systems/1/@raven/4",
+                    "id": "main/systems/1/@edge/4",
                     "size": 11,
                     "text": "82°",
                     "type": "text"
@@ -1328,19 +1328,19 @@
                   {
                     "color": "dim",
                     "font": "mono",
-                    "id": "main/systems/1/@raven/5",
+                    "id": "main/systems/1/@edge/5",
                     "size": 11,
                     "text": "9d",
                     "type": "text"
                   },
                   {
-                    "id": "main/systems/1/@raven/6",
+                    "id": "main/systems/1/@edge/6",
                     "type": "spacer",
                     "width": "fill"
                   }
                 ],
                 "gap": 10,
-                "id": "main/systems/1/@raven",
+                "id": "main/systems/1/@edge",
                 "type": "stack",
                 "width": "fill"
               },
@@ -1352,7 +1352,7 @@
                   {
                     "color": "bad",
                     "glyph": "",
-                    "id": "main/systems/1/@conduit/0",
+                    "id": "main/systems/1/@backup/0",
                     "name": "circle",
                     "size": 6,
                     "type": "icon",
@@ -1360,21 +1360,21 @@
                   },
                   {
                     "font": "mono",
-                    "id": "main/systems/1/@conduit/1",
+                    "id": "main/systems/1/@backup/1",
                     "lines": 1,
-                    "text": "conduit",
+                    "text": "backup",
                     "type": "text",
                     "weight": 600,
                     "width": 60
                   },
                   {
-                    "id": "main/systems/1/@conduit/6",
+                    "id": "main/systems/1/@backup/6",
                     "type": "spacer",
                     "width": "fill"
                   }
                 ],
                 "gap": 10,
-                "id": "main/systems/1/@conduit",
+                "id": "main/systems/1/@backup",
                 "type": "stack",
                 "width": "fill"
               }
@@ -1425,21 +1425,21 @@
                 "children": [
                   {
                     "color": "subtle",
-                    "id": "main/exchange/1/@Blue/0",
+                    "id": "main/exchange/1/@EUR/0",
                     "size": 10,
-                    "text": "Blue",
+                    "text": "EUR",
                     "type": "text",
                     "weight": 600
                   },
                   {
-                    "id": "main/exchange/1/@Blue/1",
+                    "id": "main/exchange/1/@EUR/1",
                     "size": 14,
-                    "text": "1215 / 1235",
+                    "text": "0.85",
                     "type": "text"
                   }
                 ],
                 "gap": 3,
-                "id": "main/exchange/1/@Blue",
+                "id": "main/exchange/1/@EUR",
                 "type": "stack"
               },
               {
@@ -1447,21 +1447,21 @@
                 "children": [
                   {
                     "color": "subtle",
-                    "id": "main/exchange/1/@Official/0",
+                    "id": "main/exchange/1/@GBP/0",
                     "size": 10,
-                    "text": "Official",
+                    "text": "GBP",
                     "type": "text",
                     "weight": 600
                   },
                   {
-                    "id": "main/exchange/1/@Official/1",
+                    "id": "main/exchange/1/@GBP/1",
                     "size": 14,
-                    "text": "1045 / 1085",
+                    "text": "0.74",
                     "type": "text"
                   }
                 ],
                 "gap": 3,
-                "id": "main/exchange/1/@Official",
+                "id": "main/exchange/1/@GBP",
                 "type": "stack"
               },
               {
@@ -1469,43 +1469,21 @@
                 "children": [
                   {
                     "color": "subtle",
-                    "id": "main/exchange/1/@MEP/0",
+                    "id": "main/exchange/1/@JPY/0",
                     "size": 10,
-                    "text": "MEP",
+                    "text": "JPY",
                     "type": "text",
                     "weight": 600
                   },
                   {
-                    "id": "main/exchange/1/@MEP/1",
+                    "id": "main/exchange/1/@JPY/1",
                     "size": 14,
-                    "text": "1198 / 1203",
+                    "text": "147.62",
                     "type": "text"
                   }
                 ],
                 "gap": 3,
-                "id": "main/exchange/1/@MEP",
-                "type": "stack"
-              },
-              {
-                "align": "center",
-                "children": [
-                  {
-                    "color": "subtle",
-                    "id": "main/exchange/1/@BRL/0",
-                    "size": 10,
-                    "text": "BRL",
-                    "type": "text",
-                    "weight": 600
-                  },
-                  {
-                    "id": "main/exchange/1/@BRL/1",
-                    "size": 14,
-                    "text": "5.31",
-                    "type": "text"
-                  }
-                ],
-                "gap": 3,
-                "id": "main/exchange/1/@BRL",
+                "id": "main/exchange/1/@JPY",
                 "type": "stack"
               }
             ],
@@ -1552,7 +1530,7 @@
             "children": [
               {
                 "id": "main/weather/1/0",
-                "text": "Buenos Aires",
+                "text": "Lisbon",
                 "type": "text",
                 "weight": 500
               },

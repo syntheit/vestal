@@ -12,7 +12,7 @@ final class PickingTests: XCTestCase {
          "rates": try Fixture.json("exchange-rates.json")]
     }
 
-    /// The owner's setup (examples/full.json), which these payloads feed.
+    /// The example setup (examples/full.json), which these payloads feed.
     private func fullConfig() throws -> Config {
         let loaded = ConfigLoader.load(path: Fixture.example("full.json").path)
         XCTAssertEqual(loaded.warnings, [])
@@ -25,12 +25,11 @@ final class PickingTests: XCTestCase {
         let widget = try XCTUnwrap(try fullConfig().widgets["exchange"])
         let rates = AsyncData.exchangeRates(
             try XCTUnwrap(widget.items), defaultSource: try XCTUnwrap(widget.source),
-            parsedBySource: try sources())
+            parsedBySource: ["rates": try Fixture.json("full/rates.json")])
         XCTAssertEqual(rates, [
-            Rate(label: "Blue", buy: "1180", sell: "1200"),
-            Rate(label: "Official", buy: "1045", sell: "1085"),
-            Rate(label: "MEP", buy: "1178", sell: "1182"),
-            Rate(label: "BRL", buy: "5.43", sell: ""),
+            Rate(label: "EUR", buy: "0.85", sell: ""),
+            Rate(label: "GBP", buy: "0.74", sell: ""),
+            Rate(label: "JPY", buy: "147.62", sell: ""),
         ])
     }
 
@@ -38,18 +37,17 @@ final class PickingTests: XCTestCase {
         // What the dashboard does with the runtime's snapshots: each source
         // parsed once, looked up by name.
         let widget = try XCTUnwrap(try fullConfig().widgets["exchange"])
-        let data = ["dolares": try Fixture.data("dolarapi-dolares.json"),
-                    "rates": try Fixture.data("exchange-rates.json")]
+        let data = ["rates": try Fixture.data("full/rates.json")]
         var asked: [String] = []
         let rates = AsyncData.exchangeRates(for: widget) { name in
             asked.append(name)
             return data[name]
         }
-        XCTAssertEqual(rates.map(\.label), ["Blue", "Official", "MEP", "BRL"])
-        XCTAssertEqual(asked.sorted(), ["dolares", "rates"])
-        XCTAssertEqual(AsyncData.exchangeRates(for: widget) { $0 == "rates" ? data["rates"] : nil }.map(\.label), ["BRL"])
+        XCTAssertEqual(rates.map(\.label), ["EUR", "GBP", "JPY"])
+        XCTAssertEqual(Set(asked), ["rates"])
+        XCTAssertEqual(AsyncData.exchangeRates(for: widget) { _ in nil }, [])
         XCTAssertEqual(AsyncData.exchangeRates(for: widget) { _ in Data("<html>".utf8) }, [])
-        XCTAssertEqual(widget.sourceNames, ["dolares", "rates"])
+        XCTAssertEqual(widget.sourceNames, ["rates"])
     }
 
     func testItemsWhoseSourceHasNoDataAreSkipped() throws {

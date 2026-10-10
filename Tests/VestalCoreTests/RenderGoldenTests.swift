@@ -61,9 +61,9 @@ final class RenderGoldenTests: XCTestCase {
     func testHostPopupGolden() throws {
         let (session, data) = try fullSession()
         _ = session.render(data: data, now: Self.at)
-        XCTAssertEqual(session.widgetKeys["h"], "main/systems/1/@harbor")
+        XCTAssertEqual(session.widgetKeys["n"], "main/systems/1/@nas")
         XCTAssertEqual(session.widgetKeys["p"], "main/systemBar/2")
-        XCTAssertEqual(session.key("h", data: data, now: Self.at), [.changed])
+        XCTAssertEqual(session.key("n", data: data, now: Self.at), [.changed])
         let snapshot = session.render(data: data, now: Self.at)
         XCTAssertEqual(snapshot.diagnostics, [])
         XCTAssertEqual(snapshot.popup?.width, 520)

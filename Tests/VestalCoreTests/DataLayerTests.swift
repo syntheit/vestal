@@ -108,13 +108,13 @@ final class SourceDefinitionTests: XCTestCase {
         XCTAssertEqual(all[spotify.inlineName], spotify)
         XCTAssertEqual(config.origin(ofSource: spotify.inlineName), "adapter")
         XCTAssertEqual(config.origin(ofSource: "system"), "builtin")
-        XCTAssertEqual(config.origin(ofSource: "dolares"), "config")
+        XCTAssertEqual(config.origin(ofSource: "rates"), "config")
 
         let readers = SourceReaders.readers(of: config)
         XCTAssertEqual(readers["system"], ["main/systemBar", "main/spotify", "main/systems"])
         XCTAssertEqual(readers[spotify.inlineName], ["main/spotify"])
         XCTAssertEqual(readers["claude"], ["main/systemBar"], "the claudeUsage item reads the named source")
-        XCTAssertEqual(readers["dolares"], ["main/exchange"])
+        XCTAssertEqual(readers["rates"], ["main/exchange"])
         XCTAssertNil(readers["media"], "the built-in media source has no reader in a v0.3 layout")
     }
 

@@ -281,20 +281,18 @@ final class ConfigLoaderTests: XCTestCase {
     /// options. Titles and units spell out their defaults.
     func testFullExampleIsTheOldDashboard() throws {
         let config = ConfigLoader.load(path: Fixture.example("full.json").path, platform: .macos).config
-        func dolar(_ label: String, _ casa: String) -> PickItem {
-            PickItem(label: label, match: ["casa": .string(casa)], picks: ["buy": "compra", "sell": "venta"],
-                     format: "int")
+        func rate(_ code: String) -> PickItem {
+            PickItem(label: code, pick: "rates.\(code)", format: "decimal")
         }
         let expected = Config(
             version: 1,
             hotkey: nil,
             theme: ThemeConfig(palette: "tokyo-night", background: "aurora"),
             sources: [
-                "weather": SourceConfig(type: "http", url: "https://wttr.in/?m&format=j1", refresh: "30m", parse: "json"),
-                "dolares": SourceConfig(type: "http", url: "https://dolarapi.com/v1/dolares", refresh: "4h", parse: "json"),
+                "weather": SourceConfig(type: "http", url: "https://wttr.in/Lisbon?m&format=j1", refresh: "30m", parse: "json"),
                 "rates": SourceConfig(
                     type: "http",
-                    url: "https://raw.githubusercontent.com/syntheit/exchange-rates/refs/heads/main/rates.json",
+                    url: "https://api.frankfurter.dev/v1/latest?base=USD&symbols=EUR,GBP,JPY",
                     refresh: "4h", parse: "json"),
                 "calendar": SourceConfig(type: "calendar", refresh: "5m", days: 1),
                 "system": SourceConfig(type: "system"),
@@ -304,33 +302,30 @@ final class ConfigLoaderTests: XCTestCase {
             ],
             widgets: [
                 "clock": WidgetConfig(type: "clock", worldClocks: [
-                    WorldClock(label: "BA", tz: "America/Argentina/Buenos_Aires"),
+                    WorldClock(label: "LIS", tz: "Europe/Lisbon"),
                     WorldClock(label: "NYC", tz: "America/New_York"),
-                    WorldClock(label: "CHI", tz: "America/Chicago"),
+                    WorldClock(label: "TYO", tz: "Asia/Tokyo"),
                 ]),
                 "systemBar": WidgetConfig(
                     type: "systemBar",
                     show: ["uptime", "disk", "battery", "claudeUsage", "network", "privacy"],
-                    privacy: PrivacyConfig(command: ["bash", "~/.local/bin/toggle-privacy"],
-                                           stateFile: "/tmp/.privacy-mode")),
+                    privacy: PrivacyConfig(command: ["bash", "~/bin/toggle-privacy"],
+                                           stateFile: "~/.cache/privacy-mode")),
                 "claude": WidgetConfig(type: "claudeUsage"),
                 "spotify": WidgetConfig(type: "media", player: "Spotify", hideWhenOff: true),
                 "agenda": WidgetConfig(type: "agendaList", title: "Today", source: "calendar", maxEvents: 5),
                 "systems": WidgetConfig(
                     type: "systemHealth", title: "Systems",
                     hosts: [
-                        HostConfig(name: "swift", source: "local"),
-                        HostConfig(name: "harbor", url: "https://harbor.matv.io"),
-                        HostConfig(name: "raven", url: "https://raven.matv.io"),
-                        HostConfig(name: "conduit", url: "https://conduit.matv.io"),
+                        HostConfig(name: "atlas", source: "local"),
+                        HostConfig(name: "nas", url: "https://nas.example.com"),
+                        HostConfig(name: "edge", url: "https://edge.example.com"),
+                        HostConfig(name: "backup", url: "https://backup.example.com"),
                     ],
                     provider: "foyer"),
                 "exchange": WidgetConfig(
-                    type: "keyValueList", title: "Currencies", source: "dolares",
-                    items: [
-                        dolar("Blue", "blue"), dolar("Official", "oficial"), dolar("MEP", "bolsa"),
-                        PickItem(label: "BRL", source: "rates", pick: "rates.BRL", format: "decimal"),
-                    ]),
+                    type: "keyValueList", title: "Currencies", source: "rates",
+                    items: [rate("EUR"), rate("GBP"), rate("JPY")]),
                 "weather": WidgetConfig(
                     type: "weatherCard", title: "Weather", source: "weather",
                     fields: [
@@ -356,7 +351,7 @@ final class ConfigLoaderTests: XCTestCase {
         // sources come in with the expansion.
         let named = config.sources.filter { !$0.key.hasPrefix("inline:") && !$0.key.hasPrefix("host:") }
         XCTAssertEqual(Set(named.keys), Set(expected.sources.keys))
-        XCTAssertEqual(Set(config.sources.keys.filter { $0.hasPrefix("host:") }), ["host:harbor", "host:raven", "host:conduit"])
+        XCTAssertEqual(Set(config.sources.keys.filter { $0.hasPrefix("host:") }), ["host:nas", "host:edge", "host:backup"])
         for (name, source) in expected.sources { XCTAssertEqual(config.sources[name], source, name) }
         XCTAssertEqual(Set(config.widgets.keys), Set(expected.widgets.keys))
         for (key, widget) in expected.widgets { XCTAssertEqual(config.widgets[key], widget, key) }
