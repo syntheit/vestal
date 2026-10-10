@@ -1,70 +1,86 @@
-# Vestal
+<h1 align="center">vestal</h1>
 
-A full-screen dashboard overlay you toggle with a key. Press it, see what
-matters at a glance, press it again and it's gone.
+<p align="center">
+vestal is a full-screen dashboard that a hotkey shows and hides. One JSON config draws it on macOS and Linux, and an agent can write that config.
+</p>
 
-Runs on macOS (SwiftUI) and Linux (GTK 4 on Hyprland) from the same JSON
-config. It stays resident while hidden and uses almost nothing.
+<p align="center">
+<a href="https://vestal.matv.io"><img src="https://img.shields.io/badge/website-vestal.matv.io-5b6cf0" alt="Website"></a>
+<a href="https://vestal.matv.io/docs/"><img src="https://img.shields.io/badge/docs-read-5b6cf0" alt="Docs"></a>
+<img src="https://img.shields.io/badge/macOS-14%2B-555" alt="macOS 14+">
+<a href="./LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-555" alt="License GPL-3.0"></a>
+</p>
+
+<p align="center"><img src="docs/images/hero.png" alt="The default dashboard over the aurora: a clock, this machine, music, agenda, hosts, currencies and weather"></p>
+
+## What it does
+
+- `~/.config/vestal/config.json` drives the SwiftUI app on macOS and the GTK 4 app on Linux.
+- The docs, schema, validation and offscreen screenshots ship in the binary, so an agent can write the config and look at the result.
+- There are about 50 widgets and 8 starters. Pick a starter on the first run, then reshape it.
+
+## Starters
+
+<table>
+<tr>
+<td align="center" width="25%"><img src="docs/images/starter-default.png" alt="Default starter"><br>default</td>
+<td align="center" width="25%"><img src="docs/images/starter-minimal.png" alt="Minimal starter"><br>minimal</td>
+<td align="center" width="25%"><img src="docs/images/starter-developer.png" alt="Developer starter"><br>developer</td>
+<td align="center" width="25%"><img src="docs/images/starter-media.png" alt="Media starter"><br>media</td>
+</tr>
+<tr>
+<td align="center" width="25%"><img src="docs/images/starter-homelab.png" alt="Homelab starter"><br>homelab</td>
+<td align="center" width="25%"><img src="docs/images/starter-markets.png" alt="Markets starter"><br>markets</td>
+<td align="center" width="25%"><img src="docs/images/starter-agentops.png" alt="Agent ops starter"><br>agentops</td>
+<td align="center" width="25%"><img src="docs/images/starter-focus.png" alt="Focus starter"><br>focus</td>
+</tr>
+</table>
+
+## Ask your agent
+
+vestal has no settings window. You tell your agent what you want, and it reads `vestal docs`, writes the config and checks it with `vestal check-config`, `vestal render` and `vestal screenshot`. Three requests an agent carried out, with what it built:
+
+Make a heatmap of how many words I write each day in my Obsidian daily notes, for the last twelve weeks.
+
+<p align="center"><img src="docs/images/ask-word-heatmap.png" alt="A heatmap of words written per day over twelve weeks, with today's count, the last seven days and the streak"></p>
+
+Show the Hacker News stories about Nix that got more than 100 points.
+
+<p align="center"><img src="docs/images/ask-hn-nix.png" alt="Five Hacker News stories about Nix with their points and comment counts"></p>
+
+On weekends, put my Home Assistant garden sensors at the top of the dashboard, and hide them during the week.
+
+<p align="center"><img src="docs/images/ask-weekend-garden.png" alt="Six garden tiles from Home Assistant: soil moisture, greenhouse, drip line, rain, compost and the gate"></p>
+
+The commands each agent ran, and the config it wrote, are on [the site](https://vestal.matv.io/#asks).
+
+## Clock faces
+
+<p align="center"><img src="docs/images/clocks.png" alt="Eight clock faces: flip, analog, dot matrix, ring, thin, serif, stacked and condensed"></p>
+
+<p align="center"><img src="docs/images/flip.webp" width="560" alt="The flip clock turning over a minute, over the aurora"></p>
+
+## Backgrounds
+
+<p align="center"><img src="docs/images/backgrounds.png" alt="Six of the backgrounds: aurora, mesh, sky, rain, topo and stars"></p>
+
+## Widgets
+
+<p align="center"><img src="docs/images/widgets.png" alt="Twelve widgets: now playing, review queue, watchlist, commit activity, agenda, AI plan usage, habits, focus timer, system health, CI status, containers and forecast"></p>
+
+Every widget, at its real size with the line that adds it, is on [the site](https://vestal.matv.io/#widgets).
 
 ## Install
 
-Vestal ships as a Nix flake with a Home Manager module:
-
-```nix
-# flake.nix
-inputs.vestal.url = "github:syntheit/vestal";
-
-# Home Manager
-{
-  imports = [ inputs.vestal.homeManagerModules.default ];
-
-  programs.vestal = {
-    enable = true;
-    settings = {
-      hotkey = "f3";
-    };
-  };
-}
-```
-
-`settings` is written to `~/.config/vestal/config.json`. Every option is
-documented in [nix/hm-module.nix](./nix/hm-module.nix).
-
-## Configure
-
-The config is one JSON file layered over built-in defaults. See
-[docs/CONFIG.md](./docs/CONFIG.md) for every key and
-[examples/](./examples) for complete configs.
-
-The CLI can check and preview a config without showing it:
-
 ```sh
-vestal check-config config.json
-vestal render --config config.json
-vestal screenshot out.png --config config.json
+brew install --cask syntheit/vestal/vestal
+vestal init            # writes ~/.config/vestal/config.json (vestal init --list shows the starters)
+# then press cmd+shift+space to show it, and again to hide it
 ```
 
-`vestal docs` prints the full reference. [AGENTS.md](./AGENTS.md) covers
-having an LLM agent write the config for you.
+- DMG: download `Vestal-<version>.dmg` from [Releases](https://github.com/syntheit/vestal/releases/latest) and drag `Vestal.app` onto Applications.
+- Nix (macOS or Linux): the flake has a Home Manager module, `programs.vestal`; see [install](https://vestal.matv.io/docs/install.html).
 
-## Usage
+## More
 
-```sh
-vestal toggle     # show or hide (starts vestal if needed)
-vestal reload     # re-read the config
-vestal status     # sources, warnings, errors
-vestal help       # everything else
-```
-
-## Build
-
-```sh
-nix build         # or: swift build -c release
-nix flake check
-```
-
-macOS 14+ and Swift 5.10.
-
-## License
-
-[GPL-3.0](./LICENSE)
+[AGENTS.md](./AGENTS.md) (point your agent here) · [Docs](https://vestal.matv.io/docs/) · [llms.txt](https://vestal.matv.io/llms.txt) · [Changelog](./CHANGELOG.md) · [License: GPL-3.0](./LICENSE)
