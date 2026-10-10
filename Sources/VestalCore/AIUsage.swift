@@ -111,7 +111,7 @@ public enum AIUsage {
             ])
         }
 
-        /// The data back (the v0.3 views); nil if it isn't this shape.
+        /// The data back (the legacy views); nil if it isn't this shape.
         public init?(_ data: AnyJSON) {
             guard case .object(let o) = data, let source = o["source"]?.stringValue else { return nil }
             var extra: [Extra] = []

@@ -142,7 +142,7 @@ public enum SourceCommands {
                 let response = try client(request, wait)
                 if response.ok { return print(response.data ?? .null, options: options) }
                 let message = response.error ?? "fetch failed"
-                // An instance from before v0.4 doesn't know `fetch`: fetch
+                // An older instance doesn't know `fetch`: fetch
                 // here instead.
                 if !message.hasPrefix("unknown command") {
                     return failure(message, code: response.code == IPCResponse.notFound ? 4 : 1, options: options)

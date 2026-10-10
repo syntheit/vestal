@@ -76,7 +76,7 @@ public protocol SystemStatsProvider {
     /// the root volume alone (as on macOS).
     func mounts() -> [MountUsage]
 
-    // v0.4: what the `system` source adds. Each has
+    // What the `system` source adds. Each has
     // a default, so a provider that can't read a value reports it unknown.
 
     /// The 1, 5 and 15 minute load averages; nil if unknown.
@@ -316,7 +316,7 @@ public struct NowPlaying: Codable, Equatable, Sendable {
     public var title: String
     public var artist: String
     public var state: String // playing, paused, stopped, off
-    /// v0.4; nil when the player doesn't report it.
+    /// Nil when the player doesn't report it.
     public var album: String?
     /// Seconds into the track; nil when unknown.
     public var position: Double?
@@ -397,7 +397,7 @@ public struct CalendarEntry: Codable, Equatable, Sendable {
     public var allDay: Bool
     /// The name of the calendar it belongs to.
     public var calendar: String
-    /// v0.4; nil when the event has none.
+    /// Nil when the event has none.
     public var location: String?
     /// The event's URL (usually a call link); nil when it has none.
     public var url: String?

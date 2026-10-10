@@ -3,14 +3,14 @@ import Foundation
 // MARK: - Built-in presets
 //
 // The built-in templates, written in the public config language: `section`,
-// `stat` and `badge`, the 8 v0.3 widget types (`clock`, `systemBar`,
+// `stat` and `badge`, the 8 legacy widget types (`clock`, `systemBar`,
 // `media`, `agendaList`, `systemHealth`, `keyValueList`, `weatherCard`,
 // `claudeUsage`), their helpers `claudeItem` and `hostDetail` (the host
 // popup), `aiUsage` with its cell `aiWindow` (Claude and Codex plan usage),
 // and the `foyer` source template. They live in their own registry
 // (TemplateRegistry), not in the merged config layers.
 //
-// Each v0.3 preset reproduces its SwiftUI view in VestalMac/Widgets (sizes,
+// Each legacy preset reproduces its SwiftUI view in VestalMac/Widgets (sizes,
 // weights, colors, spacing, order). Icons are Phosphor names. Nothing here may use `sf:` icons,
 // and nothing personal belongs here.
 
@@ -509,7 +509,7 @@ public enum DefaultPresets {
     """#
 
     /// A row of the host popup: label, a bar with the pressure under it, the
-    /// percentage and a trailing note (v0.3 SystemDetailView.metricRow).
+    /// percentage and a trailing note (legacy SystemDetailView.metricRow).
     /// Arguments, separated by `§`: label text, value expr, color, overlay
     /// expr or null, trailing expr (null hides it).
     static func metricRow(_ label: String, _ value: String, _ color: String, _ overlay: String, _ trailing: String) -> String {
@@ -524,7 +524,7 @@ public enum DefaultPresets {
         """#
     }
 
-    /// A label at least 84 points wide and a value (v0.3 SystemDetailView.labeledRow).
+    /// A label at least 84 points wide and a value (legacy SystemDetailView.labeledRow).
     static func labeledRow(_ label: String, _ when: String, _ text: String) -> String {
         #"""
         { "type": "row", "width": "fill", "when": "\#(jsonEscaped(when))", "children": [
@@ -543,9 +543,9 @@ public enum DefaultPresets {
     /// shorthands written out.
     static let expandedJSON: String = {
         var text = json
-        // v0.3 Format.bytes for pools and mounts ("1.2T", "12G", "0.5G").
+        // legacy Format.bytes for pools and mounts ("1.2T", "12G", "0.5G").
         let gb = #"(. / 1073741824) as $g | if $g >= 1024 then \"\\($g / 1024 | fmt_fixed(1))T\" elif $g >= 10 then \"\\($g | fmt_fixed(0))G\" else \"\\($g | fmt_fixed(1))G\" end"#
-        // v0.3 Format.megabytes for GPU memory ("512M", "7.8G").
+        // legacy Format.megabytes for GPU memory ("512M", "7.8G").
         let mb = #"(. / 1048576 | floor) as $m | if $m >= 1024 then \"\\($m / 1024 | fmt_fixed(1))G\" else \"\\($m)M\" end"#
         text = text.replacingOccurrences(of: "@GB@", with: "(\(gb))")
         text = text.replacingOccurrences(of: "@MB@", with: "(\(mb))")

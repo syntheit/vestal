@@ -103,7 +103,7 @@ public enum ClockFaces {
     /// The date line in the locale's form (`Sunday, September 27, 2026`).
     static let fullDate = "{{ now | fmt_localized(\\\"EEEEMMMMdy\\\") }}"
 
-    /// The same without the year, for the faces that are not v0.3's.
+    /// The same without the year, for the faces that are not the original ones.
     static let shortDate = "{{ now | fmt_localized(\\\"EEEEMMMMd\\\") }}"
 
     /// `date: "words"`: "It is Sunday, the twenty-seventh of September".

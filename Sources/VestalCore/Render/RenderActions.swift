@@ -144,7 +144,7 @@ extension RenderSession {
     }
 
     /// The built-in info popup (`vestal.info`): version, build, the
-    /// config file and its version, as v0.3's InfoView showed them.
+    /// config file and its version, as the original InfoView showed them.
     func openInfoPopup() {
         closePopup()
         guard case .success(let widget) = AnyJSON.parse(Data(Self.infoPopup(model).utf8)) else { return }

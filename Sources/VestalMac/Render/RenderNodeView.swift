@@ -9,7 +9,7 @@ import VestalCore
 // around the type's content. Containers lay out their children with the
 // layouts in RenderLayout.swift; texts, icons, bars, rings, sparklines and
 // dividers draw themselves. The drawing follows the GTK UI's, and the
-// v0.3 SwiftUI widgets where they set the look (RoundedRectangle bars, the
+// legacy SwiftUI widgets where they set the look (RoundedRectangle bars, the
 // system font, SF Symbols for icons).
 
 struct RenderNodeView: View {
@@ -88,13 +88,13 @@ struct RenderNodeView: View {
     }
 
     /// The content's natural size where the type fixes it. A bar with no
-    /// width is 48×6 (v0.3's mini bar), a ring 40, a spark 60×20, as on
+    /// width is 48×6 (the original mini bar), a ring 40, a spark 60×20, as on
     /// Linux.
     private func intrinsic(_ node: RenderNode) -> NodeBoxLayout.Intrinsic {
         switch node.content {
         case .stack, .grid, .text, .unknown: return .measured
         case .icon(let icon):
-            // An SF Symbol keeps its own width, as v0.3's did; a font glyph
+            // An SF Symbol keeps its own width, as the original did; a font glyph
             // is centered in a size×size box.
             return RenderIcon.drawsSymbol(icon, style: style) ? .measured : .fixed(width: icon.size, height: icon.size)
         case .bar: return .fixed(width: 48, height: 6)
@@ -233,7 +233,7 @@ private struct TextRun: View, Equatable {
             .lineLimit(lines)
             .truncationMode(.tail)
             // One line is placed by the frame's alignment, which SwiftUI
-            // snaps to the pixel grid as v0.3's `.frame(width:alignment:)`
+            // snaps to the pixel grid as the original `.frame(width:alignment:)`
             // did; a multiline alignment would place it unsnapped.
             .multilineTextAlignment(lines == 1 ? .leading : multiline)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: frameAlignment)
@@ -265,7 +265,7 @@ private struct TextRun: View, Equatable {
 
 /// An icon: an SF Symbol where the native mapping (or an `sf:` name) gives
 /// one, else the glyph in the Phosphor font, centered in a size×size box.
-/// `circle` filled is v0.3's offline dot, a circle of the icon's size.
+/// `circle` filled is the original offline dot, a circle of the icon's size.
 struct RenderIcon: View {
     let icon: RenderNode.Icon
     let style: RenderStyle
@@ -308,11 +308,11 @@ struct RenderIcon: View {
 
 /// A rounded track, then the fill from the leading edge, with the overlay
 /// above or below it. Tracks default to the color at 15%, the overlay to
-/// white at 20% (v0.3's MiniBar).
+/// white at 20% (the original MiniBar).
 struct BarDrawing: View {
     let bar: RenderNode.Bar
     let style: RenderStyle
-    /// Segment widths snap to device pixels, as v0.3's `.frame(width:)`
+    /// Segment widths snap to device pixels, as the original `.frame(width:)`
     /// did (SwiftUI rounds frames to the pixel grid).
     @Environment(\.displayScale) private var displayScale
 

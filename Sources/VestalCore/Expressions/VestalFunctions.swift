@@ -15,9 +15,9 @@ import Foundation
 // `null`, so a text hole over missing data stays quiet; a value that isn't a
 // number where one is needed is a jq runtime error.
 //
-// The legacy helpers call the v0.3 Swift code (JSONPath, AsyncData, Format)
+// The legacy helpers call the legacy Swift code (JSONPath, AsyncData, Format)
 // on a JSONSerialization tree made from the value's JSON text, so the
-// presets see exactly what the v0.3 widgets saw.
+// presets see exactly what the legacy widgets saw.
 
 /// One sample of a source's history.
 public struct HistorySample: Equatable, Sendable {
@@ -393,7 +393,7 @@ public enum VestalFunctions {
         return (source, history)
     }
 
-    /// The value as a JSONSerialization tree, exactly as v0.3 parsed
+    /// The value as a JSONSerialization tree, exactly as the original parsed
     /// fetched data.
     static func foundation(_ value: JQValue) -> Any? {
         try? JSONSerialization.jsonObject(with: Data(value.jsonText().utf8), options: [.fragmentsAllowed])
@@ -401,7 +401,7 @@ public enum VestalFunctions {
 
     // MARK: Formatting
 
-    /// v0.3's default for a number: whole numbers as is, otherwise 2 decimals.
+    /// The original default for a number: whole numbers as is, otherwise 2 decimals.
     static func fmtNumber(_ d: Double) -> String {
         if d == d.rounded(), d.isFinite, abs(d) < 9.0e18 { return String(Int(d)) }
         return Format.printf("%.2f", d)
@@ -517,7 +517,7 @@ public enum VestalFunctions {
 
     /// A skeleton that asks for a two-digit hour (`JJ`, `HH`, `hh`, `jj`)
     /// gets one: the locale's pattern can come back as `h:mm:ss`. SwiftUI's
-    /// `.hour(.twoDigits(amPM: .omitted))`, which v0.3's clock used, pads.
+    /// `.hour(.twoDigits(amPM: .omitted))`, which the original clock used, pads.
     static func widenedHours(_ format: String, skeleton: String) -> String {
         let hourLetters: Set<Character> = ["J", "j", "H", "h", "K", "k"]
         guard skeleton.filter({ hourLetters.contains($0) }).count >= 2 else { return format }
@@ -659,7 +659,7 @@ public enum VestalFunctions {
     }
 
     /// A foyer `/api/health` payload in the `system` shape,
-    /// through v0.3's parser, so missing numbers are 0 as v0.3 showed them.
+    /// through the original parser, so missing numbers are 0 as the original showed them.
     static func foyerHealth(_ input: JQValue) -> JQValue {
         guard let json = foundation(input) as? [String: Any] else { return .null }
         let d = AsyncData.parseServerDetail(name: "", json: json)
@@ -705,7 +705,7 @@ public enum VestalFunctions {
         ]))
     }
 
-    /// A v0.3 host object → `{data, ok, seen}` (`host_health`).
+    /// A legacy host object → `{data, ok, seen}` (`host_health`).
     static func hostHealth(_ host: JQValue, data: ExprData?) -> JQValue {
         func result(_ value: JQValue, ok: Bool, seen: Bool) -> JQValue {
             .object(JQObject([("data", ok ? value : .null), ("ok", .bool(ok)), ("seen", .bool(seen))]))

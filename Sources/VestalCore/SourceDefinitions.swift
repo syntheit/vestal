@@ -169,7 +169,7 @@ public enum SourceReaders {
             for name in LegacySources.named(for: entry) where config.sources[name] != nil { add(name, entry.key) }
             for name in widget.sourceNames.sorted() { add(name, entry.key) }
         }
-        // The expanded tree the render engine draws (templates, v0.4 widgets).
+        // The expanded tree the render engine draws (templates and the engine's widgets).
         if let tree = config.expanded {
             let names = Set(config.sources.keys)
             for (source, widgets) in TreeReaders.readers(of: tree, view: view, sourceNames: names) {

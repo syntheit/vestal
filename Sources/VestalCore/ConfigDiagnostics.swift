@@ -49,7 +49,7 @@ public struct ConfigDiagnostic: Equatable, Sendable {
     public var found: String?
     public var line: Int?
     public var column: Int?
-    /// The v0.3 finding, whose `description` is the human line.
+    /// The legacy finding, whose `description` is the human line.
     public var warning: ConfigWarning
 
     /// The `--json` form. `suggestion` is the best candidate, `suggestions`
@@ -75,7 +75,7 @@ public struct ConfigDiagnostic: Equatable, Sendable {
         return .object(object)
     }
 
-    /// The line `check-config` prints under the v0.3 one: where, and a
+    /// The line `check-config` prints under the legacy one: where, and a
     /// did-you-mean. Nil when there is nothing to add.
     public var hint: String? {
         var parts: [String] = []
@@ -130,8 +130,8 @@ public enum ConfigDiagnostics {
         }
     }
 
-    /// Every v0.3 finding is a warning, except a file that can't be used at
-    /// all (unreadable, not JSON), which is an error. No v0.3 config has an
+    /// Every legacy finding is a warning, except a file that can't be used at
+    /// all (unreadable, not JSON), which is an error. No legacy config has an
     /// error severity otherwise, so none exits 3.
     static func severity(of warning: ConfigWarning) -> ConfigDiagnostic.Severity {
         if let severity = warning.severity { return severity }

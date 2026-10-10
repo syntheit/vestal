@@ -1,8 +1,8 @@
 import Foundation
 
-// MARK: - Validation of the v0.4 model
+// MARK: - Validation of the widget model
 //
-// check-config's findings for what v0.4 adds: the engine's widget types and their fields, template instances,
+// check-config's findings for what the engine adds: the engine's widget types and their fields, template instances,
 // views with `children`, `defaultView`, key bindings, user `functions` and
 // `templates`, colors and icons, and every expression: each expr field is
 // compiled, and each text field's `{{ }}` holes, with the variables in scope
@@ -11,12 +11,12 @@ import Foundation
 // Template parameters and keys of template instances are checked by the
 // expansion (ConfigExpansion), not here.
 //
-// Walks the merged tree next to the v0.3 walker in ConfigValidator.swift,
+// Walks the merged tree next to the legacy walker in ConfigValidator.swift,
 // which calls it; paths are validator paths (`widgets.cpu.value`).
 
 struct V04Checker {
     var warnings: [ConfigWarning] = []
-    /// Inline source objects found under widgets, for the v0.3 walker's
+    /// Inline source objects found under widgets, for the legacy walker's
     /// source checks: (definition, path).
     var inlineSources: [(AnyJSON, String)] = []
 

@@ -206,7 +206,6 @@ public struct SourceConfig: Codable, Equatable, Sendable {
     public var days: Int = SourceConfig.defaultDays          // calendar: lookahead in days
     public var calendars: [String]?         // calendar: names to include (nil = all)
 
-    // v0.4
     public var when: String                 // "always" | "visible"; per type by default
     public var transform: String?           // jq, applied on read
     public var history: [String: HistorySpec]?
@@ -362,7 +361,7 @@ public struct SourceConfig: Codable, Equatable, Sendable {
         case "system":
             if disks?.isEmpty ?? true { disks = Self.defaultDisks }
         case "claude":
-            // `path` is ignored (it was the v0.3 log directory).
+            // `path` is ignored (it was the legacy log directory).
             path = nil
         default:
             break

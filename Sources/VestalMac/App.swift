@@ -89,11 +89,11 @@ private final class LaunchOutcome: @unchecked Sendable {
 /// The window and everything AppKit, driven by `Resident` (VestalCore): the
 /// CLI's commands, the hotkey and Escape all go through it.
 ///
-/// Since v0.4 the dashboard is the render engine's model (`resident.engine`)
+/// The dashboard is the render engine's model (`resident.engine`)
 /// drawn by the generic renderer (Render/): `RenderStore` observes the
 /// engine, clicks and every key go back to it, and the core decides what
 /// they do (Escape, popups, host letters, `p`, views). The window, the blur,
-/// the aurora, the fades and the hotkey are as in v0.3.
+/// the aurora, the fades and the hotkey are as before.
 final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
     private let loaded: LoadedConfig
     private let startHidden: Bool
@@ -375,7 +375,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
             case .snapshot(let snapshot):
                 store.apply(snapshot)
             case .patch(let patch):
-                // v0.3 eased rows in and out (hosts, list entries, a
+                // The original eased rows in and out (hosts, list entries, a
                 // section) after the first frame; other changes are instant.
                 let applied: Bool
                 if store.changesRows(patch) {
@@ -405,7 +405,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ResidentSurface {
 
     /// Every key press goes to the engine, in the hotkey grammar; the core
     /// decides what it means (Escape, popups, host letters, views). Keys
-    /// with Cmd are passed on as well, as v0.3 left them to the system.
+    /// with Cmd are passed on as well, as the original left them to the system.
     private func installKeyMonitor() {
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let engine = self?.resident?.engine, let name = RenderKeys.name(for: event) else { return event }

@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Config expansion
 //
 // After the layers are merged, and before the render engine reads the
-// config: the legacy adapter applies the two v0.3 couplings, templates
+// config: the legacy adapter applies the two legacy couplings, templates
 // are expanded (widget templates in `widgets` and views, source templates in
 // `sources` and inline), and inline source objects become sources named
 // `inline:<sha8>`. The result is what `vestal print-config --expanded`
@@ -47,7 +47,7 @@ public enum ConfigExpansion {
     public static let maxDepth = 16
 
     public static func expand(_ merged: AnyJSON) -> ExpandedConfig {
-        // Inline sources the user wrote are named first, as the v0.3 decoder
+        // Inline sources the user wrote are named first, as the legacy decoder
         // names them (a template parameter then holds the name).
         guard case .object(var top) = InlineSources.extract(merged) else {
             return ExpandedConfig(tree: merged, registry: .standard, warnings: [], notes: [])
@@ -387,7 +387,7 @@ struct Expander {
     /// fields applied to its root.
     private mutating func instance(_ members: [String: AnyJSON], _ template: TemplateDefinition, path: String) -> AnyJSON {
         guard let body = template.widget else { return errorNode("template \"\(template.name)\" has no widget") }
-        // A v0.3 widget type keeps v0.3's rules: the validator reports its
+        // A legacy widget type keeps the original rules: the validator reports its
         // problems, and a value of the wrong type counts as absent.
         let legacy = template.builtin && WidgetConfig.keysByType[template.name] != nil
         var values: [String: AnyJSON] = [:]
@@ -624,10 +624,10 @@ struct Expander {
 // MARK: - The legacy adapter
 
 public enum LegacyAdapter {
-    /// Applies the two v0.3 couplings to the merged config and returns a
-    /// `legacy` note for each. A config with none of the v0.3 types it reads
+    /// Applies the two legacy couplings to the merged config and returns a
+    /// `legacy` note for each. A config with none of the legacy types it reads
     /// is left alone. Local hosts without a name get this machine's short
-    /// name, as v0.3's decoder gave them.
+    /// name, as the original decoder gave them.
     static func apply(_ top: inout [String: AnyJSON]) -> [ConfigWarning] {
         guard case .object(var widgets)? = top["widgets"] else { return [] }
         var notes: [ConfigWarning] = []
@@ -638,7 +638,7 @@ public enum LegacyAdapter {
             widget.objectValue?["type"]?.stringValue.map(WidgetConfig.canonicalType)
         }
         let keys = widgets.keys.sorted()
-        // (v0.3's third coupling, a system bar taking its Claude options from
+        // (a third coupling, a system bar taking its Claude options from
         // the first claudeUsage widget, is gone: those options are ignored
         // now, and both read the `claude` source.)
 
@@ -693,7 +693,7 @@ public enum LegacyAdapter {
         return notes
     }
 
-    /// v0.3's rule: "privacy" in `show` (absent or empty means every item),
+    /// the original rule: "privacy" in `show` (absent or empty means every item),
     /// with both `privacy.command` and `privacy.stateFile` set.
     static func privacyShows(_ bar: [String: AnyJSON]) -> Bool {
         let show = bar["show"]?.arrayValue?.compactMap(\.stringValue) ?? []

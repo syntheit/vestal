@@ -1,11 +1,11 @@
 import Foundation
 
-// MARK: - Schema registry: the v0.4 widget model
+// MARK: - Schema registry: the widget model
 //
 // The engine's own widget types (6 containers, 8 primitives),
 // the fields every widget takes, the shapes they use, and the
 // built-in templates as types (their parameters, from TemplateRegistry). The
-// v0.3 widget types in `widgetTypes` stay as they are (Config decodes them);
+// legacy widget types in `widgetTypes` stay as they are (Config decodes them);
 // `allWidgetTypes` is every type a config may name.
 
 extension SchemaRegistry {
@@ -348,7 +348,7 @@ extension SchemaRegistry {
         ]),
     ]
 
-    /// Built-in widget templates that aren't v0.3 types (section, stat,
+    /// Built-in widget templates that aren't legacy types (section, stat,
     /// badge, claudeItem, hostDetail), their keys from the parameters.
     public static var templateWidgetTypes: [SchemaEntityType] {
         let v03 = Set(widgetTypes.map(\.name))
@@ -411,8 +411,8 @@ extension SchemaRegistry {
         }
     }
 
-    /// The v0.3 widget types as the schema and check-config see them in
-    /// v0.4: their keys plus the template's extra parameters.
+    /// The legacy widget types as the schema and check-config see them in
+    /// Their keys plus the template's extra parameters.
     public static var presetWidgetTypes: [SchemaEntityType] {
         widgetTypes.map { type in
             var type = type
@@ -424,7 +424,7 @@ extension SchemaRegistry {
         }
     }
 
-    /// Every widget type a config may name, built in: v0.3 presets, the
+    /// Every widget type a config may name, built in: legacy presets, the
     /// engine's own types and the other built-in templates.
     public static var allWidgetTypes: [SchemaEntityType] {
         presetWidgetTypes + v04WidgetTypes + templateWidgetTypes

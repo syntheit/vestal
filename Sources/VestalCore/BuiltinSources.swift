@@ -245,7 +245,7 @@ public enum MediaSource {
         ])
     }
 
-    /// The media data back as a v0.3 `NowPlaying` (the v0.3 media row).
+    /// The media data back as a legacy `NowPlaying` (the legacy media row).
     public static func nowPlaying(_ data: AnyJSON) -> NowPlaying {
         guard case .object(let object) = data, let state = object["state"]?.stringValue else { return .off }
         func number(_ key: String) -> Double? {
@@ -262,14 +262,14 @@ public enum MediaSource {
     }
 }
 
-// MARK: The v0.3 dashboard's stats
+// MARK: The legacy dashboard's stats
 
-/// The `system` data read back into the values the v0.3 system bar and
+/// The `system` data read back into the values the legacy system bar and
 /// local host draw, so the macOS dashboard keeps showing exactly what it did.
 public struct SystemReading: Equatable, Sendable {
     public var cpuPercent: Int
     public var memory: MemoryInfo
-    /// °C, 0 if unknown (v0.3's convention).
+    /// °C, 0 if unknown (the original convention).
     public var temperature: Int
     public var battery: BatteryInfo?
     /// The first disk ("/" by default).

@@ -14,7 +14,7 @@ import Foundation
 //   lower layer's list whole, require theirs;
 // - a source or widget without `type` is an override of one of a lower
 //   layer, with any of the keys some type takes;
-// - a widget `type` that isn't built in is taken as a template's (v0.4),
+// - a widget `type` that isn't built in is taken as a template's,
 //   with free-form keys. check-config reports one that isn't defined.
 //
 // Every key has a description, its default where it has one, examples,

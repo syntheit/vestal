@@ -76,7 +76,7 @@ private struct Walker {
     /// Explicit host shortcut letters → where they were set. One keyboard
     /// serves every systemHealth widget.
     private var hostKeys: [String: String] = [:]
-    /// The v0.4 checks (ConfigValidatorV04.swift).
+    /// The engine-widget checks (ConfigValidatorV04.swift).
     private var v04: V04Checker
 
     /// The top-level keys besides `platform`, which never reaches the merged tree.
@@ -124,7 +124,7 @@ private struct Walker {
         if top["views"] == nil || top["views"]?.objectValue.map({ $0[shown]?.objectValue == nil }) == true {
             if shown == "main" { add(.missingKey, "views.main", "missing; the dashboard shows nothing") }
         }
-        // Inline sources inside v0.4 widgets get the source checks.
+        // Inline sources inside the engine's widgets get the source checks.
         for (definition, path) in v04.inlineSources { _ = source(definition, path) }
         warnings += v04.warnings
     }
@@ -535,12 +535,12 @@ private struct Walker {
             else { continue }
             let canonical = WidgetConfig.canonicalType(type)
             guard let preset = SchemaRegistry.presetWidgetTypes.first(where: { $0.name == canonical }) else {
-                // The engine's own types, templates, and unknown types (v0.4).
+                // The engine's own types, templates, and unknown types.
                 v04.widget(entry, path: path, scope: V04Checker.baseScope)
                 continue
             }
-            // A v0.3 type: its keys, the preset's extra parameters and the
-            // common fields, which the v0.4 checks look at.
+            // A legacy type: its keys, the preset's extra parameters and the
+            // common fields, which the engine-widget checks look at.
             let keys = Set(SchemaRegistry.widgetKeys(preset).map(\.name))
             checkKeys(widget, keys, path, for: "\(canonical) widgets")
             v04.common(widget.filter { WidgetTypes.commonFields.contains($0.key) && $0.key != "source" },
@@ -769,7 +769,7 @@ private struct Walker {
 
     // MARK: Helpers
 
-    /// The v0.3 token-estimate options of a claude source or claudeUsage
+    /// The legacy token-estimate options of a claude source or claudeUsage
     /// widget: accepted, ignored, and said so once each.
     private mutating func ignoredClaudeOptions(_ object: [String: AnyJSON], _ path: String) {
         for key in ["path", "fiveHourLimit", "weeklyLimit"] where object[key] != nil && object[key] != .null {

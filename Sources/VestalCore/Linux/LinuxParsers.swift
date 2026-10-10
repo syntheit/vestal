@@ -505,7 +505,7 @@ public enum LinuxProc {
     /// only a playing or paused player reports a track; stopped, or anything
     /// else, is off. An empty album, and a length or position that is missing
     /// or not a number, is nil; so is a length of 0 (a stream). Output with
-    /// only the first three fields (the v0.3 format) still reads.
+    /// only the first three fields (the legacy format) still reads.
     public static func playerctlNowPlaying(_ output: String) -> NowPlaying {
         var text = Substring(output)
         while let last = text.last, last == "\n" || last == "\r" { text = text.dropLast() }

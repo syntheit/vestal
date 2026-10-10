@@ -57,7 +57,7 @@ public struct ConfigWarning: Equatable, Sendable, CustomStringConvertible {
     /// For a wrong type or value: what was expected and what was found.
     public var expected: String?
     public var found: String?
-    /// Set for the v0.4 findings that aren't warnings: template errors
+    /// Set for the findings that aren't warnings: template errors
     /// (`error`) and the legacy adapter's notes (`info`). Nil: the kind
     /// decides (`isError`).
     public var severity: ConfigDiagnostic.Severity?
@@ -254,8 +254,8 @@ public enum ConfigLoader {
         let expanded = ConfigExpansion.expand(merged)
         var config = decodeMerged(merged)
         config.adopt(expanded)
-        // A top-level widget of a v0.3 type is checked by the validator, with
-        // v0.3's messages and severities; the expansion's findings about the
+        // A top-level widget of a legacy type is checked by the validator, with
+        // the original messages and severities; the expansion's findings about the
         // same instance would repeat them.
         let v03 = Set(SchemaRegistry.widgetTypes.flatMap { [$0.name] + $0.aliases })
         // So is one without a type (the validator reports the missing type).
@@ -320,7 +320,7 @@ public enum ConfigLoader {
         return config
     }
 
-    /// The v0.3 view of a merged tree, without the expansion's sources.
+    /// The legacy view of a merged tree, without the expansion's sources.
     static func decodeMerged(_ merged: AnyJSON) -> Config {
         // Inline source objects become named sources (InlineSources).
         guard let data = try? JSONEncoder().encode(InlineSources.extract(merged)),

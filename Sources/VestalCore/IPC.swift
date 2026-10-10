@@ -56,7 +56,7 @@ import Glibc
 // runs on the caller's queue (default: main). The client is synchronous (the
 // CLI has nothing else to do) and bounded by a timeout.
 //
-// `subscribe` (v0.4) is the one long-lived request:
+// `subscribe` is the one long-lived request:
 // the connection stays open, has no deadline, and becomes a two-way stream
 // of JSON lines handed to `subscriptionHandler` as an `IPCSubscription`.
 // Its output is queued per connection and written as the client reads; a
@@ -73,27 +73,27 @@ import Glibc
 /// A request. The raw value is the line sent over the socket.
 public enum IPCCommand: String, CaseIterable, Sendable {
     case toggle, show, hide, reload, status, quit
-    /// v0.4: every source with its state (`vestal sources`).
+    /// Every source with its state (`vestal sources`).
     case sources
-    /// v0.4: one source's data, fetched now or cached (`vestal fetch`);
+    /// One source's data, fetched now or cached (`vestal fetch`);
     /// needs `IPCRequest.source`.
     case fetch
-    /// v0.4: the render model of a view with the instance's data (`vestal
+    /// The render model of a view with the instance's data (`vestal
     /// render`); takes `view` and `press`.
     case render
-    /// v0.4: an expression's outputs with the instance's data (`vestal
+    /// An expression's outputs with the instance's data (`vestal
     /// eval`); needs `expr`, takes `source`, `template` and `at`.
     case eval
-    /// v0.4: a long-lived connection that streams the render model;
+    /// A long-lived connection that streams the render model;
     /// takes `role`, `protocol`, `minor`,
     /// `client`, `capabilities`, `whileHidden`, `control` and `view`. The
     /// server hands it to its `subscriptionHandler`, never to the request
     /// handler.
     case subscribe
-    /// v0.4: a key for the dashboard, as if typed on it (`vestal press`);
+    /// A key for the dashboard, as if typed on it (`vestal press`);
     /// needs `key`.
     case press
-    /// v0.4: a render model drawn offscreen by the instance's UI (`vestal
+    /// A render model drawn offscreen by the instance's UI (`vestal
     /// screenshot` on Linux); takes `model` (a snapshot file; without one,
     /// `view` rendered now), `path` (the PNG) and `frames`. A UI that can't
     /// answers with `code: unsupported`.
@@ -423,13 +423,13 @@ public struct IPCResponse: Codable, Equatable, Sendable {
     public var error: String?
     public var status: IPCStatus?
     public var message: String?
-    /// v0.4: what kind of failure, for the exit status: `not-found` (4).
+    /// What kind of failure, for the exit status: `not-found` (4).
     public var code: String?
-    /// v0.4 `sources`: every source.
+    /// For `sources`: every source.
     public var sources: [IPCSourceInfo]?
-    /// v0.4 `fetch`: the data (a string for `raw` sources).
+    /// For `fetch`: the data (a string for `raw` sources).
     public var data: AnyJSON?
-    /// v0.4 `fetch`: when that data was fetched.
+    /// For `fetch`: when that data was fetched.
     public var fetchedAt: Date?
 
     public init(ok: Bool, error: String? = nil, status: IPCStatus? = nil, message: String? = nil,
@@ -1614,7 +1614,7 @@ public enum IPCClient {
     }
 
     /// Sends `request` with `exchange`, which writes one request line and
-    /// returns the reply line. An instance from before JSON requests (v0.3)
+    /// returns the reply line. An instance from before JSON requests
     /// answers a JSON line with "unknown command '{...'"; then the bare
     /// command goes again, and the reply's message says the arguments were
     /// ignored.

@@ -163,7 +163,7 @@ final class RenderPass {
     /// The view's root node around its rendered children.
     func root(_ spec: ViewSpec, children: [RenderedChild]) -> RenderNode {
         var nodes = children.compactMap(\.node)
-        // v0.3 views (`order`): only the first *listed* entry gets no space
+        // legacy views (`order`): only the first *listed* entry gets no space
         // before it; when it is hidden, the next one keeps its space.
         // A zero-size first node holds that place.
         if spec.usesOrder, let first = children.first, first.node == nil, !nodes.isEmpty {

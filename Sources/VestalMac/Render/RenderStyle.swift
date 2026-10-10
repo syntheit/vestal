@@ -43,7 +43,7 @@ struct RenderRGBA: Equatable {
 }
 
 /// How icons are drawn on macOS (`theme.icons`): `native` draws the
-/// names the table knows as the SF Symbols v0.3 used, and everything else
+/// names the table knows as the SF Symbols the original used, and everything else
 /// in the bundled Phosphor font; `phosphor` always uses the font.
 enum RenderIconMode: String {
     case native, phosphor
@@ -97,7 +97,7 @@ struct RenderStyle {
     // MARK: Fonts
 
     /// The font for a text node: its role's family, absolute size and
-    /// numeric weight. The system font by default, as v0.3 draws: SF Pro,
+    /// numeric weight. The system font by default, as the original draws: SF Pro,
     /// SF Mono for `mono`, SF Pro Rounded for `rounded`. `role` may also be a
     /// family name (`style.font`); one that is not installed draws as sans.
     func font(role: String, size: Double, weight: Int) -> Font {

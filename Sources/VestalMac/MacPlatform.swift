@@ -76,7 +76,7 @@ final class MacSystemStats: SystemStatsProvider {
     func disk() -> DiskUsage? { SystemBridge.getDisk() }
     func uptime() -> TimeInterval { SystemBridge.getUptime() }
 
-    // v0.4 (the `system` source)
+    // What the `system` source adds
 
     private var lastInterfaces: (time: TimeInterval, totals: [String: (bytesIn: Int64, bytesOut: Int64)])?
 

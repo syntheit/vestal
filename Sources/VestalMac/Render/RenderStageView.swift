@@ -7,7 +7,7 @@ import VestalCore
 // The render model's window content, over whatever background the host
 // draws (the aurora and blur in the app, the palette's `bg` offscreen): the
 // view's root node, and while a popup is open the scrim and the popup's card.
-// The card is v0.3's: black under an ultra-thick dark material, radius 14, a
+// The card is the original's: black under an ultra-thick dark material, radius 14, a
 // white 10% stroke and a shadow. A click on the scrim is Esc, which the core
 // turns into closing the popup.
 
@@ -70,14 +70,14 @@ public struct RenderStageView: View {
                 PageDots(pages: pages, style: store.style)
             }
         }
-        // v0.3's popup animation.
+        // the original popup animation.
         .animation(.easeInOut(duration: 0.18), value: store.popup?.handle.id)
         .environment(\.renderStyle, store.style)
         .environment(\.renderSend, store.send)
     }
 }
 
-/// The popup card's chrome, as v0.3's SystemDetailView draws it.
+/// The popup card's chrome, as the original SystemDetailView draws it.
 struct PopupCard: View {
     static let radius: CGFloat = 14
 

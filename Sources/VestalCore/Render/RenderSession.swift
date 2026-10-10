@@ -5,7 +5,7 @@ import Foundation
 public enum RenderKeyMap {
     /// Bound by the core; a config may not bind them.
     public static let reserved: Set<String> = ["escape", "alt+i"]
-    /// `auto` never assigns these (v0.3: p is privacy, i is info).
+    /// `auto` never assigns these (p is privacy, i is info).
     static let autoReserved: Set<Character> = ["i", "p"]
 
     static let modifierOrder = ["cmd", "ctrl", "alt", "shift"]

@@ -170,7 +170,7 @@ public struct ViewSpec: Equatable, Sendable {
     public var maxWidth: Double
     /// Widget keys (strings) or inline widgets, expanded.
     public var children: [AnyJSON]
-    /// Written with v0.3's `order` (not `children`): only the first *listed*
+    /// Written with the original `order` (not `children`): only the first *listed*
     /// entry gets no space before it.
     public var usesOrder: Bool
     public var keys: [String: AnyJSON]

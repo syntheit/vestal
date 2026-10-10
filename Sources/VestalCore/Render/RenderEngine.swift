@@ -29,7 +29,7 @@ import Foundation
 // Optimistic updates: a `run` action's `optimistic` expression, a
 // play/pause and a mute or volume step replace their source's data at once.
 // The replacement stays until a fetch that started after the action took
-// effect (v0.3's rule: a poll that began before the click can't undo it):
+// effect (the original rule: a poll that began before the click can't undo it):
 // the click for `media` and `audio`, the command's exit for `run` (the
 // handler reports it with `actionFinished`; its timeout at the latest).
 

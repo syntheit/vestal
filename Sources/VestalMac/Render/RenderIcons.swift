@@ -8,7 +8,7 @@ import VestalCore
 //
 // Config names icons in the bundled Phosphor set on every OS. With
 // `theme.icons: "native"` (the macOS default) the names below draw as the SF
-// Symbols v0.3 drew, so the existing dashboard keeps its look; every
+// Symbols the original dashboard drew, so the existing dashboard keeps its look; every
 // other name draws its glyph in the Phosphor font. `sf:<name>` icons (only
 // allowed under `platform.macos`) are SF Symbols in either mode.
 
@@ -25,11 +25,11 @@ enum NativeIcons {
         }
     }
 
-    /// Phosphor name → SF Symbol. First every icon the v0.3 dashboard shows
+    /// Phosphor name → SF Symbol. First every icon the legacy dashboard shows
     /// (the preset table, read backwards), then a set of common ones. A symbol
     /// this macOS doesn't have falls back to the Phosphor glyph.
     static let table: [String: Symbol] = [
-        // v0.3's icons.
+        // the original icons.
         "clock": Symbol("clock", "clock.fill"),
         "hard-drives": Symbol("internaldrive", "internaldrive.fill"),
         "battery-full": Symbol("battery.100percent"),
@@ -37,7 +37,7 @@ enum NativeIcons {
         "battery-medium": Symbol("battery.50percent"),
         "battery-low": Symbol("battery.25percent"),
         "battery-empty": Symbol("battery.0percent"),
-        // v0.3 drew the level with a bolt; the preset has one charging icon.
+        // The original drew the level with a bolt; the preset has one charging icon.
         "battery-charging": Symbol("battery.100percent.bolt"),
         "hourglass": Symbol("hourglass"),
         "arrow-down": Symbol("arrow.down"),
@@ -49,7 +49,7 @@ enum NativeIcons {
         "play": Symbol("play", "play.fill"),
         "pause": Symbol("pause", "pause.fill"),
         "speaker-none": Symbol("speaker", "speaker.fill"),
-        // v0.3 had three wave levels; the preset collapses 1–65 to
+        // The original had three wave levels; the preset collapses 1–65 to
         // speaker-low, drawn as the middle one.
         "speaker-low": Symbol("speaker.wave.2", "speaker.wave.2.fill"),
         "speaker-high": Symbol("speaker.wave.3", "speaker.wave.3.fill"),
@@ -60,7 +60,7 @@ enum NativeIcons {
         "sun-horizon": Symbol("sunrise", "sunrise.fill"),
         "sunrise": Symbol("sunrise", "sunrise.fill"),
         "sunset": Symbol("sunset", "sunset.fill"),
-        // `circle` fill is v0.3's offline dot, drawn as a Circle (below).
+        // `circle` fill is the original offline dot, drawn as a Circle (below).
         "circle": Symbol("circle", "circle.fill"),
 
         // Common names.

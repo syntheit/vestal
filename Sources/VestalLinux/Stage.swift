@@ -279,7 +279,7 @@ final class ScrimView: NodeView {
 }
 
 /// The popup's card: a solid `bg` card, radius 14, a 10% white stroke and a
-/// soft shadow (v0.3's SystemDetailView chrome), holding the popup's
+/// soft shadow (the original SystemDetailView chrome), holding the popup's
 /// node at the popup's width.
 final class CardView: NodeView {
     static let radius = 14.0

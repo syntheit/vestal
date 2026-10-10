@@ -56,7 +56,7 @@ public enum MediaScript {
         "tell application \(quoted(player)) to previous track"
     }
 
-    // MARK: v0.4: the whole track
+    // MARK: The whole track
 
     /// Separates the fields of `track`'s answer: the ASCII unit separator,
     /// which no title, artist or album contains (unlike "|").

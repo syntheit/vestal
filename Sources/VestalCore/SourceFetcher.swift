@@ -553,7 +553,7 @@ public struct LiveFetcher: SourceFetcher {
         }
     }
 
-    /// v0.3's name for `parsed`, for the JSON and raw modes.
+    /// The original name for `parsed`, for the JSON and raw modes.
     static func checked(_ data: Data, parse: String) throws -> Data {
         try parsed(data, parse: parse)
     }

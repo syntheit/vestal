@@ -51,7 +51,7 @@ enum SystemBridge {
         getMemoryDetail()?.info ?? MemoryInfo(ramPercent: 0, pressurePercent: 0)
     }
 
-    /// The v0.3 percentages and the bytes behind them: used = total −
+    /// The legacy percentages and the bytes behind them: used = total −
     /// (free + speculative + inactive), as `ramPercent` counts it.
     static func getMemoryDetail() -> (info: MemoryInfo, bytes: MemoryBytes)? {
         var size = mach_msg_type_number_t(
@@ -192,7 +192,7 @@ enum SystemBridge {
         getDisk(mountpoint: "/")
     }
 
-    /// A mount point's size, read the way v0.3 read "/"; nil if `path` is
+    /// A mount point's size, read the way the original read "/"; nil if `path` is
     /// not a mount point (statfs names another one) or can't be read.
     static func getDisk(mountpoint path: String) -> DiskUsage? {
         if path != "/" {

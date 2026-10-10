@@ -2,11 +2,11 @@
 import SwiftUI
 import VestalCore
 
-// MARK: - Dashboard (v0.4)
+// MARK: - Dashboard
 //
-// The window's content since v0.4: the aurora (for `theme.background:
+// The window's content: the aurora (for `theme.background:
 // "aurora"`) or a background of the library (BackgroundView) over the window's blur (tinted by `theme.dim` when set) or
-// solid color, exactly as v0.3's
+// solid color, exactly as the original's
 // DashboardView draws it, and the render engine's model over that
 // (RenderStageView: the view's root centered, the popup with its scrim).
 
@@ -42,7 +42,7 @@ struct RenderDashboardView: View {
 extension RenderStore {
     /// Whether `patch` adds or removes rows: a root child (a section that
     /// appears), or a list row (ids ending in an `@` component).
-    /// v0.3 eased those in over 0.3 s after the first frame (hosts, list
+    /// The original eased those in over 0.3 s after the first frame (hosts, list
     /// entries, the weather section); the app animates such patches.
     func changesRows(_ patch: RenderPatch) -> Bool {
         guard let snapshot else { return false }
