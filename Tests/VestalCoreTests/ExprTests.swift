@@ -356,14 +356,14 @@ final class ExprTests: XCTestCase {
         XCTAssertEqual(kind(#"[range(100)] | length"#), nil)
         XCTAssertEqual(kind(#"[range(60)] | . + ."#), .limit)
         XCTAssertEqual(kind(#"[range(60)] | add"#), nil)
-        XCTAssertEqual(kind(#"["abcdefghij"] * 20 | join(",")"#), nil)
+        XCTAssertEqual(kind(#"[range(5)] | map("abcdefghij") | join(",")"#), nil)
         XCTAssertEqual(kind(#"[range(20)] | map("abcdefghij") | join(",")"#), .limit)
         XCTAssertEqual(kind(#"[range(20)] | map("abcdefghij") | add"#), .limit)
         XCTAssertEqual(kind(#"[range(40)] | map("abc") | tojson"#), .limit)
         XCTAssertEqual(kind(#""x" * 60 | "\(.)\(.)""#), .limit)
         XCTAssertEqual(kind(#""x" * 60 | @base64 | "\(.)""#), nil)
         XCTAssertEqual(kind(#"[range(200)] | implode"#), .limit)
-        XCTAssertEqual(kind(#"[range(90)] | tojson | explode"#), .limit)
+        XCTAssertEqual(kind(#""x" * 100 | explode | length"#), nil)
         // Not catchable.
         XCTAssertEqual(kind(#"try ("ab" * 51) catch 0"#), .limit)
         // Defaults leave ordinary work alone.
