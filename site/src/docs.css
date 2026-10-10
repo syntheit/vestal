@@ -20,7 +20,7 @@
 /* contents */
 .toc summary { display: none; }
 .toc .group { margin: 0 0 18px; }
-.toc .group-h { font: 700 10.5px/1 var(--sans); letter-spacing: 1.6px; text-transform: uppercase; color: var(--dim); margin: 0 0 8px 10px; }
+.toc .group-h { font: 600 12.5px/1 var(--sans); color: var(--dim); margin: 0 0 8px 10px; }
 .toc ul { list-style: none; margin: 0; padding: 0; }
 .toc a { display: block; padding: 5px 10px; border-radius: 7px; color: var(--subtle); font-size: 13.5px; line-height: 1.35; }
 .toc a:hover { color: var(--text); background: var(--panel-2); text-decoration: none; }
@@ -48,7 +48,7 @@
 .md strong { color: var(--text); font-weight: 600; }
 .md code { font-size: .86em; color: #c0caf5; background: rgba(255,255,255,.06); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
 .md hr { border: 0; border-top: 1px solid var(--line-2); margin: 32px 0; }
-.md blockquote { margin: 0 0 14px; padding: 4px 16px; border-left: 3px solid rgba(122,161,247,.4); color: var(--subtle); }
+.md blockquote { margin: 0 0 14px; padding: 4px 16px; border-left: 1px solid var(--line-2); color: var(--subtle); }
 .md .table { overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 10px; }
 .md table { border-collapse: collapse; width: 100%; font-size: 13.5px; line-height: 1.5; }
 .md th, .md td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--line); }

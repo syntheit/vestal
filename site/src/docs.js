@@ -10,6 +10,9 @@ async function main() {
   // The contents start folded on a phone, open beside the page elsewhere.
   const toc = document.querySelector(".toc");
   if (toc && typeof matchMedia === "function" && matchMedia("(max-width: 900px)").matches) toc.open = false;
+  // On a narrow screen the section links scroll sideways: show the current one, Docs, at the end.
+  const links = document.querySelector(".nav .links");
+  if (links) links.scrollLeft = links.scrollWidth;
   wireCopy();
   wireSearch();
   const lives = [...document.querySelectorAll(".live")];
