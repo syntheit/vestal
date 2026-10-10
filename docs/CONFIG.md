@@ -200,7 +200,7 @@ What an expression sees:
 
 These names are reserved: a template parameter or a `vars` entry can't use them. `$secrets` and `$env` exist only in source definitions (see [sources](#sources)), so a secret can't end up on screen.
 
-The functions vestal adds to jq (`fmt_fixed`, `fmt_bytes`, `fmt_relative`, `fmt_time`, `step`, `color_mix`, `to_epoch`, `find`, `pct`, …) are listed with examples by `vestal docs functions`. Numbers are formatted the American way (`5.19`, `1,234,567` where a function groups digits) whatever the system locale. The jq subset itself is in docs/EXPRESSIONS.md.
+The functions vestal adds to jq (`fmt_fixed`, `fmt_bytes`, `fmt_relative`, `fmt_time`, `step`, `color_mix`, `to_epoch`, `find`, `pct`, …) are listed with examples by `vestal docs functions`. Numbers are formatted the American way (`5.19`, `1,234,567` where a function groups digits) whatever the system locale. The jq subset itself is in [docs/dev/expression-engine.md](dev/expression-engine.md).
 
 Legacy paths. The v0.3 fields `pick`, `picks` and `weatherCard.fields` keep v0.3's paths (`rates.BRL`, `.nearest_area[0].areaName[0].value`: the leading dot is optional and keys are not jq). Every other expression is strict jq: write `.rates.BRL`. `check-config` suggests the jq form when a new field holds a path.
 

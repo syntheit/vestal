@@ -782,7 +782,7 @@ function buildDocs() {
     { name: "Reference", pages: [
       page("configuration", "docs/CONFIG.md", { label: "Configuration: every key" }),
       ...reference.map((t) => page(t, `docs/reference/${t}.md`, { topic: t })),
-      page("jq", "docs/EXPRESSIONS.md", { label: "The jq subset" }),
+      page("jq", "docs/dev/expression-engine.md", { label: "The jq subset" }),
     ] },
     { name: "For agents and UIs", pages: [
       page("agents", "AGENTS.md", { topic: "agents" }),

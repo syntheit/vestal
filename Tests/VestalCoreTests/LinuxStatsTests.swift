@@ -549,18 +549,26 @@ final class LinuxCommandProviderTests: XCTestCase {
     }
 
     func testWirePlumberAudio() async {
+        // wpctl fails until `ready`, so the reading volume() starts in the
+        // background can't land before the "nothing read yet" check.
+        let ready = Flag()
         let log = CommandLog { argv in
-            argv[1] == "get-volume" ? CommandResult(status: 0, stdout: Data("Volume: 0.62 [MUTED]\n".utf8), stderr: Data()) : nil
+            argv[1] == "get-volume" && ready.isSet ? CommandResult(status: 0, stdout: Data("Volume: 0.62 [MUTED]\n".utf8), stderr: Data()) : nil
         }
         let audio = WirePlumberAudio(run: log.run)
         XCTAssertNil(audio.lastKnown)
         XCTAssertEqual(audio.volume(), VolumeInfo(level: 0, muted: false), "nothing read yet")
+        ready.set()
         let read = await audio.readVolume()
         XCTAssertEqual(read, VolumeInfo(level: 62, muted: true))
         XCTAssertEqual(log.calls.first, ["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"])
-        // volume() started a background reading; it lands shortly.
+        // A background reading lands shortly. refresh() is a no-op while one
+        // is running, so keep asking until one starts after `ready`.
         let deadline = Date().addingTimeInterval(5)
-        while audio.lastKnown == nil && Date() < deadline { try? await Task.sleep(nanoseconds: 10_000_000) }
+        while audio.lastKnown == nil && Date() < deadline {
+            audio.refresh()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
         XCTAssertEqual(audio.lastKnown, VolumeInfo(level: 62, muted: true))
 
         let missing: CommandRun = { argv, _ in throw CommandError.notFound(argv[0]) }
@@ -883,6 +891,24 @@ final class SwitchableFiles: LinuxFiles, @unchecked Sendable {
 }
 
 /// Records every argv; `answer` gives a result, or nil for "failed" (exit 1).
+/// A thread-safe one-way switch for gating fake commands.
+final class Flag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+
+    var isSet: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
+
+    func set() {
+        lock.lock()
+        value = true
+        lock.unlock()
+    }
+}
+
 final class CommandLog: @unchecked Sendable {
     private let lock = NSLock()
     private var recorded: [[String]] = []
