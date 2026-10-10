@@ -22,7 +22,7 @@
 
 ## Fonts
 
-Text draws in one of four **roles**, each a font family:
+Text draws in one of four roles, each a font family:
 
 | Role | Used for | macOS default | Linux default |
 |---|---|---|---|
@@ -122,7 +122,7 @@ The data-driven ones read a source through the render engine: `value`, `conditio
 
 ## Colors
 
-Prefer the **semantic** names; they follow the palette. `tokyo-night`, the only built-in palette:
+Prefer the semantic names; they follow the palette. `tokyo-night`, the only built-in palette:
 
 | Name | Kind | Value |
 |---|---|---|

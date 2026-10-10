@@ -6,9 +6,9 @@ vestal can show how much of a Claude or Codex plan's rate limits you have used: 
 
 The `claude` source has two backends, chosen by `backend` (`auto`, `api` or `cli`; default `auto`).
 
-**api.** One `GET https://api.anthropic.com/api/oauth/usage`, the request Claude Code's own `/usage` makes, with the access token of Claude Code's login: it takes a fraction of a second and starts no other program. The token is read from `.credentials.json` in `$CLAUDE_CONFIG_DIR` (default `~/.claude`) or, on macOS, from the login keychain item `Claude Code-credentials` when the file has no valid token. vestal only reads it: it never refreshes or writes it, never logs or shows it, and sends it to `api.anthropic.com` only. `five_hour` is `session`, `seven_day` is `weekly`, and the per-model windows (Claude Code's own names, such as `Fable`) are `extra`. The endpoint is not documented by Anthropic, so it may change.
+The API backend makes one `GET https://api.anthropic.com/api/oauth/usage`, the same request as Claude Code's `/usage`, with the access token of Claude Code's login. It takes a fraction of a second and starts no other program. The token is read from `.credentials.json` in `$CLAUDE_CONFIG_DIR` (default `~/.claude`) or, on macOS, from the login keychain item `Claude Code-credentials` when the file has no valid token. vestal only reads it: it never refreshes or writes it, never logs or shows it, and sends it to `api.anthropic.com` only. `five_hour` is `session`, `seven_day` is `weekly`, and the per-model windows (Claude Code's own names, such as `Fable`) are `extra`. The endpoint is not documented by Anthropic, so it may change.
 
-**cli.** Runs `claude -p --no-session-persistence /usage`. Claude Code prints the account's plan usage, the same numbers as `/usage` in a session, without a model call, and exits within a few seconds:
+The CLI backend runs `claude -p --no-session-persistence /usage`. Claude Code prints the account's plan usage, the same numbers as `/usage` in a session, without a model call, and exits within a few seconds:
 
 ```
 Current session: 25% used · resets Sep 27 at 7:10pm (America/Buenos_Aires)
@@ -20,7 +20,7 @@ vestal reads those lines: `Current session` is `session`, `Current week (all mod
 
 Claude Code uses its own login (Pro or Max). The command runs in vestal's cache directory (`~/Library/Caches/Vestal` on macOS, `$XDG_CACHE_HOME/vestal` or `~/.cache/vestal` on Linux), and `--no-session-persistence` keeps it from writing a transcript at every refresh (vestal drops the flag for a Claude Code too old to know it). It refreshes every 5 minutes while the dashboard is shown, and when you show the dashboard with data older than a minute. `vestal fetch claude` runs it and shows the data. vestal looks for `claude` on `PATH`, in the Nix and Homebrew directories and in `~/.local/bin` (Claude Code's native installer); anywhere else, set `"argv": ["~/.local/bin/claude", "-p", "--no-session-persistence", "/usage"]` on the source.
 
-No status line is needed. Earlier versions read Claude's numbers from Claude Code's `statusLine` input, but those are the session's, not the account's. `vestal claude-statusline` still works as a status line that shows the `claude` source's cached numbers (`5h 25% · wk 59%`, nothing before the first fetch), with `--then <command>` to chain another one; it writes nothing. Under Home Manager, `programs.vestal.claudeStatusLine.enable` (off by default) sets it up; while it is off, activation removes a `statusLine` from `~/.claude/settings.json` only when it is exactly vestal's own (`/nix/store/…/bin/vestal claude-statusline`), leaves one that chains another command with a warning, and touches nothing else. A status line you set by hand stays until you remove it.
+A status line is unnecessary. Earlier versions read Claude's numbers from Claude Code's `statusLine` input, which gives session numbers instead of account numbers. `vestal claude-statusline` still works as a status line that shows the `claude` source's cached numbers (`5h 25% · wk 59%`, nothing before the first fetch), with `--then <command>` to chain another one; it writes nothing. Under Home Manager, `programs.vestal.claudeStatusLine.enable` (off by default) sets it up; while it is off, activation removes a `statusLine` from `~/.claude/settings.json` only when it is exactly vestal's own (`/nix/store/…/bin/vestal claude-statusline`), leaves one that chains another command with a warning, and touches nothing else. A status line you set by hand stays until you remove it.
 
 ## Codex
 
@@ -51,11 +51,11 @@ Both sources give the same shape:
 
 ## Showing it
 
-- **`aiUsage`**: one row with Claude's and Codex's windows as small bars, a percentage each and `in 4h` after it, all on one line. A service without data yet is left out. `{"type": "aiUsage"}`; `show: ["codex"]` for one service.
-- **`aiPlan`**: the same windows as full-width bars, one per window (5 hours, week, and a `<model> week` for each of Claude's per-model windows) with the percentage and when it resets. The weekly bars carry a white tick where usage would be at an even pace through the week (the elapsed share of the 7-day window, found from `resetsAt`). The plan badge is Codex's `plan`; Claude's endpoint doesn't give one, so write `"claudePlan": "Max"`. `{"type": "aiPlan"}`; `show: ["codex"]` for one service.
-- **System bar items**: `"claudeUsage"` and `"codexUsage"` in a `systemBar`'s `show` draw `session% / weekly%` with an icon. `codexUsage` is only drawn when listed.
-- **`claudeUsage`**: the Claude item as a row of its own.
-- **Your own**: any widget over the sources, such as `{ "type": "progress", "source": "claude", "label": "Claude", "value": ".weekly.percent // 0" }`, `{{ .weekly.resetsAt - now | fmt_duration(1) }}` for the time left, or a `list` over `.extra` for the per-model limits.
+- `aiUsage`: one row with Claude's and Codex's windows as small bars, a percentage each and `in 4h` after it, all on one line. A service without data yet is left out. `{"type": "aiUsage"}`; `show: ["codex"]` for one service.
+- `aiPlan`: the same windows as full-width bars, one per window (5 hours, week, and a `<model> week` for each of Claude's per-model windows) with the percentage and when it resets. The weekly bars carry a white tick where usage would be at an even pace through the week (the elapsed share of the 7-day window, found from `resetsAt`). The plan badge is Codex's `plan`; Claude's endpoint doesn't give one, so write `"claudePlan": "Max"`. `{"type": "aiPlan"}`; `show: ["codex"]` for one service.
+- System bar items: `"claudeUsage"` and `"codexUsage"` in a `systemBar`'s `show` draw `session% / weekly%` with an icon. `codexUsage` is only drawn when listed.
+- `claudeUsage`: the Claude item as a row of its own.
+- Your own: any widget over the sources, such as `{ "type": "progress", "source": "claude", "label": "Claude", "value": ".weekly.percent // 0" }`, `{{ .weekly.resetsAt - now | fmt_duration(1) }}` for the time left, or a `list` over `.extra` for the per-model limits.
 
 ## When it shows nothing
 

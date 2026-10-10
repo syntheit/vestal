@@ -26,7 +26,7 @@ programs.vestal = {
 };
 ```
 
-**The hotkey.** Every starter sets `"hotkey": "cmd+shift+space"`; vestal's built-in defaults have none. Spotlight is `cmd+space` and macOS 14 and 15 bind nothing to `cmd+shift+space` by default (the input source shortcuts are `ctrl+space` and `ctrl+opt+space`), so it works out of the box; change `hotkey` if another app has it. On Linux, Wayland has no global hotkeys: bind `vestal toggle` in the compositor (with Home Manager, `programs.vestal.hyprland.enable` turns this same key into a Hyprland bind, `SUPER SHIFT, space`).
+Every starter sets `"hotkey": "cmd+shift+space"`; vestal's built-in defaults have none. Spotlight is `cmd+space` and macOS 14 and 15 bind nothing to `cmd+shift+space` by default (the input source shortcuts are `ctrl+space` and `ctrl+opt+space`), so it works out of the box; change `hotkey` if another app has it. On Linux, Wayland has no global hotkeys: bind `vestal toggle` in the compositor (with Home Manager, `programs.vestal.hyprland.enable` turns this same key into a Hyprland bind, `SUPER SHIFT, space`).
 
 A starter can also be a page or a single widget block (`kind` in its `starter.json`); today all eight are dashboards. Each has a sample (`starter-<id>`) that `vestal gallery --only starter-<id>` draws with fixture data, and the gallery README lists them under dashboards.
 
@@ -36,7 +36,7 @@ Today's dashboard: time, this machine, music, agenda, your hosts, rates and weat
 
 Clock: `mono` face, `system` typeface (unchanged), `hour12: "auto"`.
 
-Pages: **Main** (key 1), **Focus** (key 2).
+Pages: Main (key 1), Focus (key 2).
 
 You provide:
 
@@ -61,7 +61,7 @@ A big clock, the date and the next event. Nothing to read twice. Background: `sk
 
 Clock: `serif` face with the date in words, `instrument` typeface, `hour12: "auto"`.
 
-Pages: **Main** (key 1).
+Pages: Main (key 1).
 
 You provide:
 
@@ -84,7 +84,7 @@ Reviews waiting on you, CI per repo, plan usage and your commit rhythm. Backgrou
 
 Clock: `mono` face, `inter` typeface, `hour12: "auto"`. The compact density keeps it, small.
 
-Pages: **Main** (key 1), **Reviews** (key 2), **Builds** (key 3).
+Pages: Main (key 1), Reviews (key 2), Builds (key 3).
 
 You provide:
 
@@ -110,7 +110,7 @@ Hosts, monitors, containers, backups and the tailnet, two columns wide. Backgrou
 
 Clock: `condensed` face at size 84, `inter` typeface, `hour12: "auto"`.
 
-Pages: **Overview** (key 1), **nas** (key 2), **Network** (key 3).
+Pages: Overview (key 1), nas (key 2), Network (key 3).
 
 You provide:
 
@@ -137,7 +137,7 @@ A watchlist, crypto and exchange rates with intraday lines. Background: `mesh`.
 
 Clock: `flip` face without seconds, `plex` typeface, `hour12: "auto"`.
 
-Pages: **Markets** (key 1), **Main** (key 2).
+Pages: Markets (key 1), Main (key 2).
 
 You provide:
 
@@ -161,7 +161,7 @@ A timer, the one task, today's list and habits. Tab away to everything else. Bac
 
 Clock: `breathe` face, `geist` typeface, `hour12: "auto"`.
 
-Pages: **Focus** (key 1), **Main** (key 2).
+Pages: Focus (key 1), Main (key 2).
 
 You provide:
 
@@ -186,7 +186,7 @@ Now playing, large. The background takes the album's colors. Background: `artmes
 
 Clock: `thin` face (small, on the now-playing page), `instrument` typeface, `hour12: "auto"`.
 
-Pages: **Now playing** (key 1), **Main** (key 2).
+Pages: Now playing (key 1), Main (key 2).
 
 You provide:
 
@@ -210,7 +210,7 @@ Plan headroom, running agents and what needs you, for a day of delegated work. B
 
 Clock: `ring` face, `inter` typeface, `hour12: "auto"`.
 
-Pages: **Ops** (key 1), **Main** (key 2), **Reviews** (key 3).
+Pages: Ops (key 1), Main (key 2), Reviews (key 3).
 
 You provide:
 

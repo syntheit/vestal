@@ -19,11 +19,11 @@ With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "..
 
 ## Common options
 
-- `--config <path>` reads another config than the one vestal loads (`-` reads stdin, where supported). A config other than the running instance's is a **draft**.
+- `--config <path>` reads another config than the one vestal loads (`-` reads stdin, where supported). A config other than the running instance's is a draft.
 - `--at <time>` freezes `now`: epoch seconds or ISO 8601 (`2026-09-27T14:03:00Z`).
 - `TZ` and `VESTAL_LOCALE` (such as `en_US`) fix the time zone and locale, for reproducible output.
 
-**Where data comes from** (`render`, `eval`, `explain`, `screenshot`):
+For `render`, `eval`, `explain` and `screenshot`, data comes from:
 
 | Mode | Option | |
 |---|---|---|
@@ -32,7 +32,7 @@ With `--json`, a usage or lookup error goes to stderr as `{"error": {"code": "..
 | fetch | `--fetch` | Fetch every source needed, now, in this process. |
 | fixtures | `--data <dir>` | `<dir>/<source>.json` (`.txt` for `parse: "raw"`, the type's name for inline sources, `<source>.error` for a failed fetch). Nothing is fetched. |
 
-**Drafts don't run commands by themselves.** A draft still makes HTTP requests and reads files, but its `command` sources and `command` secrets stay "not loaded" unless you pass `--allow-commands`. `--no-network` skips HTTP too. Actions never run from `render`, `eval` or `check-config`.
+A draft makes HTTP requests and reads files, but its `command` sources and `command` secrets stay "not loaded" unless you pass `--allow-commands`. `--no-network` skips HTTP too. Actions never run from `render`, `eval` or `check-config`.
 
 ## The running instance
 
@@ -72,7 +72,7 @@ Checks a config file (default: the one vestal loads; `-` reads stdin) after merg
 - `--platform macos|linux`: check as that OS loads the file. The default, `all`, checks this OS and also the other OS's block.
 - `--commands`: list every program the config can run: `command` sources (named, inline, from a source template, or made by a preset such as `containers`), `command` secrets, `run` actions in widgets, views, global keys and templates, the `systemBar` privacy toggle and `systemHealth` foyer hosts. For each: where it is defined (pointer), what triggers it, the environment keys it adds, whether the program is on this machine's `PATH`, and the argv as written (text holes are never evaluated). Exit 0.
 
-Severities: **error** (that part won't work; the rest still runs), **warning** (ignored or defaulted), **info** (advice, such as `legacy` notes about v0.3 widgets).
+Severities: error (that part won't work; the rest still runs), warning (ignored or defaulted), info (advice, such as `legacy` notes about v0.3 widgets).
 
 `vestal print-config [path|-] [--origins | --expanded | --templates]`
 

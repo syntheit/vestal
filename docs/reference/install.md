@@ -29,11 +29,11 @@ The flake provides the package and a Home Manager module (`programs.vestal`), wh
 
 ## First run
 
-- **Config.** With no config file vestal runs on built-in defaults, with no hotkey. Run `vestal init` to write a starter dashboard to `~/.config/vestal/config.json` (or `$XDG_CONFIG_HOME/vestal/config.json`); `vestal init --list` shows the eight (`vestal docs starters`) and `vestal init --starter developer` picks one. It prints what that starter needs from you. Then change it with your agent (`vestal docs agents`); `vestal check-config` checks a file, and `examples/` in the repository has more complete ones. The file is watched, and `vestal reload` reads it at once.
-- **Hotkey.** Every starter sets `"hotkey": "cmd+shift+space"` (macOS 14 and 15 leave it unbound; Spotlight is `cmd+space`), so after `vestal init` press it to show the dashboard. The built-in defaults set none, so with no config use `vestal toggle` (from a shell, skhd or Shortcuts) or set `"hotkey": "f3"`. The key is taken from every app.
-- **Calendar.** The first time the agenda source reads your calendars, macOS asks whether Vestal may access Calendar. Allow it (Full Access: it reads events only). Change it later in System Settings > Privacy & Security > Calendars.
-- **Automation.** The first time the media widget talks to Music, Spotify or another player, macOS asks whether Vestal may control it. Allow it. Change it in System Settings > Privacy & Security > Automation.
-- **Nothing else.** The screenshot command and the trackpad pinch gesture need no permission.
+- With no config file vestal runs on built-in defaults, with no hotkey. Run `vestal init` to write a starter dashboard to `~/.config/vestal/config.json` (or `$XDG_CONFIG_HOME/vestal/config.json`); `vestal init --list` shows the eight (`vestal docs starters`) and `vestal init --starter developer` picks one. It prints what that starter needs from you. Then change it with your agent (`vestal docs agents`); `vestal check-config` checks a file, and `examples/` in the repository has more complete ones. The file is watched, and `vestal reload` reads it at once.
+- Every starter sets `"hotkey": "cmd+shift+space"` (macOS 14 and 15 leave it unbound; Spotlight is `cmd+space`), so after `vestal init` press it to show the dashboard. The built-in defaults set none, so with no config use `vestal toggle` (from a shell, skhd or Shortcuts) or set `"hotkey": "f3"`. The key is taken from every app.
+- The first time the agenda source reads your calendars, macOS asks whether Vestal may access Calendar. Allow it (Full Access: it reads events only). Change it later in System Settings > Privacy & Security > Calendars.
+- The first time the media widget talks to Music, Spotify or another player, macOS asks whether Vestal may control it. Allow it. Change it in System Settings > Privacy & Security > Automation.
+- The screenshot command and the trackpad pinch gesture need no permission.
 
 ## Start at login
 

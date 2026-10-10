@@ -54,7 +54,7 @@ vestal turns config and data into a resolved tree of nodes, and a UI only draws 
 
 Keys are sorted and defaults are left out, so output is deterministic.
 
-**Common fields**
+Common fields
 
 | Field | Default | |
 |---|---|---|
@@ -74,7 +74,7 @@ Keys are sorted and defaults are left out, so output is deterministic.
 | `action` | `false` | Clickable: the whole frame sends `invoke` with this id. |
 | `alt` | none | Plain-text rendition. |
 
-**Types**
+Types
 
 | Type | Fields (default) | Draws |
 |---|---|---|
@@ -108,8 +108,8 @@ The core can't measure text, so the label of a timeline item and its tick labels
 Units are logical points (macOS points, Wayland logical pixels).
 
 1. A number is exact; `fill` takes what the parent offers on that axis; absent means fit (the content's size, capped by the offer). A container with a `fill` child on an axis is itself `fill` there, unless it has a fixed size.
-2. **Stacks** place children in order with each child's `spaceBefore`, else the `gap`, before every child but the first. Fixed and fit children are measured first; the rest is shared equally by the `fill` children (never below 0). `alignSelf` or `align` places each child across; `stretch` makes it as wide as the stack. `justify` spreads leftover space when no child fills.
-3. **Grids**: fixed columns take their width, `fit` columns their widest cell, `fill` columns share the rest. A row is as tall as its tallest cell.
+2. Stacks place children in order with each child's `spaceBefore`, else the `gap`, before every child but the first. Fixed and fit children are measured first; the rest is shared equally by the `fill` children (never below 0). `alignSelf` or `align` places each child across; `stretch` makes it as wide as the stack. `justify` spreads leftover space when no child fills.
+3. Grids: fixed columns take their width, `fit` columns their widest cell, `fill` columns share the rest. A row is as tall as its tallest cell.
 4. `padding` is inside the frame; `background`, `border` and `radius` paint the padded frame; `min…`/`max…` clamp after sizing (`maxWidth` includes padding).
 5. The root is centered on the screen both ways, `min(maxWidth, window width)` wide.
 6. A fit text is as wide as its line, capped by the offer; it wraps unless `lines` is 1. `baseline` lines up the first baselines of text children.

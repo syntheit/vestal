@@ -1,19 +1,19 @@
 # Configuring vestal: a guide for agents
 
-Vestal is a full-screen dashboard toggled by a key, on macOS and Linux, driven by **one JSON config**. There is no settings screen: you, the user's LLM agent, build their dashboard by editing that JSON, or the Nix attrset that produces it. You never write Swift. Every tool you need is in the `vestal` binary, runs without a screen, and prints JSON on request. The same text ships in the binary as `vestal docs agents`, and every other topic is one `vestal docs <topic>` away.
+Vestal is a full-screen dashboard for macOS and Linux, opened with a key and driven by one JSON config. There is no settings screen: you, the user's LLM agent, build their dashboard by editing that JSON or the Nix attrset that produces it, without writing Swift. The `vestal` binary provides the tools for this work; they run without a screen and print JSON on request. This guide ships in the binary as `vestal docs agents`, alongside the other `vestal docs <topic>` topics.
 
 ## 1. Ground rules
 
-1. **Find the real config first.** `vestal status` prints the file the running instance loaded (`config:`).
+1. Find the real config first. `vestal status` prints the file the running instance loaded (`config:`).
    - If `~/.config/vestal/config.json` is a symlink into `/nix/store`, Home Manager writes it from `programs.vestal.settings`. Edit the Nix source, never that file (section 3).
    - Otherwise edit the file itself: vestal reloads it on its own.
-2. **Work on a draft.** Copy the config to `/tmp/vestal-draft.json`, change that, and pass it to every command with `--config`. Only replace the real file once `check-config` is clean and the render looks right.
-3. **Never put secrets in the config.** Tokens live in a file (or an environment variable, or a command such as `gh auth token`), declared under `secrets` and used as `{{ $secrets.name }}` in a source's URL, headers or argv. Under Nix the config is in the world-readable store.
-4. **One config serves macOS and Linux.** Use the built-in sources (`system`, `media`, `calendar`, `claude`, `codex`) rather than OS commands. Put what is truly OS-specific (fonts, a command that exists on one OS, a player name) in `platform.macos` or `platform.linux`, and check both OSes: `vestal check-config --platform linux`.
-5. **Validate before you claim success:** `vestal check-config --json` must say `"error": 0` (exit 0, not 3), and `vestal render` must end with `diagnostics: 0`. Then look at it (`vestal screenshot`).
-6. **Prefer what exists:** presets (`vestal docs presets`; each ships a sample you can look at without any source: `vestal docs samples`, `vestal gallery --only <name>`), semantic colors (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
-7. **Tell the user what runs.** `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists every program the config can run (command sources, inline or from a template too; `command` secrets; `run` actions in widgets, views, keys and templates; the v0.3 privacy toggle and foyer hosts), with what triggers it and whether it is on `PATH`. Mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
-8. **Lists replace, objects merge.** Your file is merged over the built-in defaults: objects merge key by key, but a list (such as `views.main.children`) replaces the default list whole, and `null` deletes a default. When you add a widget to a view, write the view's full list.
+2. Work on a draft. Copy the config to `/tmp/vestal-draft.json`, change that, and pass it to every command with `--config`. Only replace the real file once `check-config` is clean and the render looks right.
+3. Never put secrets in the config. Tokens live in a file (or an environment variable, or a command such as `gh auth token`), declared under `secrets` and used as `{{ $secrets.name }}` in a source's URL, headers or argv. Under Nix the config is in the world-readable store.
+4. One config serves macOS and Linux. Use the built-in sources (`system`, `media`, `calendar`, `claude`, `codex`) rather than OS commands. Put what is truly OS-specific (fonts, a command that exists on one OS, a player name) in `platform.macos` or `platform.linux`, and check both OSes: `vestal check-config --platform linux`.
+5. Validate before you claim success: `vestal check-config --json` must say `"error": 0` (exit 0, not 3), and `vestal render` must end with `diagnostics: 0`. Then look at it (`vestal screenshot`).
+6. Prefer what exists: presets (`vestal docs presets`; each ships a sample you can look at without any source: `vestal docs samples`, `vestal gallery --only <name>`), semantic colors (`good`, `warn`, `bad`, `accent`, `subtle`, `dim`), size tokens (`sm`, `lg`, `xl`). Keep changing values (rates, times) at the end of rows so the rest doesn't shift.
+7. Tell the user what runs. `command` sources and `run` actions execute programs, without a shell. `vestal check-config --commands` lists every program the config can run (command sources, inline or from a template too; `command` secrets; `run` actions in widgets, views, keys and templates; the v0.3 privacy toggle and foyer hosts), with what triggers it and whether it is on `PATH`. Mention every new program, and that it must be on the daemon's PATH (`programs.vestal.extraPackages` under Nix).
+8. Lists replace, objects merge. Your file is merged over the built-in defaults: objects merge key by key, but a list (such as `views.main.children`) replaces the default list whole, and `null` deletes a default. When you add a widget to a view, write the view's full list.
 
 ## 2. The loop
 
@@ -83,17 +83,17 @@ $ vestal fetch prs --config /tmp/vestal-draft.json --allow-commands --shape
 
 ### Step 3: write the config
 
-**Start from a starter, then customize.** For a user with no config yet, `vestal init --list` shows eight complete dashboards (default, minimal, developer, homelab, markets, focus, media, agentops); `vestal init --starter <id>` writes one to the config path (under Nix: `programs.vestal.starter = "<id>";`, with `programs.vestal.settings` merged over it). Read what it needs from the user, then change it with the loop below (`vestal docs starters`).
+Start from a starter, then customize. For a user with no config yet, `vestal init --list` shows eight complete dashboards (default, minimal, developer, homelab, markets, focus, media, agentops); `vestal init --starter <id>` writes one to the config path (under Nix: `programs.vestal.starter = "<id>";`, with `programs.vestal.settings` merged over it). Read what it needs from the user, then change it with the loop below (`vestal docs starters`).
 
 A complete config is a JSON object with `"version": 1`, merged over the defaults. The parts: `sources` (data), `widgets` (named widgets), `views` (which widgets show, in order), plus `templates`, `functions`, `secrets`, `keys`, `pages` (order, slide or fade, dots and swipe between views; `views.<name>.enabled: false` turns a view off), `theme`, `platform` when needed. Every recipe in section 5 is a complete file you can start from.
 
 The three kinds of field (`vestal docs expressions`):
 
-- **expr** fields are jq: `"value": ".cpu.percent"`, `"items": ".items"`, `"when": ".battery != null"`.
-- **text** fields are text with `{{ jq }}` holes: `"text": "{{ .title }} ({{ .count }})"`. `null` inserts nothing.
+- expr fields are jq: `"value": ".cpu.percent"`, `"items": ".items"`, `"when": ".battery != null"`.
+- text fields are text with `{{ jq }}` holes: `"text": "{{ .title }} ({{ .count }})"`. `null` inserts nothing.
 - Any other scalar field can be computed with `{"expr": "…"}`: `"color": {"expr": "if .ok then \"good\" else \"bad\" end"}`.
 
-**Under Nix (Home Manager).** `programs.vestal.settings` takes the same JSON as an attrset. The best pattern keeps a JSON file in the user's Nix repo, which you edit and check like any config:
+Under Nix (Home Manager), `programs.vestal.settings` takes the same JSON as an attrset. Keep a JSON file in the user's Nix repo so you can edit and check it like any config:
 
 ```nix
 programs.vestal = {
@@ -251,13 +251,13 @@ Then open `/tmp/vestal.png` with your image-viewing tool and look: alignment, cr
 
 Repeat steps 3 to 7 until check-config is clean, the render shows what the user asked for, and the screenshot looks right. Then:
 
-- **Plain file:** copy the draft over the real config. The running instance reloads by itself (`vestal reload` forces it).
-- **Nix:** write the JSON file (or the attrset) in the user's Nix repo and tell them to switch (`home-manager switch`, `darwin-rebuild switch`, `nixos-rebuild switch`). Don't switch for them unless asked.
-- **Tell the user** what changed, what runs (new programs, how often), which keys do what, and anything that fills in later (a sparkline needs two fetches).
+- Plain file: copy the draft over the real config. The running instance reloads by itself (`vestal reload` forces it).
+- Nix: write the JSON file (or the attrset) in the user's Nix repo and tell them to switch (`home-manager switch`, `darwin-rebuild switch`, `nixos-rebuild switch`). Don't switch for them unless asked.
+- Tell the user what changed, what runs (new programs, how often), which keys do what, and anything that fills in later (a sparkline needs two fetches).
 
 ## 3. Cheat sheet
 
-**Inside an expression** (`vestal docs expressions`):
+Inside an expression (`vestal docs expressions`):
 
 | Name | Meaning |
 |---|---|
@@ -270,7 +270,7 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 | `$meta` | `{fetchedAt, age, ok, error, stale, loaded}` of the source. |
 | `now` | The current time, epoch seconds. |
 
-**Widgets** (`vestal docs widgets`, `vestal docs widget/<type>`):
+Widgets (`vestal docs widgets`, `vestal docs widget/<type>`):
 
 | Group | Types |
 |---|---|
@@ -280,15 +280,15 @@ Repeat steps 3 to 7 until check-config is clean, the render shows what the user 
 
 Every widget takes `source`, `input`, `vars`, `when`, `style`, `width`/`height` (`"fill"`), `spaceBefore`, `action`, `key`.
 
-**Formatting:** `fmt_fixed(1)`, `fmt_int`, `fmt_percent`, `fmt_bytes`, `fmt_rate`, `fmt_duration`, `fmt_relative`, `fmt_time("HH:mm")`, `fmt_compact`, `fmt_thousands`, `to_epoch`; on `text`, `stat` and table columns, `"format": "fixed:1"`, `"bytes"`, `"percent"`, `"relative"`, ….
+Formatting: `fmt_fixed(1)`, `fmt_int`, `fmt_percent`, `fmt_bytes`, `fmt_rate`, `fmt_duration`, `fmt_relative`, `fmt_time("HH:mm")`, `fmt_compact`, `fmt_thousands`, `to_epoch`; on `text`, `stat` and table columns, `"format": "fixed:1"`, `"bytes"`, `"percent"`, `"relative"`, ….
 
-**Color by threshold:** `"color": {"steps": [[0, "good"], [70, "warn"], [90, "bad"]]}` (of the widget's value; `"of": ".x"` for another).
+Color by threshold: `"color": {"steps": [[0, "good"], [70, "warn"], [90, "bad"]]}` (of the widget's value; `"of": ".x"` for another).
 
-**Icons:** Phosphor names (`vestal icons battery`), `"weight": "fill"` for solid.
+Icons: Phosphor names (`vestal icons battery`), `"weight": "fill"` for solid.
 
-**Actions** (`vestal docs actions`): `{"open": "{{ .url }}"}`, `{"run": ["cmd", "arg"]}`, `{"copy": "…"}`, `{"refresh": "prs"}`, `{"view": "focus"}`, `{"popup": {…}}`, `{"media": "playPause"}`, `{"audio": "toggleMute"}`.
+Actions (`vestal docs actions`): `{"open": "{{ .url }}"}`, `{"run": ["cmd", "arg"]}`, `{"copy": "…"}`, `{"refresh": "prs"}`, `{"view": "focus"}`, `{"popup": {…}}`, `{"media": "playPause"}`, `{"audio": "toggleMute"}`.
 
-**Common mistakes:**
+Common mistakes:
 
 | Symptom | Fix |
 |---|---|
@@ -887,10 +887,10 @@ User: *"A table of my disks: used, free and size, red when nearly full."*
 
 ## 6. Going further
 
-- **More widgets and fields:** `vestal docs widgets`, then `vestal docs widget/<type>` for each field's kind and default.
-- **A home server:** `vestal docs presets` (the `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers` presets, their data packs and the status-file formats; each needs a program or a server, and stays hidden without it).
-- **Your own reusable widget or health agent:** `vestal docs templates` (a source template that maps Glances or netdata to the `system` shape works in `systemHealth`).
-- **Look:** `vestal docs styling` (palettes, fonts, `theme.scale`), `vestal docs icons`.
-- **Keys, views and popups:** `vestal docs keys`, `vestal docs views`, `vestal docs actions`.
-- **UI authors:** `vestal docs render-model` and `vestal docs protocol`; `vestal subscribe` prints the live stream.
-- **Everything else:** `vestal docs cli`, `vestal docs --search <text>`, and `vestal schema` for the JSON Schema of the whole config.
+- More widgets and fields: `vestal docs widgets`, then `vestal docs widget/<type>` for each field's kind and default.
+- A home server: `vestal docs presets` (the `containers`, `tailnet`, `uptimeMonitors`, `backups` and `transfers` presets, their data packs and the status-file formats; each needs a program or a server, and stays hidden without it).
+- Your own reusable widget or health agent: `vestal docs templates` (a source template that maps Glances or netdata to the `system` shape works in `systemHealth`).
+- Look: `vestal docs styling` (palettes, fonts, `theme.scale`), `vestal docs icons`.
+- Keys, views and popups: `vestal docs keys`, `vestal docs views`, `vestal docs actions`.
+- UI authors: `vestal docs render-model` and `vestal docs protocol`; `vestal subscribe` prints the live stream.
+- Everything else: `vestal docs cli`, `vestal docs --search <text>`, and `vestal schema` for the JSON Schema of the whole config.

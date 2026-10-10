@@ -31,7 +31,7 @@ Where bindings come from, highest precedence first:
 
 A widget's key is bound only while that widget is drawn on the current view, and widget keys beat the view's `keys` and the top-level ones, so a preset can bind plain keys without taking them from other pages: `focusTimer` binds space, `R` and `N`, and a top-level `r` still works on every view without it. In a view that does have the widget, the widget wins.
 
-**`"key": "auto"`** gives a widget the first letter of its `keyHint` (letters only, in order) that no other binding took. Explicit keys are assigned first, then `auto` ones in tree order. `auto` never assigns `i` or `p` (v0.3's info and privacy keys). The `systemHealth` preset gives each host `auto` with its name as the hint, so `h` opens `harbor`.
+`"key": "auto"` gives a widget the first letter of its `keyHint` (letters only, in order) that no other binding took. Explicit keys are assigned first, then `auto` ones in tree order. `auto` never assigns `i` or `p` (v0.3's info and privacy keys). The `systemHealth` preset gives each host `auto` with its name as the hint, so `h` opens `harbor`.
 
 check-config reports keys that aren't keys (`invalid-key`) and bindings of the reserved ones (`key-conflict`). When two widgets bind the same key explicitly, the first in tree order wins: check with `vestal render --press <key>`.
 

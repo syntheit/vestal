@@ -1,8 +1,8 @@
 # Icons
 
-Icons are named from one open set, bundled with vestal on both OSes: **Phosphor Icons** (MIT, about 1,500 icons), in two weights, `regular` and `fill`. The same name draws the same icon on macOS and Linux.
+Vestal bundles Phosphor Icons (MIT, about 1,500 icons) on both operating systems, in `regular` and `fill` weights. The same name draws the same icon on macOS and Linux.
 
-- **Names** are Phosphor's kebab-case names: `cpu`, `hard-drives`, `battery-high`, `github-logo`, `thermometer`, `calendar-blank`. Find them with `vestal icons <query>`:
+- Phosphor uses kebab-case names: `cpu`, `hard-drives`, `battery-high`, `github-logo`, `thermometer`, `calendar-blank`. Find them with `vestal icons <query>`:
 
   ```text
   $ vestal icons battery --limit 3
@@ -12,9 +12,9 @@ Icons are named from one open set, bundled with vestal on both OSes: **Phosphor 
   vestal: 14 more; --limit 0 lists all
   ```
 
-- **Where they go:** an `icon` widget's `name`, a `text`'s leading `icon`, a `badge`'s `icon`. Choose the weight with `weight` (or `iconWeight` on a text): `fill` for solid glyphs.
-- **Computed names:** `"name": {"expr": ".battery.percent | step([[0,\"battery-empty\"],[38,\"battery-medium\"],[88,\"battery-full\"]])"}`.
-- **Checking:** check-config reports an unknown name with a did-you-mean; `vestal render` lists an unknown computed one in its diagnostics (`unknown-icon`).
+- Use icons in an `icon` widget's `name`, a `text`'s leading `icon`, or a `badge`'s `icon`. Choose the weight with `weight` (or `iconWeight` on a text): `fill` for solid glyphs.
+- Compute a name with `"name": {"expr": ".battery.percent | step([[0,\"battery-empty\"],[38,\"battery-medium\"],[88,\"battery-full\"]])"}`.
+- Check-config reports an unknown name with a did-you-mean; `vestal render` lists an unknown computed one in its diagnostics (`unknown-icon`).
 
 `vestal icons [query] [--limit <n>] [--json]` matches names containing every word of the query (names starting with it first), at most 50 unless `--limit` says otherwise; `--json` gives `[{"name", "weights", "codePoints": {"regular", "fill"}}]`. With no match it exits 4 with a did-you-mean.
 

@@ -62,7 +62,7 @@ While the dashboard is hidden nothing is evaluated and no patches are sent (unle
 
 ## Roles
 
-- The **primary UI** is the most recent `ui` subscriber still connected. When it disconnects, the previous `ui` subscriber becomes primary.
+- The primary UI is the most recent `ui` subscriber still connected. When it disconnects, the previous `ui` subscriber becomes primary.
 - Only the primary UI receives effects, and only its `invoke`, `key`, `hide` and `view` count; another `ui`'s are ignored.
 - Observers get snapshots, patches and visibility; their commands are ignored unless they subscribed with `control: true`. `snapshot` always works.
 

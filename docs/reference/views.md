@@ -31,10 +31,10 @@ A view is one screen of widgets. The dashboard opens `defaultView` (default `mai
 | `keys` | `{}` | Key bindings of this view only (`vestal docs keys`). |
 | `enabled` | `true` | `false` turns the view off (see Pages). |
 
-- **Lists replace.** `views.main.children` in your file replaces the default list whole. To add a widget to the default dashboard, write the full list: `vestal print-config` shows the current one.
-- **Spacing.** In a view written with `children`, the first *visible* child gets no space before it. A view written with v0.3's `order` keeps v0.3's rule: only the first *listed* entry gets none.
-- **Switching.** `left`, `right`, `tab` and `shift+tab` page through the views (in key order, or `pages.order`) when there is more than one and those keys are unbound; a view's `key` jumps to it. A swipe pages too (see Pages). From a shell or a compositor: `vestal show <view>` opens the dashboard on that view, and `vestal toggle <view>` hides it when it shows that view and shows that view otherwise. An unknown view exits 4.
-- **Cost.** A view that isn't shown costs nothing: its `visible` sources aren't fetched and nothing in it is evaluated.
+- `views.main.children` in your file replaces the default list whole. To add a widget to the default dashboard, write the full list: `vestal print-config` shows the current one.
+- In a view written with `children`, the first *visible* child gets no space before it. A view written with v0.3's `order` keeps v0.3's rule: only the first *listed* entry gets none.
+- `left`, `right`, `tab` and `shift+tab` page through the views (in key order, or `pages.order`) when there is more than one and those keys are unbound; a view's `key` jumps to it. A swipe pages too (see Pages). From a shell or a compositor: `vestal show <view>` opens the dashboard on that view, and `vestal toggle <view>` hides it when it shows that view and shows that view otherwise. An unknown view exits 4.
+- A view that isn't shown costs nothing: its `visible` sources aren't fetched and nothing in it is evaluated.
 
 Check one without opening it: `vestal render --view focus`, or `vestal render --press 2` to go through its key.
 

@@ -48,14 +48,14 @@ Parameter types: data types `string`, `number`, `integer`, `boolean`, `array`, `
 
 Templates are expanded once, when the config loads, before anything is checked or drawn.
 
-1. **Substitution.** An object that is exactly `{"param": "<name>"}` is replaced, anywhere in the body, by the parameter's value (or its `default`). `{"param": "privacy.command"}` reaches into an object parameter.
-2. **Absence.** When that value is `null` or absent, the enclosing key (or array element) is removed, as if never written.
-3. **Splicing.** A `{"param": …}` array element whose value is an array is spliced in place: `"children": [header, {"param": "children"}]`.
-4. **Variables.** Data parameters are also bound as `$<name>` (and all together as `$params`) in every expression and text field of the body, and in its source-definition text. Code parameters (`expr`, `text`, `widget`, `widgets`) are only substituted, never bound, so an `expr` parameter named `value` doesn't hide the node's `$value`.
-5. **Common fields.** Common widget fields on the instance (`source`, `when`, `width`, `spaceBefore`, `action`, …; `vestal docs widgets`) apply to the expanded root and win over the body's, except that `vars` merge, and a parameter named like a common field takes it instead.
-6. **Checks.** An instance key that is neither a parameter nor a common field is a warning with a did-you-mean. A missing `required` parameter or a value of the wrong type is an error, and that widget isn't shown.
-7. **Nesting.** Templates may use templates, 16 deep at most. A cycle is an error.
-8. **Names.** A template may not take a primitive's name (`text`, `list`, …). A template named like a built-in is an error unless it sets `"override": true`, which replaces the built-in whole. To build on a preset, give yours a new name and use the preset inside it.
+1. An object that is exactly `{"param": "<name>"}` is replaced, anywhere in the body, by the parameter's value (or its `default`). `{"param": "privacy.command"}` reaches into an object parameter.
+2. When that value is `null` or absent, the enclosing key (or array element) is removed, as if never written.
+3. A `{"param": …}` array element whose value is an array is spliced in place: `"children": [header, {"param": "children"}]`.
+4. Data parameters are also bound as `$<name>` (and all together as `$params`) in every expression and text field of the body, and in its source-definition text. Code parameters (`expr`, `text`, `widget`, `widgets`) are only substituted, never bound, so an `expr` parameter named `value` doesn't hide the node's `$value`.
+5. Common widget fields on the instance (`source`, `when`, `width`, `spaceBefore`, `action`, …; `vestal docs widgets`) apply to the expanded root and win over the body's, except that `vars` merge, and a parameter named like a common field takes it instead.
+6. An instance key that is neither a parameter nor a common field is a warning with a did-you-mean. A missing `required` parameter or a value of the wrong type is an error, and that widget isn't shown.
+7. Templates may use templates, 16 deep at most. A cycle is an error.
+8. A template may not take a primitive's name (`text`, `list`, …). A template named like a built-in is an error unless it sets `"override": true`, which replaces the built-in whole. To build on a preset, give yours a new name and use the preset inside it.
 
 Reserved variable names (`value`, `data`, `item`, …; `vestal docs expressions`) can't be data parameter names.
 

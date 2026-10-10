@@ -12,9 +12,9 @@ Expressions are a subset of jq. Every field of the config is one of three kinds,
 
 Three rules cover the language:
 
-- **R1.** A field of kind *expr* is always jq.
-- **R2.** A field of kind *text* is literal, and each `{{ … }}` inside it is a jq expression whose first output is inserted. Strings go in as they are, numbers as jq's `tostring` writes them, `null` as nothing, and arrays and objects as compact JSON. `{{{{` writes a literal `{{`.
-- **R3.** Any other scalar field (a number, a boolean, a color, an icon name, a width) may be written `{"expr": "<jq>"}` to compute it. Structural keys cannot: `type`, `id`, `children`, `row`, `cases`, a `source` given as a name, template names, and the keys of a source definition.
+- R1. A field of kind *expr* is always jq.
+- R2. A field of kind *text* is literal, and each `{{ … }}` inside it is a jq expression whose first output is inserted. Strings go in as they are, numbers as jq's `tostring` writes them, `null` as nothing, and arrays and objects as compact JSON. `{{{{` writes a literal `{{`.
+- R3. Any other scalar field (a number, a boolean, a color, an icon name, a width) may be written `{"expr": "<jq>"}` to compute it. Structural keys cannot: `type`, `id`, `children`, `row`, `cases`, a `source` given as a name, template names, and the keys of a source definition.
 
 `{{ }}` needs no escaping in JSON or in Nix (Nix only interpolates `${`). jq's own `"\(…)"` still works inside an expression, but in a JSON string it must be written `\\(`.
 
@@ -69,11 +69,11 @@ These names are reserved: a template parameter or a `vars` entry may not use `va
 
 ## Streams, nulls and errors
 
-- jq expressions produce streams. A scalar field takes the **first** output. `items` collects **all** outputs into an array, and when the only output is an array it uses that array, so `".items"` and `".items[]"` both work.
+- jq expressions produce streams. A scalar field takes the first output. `items` collects all outputs into an array, and when the only output is an array it uses that array, so `".items"` and `".items[]"` both work.
 - `null` is quiet. A `{{ }}` hole that is `null` inserts nothing. A `value` that is `null` shows the widget's `placeholder` (default `–`) and draws empty bars, rings and sparklines. `when` hides the widget on `null` and `false`.
 - A runtime error (for example `tonumber` on `"n/a"`) never stops rendering: that field behaves as `null`, and the error goes to the render model's `diagnostics`, which `vestal render` prints.
 - A compile error is found when the config loads: that widget is hidden, and `vestal check-config` reports the error with its position.
-- **Limits:** one evaluation may take at most 100,000 steps and 50 ms, and produce at most 4 MiB. Past a limit it fails like any runtime error (`expr-limit`), so `range(1e9)` can't freeze the dashboard.
+- Limits: one evaluation may take at most 100,000 steps and 50 ms, and produce at most 4 MiB. Past a limit it fails like any runtime error (`expr-limit`), so `range(1e9)` can't freeze the dashboard.
 - jq's `//` treats `false` like `null`: `.enabled // true` is `true` when `.enabled` is `false`. Use `if .enabled == null then true else .enabled end`.
 
 ## Legacy paths

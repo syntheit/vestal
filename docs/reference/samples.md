@@ -1,6 +1,6 @@
 # Samples and the gallery
 
-Every preset ships a **sample**: a small config, the source data it needs and the size to draw it at. A sample renders with no live source, so it proves the preset works (a test renders them all), shows an agent what the preset looks like without running anything, and feeds `vestal gallery`, which draws every sample to a PNG. **Every new preset must ship a sample** (and a `<name>-compact` one if it has a compact body); a test fails without it.
+Every preset ships a sample: a small config, the source data it needs and the size to draw it at. A sample renders with no live source, so it proves the preset works (a test renders them all), shows an agent what the preset looks like without running anything, and feeds `vestal gallery`, which draws every sample to a PNG. Every new preset must ship a sample (and a `<name>-compact` one if it has a compact body); a test fails without it.
 
 ## Seeing them
 
