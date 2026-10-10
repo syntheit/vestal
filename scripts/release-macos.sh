@@ -270,7 +270,7 @@ step_cask() {
     /usr/bin/sed -i '' -e "s/^  version \".*\"/  version \"$VERSION\"/" \
               -e "s/^  sha256 .*/  sha256 \"$sha\"/" "$CASK"
     grep -nE '^  (version|sha256)' "$CASK"
-    echo "Upload $DMG to the v$VERSION release, then copy $CASK into the tap (see RELEASING.md)."
+    echo "Upload $DMG to the v$VERSION release, then copy $CASK into the tap (see the release checklist)."
 }
 
 case "${1:-}" in

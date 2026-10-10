@@ -72,7 +72,7 @@ Every dashboard, starter, widget and background has an expand button (and a clic
 
 ## Deploy
 
-The site lives at https://vestal.matv.io. The build writes `CNAME`, `robots.txt`, `sitemap.xml` and `og.png` (the social card, a 1200x630 render of `examples/full.json`; regenerate it with `vestal screenshot` at `--size 1200x630 --scale 1` and the fixture command in `AGENTS.md`-style flags when the look changes) into `site/dist/`, and every page carries a canonical URL and Open Graph tags. `llms.txt` links are absolute. `.github/workflows/pages.yml` builds on a macOS runner (the build needs the `vestal` binary) and deploys to GitHub Pages; it runs only by hand.
+The site lives at https://vestal.matv.io. The build writes `robots.txt`, `sitemap.xml` and `og.png` (the social card, a 1200x630 render of `examples/full.json`; regenerate it with `vestal screenshot` at `--size 1200x630 --scale 1` and the fixture command in `AGENTS.md`-style flags when the look changes) into `site/dist/`, and every page carries a canonical URL and Open Graph tags. `llms.txt` links are absolute.
 
 ### Go live
 
@@ -81,7 +81,7 @@ The site lives at https://vestal.matv.io. The build writes `CNAME`, `robots.txt`
 3. Actions > Pages > Run workflow (on `main`). Check https://vestal.matv.io/, `/docs/`, `/llms.txt` and `/sitemap.xml`.
 4. Rerun the workflow whenever samples, presets, docs or the renderer change.
 
-`site/dist/` is the whole site: upload it to any static host. For GitHub Pages, publish the directory with an Actions workflow (`actions/upload-pages-artifact` with `path: site/dist`, then `actions/deploy-pages`) after a step that builds vestal and runs `node site/build.mjs`, or build locally and push `site/dist/` to a `gh-pages` branch. The page uses relative URLs only, so it works under a project path (`/vestal/`) as well as at a domain's root. Nothing on the page needs a server: no API, no cookies.
+`site/dist/` is the whole site: upload it to any static host. The page uses relative URLs only, so it works under a project path (`/vestal/`) as well as at a domain's root. Nothing on the page needs a server: no API, no cookies.
 
 The page checks nothing live. Rebuild and redeploy whenever samples, presets, docs or the renderer change.
 

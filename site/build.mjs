@@ -620,7 +620,6 @@ for (const [path, text] of Object.entries(docs.files)) {
   writeFileSync(join(dist, path), out.replace(/\{\{build\}\}/g, BUILD));
 }
 cpSync(join(src, "og.png"), join(dist, "og.png"));
-writeFileSync(join(dist, "CNAME"), "vestal.matv.io\n");
 const indexDescription = "vestal: a full-screen dashboard on one key, for macOS and Linux, from one JSON config your agent writes.";
 const urls = ["", ...Object.keys(docs.files).filter((f) => f.endsWith(".html")).map((f) => f.replace(/index\.html$/, ""))];
 writeFileSync(join(dist, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);

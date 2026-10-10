@@ -83,4 +83,4 @@ vestal init            # writes ~/.config/vestal/config.json (vestal init --list
 
 ## More
 
-[AGENTS.md](./AGENTS.md) (point your agent here) · [Docs](https://vestal.matv.io/docs/) · [llms.txt](https://vestal.matv.io/llms.txt) · [Changelog](./CHANGELOG.md) · [License: GPL-3.0](./LICENSE)
+[AGENTS.md](./AGENTS.md) (point your agent here) · [Docs](https://vestal.matv.io/docs/) · [llms.txt](https://vestal.matv.io/llms.txt) · [License: GPL-3.0](./LICENSE)
