@@ -30,13 +30,13 @@
   },
   "starters": [
     { "id": "default", "name": "Default", "background": "aurora", "wall": "blue",
-      "pitch": "Today's dashboard: time, this machine, music, agenda, your hosts and the weather.",
+      "pitch": "The time, this machine, music, the agenda, your hosts and the weather.",
       "pages": [
         { "name": "main", "title": "Main", "key": "1", "samples": ["clock", "systemBar", "media", "agendaList", "systemHealth", "weatherCard"] },
         { "name": "focus", "title": "Focus", "key": "2", "samples": ["focusTimer", "nextMeeting", "todoFile", "habits"] }
       ] },
     { "id": "minimal", "name": "Minimal", "background": "sky", "wall": "dune",
-      "pitch": "The clock, the date and the next event. Nothing to read twice.",
+      "pitch": "The clock, the date and the next event.",
       "pages": [
         { "name": "main", "title": "Main", "key": "1", "gap": 40, "at": "2026-09-27T10:30:00Z", "samples": ["clock", "nextMeeting"] }
       ] },
@@ -48,7 +48,7 @@
         { "name": "builds", "title": "Builds", "key": "3", "samples": ["ciStatus", "flakeInputs"] }
       ] },
     { "id": "homelab", "name": "Homelab", "background": "aurora", "wall": "night",
-      "pitch": "Hosts, monitors, containers, backups and the tailnet, two columns wide.",
+      "pitch": "Hosts, uptime monitors, containers, backups and the tailnet in two columns.",
       "pages": [
         { "name": "overview", "title": "Overview", "key": "1", "layout": "grid", "columns": 2, "maxWidth": 1120, "gap": 36,
           "samples": ["systemHealth", "containers", "uptimeMonitors", "backups", "diskBreakdown", "tailnet"] },
@@ -62,19 +62,19 @@
         { "name": "main", "title": "Main", "key": "2", "samples": ["clock", "systemBar", "agendaList", "weatherCard"] }
       ] },
     { "id": "focus", "name": "Focus", "background": "grain", "wall": "dune",
-      "pitch": "A timer, the one task, today's list and habits. Tab away to everything else.",
+      "pitch": "A focus timer, the current task, today's list and habits, with the main dashboard one Tab away.",
       "pages": [
         { "name": "focus", "title": "Focus", "key": "1", "samples": ["focusTimer", "nextMeeting", "todoFile", "habits"] },
         { "name": "main", "title": "Main", "key": "2", "samples": ["clock", "systemBar", "agendaList", "weatherCard"] }
       ] },
     { "id": "media", "name": "Media", "background": "artmesh", "wall": "dune",
-      "pitch": "Now playing with the artwork, the day around it, and the background in the album's colors.",
+      "pitch": "The playing track with its artwork and the forecast, over a background colored from the album art.",
       "pages": [
         { "name": "playing", "title": "Now playing", "key": "1", "samples": ["clock", "nowPlaying", "forecast"] },
         { "name": "main", "title": "Main", "key": "2", "samples": ["clock", "systemBar", "agendaList", "weatherCard"] }
       ] },
     { "id": "agentops", "name": "Agent ops", "background": "flow", "wall": "night",
-      "pitch": "Plan headroom, the reviews and builds your agents produce, and what needs you.",
+      "pitch": "AI plan usage, the pull requests and builds your agents produce, and the reviews waiting on you.",
       "pages": [
         { "name": "ops", "title": "Ops", "key": "1", "samples": ["clock", "aiPlan", "reviewQueue", "ciStatus"] },
         { "name": "main", "title": "Main", "key": "2", "samples": ["clock", "systemBar", "agendaList", "weatherCard"] },

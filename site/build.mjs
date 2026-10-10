@@ -303,7 +303,7 @@ const backgrounds = [];
 // The aurora's feel: the first sentence of its shader's header comment.
 const auroraHead = readFileSync(join(root, "Resources", "shaders", "aurora.glsl"), "utf8").match(/^(?:\/\/[^\n]*\n)+/);
 const auroraFeel = auroraHead ? auroraHead[0].replace(/^\/\/ ?/gm, "").replace(/\s+/g, " ").replace(/^aurora: /, "").split(".")[0] : "Ribbons of light at the top and bottom edges";
-backgrounds.push({ name: "aurora", feel: `${cap(auroraFeel)}. The default.`, cost: "low", data: false });
+backgrounds.push({ name: "aurora", feel: `${cap(auroraFeel)}. It is the default.`, cost: "low", data: false });
 for (const m of styling.matchAll(/^\| `(\w+)` \| ([^|]+) \| (low|medium|high) \| [^|]+ \| ([^|]+) \|$/gm)) {
   const [, name, feel, cost, params] = m;
   if (!existsSync(join(root, "Resources", "shaders", `${name === "artmesh" ? "mesh" : name}.glsl`))) continue;
@@ -763,11 +763,11 @@ ${body}
     "first-dashboard": "Install, write a starter, then build a dashboard step by step with nothing but a text editor.",
     "config-syntax": "The file's shape, sources, widgets and views, {{ }} text, jq, colors, secrets, per-OS blocks and Nix.",
     recipes: "Complete configs for common requests: GitHub reviews, prices, Home Assistant, Docker, calendars and more.",
-    configuration: "The contract: every key, its type and default, how layers merge.",
+    configuration: "Every key with its type and default, and how the layers merge.",
     jq: "The subset of jq that expressions use.",
   };
   const index = `<h1 id="documentation">Documentation</h1>
-<p>vestal is configured with one JSON file. Most people ask their agent to edit it; these pages are for doing it by hand, and for looking things up. The same text ships in the binary: <code>vestal docs</code> lists the topics and works offline.</p>
+<p>vestal is configured with one JSON file. Most people ask their agent to edit it; these pages are for editing it by hand and for looking things up. The same text ships in the binary, where <code>vestal docs</code> lists the topics and works offline.</p>
 ${groups.map((g) => `<h2 id="${g.name.toLowerCase().replace(/\s+/g, "-")}">${escHTML(g.name)}</h2>\n<div class="doc-cards">${g.pages.map((p) => card(p, blurb[p.slug] || topicSummaries[p.topic])).join("")}</div>`).join("\n")}
 <p>For agents on the web: <a href="../llms.txt">llms.txt</a> indexes these pages as Markdown, and <a href="../llms-full.txt">llms-full.txt</a> is all of them in one file.</p>`;
   files["docs/index.html"] = shell({ title: "vestal docs", description: "vestal documentation: guides for configuring by hand, and the full reference.", body: index, current: null, path: "docs/",
@@ -779,7 +779,7 @@ ${groups.map((g) => `<h2 id="${g.name.toLowerCase().replace(/\s+/g, "-")}">${esc
   const entry = (p) => `- [${p.label}](${SITE}/docs/${p.slug}.md): ${blurb[p.slug] || topicSummaries[p.topic] || p.title}`;
   files["llms.txt"] = `# vestal
 
-> vestal is a full-screen dashboard on one key, for macOS and Linux. Press the key and it covers the screen with widgets (time, agenda, your machines, reviews, builds, markets, music); press it again and it is gone. One JSON config (\`~/.config/vestal/config.json\`) drives the SwiftUI app on macOS and the GTK 4 layer-shell app on Linux, and the \`vestal\` binary checks, renders and screenshots a config headlessly, so an agent can write and verify it.
+> vestal is a full-screen dashboard for macOS and Linux that a hotkey shows and hides. It covers the screen with widgets such as the time, the agenda, your machines, pull requests, builds, markets and music. One JSON config (\`~/.config/vestal/config.json\`) drives the SwiftUI app on macOS and the GTK 4 layer-shell app on Linux, and the \`vestal\` binary checks, renders and screenshots a config headlessly, so an agent can write and verify it.
 
 Configure vestal by editing that JSON file (under Home Manager: \`programs.vestal.settings\`). Start with the agents guide: it gives the loop (discover, inspect, write, check with \`vestal check-config --json\`, render, look, reload), the rules and complete recipes. Every page below is also built into the binary as \`vestal docs <topic>\`.
 

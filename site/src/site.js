@@ -100,7 +100,7 @@ function exchange() {
       ${run("vestal render --config /tmp/vestal-draft.json", ex.tree)}
       ${run("vestal screenshot /tmp/vestal.png --config /tmp/vestal-draft.json --json", ex.shot)}
     </div>
-    <div class="msg agent"><span class="who">Agent</span><p>Done: no errors, nothing clipped. The queue is under the clock and a row's number key opens its pull request. It reads GitHub with <code>gh auth token</code>, so <code>gh</code> must be on vestal's PATH.</p></div>`;
+    <div class="msg agent"><span class="who">Agent</span><p>The check found no errors and the screenshot has no clipped nodes. The queue is under the clock, and a row's number key opens its pull request. It reads GitHub with <code>gh auth token</code>, so <code>gh</code> must be on vestal's PATH.</p></div>`;
   const frame = document.getElementById("exchange-frame");
   screen(frame, { snapshot: ex.snapshot, size: ex.size, background: ex.background, wall: ex.wall, label: "The dashboard with the review queue added" });
   lightboxSet("exchange", () => [{
@@ -120,7 +120,7 @@ function starters() {
     art.id = `starter-${s.id}`;
     art.innerHTML = `<div class="frame"></div><div class="pager"></div>
       <div class="meta">
-        <div class="t"><h3>${esc(s.name)}</h3><span class="tag bg">background: ${esc(s.background)}</span>${s.real ? "" : '<span class="tag pending" title="Composed from the widget samples until this starter ships its own sample">composed preview</span>'}</div>
+        <div class="t"><h3>${esc(s.name)}</h3><span class="tag bg">${esc(s.background)} background</span>${s.real ? "" : '<span class="tag pending" title="Composed from the widget samples until this starter ships its own sample">composed preview</span>'}</div>
         <p>${esc(s.pitch)}</p>
         <div class="install"><code><span class="p">$</span> ${esc(s.init)}</code><code>${esc(s.nix)}</code></div>
       </div>`;
@@ -185,15 +185,15 @@ function widgets() {
 }
 
 // What a background's "cost" means to a person: how hard it works the machine.
-const POWER = { low: "light", medium: "moderate", high: "heavy" };
+const POWER = { low: "Light", medium: "Moderate", high: "Heavy" };
 
 function backgrounds() {
   const grid = document.getElementById("bg-grid");
   const wallOf = (b) => (b.name === "rain" || b.name === "stars" ? "night" : "blue");
-  const feel = (b) => `${esc(b.feel)}${b.data ? " Data-driven; drawn here at its idle look." : ""}`;
+  const feel = (b) => `${esc(b.feel)}${b.data ? " It follows live data; this page draws its idle state." : ""}`;
   lightboxSet("backgrounds", () => data.backgrounds.map((b) => ({
     token: `background-${b.name}`, kind: "Background", title: b.name, bg: true,
-    html: `<p>${feel(b)} <span class="dim">Power use: ${POWER[b.cost]}.</span></p><div class="row"><button class="btn sm" type="button" aria-pressed="false" data-overlay>Dashboard over it</button><code>"theme": { "background": "${esc(b.name)}" }</code></div>`,
+    html: `<p>${feel(b)} <span class="dim">${POWER[b.cost]} power use.</span></p><div class="row"><button class="btn sm" type="button" aria-pressed="false" data-overlay>Dashboard over it</button><code>"theme": { "background": "${esc(b.name)}" }</code></div>`,
     open: (box, onView) => screen(box, { snapshot: data.overlay, size: data.screen, background: b.name, wall: wallOf(b), contain: true, now: true, label: `${b.name} background`, onView }),
   })));
   for (const b of data.backgrounds) {
@@ -201,7 +201,7 @@ function backgrounds() {
     art.className = "bgt";
     art.id = `background-${b.name}`;
     art.innerHTML = `<div class="frame no-ui"></div>
-      <div class="info"><div class="t"><h3>${esc(b.name)}</h3><span class="tag ${b.cost}" title="How hard it works the machine while the dashboard is shown">Power use: ${POWER[b.cost]}</span></div><p>${feel(b)}</p></div>
+      <div class="info"><div class="t"><h3>${esc(b.name)}</h3><span class="tag ${b.cost}" title="How hard it works the machine while the dashboard is shown">${POWER[b.cost]} power use</span></div><p>${feel(b)}</p></div>
       <div class="ctls"><button class="btn sm" type="button" aria-pressed="false">Dashboard over it</button><code>"theme": { "background": "${esc(b.name)}" }</code></div>`;
     grid.appendChild(art);
     const frame = art.querySelector(".frame");

@@ -284,7 +284,7 @@ function buildLightbox() {
     });
     if (item.bg) box.classList.add("no-ui");
     $(".lb-hint").textContent = [
-      list.length > 1 ? "← → next and previous" : null,
+      list.length > 1 ? (item.pages && item.pages.length > 1 ? "← → next and previous" : "← → or swipe for next and previous") : null,
       item.pages && item.pages.length > 1 ? "click the dashboard, then ← → or swipe to page it" : null,
       "Esc closes",
     ].filter(Boolean).join(" · ");
@@ -313,7 +313,25 @@ function buildLightbox() {
   $(".lb-close").addEventListener("click", () => close());
   $(".lb-nav.prev").addEventListener("click", () => step(-1));
   $(".lb-nav.next").addEventListener("click", () => step(1));
-  el.addEventListener("click", (e) => { if (e.target === el || e.target === $(".lb-main") || e.target === stage) close(); });
+  let swiped = 0;
+  el.addEventListener("click", (e) => { if (Date.now() - swiped > 400 && (e.target === el || e.target === $(".lb-main") || e.target === stage)) close(); });
+  // A horizontal touch swipe moves through the set. On a dashboard with
+  // several pages the swipe belongs to the dashboard, which pages itself.
+  let swipe = null;
+  el.addEventListener("pointerdown", (e) => {
+    swipe = null;
+    if (e.pointerType === "mouse" || !e.isPrimary || e.target.closest("button, a, .lb-cap, .lb-pager")) return;
+    const item = items().find((x) => x.token === state.token);
+    if (item && item.pages && item.pages.length > 1 && e.target.closest(".vr-root")) return;
+    swipe = { x: e.clientX, y: e.clientY, id: e.pointerId };
+  });
+  el.addEventListener("pointerup", (e) => {
+    if (!swipe || e.pointerId !== swipe.id) return;
+    const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+    swipe = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > 1.5 * Math.abs(dy)) { swiped = Date.now(); step(dx < 0 ? 1 : -1); }
+  });
+  el.addEventListener("pointercancel", () => { swipe = null; });
   document.addEventListener("keydown", (e) => {
     if (el.hidden) return;
     if (e.key === "Escape") { e.preventDefault(); close(); return; }
