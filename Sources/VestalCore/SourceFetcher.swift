@@ -639,6 +639,28 @@ extension URLSession {
     }
 }
 
+/// What a redirect may carry. Pure, so tests call it directly.
+public enum RedirectPolicy {
+    /// The request to send for a redirect from `old` to `new`, or nil to
+    /// refuse it: only `http` and `https` targets, never `https` to `http`.
+    /// When the scheme, host or port changes, every header `old` carried
+    /// (credentials, tokens, cookies) is removed from `new`.
+    public static func follow(from old: URLRequest, to new: URLRequest) -> URLRequest? {
+        guard let a = old.url, let b = new.url,
+              let from = a.scheme?.lowercased(), let to = b.scheme?.lowercased(),
+              to == "http" || to == "https", let toHost = b.host?.lowercased() else { return nil }
+        if from == "https" && to == "http" { return nil }
+        func port(_ url: URL, _ scheme: String) -> Int { url.port ?? (scheme == "https" ? 443 : 80) }
+        if from == to, a.host?.lowercased() == toHost, port(a, from) == port(b, to) { return new }
+        var stripped = new
+        let carried = Set((old.allHTTPHeaderFields ?? [:]).keys.map { $0.lowercased() } + ["authorization", "cookie", "proxy-authorization"])
+        for name in (new.allHTTPHeaderFields ?? [:]).keys where carried.contains(name.lowercased()) {
+            stripped.setValue(nil, forHTTPHeaderField: name)
+        }
+        return stripped
+    }
+}
+
 /// Collects one response for `URLSession.vestalData(for:limit:)`.
 private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     private let limit: Int
@@ -698,6 +720,15 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
         } else {
             completionHandler(.performDefaultHandling, nil)
         }
+    }
+
+    /// Redirects follow `RedirectPolicy`: a downgrade or a non-web target ends
+    /// the request (the 3xx response is the result); a new host loses the
+    /// headers the request carried.
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+                    newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        let from = task.currentRequest ?? task.originalRequest
+        completionHandler(from.flatMap { RedirectPolicy.follow(from: $0, to: request) })
     }
 
     /// The whole request's time is up; the caller cancels the task next.
