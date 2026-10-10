@@ -1141,7 +1141,7 @@ Builds the render model once and prints it. `tree` (the default): an indented ou
 
 Everything about one widget, for "why is it missing or wrong": its template chain, source (name and `$meta`), `input`, each `vars` value, the `when` result, the widget as written (expanded) and as rendered, what it depends on (sources, `now`), its key and action, and its diagnostics. A node id inside a widget (a list row) adds that node and its scope.
 
-## Seeing the result
+## Keys
 
 `vestal press <key> --dry-run [--json] [--view <name>] [--press <key>]... [--config <path>|-] [--cached|--fetch|--data <dir>] [--at <time>]`
 
@@ -1169,12 +1169,13 @@ The documentation built into the binary. With no topic, a short index; start wit
 
 `vestal icons [query] [--limit <n>] [--json]`
 
-Searches the bundled icon set (Phosphor, `regular` and `fill`): `name  weights  code point`. See `vestal docs icons`.
+Searches the bundled icon set (Phosphor, `regular` and `fill`): `name  weights  code point`. A query lists at most 50 matches unless `--limit <n>` says otherwise (`--limit 0`: all); with no query, every icon. An unknown name exits 4. See `vestal docs icons`.
 
 ## Other
 
 | Command | |
 |---|---|
+| `vestal claude-statusline [--then <command...>]` | A Claude Code `statusLine` command (optional): prints the `claude` source's cached usage, such as `5h 25% · wk 59%`, and nothing before the first fetch. `--then <command>` passes the same input to another status line command and prints its output after this one's (one word runs through `/bin/sh -c`; several run as they are). It always exits 0. See `vestal docs ai-usage`. |
 | `vestal version` | The version and build. |
 | `vestal help` | The usage. |
 
@@ -3398,8 +3399,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 
 | Key | Default | Meaning |
 |---|---|---|
-| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, `codex`, `astro`, or a source template such as `foyer` or `openMeteo`. |
-| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, `codex`, `flake`, or a source template such as `foyer` or `github`. |
+| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `timer`, `system`, `media`, `claude`, `codex`, `astro`, `flake`, or a source template such as `foyer`, `openMeteo` or `github`. |
 | `refresh` | per type | How often to fetch: `"30s"`, `"5m"`, `"4h"`, `"1d"`. |
 | `when` | per type | `always`: fetched whether or not the dashboard is shown. `visible`: only while it is shown and a widget of the view reads it, with an immediate fetch on show when stale. |
 | `transform` | none | A jq expression applied to the data before widgets see it. The cache keeps the untransformed data, so editing a transform needs no refetch. |
@@ -3417,6 +3417,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 | `media` | `3s` | `visible` | a music player |
 | `claude` | `5m` | `visible` | the Claude plan's usage, from the usage endpoint or `claude -p /usage` |
 | `codex` | `5m` | `visible` | the Codex plan's usage, from `codex app-server` |
+| `timer` | `1s` | `visible` | a pomodoro timer's state, kept in the running vestal |
 | `astro` | `10m` | `visible` | nothing: sun and moon computed from `latitude` and `longitude` |
 | `flake` | `1h` | `visible` | a Nix flake's locked inputs, from `nix flake metadata`, and optionally GitHub |
 

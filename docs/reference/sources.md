@@ -31,8 +31,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 
 | Key | Default | Meaning |
 |---|---|---|
-| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, `codex`, `astro`, or a source template such as `foyer` or `openMeteo`. |
-| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `system`, `media`, `claude`, `codex`, `flake`, or a source template such as `foyer` or `github`. |
+| `type` | required | `http`, `command`, `file`, `calendar` (alias `eventkit`), `timer`, `system`, `media`, `claude`, `codex`, `astro`, `flake`, or a source template such as `foyer`, `openMeteo` or `github`. |
 | `refresh` | per type | How often to fetch: `"30s"`, `"5m"`, `"4h"`, `"1d"`. |
 | `when` | per type | `always`: fetched whether or not the dashboard is shown. `visible`: only while it is shown and a widget of the view reads it, with an immediate fetch on show when stale. |
 | `transform` | none | A jq expression applied to the data before widgets see it. The cache keeps the untransformed data, so editing a transform needs no refetch. |
@@ -50,6 +49,7 @@ A source fetches data on a schedule and keeps the last good result. Widgets read
 | `media` | `3s` | `visible` | a music player |
 | `claude` | `5m` | `visible` | the Claude plan's usage, from the usage endpoint or `claude -p /usage` |
 | `codex` | `5m` | `visible` | the Codex plan's usage, from `codex app-server` |
+| `timer` | `1s` | `visible` | a pomodoro timer's state, kept in the running vestal |
 | `astro` | `10m` | `visible` | nothing: sun and moon computed from `latitude` and `longitude` |
 | `flake` | `1h` | `visible` | a Nix flake's locked inputs, from `nix flake metadata`, and optionally GitHub |
 
