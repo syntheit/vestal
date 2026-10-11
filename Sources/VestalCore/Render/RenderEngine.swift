@@ -97,6 +97,8 @@ public final class RenderEngine {
     /// Invalidates results and view requests queued before a config reload.
     private var generation = 0
     private var showRevision = 0
+    /// Whether a `show(view:)` that checks an `enabled` expression is in flight.
+    private var showPending = false
     private var seq = 0
     /// Send `visibility` after the next snapshot (a show).
     private var announce = false
@@ -190,6 +192,7 @@ public final class RenderEngine {
         let target = view.flatMap { model.views[$0] != nil ? $0 : nil } ?? model.defaultView
         showRevision += 1
         if target != currentView, model.enabledExpressions[target] != nil {
+            showPending = true
             let generation = self.generation, revision = showRevision
             let inputs = collectInputs(), now = self.now()
             queue.async { [worker, weak self] in
@@ -199,7 +202,15 @@ public final class RenderEngine {
                 if enabled { worker.session.setView(target); worker.session.closePopup() }
                 Task { @MainActor [weak self] in
                     guard let self, self.generation == generation, self.showRevision == revision else { return }
-                    if enabled { self.currentView = target; self.fullPending = true }
+                    self.showPending = false
+                    if enabled {
+                        self.currentView = target
+                        self.fullPending = true
+                    } else {
+                        // An earlier, superseded request may have moved the worker.
+                        let view = self.currentView
+                        self.queue.async { [worker = self.worker] in worker.session.setView(view) }
+                    }
                     if self.isVisible { self.schedule() } else { self.setVisible(true) }
                 }
             }
@@ -212,6 +223,11 @@ public final class RenderEngine {
                 worker.session.closePopup()
             }
             fullPending = true
+        } else if showPending {
+            // A queued expression check may still move the worker: move it back after.
+            showPending = false
+            queue.async { [worker] in worker.session.setView(target) }
+            fullPending = true
         }
         if isVisible { schedule() } else { setVisible(true) }
     }
@@ -220,6 +236,7 @@ public final class RenderEngine {
     public func apply(_ fresh: LoadedConfig) {
         generation += 1
         showRevision += 1
+        showPending = false
         loaded = fresh
         model = RenderConfigModel(loaded: fresh)
         if model.views[currentView] == nil { currentView = model.defaultView }
