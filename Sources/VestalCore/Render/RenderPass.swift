@@ -1355,9 +1355,11 @@ final class RenderPass {
         guard !source.isEmpty else { return nil }
         if ImageCache.isRemote(source) {
             let cache = ImageCache.shared
-            if let path = cache.cachedPath(for: source) { return path }
-            sources.insert(ImageCache.sourcePrefix + ImageCache.key(for: source))
-            cache.request(source, origin: .data(literalPrefix: ""))
+            let origin = ImageOrigin.data(literalPrefix: "")
+            guard ImageGuard.allowsRemote(source, origin: origin) else { return nil }
+            if let path = cache.cachedPath(for: source, origin: origin) { return path }
+            sources.insert(ImageCache.sourcePrefix + ImageCache.key(for: source, origin: origin))
+            cache.request(source, origin: origin)
             return nil
         }
         return ImageCache.localFile(source, origin: .data(literalPrefix: ""))

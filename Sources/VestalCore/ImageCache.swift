@@ -61,19 +61,19 @@ public final class ImageCache: @unchecked Sendable {
 
     // MARK: Paths
 
-    /// The cache key of `url`: the hex SHA-256 of its text.
-    public static func key(for url: String) -> String {
-        SHA256.hex(url)
+    /// The cache key of `url`, separated by whether data controls its host.
+    public static func key(for url: String, origin: ImageOrigin = .literal) -> String {
+        SHA256.hex((ImageGuard.isGuarded(origin) ? "guarded:" : "") + url)
     }
 
     /// Where `url`'s picture is (or will be) kept.
-    public func path(for url: String) -> String {
-        "\(directory)/\(Self.key(for: url))"
+    public func path(for url: String, origin: ImageOrigin = .literal) -> String {
+        "\(directory)/\(Self.key(for: url, origin: origin))"
     }
 
     /// `url`'s file when it is cached.
-    public func cachedPath(for url: String) -> String? {
-        let path = path(for: url)
+    public func cachedPath(for url: String, origin: ImageOrigin = .literal) -> String? {
+        let path = path(for: url, origin: origin)
         var isDirectory: ObjCBool = false
         return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && !isDirectory.boolValue ? path : nil
     }
@@ -88,7 +88,7 @@ public final class ImageCache: @unchecked Sendable {
         guard let target = Self.remoteURL(url) else { return }
         let guarded = ImageGuard.isGuarded(origin)
         if guarded, !ImageGuard.allowsRemote(url, origin: origin) { return }
-        let key = Self.key(for: url)
+        let key = Self.key(for: url, origin: origin)
         lock.lock()
         if !_fetchesRemote || inflight.contains(key) {
             lock.unlock()
@@ -109,7 +109,8 @@ public final class ImageCache: @unchecked Sendable {
         Task.detached(priority: .utility) { [self] in
             var stored = false
             do {
-                if guarded, let host = target.host, await Self.resolvesToPrivate(host) { throw SourceError("private address") }
+                // URLSession may resolve again after this check, so DNS rebinding remains possible.
+                if guarded, !(await Self.resolvedRemoteAllowed(target)) { throw SourceError("private address") }
                 let data = try await Self.guardRedirects.withValue(guarded) { try await fetch(target, Self.maxBytes) }
                 if data.count <= Self.maxBytes, Self.looksLikeImage(data) {
                     SnapshotCache.makePrivateDirectory(directory)
@@ -177,17 +178,19 @@ public final class ImageCache: @unchecked Sendable {
     /// Whether the fetch in progress refuses redirects to private hosts.
     static let guardRedirects = TaskLocal(wrappedValue: false)
 
-    private static func resolvesToPrivate(_ host: String) async -> Bool {
+    private static func resolvedRemoteAllowed(_ url: URL) async -> Bool {
         await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .utility).async { continuation.resume(returning: ImageGuard.resolvesToPrivate(host)) }
+            DispatchQueue.global(qos: .utility).async {
+                continuation.resume(returning: ImageGuard.allowsResolvedRemote(url, resolvingToPrivate: ImageGuard.resolvesToPrivate))
+            }
         }
     }
 
     private static let download: @Sendable (URL, Int) async throws -> Data = { url, limit in
         var request = URLRequest(url: url, timeoutInterval: 15)
         request.setValue("vestal/\(BuildInfo.version)", forHTTPHeaderField: "User-Agent")
-        var refusing: (@Sendable (URL) -> Bool)?
-        if guardRedirects.get() { refusing = { (target: URL) -> Bool in ImageGuard.isPrivateHost(target.host ?? "") } }
+        var refusing: (@Sendable (URL) async -> Bool)?
+        if guardRedirects.get() { refusing = { target in !(await resolvedRemoteAllowed(target)) } }
         let (data, response) = try await URLSession.vestalData(for: request, limit: limit, refusing: refusing)
         if let status = (response as? HTTPURLResponse)?.statusCode, !(200..<300).contains(status) {
             throw SourceError("HTTP \(status)")

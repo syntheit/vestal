@@ -491,12 +491,14 @@ extension RenderPass {
         if let source, !source.isEmpty {
             if ImageCache.isRemote(source) {
                 let cache = ImageCache.shared
-                path = cache.cachedPath(for: source)
-                if path == nil {
-                    // Draws empty until the fetch lands; then `image:<key>`
-                    // changes and this widget renders again.
-                    sources.insert(ImageCache.sourcePrefix + ImageCache.key(for: source))
-                    cache.request(source, origin: origin)
+                if ImageGuard.allowsRemote(source, origin: origin) {
+                    path = cache.cachedPath(for: source, origin: origin)
+                    if path == nil {
+                        // Draws empty until the fetch lands; then `image:<key>`
+                        // changes and this widget renders again.
+                        sources.insert(ImageCache.sourcePrefix + ImageCache.key(for: source, origin: origin))
+                        cache.request(source, origin: origin)
+                    }
                 }
             } else {
                 path = ImageCache.localFile(source, origin: origin)

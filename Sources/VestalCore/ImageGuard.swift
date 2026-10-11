@@ -84,26 +84,28 @@ public enum ImageGuard {
         return false
     }
 
-    /// Whether any address `host` resolves to is private. Blocks: call it off
-    /// the cooperative pool. A name that doesn't resolve is not private; the
-    /// fetch fails by itself.
+    /// Whether any address `host` resolves to is private, or lookup fails.
+    /// Blocks: call it off the cooperative pool.
     public static func resolvesToPrivate(_ host: String) -> Bool {
         let name = host.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))
         if addressBytes(name) != nil { return isPrivateHost(name) }
         var hints = addrinfo()
         hints.ai_family = AF_UNSPEC
         var list: UnsafeMutablePointer<addrinfo>?
-        guard getaddrinfo(name, nil, &hints, &list) == 0, let first = list else { return false }
+        guard getaddrinfo(name, nil, &hints, &list) == 0, let first = list else { return true }
         defer { freeaddrinfo(list) }
         var node: UnsafeMutablePointer<addrinfo>? = first
+        var foundAddress = false
         while let current = node {
             if let address = current.pointee.ai_addr {
                 if current.pointee.ai_family == AF_INET {
+                    foundAddress = true
                     let bytes = address.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { pointer in
                         withUnsafeBytes(of: pointer.pointee.sin_addr) { Array($0) }
                     }
                     if isPrivate(bytes) { return true }
                 } else if current.pointee.ai_family == AF_INET6 {
+                    foundAddress = true
                     let bytes = address.withMemoryRebound(to: sockaddr_in6.self, capacity: 1) { pointer in
                         withUnsafeBytes(of: pointer.pointee.sin6_addr) { Array($0) }
                     }
@@ -112,7 +114,15 @@ public enum ImageGuard {
             }
             node = current.pointee.ai_next
         }
-        return false
+        return !foundAddress
+    }
+
+    /// The redirect rule, with resolution supplied so callers can run DNS
+    /// off the cooperative pool and tests can use fixed answers.
+    public static func allowsResolvedRemote(_ url: URL, resolvingToPrivate: (String) -> Bool) -> Bool {
+        guard ImageCache.remoteURL(url.absoluteString) != nil, let host = url.host,
+              !isPrivateHost(host) else { return false }
+        return !resolvingToPrivate(host)
     }
 
     /// The bytes of an IPv6 or IPv4 literal (the short and hex IPv4 forms

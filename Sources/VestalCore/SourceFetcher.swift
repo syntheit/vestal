@@ -633,7 +633,7 @@ extension URLSession {
     /// `refusing` is asked about each redirect's target; a redirect it
     /// answers true for is not followed (the 3xx answer is the result).
     static func vestalData(for request: URLRequest, limit: Int,
-                           refusing: (@Sendable (URL) -> Bool)? = nil) async throws -> (Data, URLResponse) {
+                           refusing: (@Sendable (URL) async -> Bool)? = nil) async throws -> (Data, URLResponse) {
         let receiver = LimitedReceiver(limit: limit, refusing: refusing)
         let session = URLSession(configuration: .ephemeral, delegate: receiver, delegateQueue: nil)
         defer { session.finishTasksAndInvalidate() }
@@ -685,20 +685,11 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
     private var challenged = false
     private var continuation: CheckedContinuation<(Data, URLResponse), Error>?
 
-    private let refusing: (@Sendable (URL) -> Bool)?
+    private let refusing: (@Sendable (URL) async -> Bool)?
 
-    init(limit: Int, refusing: (@Sendable (URL) -> Bool)? = nil) {
+    init(limit: Int, refusing: (@Sendable (URL) async -> Bool)? = nil) {
         self.limit = limit
         self.refusing = refusing
-    }
-
-    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
-                    newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
-        if let refusing, let target = request.url, refusing(target) {
-            completionHandler(nil)
-        } else {
-            completionHandler(request)
-        }
     }
 
     func start(_ continuation: CheckedContinuation<(Data, URLResponse), Error>) {
@@ -749,11 +740,20 @@ private final class LimitedReceiver: NSObject, URLSessionDataDelegate, @unchecke
 
     /// Redirects follow `RedirectPolicy`: a downgrade or a non-web target ends
     /// the request (the 3xx response is the result); a new host loses the
-    /// headers the request carried.
+    /// headers the request carried. With `refusing`, a target it refuses
+    /// (a private host for a data-derived picture) ends the request too.
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
                     newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
         let from = task.currentRequest ?? task.originalRequest
-        completionHandler(from.flatMap { RedirectPolicy.follow(from: $0, to: request) })
+        guard let next = from.flatMap({ RedirectPolicy.follow(from: $0, to: request) }) else {
+            completionHandler(nil)
+            return
+        }
+        guard let refusing else { completionHandler(next); return }
+        guard let target = next.url else { completionHandler(nil); return }
+        Task.detached(priority: .utility) {
+            completionHandler(await refusing(target) ? nil : next)
+        }
     }
 
     /// The whole request's time is up; the caller cancels the task next.

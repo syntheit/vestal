@@ -117,6 +117,20 @@ final class BackgroundTests: XCTestCase {
         XCTAssertEqual(art.colors[3], [1, 0, 0])
     }
 
+    func testArtworkCannotUseLiteralPrivateCache() throws {
+        let cache = ImageCache.shared
+        let saved = (cache.directory, cache.fetchesRemote)
+        cache.directory = try makeTemporaryDirectory().appendingPathComponent("images").path
+        cache.fetchesRemote = false
+        addTeardownBlock { cache.directory = saved.0; cache.fetchesRemote = saved.1 }
+
+        let url = "http://127.0.0.1/cover.png"
+        try FileManager.default.createDirectory(atPath: cache.directory, withIntermediateDirectories: true)
+        try Data([0x89, 0x50, 0x4e, 0x47]).write(to: URL(fileURLWithPath: cache.path(for: url)))
+        let spec = #"{"background":{"type":"artmesh","source":"media"}}"#
+        XCTAssertNil(theme(spec, source: "media", json: #"{"artwork":"\#(url)"}"#).backgroundParams?.artwork)
+    }
+
     func testArtworkColoursAreTunedForText() {
         var pixels: [UInt8] = []
         for y in 0..<4 { for x in 0..<4 { pixels += (y < 2 ? (x < 2 ? [255, 255, 255, 255] : [255, 0, 0, 255]) : [0, 0, 0, 255]) } }

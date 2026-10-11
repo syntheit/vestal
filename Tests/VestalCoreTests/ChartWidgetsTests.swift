@@ -491,6 +491,26 @@ final class ChartWidgetsTests: XCTestCase {
         XCTAssertEqual(after.diagnostics, [])
     }
 
+    func testDataImageCannotUseLiteralPrivateCache() throws {
+        let cache = ImageCache.shared
+        let saved = (cache.directory, cache.fetchesRemote)
+        cache.directory = try makeTemporaryDirectory().appendingPathComponent("images").path
+        cache.fetchesRemote = false
+        addTeardownBlock { cache.directory = saved.0; cache.fetchesRemote = saved.1 }
+
+        let url = "http://127.0.0.1/cover.png"
+        let literalPath = cache.path(for: url)
+        try FileManager.default.createDirectory(atPath: cache.directory, withIntermediateDirectories: true)
+        try png().write(to: URL(fileURLWithPath: literalPath))
+        let (literal, _) = render(#"{ "type": "image", "src": "\#(url)" }"#)
+        XCTAssertEqual(image(node(literal)).path, literalPath)
+
+        let (data, _) = render(#"{ "type": "image", "source": "s", "src": "{{ .artwork }}" }"#,
+                               data: #"{"artwork":"\#(url)"}"#)
+        XCTAssertNil(image(node(data)).path)
+        XCTAssertNil(cache.cachedPath(for: url, origin: .data(literalPrefix: "")))
+    }
+
     private final class Counter: @unchecked Sendable {
         private let lock = NSLock()
         private var n = 0

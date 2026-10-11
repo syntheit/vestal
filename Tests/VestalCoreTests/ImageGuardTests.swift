@@ -24,6 +24,13 @@ final class ImageGuardTests: XCTestCase {
         XCTAssertFalse(ImageGuard.resolvesToPrivate("8.8.8.8"))
     }
 
+    func testRedirectChecksResolvedAddress() throws {
+        let target = try XCTUnwrap(URL(string: "http://art.example/cover"))
+        XCTAssertFalse(ImageGuard.allowsResolvedRemote(target) { _ in true }, "public name resolving to private")
+        XCTAssertTrue(ImageGuard.allowsResolvedRemote(target) { _ in false })
+        XCTAssertFalse(ImageGuard.allowsResolvedRemote(try XCTUnwrap(URL(string: "http://192.168.1.10/cover"))) { _ in false })
+    }
+
     func testOrigins() {
         XCTAssertEqual(ImageGuard.origin(ofTemplate: "http://nas.local:8096/a.png"), .literal)
         XCTAssertEqual(ImageGuard.origin(ofTemplate: "http://nas.local:8096/Items/{{ .id }}/Primary"),
