@@ -21,6 +21,15 @@ export const reduced = () => typeof matchMedia === "function" && matchMedia("(pr
 export const saveData = () => !!(typeof navigator !== "undefined" && navigator.connection && navigator.connection.saveData);
 export const hasIO = typeof IntersectionObserver === "function";
 
+export function wireNavFade() {
+  const links = document.querySelector(".nav .links");
+  if (!links) return;
+  const update = () => links.classList.toggle("has-more", links.scrollLeft + links.clientWidth < links.scrollWidth - 1);
+  links.addEventListener("scroll", update, { passive: true });
+  addEventListener("resize", update);
+  update();
+}
+
 export const ctx = { data: null, assets: null, resolveImage: null, walls: {} };
 export const mounts = new MountManager({ eager: EAGER });
 
@@ -353,7 +362,7 @@ function buildLightbox() {
     $(".lb-name").textContent = item.title;
     el.setAttribute("aria-label", `${item.kind} ${item.title}`);
     $(".lb-count").textContent = list.length > 1 ? `${i + 1} / ${list.length}` : "";
-    for (const b of el.querySelectorAll(".lb-nav")) b.hidden = list.length < 2;
+    for (const b of el.querySelectorAll(".lb-nav")) b.hidden = list.length < 2 && !(item.pages && item.pages.length > 1);
     const box = document.createElement("div");
     box.className = "lb-box";
     stage.appendChild(box);
@@ -374,8 +383,8 @@ function buildLightbox() {
     });
     if (item.bg) box.classList.add("no-ui");
     $(".lb-hint").textContent = [
-      list.length > 1 ? (item.pages && item.pages.length > 1 ? "← → next and previous" : "← → or swipe for next and previous") : null,
-      item.pages && item.pages.length > 1 ? "click the dashboard, then ← → or swipe to page it" : null,
+      item.pages && item.pages.length > 1 ? "← → page the dashboard" : list.length > 1 ? "← → or swipe for next and previous" : null,
+      list.length > 1 && item.pages && item.pages.length > 1 ? "side buttons move through the set" : null,
       "Esc closes",
     ].filter(Boolean).join(" · ");
     history.replaceState(null, "", `#${item.token}`);
@@ -401,8 +410,9 @@ function buildLightbox() {
     state = null;
   };
   $(".lb-close").addEventListener("click", () => close());
-  $(".lb-nav.prev").addEventListener("click", () => step(-1));
-  $(".lb-nav.next").addEventListener("click", () => step(1));
+  const side = (d) => { if (items().length > 1) step(d); else ctl.key(d > 0 ? "ArrowRight" : "ArrowLeft"); };
+  $(".lb-nav.prev").addEventListener("click", () => side(-1));
+  $(".lb-nav.next").addEventListener("click", () => side(1));
   let swiped = 0;
   el.addEventListener("click", (e) => { if (Date.now() - swiped > 400 && (e.target === el || e.target === $(".lb-main") || e.target === stage)) close(); });
   // A horizontal touch swipe moves through the set. On a dashboard with
@@ -435,10 +445,13 @@ function buildLightbox() {
       else if (!e.shiftKey && at === last) { e.preventDefault(); first.focus(); }
       return;
     }
-    // Arrows page the dashboard while it has focus, else move through the set.
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    if (e.target.closest && e.target.closest("input, textarea, select, [contenteditable]")) return;
     if (e.target.closest && e.target.closest(".vr-root")) return;
-    if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
-    else if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+    e.preventDefault();
+    const item = items().find((x) => x.token === state.token);
+    if (item && item.pages && item.pages.length > 1) ctl.key(e.key);
+    else step(e.key === "ArrowRight" ? 1 : -1);
   });
   return {
     isOpen: () => !el.hidden,

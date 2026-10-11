@@ -8,7 +8,7 @@
 // browser by web/renderer/.
 //
 //   swift build -c release
-//   node site/build.mjs [--vestal <path>] [--no-preview]
+//   node site/build.mjs [--vestal <path>] [--no-preview] [--no-subset]
 //
 // No dependencies. Serve site/dist/ with any static server:
 //   python3 -m http.server -d site/dist 8000
@@ -19,6 +19,8 @@ import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statS
 import { basename, dirname, extname, join, posix, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { esc as escHTML, render as renderMarkdown } from "./markdown.mjs";
+import { ICONS, ALIASES } from "../web/renderer/icons.js";
+import { subsetFont } from "./fontsubset.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
@@ -42,12 +44,13 @@ const samplesDir = join(root, "Resources", "samples");
 
 // MARK: Arguments
 
-const args = { vestal: null, preview: true };
+const args = { vestal: null, preview: true, subset: true };
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i];
   if (a === "--vestal") args.vestal = process.argv[++i];
   else if (a === "--no-preview") args.preview = false;
-  else if (a === "-h" || a === "--help") { console.log("usage: build.mjs [--vestal <path>] [--no-preview]"); process.exit(0); }
+  else if (a === "--no-subset") args.subset = false;
+  else if (a === "-h" || a === "--help") { console.log("usage: build.mjs [--vestal <path>] [--no-preview] [--no-subset]"); process.exit(0); }
   else fail(`unknown argument ${a}`);
 }
 if (!args.vestal) args.vestal = [".build/release/vestal", ".build/debug/vestal"].map((p) => join(root, p)).find(existsSync) || "vestal";
@@ -538,7 +541,6 @@ mkdirSync(join(dist, "assets", "icons"), { recursive: true });
 mkdirSync(join(dist, "assets", "shaders"), { recursive: true });
 mkdirSync(join(dist, "renderer"), { recursive: true });
 
-for (const f of readdirSync(join(root, "Resources", "icons")).filter((f) => f.endsWith(".ttf"))) cpSync(join(root, "Resources", "icons", f), join(dist, "assets", "icons", f));
 cpSync(join(root, "Resources", "fonts"), join(dist, "assets", "fonts"), { recursive: true });
 const shaderFiles = readdirSync(join(root, "Resources", "shaders")).filter((f) => f.endsWith(".glsl"));
 for (const f of shaderFiles) cpSync(join(root, "Resources", "shaders", f), join(dist, "assets", "shaders", f));
@@ -568,6 +570,30 @@ for (const s of starters) samplesOut[`starter-${s.id}`] = { snapshot: s.snapshot
 for (const w of widgets) samplesOut[`widget-${w.name}`] = { snapshot: w.snapshot, compact: w.compact ? w.compact.snapshot : null };
 for (const [name, r] of Object.entries(recipeRenders)) samplesOut[`recipe-${name}`] = { snapshot: r.snapshot, views: r.views };
 const sampleText = Object.fromEntries(Object.entries(samplesOut).map(([k, v]) => [k, JSON.stringify(v)]));
+// Every snapshot written to data/, the hero's inline JSON, the docs' live
+// examples and the single-file preview comes from samplesOut.
+const iconPoints = { regular: new Set(), fill: new Set() };
+function collectIcons(value) {
+  if (!value || typeof value !== "object") return;
+  if (value.type === "icon") {
+    const weight = value.weight === "fill" ? "fill" : "regular";
+    const glyph = value.glyph || (() => {
+      const pair = ICONS[value.name] || ICONS[ALIASES[value.name]];
+      const hex = pair?.[weight === "fill" ? 1 : 0];
+      return hex ? String.fromCodePoint(parseInt(hex, 16)) : null;
+    })();
+    if (glyph) for (const char of glyph) iconPoints[weight].add(char.codePointAt(0));
+  }
+  for (const child of Object.values(value)) collectIcons(child);
+}
+for (const model of Object.values(samplesOut)) collectIcons(model);
+for (const [file, weight] of [["Phosphor.ttf", "regular"], ["Phosphor-Fill.ttf", "fill"]]) {
+  const original = readFileSync(join(root, "Resources", "icons", file));
+  // subsetFont reparses the result and checks every used outline and advance.
+  const output = args.subset ? subsetFont(original, iconPoints[weight]) : original;
+  writeFileSync(join(dist, "assets", "icons", file), output);
+  console.log(`site: ${file}: ${iconPoints[weight].size} codepoints, ${(original.length / 1024).toFixed(0)} -> ${(output.length / 1024).toFixed(0)} KB${args.subset ? "" : " (--no-subset)"}`);
+}
 const fileHash = (text) => createHash("sha256").update(text).digest("hex").slice(0, 10);
 const heroFirst = `hero-${heroIds[0]}`;
 const site = {
@@ -597,8 +623,17 @@ const scripts = {
 const styles = { "site.css": readFileSync(join(src, "site.css"), "utf8"), "docs/docs.css": readFileSync(join(src, "docs.css"), "utf8") };
 const hash = createHash("sha256");
 for (const text of [...Object.values(scripts), ...Object.values(styles), indexText, ...Object.values(docs.files)]) hash.update(text);
+for (const file of ["Phosphor.ttf", "Phosphor-Fill.ttf"]) hash.update(readFileSync(join(dist, "assets", "icons", file)));
 const BUILD = hash.digest("hex").slice(0, 10);
-const versioned = (code) => code.replace(/(\bfrom\s+")(\.{1,2}\/[^"?]+\.js)"/g, `$1$2?v=${BUILD}"`);
+const versioned = (code, path) => {
+  let out = code.replace(/(\bfrom\s+")(\.{1,2}\/[^"?]+\.js)"/g, `$1$2?v=${BUILD}"`);
+  if (path === "renderer/index.js") {
+    const fontURL = 'url("${iconBase}${file}")';
+    if (!out.includes(fontURL)) fail("renderer icon font URL changed; update font cache-busting in site/build.mjs");
+    out = out.replace(fontURL, `url("\${iconBase}\${file}?v=${BUILD}")`);
+  }
+  return out;
+};
 if (!scripts["common.js"].includes('const BUILD = "dev";')) fail("common.js no longer declares BUILD; update the cache-busting in site/build.mjs");
 scripts["common.js"] = scripts["common.js"].replace('const BUILD = "dev";', `const BUILD = "${BUILD}";`);
 
@@ -611,7 +646,7 @@ mkdirSync(join(dist, "docs"), { recursive: true });
 mkdirSync(join(dist, "data"), { recursive: true });
 writeFileSync(join(dist, "data", "index.json"), indexText);
 for (const [key, text] of Object.entries(sampleText)) writeFileSync(join(dist, "data", `${key}.json`), text);
-for (const [path, code] of Object.entries(scripts)) writeFileSync(join(dist, path), versioned(code));
+for (const [path, code] of Object.entries(scripts)) writeFileSync(join(dist, path), versioned(code, path));
 for (const [path, css] of Object.entries(styles)) writeFileSync(join(dist, path), css);
 for (const [path, text] of Object.entries(docs.files)) {
   const out = path.endsWith(".html") && text.includes('src="docs.js?v={{build}}"')
@@ -627,7 +662,7 @@ writeFileSync(join(dist, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 // JSON inside a <script> element: no "</script" or "<!--" (as JSON escapes).
 const safeJSON = (text) => text.replace(/<\/(script)/gi, "<\\/$1").replace(/<!--/g, "\\u003c!--");
 writeFileSync(join(dist, "index.html"), homePage()
-  .replace("</head>", `${socialTags("", "vestal", indexDescription)}\n${modulePreloads(["site.js", ...shared])}\n</head>`)
+  .replace("</head>", `${socialTags("", "vestal: a full-screen dashboard for macOS and Linux", indexDescription)}\n${modulePreloads(["site.js", ...shared])}\n</head>`)
   .replace('href="site.css"', `href="site.css?v=${BUILD}"`)
   .replace('<script type="module" src="site.js"></script>', `<script type="application/json" id="vestal-data">${safeJSON(inlineText)}</script>\n<script type="module" src="site.js?v=${BUILD}"></script>`));
 const kb = (n) => `${(n / 1024).toFixed(0)} KB`;
@@ -651,7 +686,7 @@ function preview() {
   const fonts = html.match(/<link rel="stylesheet" href="(https:\/\/fonts\.googleapis\.com[^"]+)"/);
   const css = readFileSync(join(src, "site.css"), "utf8");
   const shaders = Object.fromEntries(shaderFiles.map((f) => [f.replace(/\.glsl$/, ""), readFileSync(join(root, "Resources", "shaders", f), "utf8")]));
-  const iconFonts = Object.fromEntries(readdirSync(join(root, "Resources", "icons")).filter((f) => f.endsWith(".ttf")).map((f) => [f, readFileSync(join(root, "Resources", "icons", f)).toString("base64")]));
+  const iconFonts = Object.fromEntries(readdirSync(join(dist, "assets", "icons")).filter((f) => f.endsWith(".ttf")).map((f) => [f, readFileSync(join(dist, "assets", "icons", f)).toString("base64")]));
   const mime = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp" };
   const pictures = Object.fromEntries(images.map((rel) => [rel, `data:${mime[extname(rel).toLowerCase()]};base64,${readFileSync(join(root, rel)).toString("base64")}`]));
   const safe = (text) => text.replace(/<\/(script)/gi, "<\\/$1").replace(/<!--/g, "<\\!--");
@@ -764,7 +799,7 @@ function buildDocs() {
   const recipesStart = agents.indexOf("### Recipe ");
   const recipesEnd = agents.indexOf("\n## ", recipesStart);
   if (recipesStart < 0 || recipesEnd < 0) fail("AGENTS.md has no recipes section the docs can take");
-  const recipesText = `${read("docs/reference/recipes.md").trimEnd()}\n\n${agents.slice(recipesStart, recipesEnd).trim()}\n`;
+  const recipesText = `${read("docs/reference/recipes.md").trimEnd()}\n\n## Complete recipes\n\n${agents.slice(recipesStart, recipesEnd).trim()}\n`;
 
   const page = (slug, srcPath, extra = {}) => ({ slug, src: srcPath, text: extra.text || read(srcPath), ...extra });
   const reference = ["config", "sources", "widgets", "presets", "starters", "templates", "expressions", "functions", "styling", "icons", "views", "keys", "actions", "cli", "install", "ai-usage", "samples"];
@@ -855,7 +890,8 @@ function buildDocs() {
 <meta name="color-scheme" content="dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@100..800&family=Geist+Mono:wght@100..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@100..800&family=Geist+Mono:wght@100..700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@100..800&family=Geist+Mono:wght@100..700&display=swap"></noscript>
 <link rel="stylesheet" href="../site.css?v={{build}}">
 <link rel="stylesheet" href="docs.css?v={{build}}">
 ${socialTags(path, escHTML(title), escHTML(description))}

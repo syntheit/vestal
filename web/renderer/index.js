@@ -52,7 +52,13 @@ ${FLIP_CSS}`;
 let cssInjected = false;
 const fontFaces = new Set();
 
-function injectCSS(iconBase, theme, fontBase) {
+function hasFillIcon(value) {
+  if (!value || typeof value !== "object") return false;
+  if (value.type === "icon" && value.weight === "fill") return true;
+  return Object.values(value).some(hasFillIcon);
+}
+
+function injectCSS(iconBase, theme, fontBase, snapshot) {
   if (!cssInjected && typeof document !== "undefined") {
     const style = document.createElement("style");
     style.dataset.vestal = "renderer";
@@ -71,7 +77,10 @@ function injectCSS(iconBase, theme, fontBase) {
     document.head.appendChild(style);
   }
   const fonts = (theme && theme.icons && theme.icons.fonts) || { regular: "Phosphor", fill: "Phosphor-Fill" };
-  const faces = [[fonts.regular || "Phosphor", "Phosphor.ttf"], [fonts.fill || "Phosphor-Fill", "Phosphor-Fill.ttf"]];
+  const faces = [[fonts.regular || "Phosphor", "Phosphor.ttf"]];
+  const fill = fonts.fill || "Phosphor-Fill";
+  // Walk the tree only until the Fill weight has been loaded once.
+  if (fontFaces.has(`${fill}|${iconBase}`) || hasFillIcon(snapshot.root) || hasFillIcon(snapshot.popup)) faces.push([fill, "Phosphor-Fill.ttf"]);
   for (const [family, file] of faces) {
     // The font files are the bundled ones whatever the family is called.
     const key = `${family}|${iconBase}`;
@@ -194,7 +203,7 @@ class Mount {
   render() {
     const snap = this.snapshot;
     const theme = snap.theme || {};
-    injectCSS(this.assets.icons, theme, this.assets.fonts);
+    injectCSS(this.assets.icons, theme, this.assets.fonts, snap);
     const key = JSON.stringify([theme.fonts, theme.colors]);
     if (key !== this.themeKey) {
       this.themeKey = key;

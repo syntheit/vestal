@@ -3,7 +3,7 @@
 // recipe drawn by web/renderer from its sample data, as on the home page, and
 // mounted, dropped and paused by the same manager.
 
-import { boot, fetchJSON, screen, pager, lightboxSet, expandable, wireHash, wireCopy, esc } from "../common.js";
+import { boot, fetchJSON, screen, pager, lightboxSet, expandable, wireHash, wireCopy, wireNavFade, esc } from "../common.js";
 
 main().catch((e) => console.error("vestal docs:", e));
 
@@ -14,6 +14,7 @@ async function main() {
   // On a narrow screen the section links scroll sideways: show the current one, Docs, at the end.
   const links = document.querySelector(".nav .links");
   if (links) links.scrollLeft = links.scrollWidth;
+  wireNavFade();
   wireCopy();
   wireSearch();
   const lives = [...document.querySelectorAll(".live")];

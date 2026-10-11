@@ -103,6 +103,9 @@ section.part { padding-block: 72px 24px; scroll-margin-top: 52px; }
 
 /* how it works */
 .steps { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); margin-top: 8px; }
+@media (min-width: 552px) and (max-width: 843px) {
+  .steps .step:last-child { grid-column: 1 / -1; }
+}
 .step { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .step h3 { font: 600 16px/1.2 var(--sans); margin-top: 6px; }
 .step p { margin: 0; color: var(--subtle); font-size: 14px; }
@@ -231,8 +234,7 @@ section.part { padding-block: 72px 24px; scroll-margin-top: 52px; }
   .ask { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "q" "result" "log" "change"; }
 }
 @media (max-width: 760px) {
-  /* the section links scroll sideways: fade the edge so the cut reads as more */
-  .nav .links { padding-right: 28px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+  .nav .links.has-more { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); }
 }
 @media (max-width: 560px) {
   .hero { padding-block: 36px 16px; }

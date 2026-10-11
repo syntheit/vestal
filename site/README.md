@@ -10,7 +10,7 @@ node site/build.mjs                    # writes site/dist/ and site/dist-preview
 python3 -m http.server -d site/dist 8000   # http://localhost:8000/
 ```
 
-`--vestal <path>` uses another binary; `--no-preview` skips the single-file preview. The build needs Node 18 or later and nothing from npm. It fails when a composed config, an agent request's result, a snippet in `site/snippets/` or a JSON example in `docs/guide/` does not pass `vestal check-config` (the guides' examples must also render from the test fixtures with no diagnostics), and warns when a render has diagnostics or (on macOS, where `vestal screenshot` draws offscreen) when a page clips at 1512x945.
+`--vestal <path>` uses another binary; `--no-preview` skips the single-file preview; `--no-subset` copies the full Phosphor fonts. The build needs Node 18 or later and nothing from npm. It fails when a composed config, an agent request's result, a snippet in `site/snippets/` or a JSON example in `docs/guide/` does not pass `vestal check-config` (the guides' examples must also render from the test fixtures with no diagnostics), and warns when a render has diagnostics or (on macOS, where `vestal screenshot` draws offscreen) when a page clips at 1512x945.
 
 What it does:
 
@@ -19,7 +19,7 @@ What it does:
 3. Runs the agent requests of `asks.json` for real (below) and puts their commands and output on the page.
 4. Draws each recipe (`examples/showcase/<name>.json`) from the test fixtures its test uses (`Tests/VestalCoreTests/Fixtures/full` with `showcase/<name>` over it), for the recipes page.
 5. Reads text from the repository: each widget's JSON from the first example under its heading in `docs/reference/presets.md` (or the sample's widget, whichever `check-config` accepts first), the backgrounds table in `docs/reference/styling.md`, the aurora's comment in `Resources/shaders/aurora.glsl`, and `vestal docs` for the agents section.
-6. Writes `site/dist/`: `index.html`, `site.css`, `site.js`, `common.js`, `mounts.js`, `data/`, `renderer/` (a copy of `web/renderer/`), `assets/icons/` (the Phosphor fonts), `assets/fonts/` (the typefaces), `assets/shaders/` and `assets/samples/` (pictures sample data points at). `data/index.json` is everything the pages say and size (names, captions, JSON, render sizes, page lists); `data/<key>.json` holds the render models of one preview (`hero-<starter>`, `ask-<id>`, `starter-<id>`, `widget-<sample>` with its compact form, `recipe-<name>`), fetched when that preview first comes near. The home page carries the index and the hero's first page inline (`#vestal-data`), so its first paint fetches no data, and preloads every module from its head. Every script, stylesheet and the index is loaded with `?v=<hash of the site>` (module imports included), and each `data/<key>.json` with `?v=<hash of that file>` (from the index), so a browser never pairs a cached renderer with new data and keeps the previews that did not change.
+6. Writes `site/dist/`: `index.html`, `site.css`, `site.js`, `common.js`, `mounts.js`, `data/`, `renderer/` (a copy of `web/renderer/`), `assets/icons/` (Phosphor fonts subset to every generated render model), `assets/fonts/` (the typefaces), `assets/shaders/` and `assets/samples/` (pictures sample data points at). The subsetter checks each used glyph's outline and advance against the source font before the build succeeds. `data/index.json` is everything the pages say and size (names, captions, JSON, render sizes, page lists); `data/<key>.json` holds the render models of one preview (`hero-<starter>`, `ask-<id>`, `starter-<id>`, `widget-<sample>` with its compact form, `recipe-<name>`), fetched when that preview first comes near. The home page carries the index and the hero's first page inline (`#vestal-data`), so its first paint fetches no data, and preloads every module from its head. Every script, stylesheet, icon font and the index is loaded with `?v=<hash of the site>` (module imports included), and each `data/<key>.json` with `?v=<hash of that file>` (from the index), so a browser never pairs a cached renderer with new data and keeps the previews that did not change.
 7. Writes the docs (below), `llms.txt` and `llms-full.txt`.
 8. Writes `site/dist-preview.html`: the same page in one file, for places that allow no other fetches (the renderer and page script bundled into one module, the data, shaders, icon fonts and pictures inline; only Google Fonts is fetched). It has no `<html>`, `<head>` or `<body>`: it starts with `<title>` and `<style>`, for hosts that wrap a fragment.
 
@@ -60,7 +60,7 @@ Every dashboard, starter, widget and background has an expand button (and a clic
 
 | File | |
 |---|---|
-| `build.mjs` | The build. |
+| `build.mjs`, `fontsubset.mjs` | The build and dependency-free TrueType subsetter. |
 | `content.json` | What the page says that the repository can't: the hero's starters, the starters' names, pitches and pages, widget categories, labels for data sources, and the blurred-desktop wallpapers. |
 | `asks.json` | The requests in "Asking an agent for a change" (below). |
 | `snippets/*.json` | Config snippets shown on the page (`data-snippet="<name>"` in the markup); each is checked. |

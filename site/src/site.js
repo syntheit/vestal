@@ -8,13 +8,14 @@
 // and an image resolver, and carries every render model inline, so nothing
 // here fetches.
 
-import { boot, sample, screen, pager, lightboxSet, expandable, wireHash, wireCopy, esc, highlightJSON, reduced, saveData, hasIO, EAGER } from "./common.js";
+import { boot, sample, screen, pager, lightboxSet, expandable, wireHash, wireCopy, wireNavFade, esc, highlightJSON, reduced, saveData, hasIO, EAGER } from "./common.js";
 
 let data;
 
 main().catch((e) => console.error("vestal site:", e));
 
 async function main() {
+  wireNavFade();
   data = await boot();
   fillStatic();
   hero();
