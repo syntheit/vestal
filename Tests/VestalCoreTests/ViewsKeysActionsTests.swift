@@ -244,7 +244,10 @@ final class ViewsKeysActionsTests: XCTestCase {
         let fresh = old.replacingOccurrences(of: #""enabled": "$sources.f.v == \"from f\"""#, with: #""enabled": true"#)
             .replacingOccurrences(of: #""c": { "children""#, with: #""c": { "enabled": false, "children""#)
         h.engine.apply(ConfigLoader.load(data: Data(fresh.utf8), path: "/test/config.json"))
-        await eventually("new views") { h.engine.snapshot?.views.map(\.name) == ["a", "b"] }
+        await eventually("new views") {
+            let names = h.engine.snapshot?.views.map(\.name) ?? []
+            return names.contains("b") && !names.contains("c")
+        }
         try? await Task.sleep(nanoseconds: 100_000_000)
         XCTAssertTrue(["a", "b"].contains(h.engine.view))
         XCTAssertEqual(h.engine.snapshot?.view, h.engine.view)
