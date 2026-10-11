@@ -7470,6 +7470,11 @@
             false,
             "$sources.calendar.events | length > 0"
           ],
+          "type": [
+            "boolean",
+            "string",
+            "null"
+          ],
           "x-vestal-kind": "expr",
           "x-vestal-since": "0.4"
         },

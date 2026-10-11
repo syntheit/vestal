@@ -18,6 +18,16 @@ public enum TreeReaders {
         let widgets = top["widgets"]?.objectValue ?? [:]
         let entries = (viewObject["children"] ?? viewObject["order"])?.arrayValue ?? []
         var readers: [String: [String]] = [:]
+        // Every view's enabled expression is evaluated even when that view
+        // is not current, so its visible-only sources must be in every plan.
+        for (name, value) in (top["views"]?.objectValue ?? [:]).sorted(by: { $0.key < $1.key }) {
+            guard case .string(let expression)? = value.objectValue?["enabled"] else { continue }
+            var names = Set<String>()
+            collect(.string(expression), into: &names, sourceNames: sourceNames)
+            for source in names.sorted() {
+                readers[source, default: []].append("views/\(name)/enabled")
+            }
+        }
         for (index, entry) in entries.enumerated() {
             let reader: String
             let widget: AnyJSON?

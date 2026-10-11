@@ -239,6 +239,8 @@ public enum ConfigSchema {
             return schema
         case .boolean:
             return ["type": .string("boolean")]
+        case .booleanOrString:
+            return ["type": .array([.string("boolean"), .string("string")])]
         case .number:
             return ["type": .string("number")]
         case .duration:
@@ -274,6 +276,10 @@ public enum ConfigSchema {
         if case .string(let type)? = schema["type"] {
             schema["type"] = .array([.string(type), .string("null")])
             if case .array(let values)? = schema["enum"] { schema["enum"] = .array(values + [.null]) }
+            return schema
+        }
+        if case .array(let types)? = schema["type"] {
+            schema["type"] = .array(types + [.string("null")])
             return schema
         }
         if schema["$ref"] != nil {

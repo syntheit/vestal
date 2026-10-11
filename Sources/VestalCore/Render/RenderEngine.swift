@@ -94,6 +94,9 @@ public final class RenderEngine {
     private var changed: Set<String> = []
     private var fullPending = false
     private var scheduled = false
+    /// Invalidates results and view requests queued before a config reload.
+    private var generation = 0
+    private var showRevision = 0
     private var seq = 0
     /// Send `visibility` after the next snapshot (a show).
     private var announce = false
@@ -185,18 +188,28 @@ public final class RenderEngine {
     /// Switches to `view` (and shows the dashboard's content for it).
     public func show(view: String?) {
         let target = view.flatMap { model.views[$0] != nil ? $0 : nil } ?? model.defaultView
+        showRevision += 1
+        if target != currentView, model.enabledExpressions[target] != nil {
+            let generation = self.generation, revision = showRevision
+            let inputs = collectInputs(), now = self.now()
+            queue.async { [worker, weak self] in
+                let data = worker.data(inputs)
+                worker.session.refreshEnabled(data: data, now: now, changed: nil, tick: false)
+                let enabled = worker.session.isActive(target)
+                if enabled { worker.session.setView(target); worker.session.closePopup() }
+                Task { @MainActor [weak self] in
+                    guard let self, self.generation == generation, self.showRevision == revision else { return }
+                    if enabled { self.currentView = target; self.fullPending = true }
+                    if self.isVisible { self.schedule() } else { self.setVisible(true) }
+                }
+            }
+            return
+        }
         if target != currentView {
             currentView = target
             queue.async { [worker] in
                 worker.session.setView(target)
                 worker.session.closePopup()
-                // A view whose `enabled` expression is false stays where it was.
-                let actual = worker.session.view
-                if actual != target {
-                    Task { @MainActor [weak self] in
-                        if let self, self.currentView == target { self.currentView = actual }
-                    }
-                }
             }
             fullPending = true
         }
@@ -205,6 +218,8 @@ public final class RenderEngine {
 
     /// A new config (reload): same visibility, the model rebuilt.
     public func apply(_ fresh: LoadedConfig) {
+        generation += 1
+        showRevision += 1
         loaded = fresh
         model = RenderConfigModel(loaded: fresh)
         if model.views[currentView] == nil { currentView = model.defaultView }
@@ -247,10 +262,14 @@ public final class RenderEngine {
         guard isVisible else { return }
         let inputs = collectInputs()
         let now = self.now()
-        queue.async { [worker] in
+        let generation = self.generation
+        queue.async { [worker, weak self] in
             let data = worker.data(inputs)
             let effects = body(worker.session, data, now)
-            Task { @MainActor [weak self] in self?.perform(effects) }
+            Task { @MainActor [weak self] in
+                guard let self, self.generation == generation else { return }
+                self.perform(effects)
+            }
         }
     }
 
@@ -424,14 +443,18 @@ public final class RenderEngine {
         fullPending = false
         let inputs = collectInputs()
         let now = self.now()
-        queue.async { [worker] in
+        let generation = self.generation
+        queue.async { [worker, weak self] in
             let data = worker.data(inputs)
             let next = worker.session.render(data: data, now: now, changed: full ? nil : changed, tick: isTick)
             let usesNow = worker.session.usesNow
             // A page came or went, or the current view with it: send the whole model.
             let moved = worker.session.viewsChanged
             worker.session.viewsChanged = false
-            Task { @MainActor [weak self] in self?.publish(next, full: full || moved, usesNow: usesNow, viewMoved: moved) }
+            Task { @MainActor [weak self] in
+                guard let self, self.generation == generation else { return }
+                self.publish(next, full: full || moved, usesNow: usesNow, viewMoved: moved)
+            }
         }
     }
 

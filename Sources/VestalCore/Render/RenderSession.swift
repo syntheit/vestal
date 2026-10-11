@@ -139,7 +139,7 @@ public final class RenderSession {
     /// Evaluates the `enabled` expressions that depend on `changed` (all on
     /// `changed == nil`; those that call `now` on a tick), then leaves a
     /// current view that is no longer enabled.
-    private func refreshEnabled(data: RenderData, now: Date, changed: Set<String>?, tick: Bool) {
+    func refreshEnabled(data: RenderData, now: Date, changed: Set<String>?, tick: Bool) {
         guard !model.enabledExpressions.isEmpty else { return }
         let before = Set(model.enabledExpressions.keys.filter { !isActive($0) })
         let pass = RenderPass(model: model, data: data, now: now, view: view, timeZone: timeZone, locale: locale, os: os)
@@ -208,9 +208,14 @@ public final class RenderSession {
         refreshEnabled(data: data, now: now, changed: changed, tick: tick)
         let pass = RenderPass(model: model, data: data, now: now, view: view, timeZone: timeZone, locale: locale, os: os)
         let spec = model.views[view] ?? ViewSpec(name: view, json: [:], density: model.density)
+        let active = isActive(view)
         let full = changed == nil || renderedView != view || children.count != spec.children.count
         let axis: RenderAxis = spec.layout == "row" ? .h : .v
-        if full {
+        if !active {
+            children = []
+            renderedView = nil
+            closePopup()
+        } else if full {
             children = spec.children.enumerated().map { pass.renderRootChild($1, index: $0, axis: axis) }
         } else {
             for (index, entry) in spec.children.enumerated() {
@@ -222,7 +227,7 @@ public final class RenderSession {
                 }
             }
         }
-        renderedView = view
+        if active { renderedView = view }
         if let popup {
             if full || popupChild == nil || popupChild!.dependsOn(changed ?? []) {
                 popupChild = pass.renderPopup(popup.widget)

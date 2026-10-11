@@ -447,6 +447,7 @@ public enum DocsCommand {
             if let minimum, minimum == maximum { return "`\(minimum)`" }
             return minimum.map { "integer ≥ \($0)" } ?? "integer"
         case .boolean: return "boolean"
+        case .booleanOrString: return "boolean or expression"
         case .number: return "number"
         case .duration: return "duration"
         case .oneOf(let values): return values.map { "`\($0)`" }.joined(separator: ", ")

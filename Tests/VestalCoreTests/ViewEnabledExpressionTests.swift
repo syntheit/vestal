@@ -146,6 +146,38 @@ final class ViewEnabledExpressionTests: XCTestCase {
         _ = snapshot
     }
 
+    func testEnabledSourcesAreReadersInEveryView() {
+        let loaded = ConfigLoader.load(data: Data(config(expression).utf8), path: "test.json")
+        for view in ["a", "b", "c"] {
+            XCTAssertTrue(SourceReaders.readers(of: loaded.config, view: view)["cal"]?.contains("views/b/enabled") == true)
+        }
+    }
+
+    func testAllViewsOffRendersNoWidgetsAndResumes() {
+        let text = config(expression)
+            .replacingOccurrences(of: #""a": { "key": "1","#, with: #""a": { "key": "1", "enabled": \#(expression),"#)
+            .replacingOccurrences(of: #""c": { "key": "3","#, with: #""c": { "key": "3", "enabled": \#(expression),"#)
+        let m = model(text)
+        let s = session(m, view: "b")
+        let off = s.render(data: data(m, events: 0), now: Self.now)
+        XCTAssertTrue(off.views.isEmpty)
+        XCTAssertNil(off.pages)
+        XCTAssertTrue(off.root.children.isEmpty)
+        XCTAssertTrue(s.sourcesRead.contains("cal"))
+        let on = s.render(data: data(m, events: 1), now: Self.now, changed: ["cal"])
+        XCTAssertEqual(on.view, "b")
+        XCTAssertEqual(on.views.map(\.name), ["a", "b", "c"])
+        XCTAssertFalse(on.root.children.isEmpty)
+    }
+
+    func testLiteralFalseStillRemovesAView() {
+        let m = model(config("false"))
+        let s = session(m)
+        let snapshot = s.render(data: data(m, events: 1), now: Self.now)
+        XCTAssertEqual(snapshot.views.map(\.name), ["a", "c"])
+        XCTAssertFalse(s.isActive("b"))
+    }
+
     // MARK: check-config
 
     private func diagnostics(_ text: String) -> [ConfigDiagnostic] {

@@ -211,6 +211,46 @@ final class ViewsKeysActionsTests: XCTestCase {
     // MARK: Views (7a)
 
     @MainActor
+    func testShowExpressionViewOffBeforeFirstRenderKeepsCurrentView() async {
+        let config = Self.config.replacingOccurrences(of: #""focus": { "key": "2","#,
+                                                  with: #""focus": { "key": "2", "enabled": "false","#)
+        let h = Harness(config: config)
+        h.resident.start(hidden: true)
+        h.engine.show(view: "focus")
+        await eventually("main view") { h.engine.snapshot?.view == "main" }
+        XCTAssertEqual(h.engine.view, "main")
+        XCTAssertEqual(h.engine.snapshot?.views.map(\.name), ["main"])
+    }
+
+    @MainActor
+    func testReloadDoesNotPublishAnOldViewFallback() async {
+        let old = #"""
+            { "sources": { "f": { "type": "http", "url": "https://f.example", "when": "visible" } },
+              "widgets": { "w": { "type": "text", "text": "view" } },
+              "views": {
+                "a": { "children": ["w"] },
+                "b": { "enabled": "$sources.f.v == \"from f\"", "children": ["w"] },
+                "c": { "children": ["w"] } },
+              "defaultView": "a" }
+            """#
+        let h = Harness(config: old)
+        h.resident.start(hidden: true)
+        _ = await h.runtime.fetchNow(.source("f"))
+        h.engine.show(view: "b")
+        await eventually("b shown") { h.engine.snapshot?.view == "b" }
+
+        h.fetcher.reply("https://f.example", .data(#"{"v":"gone"}"#))
+        _ = await h.runtime.fetchNow(.source("f"))
+        let fresh = old.replacingOccurrences(of: #""enabled": "$sources.f.v == \"from f\"""#, with: #""enabled": true"#)
+            .replacingOccurrences(of: #""c": { "children""#, with: #""c": { "enabled": false, "children""#)
+        h.engine.apply(ConfigLoader.load(data: Data(fresh.utf8), path: "/test/config.json"))
+        await eventually("new views") { h.engine.snapshot?.views.map(\.name) == ["a", "b"] }
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertTrue(["a", "b"].contains(h.engine.view))
+        XCTAssertEqual(h.engine.snapshot?.view, h.engine.view)
+    }
+
+    @MainActor
     func testShowAndToggleWithViews() async {
         let h = Harness()
         h.resident.start(hidden: true)
