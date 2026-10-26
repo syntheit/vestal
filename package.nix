@@ -48,21 +48,44 @@ let
   # UIs) are vendored in Resources/icons (Phosphor, see the README there).
   gtkPkgConfig = callPackage ./nix/gtk-pkgconfig.nix { };
 
-  # Linux: swift-corelibs-foundation reads time zones only from its
-  # compile-time TZDIR, /usr/share/zoneinfo/, which NixOS doesn't have: there
-  # every TimeZone(identifier:) is nil and TimeZone.current is GMT. This build
-  # picks the directory at run time ($TZDIR, /usr/share/zoneinfo, NixOS's
-  # /etc/zoneinfo, then this tzdata) and names the local zone from the
-  # /etc/localtime link wherever it points. vestal runs against it (postFixup).
-  foundation = swiftPackages.Foundation.overrideAttrs (old: {
-    patches = (old.patches or [ ]) ++ [ ./nix/foundation-tzdir.patch ];
+  # Linux: Swift's Foundation reads time zones only from its compile-time
+  # TZDIR, /usr/share/zoneinfo/, which NixOS doesn't have. Two libraries:
+  # - swift-foundation (FoundationEssentials) has TimeZone itself. It finds
+  #   zones in ICU's data, but names TimeZone.current only from an
+  #   /etc/localtime link into TZDIR, so on NixOS it is GMT.
+  # - swift-corelibs-foundation (CoreFoundation) backs NSTimeZone and the
+  #   formatters: DateFormatter or ISO8601DateFormatter with a named zone
+  #   traps when CFTimeZone can't read that zone's file.
+  # These builds pick the directory at run time ($TZDIR, /usr/share/zoneinfo,
+  # NixOS's /etc/zoneinfo, then this tzdata) and name the local zone from the
+  # /etc/localtime link wherever it points. vestal runs against them (postFixup).
+  swiftFoundation = swiftPackages.swift-foundation.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [ ./nix/swift-foundation-tzdir.patch ];
     postPatch = (old.postPatch or "") + ''
-      substituteInPlace CoreFoundation/NumberDate.subproj/CFTimeZone.c \
+      substituteInPlace Sources/FoundationEssentials/TimeZone/TimeZone.swift \
         --replace-fail '@tzdir@' '${tzdata}/share/zoneinfo/'
     '';
   });
-  stockFoundationLib = "${swiftPackages.Foundation}/lib/swift/linux";
-  foundationLib = "${foundation}/lib/swift/linux";
+  # Built against the patched swift-foundation, so its own RUNPATH loads that one too.
+  foundation =
+    (swiftPackages.swift-corelibs-foundation.override { swift-foundation = swiftFoundation; }).overrideAttrs
+      (old: {
+        patches = (old.patches or [ ]) ++ [ ./nix/foundation-tzdir.patch ];
+        postPatch = (old.postPatch or "") + ''
+          substituteInPlace Sources/CoreFoundation/CFTimeZone.c \
+            --replace-fail '@tzdir@' '${tzdata}/share/zoneinfo/'
+        '';
+      });
+  # The RUNPATH entries the swap replaces: the libraries' directories in
+  # nixpkgs' builds, and in the patched ones.
+  stockFoundationLibs = [
+    "${swiftPackages.swift-foundation}/lib"
+    "${swiftPackages.swift-corelibs-foundation}/lib"
+  ];
+  foundationLibs = [
+    "${swiftFoundation}/lib"
+    "${foundation}/lib"
+  ];
 
   # Contents/Info.plist of Vestal.app. Generated rather than templated, so it
   # is well-formed by construction; the flake's `info-plist` check parses it.
@@ -134,7 +157,7 @@ in
   # SwiftPM compiles and runs Package.swift, which on Linux needs libdispatch
   # on the library path (nixpkgs' own swift-format does the same).
   env.LD_LIBRARY_PATH = lib.optionalString stdenv.hostPlatform.isLinux (
-    lib.makeLibraryPath [ swiftPackages.Dispatch ]
+    lib.makeLibraryPath [ swiftPackages.swift-corelibs-libdispatch ]
   );
 
   # The executable only; the test target is not built.
@@ -220,25 +243,40 @@ in
     runHook postInstall
   '';
 
-  # Linux: load Foundation from the time-zone-patched build (same sources,
-  # same ABI) instead of nixpkgs' one. After the fixup phase, which shrinks
-  # the RUNPATH; fails if the stock entry isn't there to replace.
-  postFixup = lib.optionalString stdenv.hostPlatform.isLinux ''
-    bin="$out/libexec/vestal/vestal"
-    stock=${stockFoundationLib}
-    patched=${foundationLib}
-    rpath=$(patchelf --print-rpath "$bin")
-    case ":$rpath:" in
-      *":$stock:"*) ;;
-      *) echo "vestal: $bin's RUNPATH has no $stock: $rpath" >&2; exit 1 ;;
-    esac
-    patchelf --set-rpath "''${rpath//"$stock"/"$patched"}" "$bin"
-  '';
+  # Linux: load Foundation from the time-zone-patched builds (same sources,
+  # same ABI) instead of nixpkgs' ones. After the fixup phase, which shrinks
+  # the RUNPATH; fails if a stock entry isn't there to replace.
+  postFixup = lib.optionalString stdenv.hostPlatform.isLinux (
+    ''
+      bin="$out/libexec/vestal/vestal"
+      rpath=$(patchelf --print-rpath "$bin")
+      swap() {
+        case ":$rpath:" in
+          *":$1:"*) ;;
+          *) echo "vestal: $bin's RUNPATH has no $1: $rpath" >&2; exit 1 ;;
+        esac
+        rpath=":$rpath:"
+        rpath=''${rpath//":$1:"/":$2:"}
+        rpath=''${rpath#:}
+        rpath=''${rpath%:}
+      }
+    ''
+    + lib.concatStrings (
+      lib.zipListsWith (stock: patched: ''
+        swap ${stock} ${patched}
+      '') stockFoundationLibs foundationLibs
+    )
+    + ''
+      patchelf --set-rpath "$rpath" "$bin"
+    ''
+  );
 
   passthru = {
     inherit infoPlist;
-    # Linux: the Foundation vestal runs against (see `foundation` above).
+    # Linux: the Foundation vestal runs against (see `foundation` above),
+    # and the library directories of both patched builds.
     foundation = if stdenv.hostPlatform.isLinux then foundation else null;
+    foundationLibs = lib.optionals stdenv.hostPlatform.isLinux foundationLibs;
     # Whether `vestal daemon` runs on this platform; the Home Manager module
     # only installs a login service when it does. On Linux it runs headless
     # until the UI exists.

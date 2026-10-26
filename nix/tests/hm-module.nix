@@ -259,7 +259,15 @@ let
     settings = starterSettings;
   };
   darwinStarterOnly = evaluate "aarch64-darwin" { starter = "minimal"; };
-  starterOf = c: builtins.fromJSON c.xdg.configFile."vestal/config.json".source.value;
+  # The settings the config file is generated from. pkgs.formats.json passes
+  # them to its builder as the `value` attribute: a JSON string in older
+  # nixpkgs, the value itself (structured attrs) in newer ones.
+  starterOf =
+    c:
+    let
+      v = c.xdg.configFile."vestal/config.json".source.value;
+    in
+    if builtins.isString v then builtins.fromJSON v else v;
   starterFile = id: builtins.fromJSON (builtins.readFile "${self}/Resources/starters/${id}/config.json");
   darwinSignedNoAgent = evaluate "aarch64-darwin" {
     signingIdentity = identity;
@@ -423,8 +431,7 @@ let
     "darwin: assertions pass" = passes darwin;
 
     "signed: settings written with version 1" =
-      builtins.fromJSON darwinSigned.xdg.configFile."vestal/config.json".source.value
-      == settings // { version = 1; };
+      starterOf darwinSigned == settings // { version = 1; };
     "starter: alone it is the starter's config with version 1" =
       starterOf darwinStarterOnly == (starterFile "minimal") // { version = 1; };
     "starter: settings override scalars" =

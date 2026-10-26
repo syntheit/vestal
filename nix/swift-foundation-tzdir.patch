@@ -1,0 +1,48 @@
+--- a/Sources/FoundationEssentials/TimeZone/TimeZone_Cache.swift
++++ b/Sources/FoundationEssentials/TimeZone/TimeZone_Cache.swift
+@@ -167,6 +167,15 @@
+                             return TimeZone(inner: result)
+                         }
+                     }
++                    // Nix: /etc/localtime points into another zoneinfo
++                    // directory than TZDIR (NixOS: /etc/zoneinfo/Area/City);
++                    // the name is what follows "/zoneinfo/".
++                    if let rangeOfZoneInfo = file._range(of: "/zoneinfo/", anchored: false, backwards: false) {
++                        let name = file[rangeOfZoneInfo.upperBound...]
++                        if !name.isEmpty, let result = fixed(String(name)) {
++                            return TimeZone(inner: result)
++                        }
++                    }
+                 }
+             }
+             
+--- a/Sources/FoundationEssentials/TimeZone/TimeZone.swift
++++ b/Sources/FoundationEssentials/TimeZone/TimeZone.swift
+@@ -400,12 +400,22 @@
+ #if NO_TZFILE || os(Windows) || os(WASI)
+         return Data()
+ #else
+-        let path = TZDIR + "/" + name
+-        guard !path.contains("..") else {
+-            // No good reason for .. to be present anywhere in the path
+-            return Data()
++        // Nix: the time zone directory is chosen at run time, not fixed at
++        // TZDIR (/usr/share/zoneinfo/, which NixOS doesn't have): $TZDIR,
++        // then TZDIR, then NixOS's /etc/zoneinfo/, then the tzdata this
++        // Foundation was built with.
++        let dirs = [ProcessInfo.processInfo.environment["TZDIR"], TZDIR, "/etc/zoneinfo/", "@tzdir@"]
++        for case let dir? in dirs where !dir.isEmpty {
++            let path = dir + "/" + name
++            guard !path.contains("..") else {
++                // No good reason for .. to be present anywhere in the path
++                continue
++            }
++            if let data = try? Data(contentsOfFile: path), !data.isEmpty {
++                return data
++            }
+         }
+-        return (try? Data(contentsOfFile: path)) ?? Data()
++        return Data()
+ #endif
+     }
+ 

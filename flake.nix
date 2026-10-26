@@ -43,9 +43,9 @@
               pkgs.swiftpm
             ]
             ++ lib.optionals pkgs.stdenv.hostPlatform.isLinux [
-              pkgs.swiftPackages.Foundation
-              pkgs.swiftPackages.Dispatch
-              pkgs.swiftPackages.XCTest
+              pkgs.swiftPackages.swift-corelibs-foundation
+              pkgs.swiftPackages.swift-corelibs-libdispatch
+              pkgs.swiftPackages.swift-corelibs-xctest
               # The GTK UI (VestalLinux): vestal-gtk4.pc and its libraries.
               pkgs.pkg-config
               pkgs.sqlite
@@ -59,7 +59,7 @@
           }
           // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
             # SwiftPM compiles and runs Package.swift against libdispatch.
-            LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.swiftPackages.Dispatch ];
+            LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.swiftPackages.swift-corelibs-libdispatch ];
             # Where a dev build of the Linux UI finds Geist, Geist Mono and
             # the Phosphor icon fonts (the package installs them next to the
             # binary instead).
