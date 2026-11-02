@@ -34,7 +34,7 @@ Both sources give the same shape:
 
 ```jsonc
 {
-  "session": { "percent": 25, "resetsAt": 1790547000,     // the 5-hour window, or null
+  "session": { "percent": 25, "resetsAt": 1790547000,     // the 5-hour window, or null (none on the plan)
                "resetsText": "Sep 27 at 7:10pm (America/Buenos_Aires)" },
   "weekly": { "percent": 59, "resetsAt": 1791064800,      // the weekly window (all models), or null
               "resetsText": "Oct 3 at 7pm (America/Buenos_Aires)" },

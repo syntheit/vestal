@@ -321,11 +321,11 @@ Current weather from `source` with dot paths in `fields` (`location`, `region`, 
 
 ### `claudeUsage`
 
-The Claude plan's usage as a status row: `session% / weekly%` from the `claude` source (`–` for a window it doesn't report). `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored.
+The Claude plan's usage as a status row: `session% / weekly%` from the `claude` source (`–` for a window it doesn't report; only `weekly%` on a plan without a 5-hour window). `path`, `fiveHourLimit` and `weeklyLimit` are accepted and ignored.
 
 ### `aiUsage`
 
-Claude and Codex plan usage in one row: each service's 5-hour and weekly windows as small bars with their percentage, each followed by when it resets (`in 4h`), all on one line. A bar turns red from 90%. `show` (default `["claude", "codex"]`) picks the services and their order; `claudeSource` and `codexSource` (defaults `claude`, `codex`) what they read. A service whose source has no data yet is left out, and so is a Codex 5-hour window the plan doesn't have. See `vestal docs ai-usage`.
+Claude and Codex plan usage in one row: each service's 5-hour and weekly windows as small bars with their percentage, each followed by when it resets (`in 4h`), all on one line. A bar turns red from 90%. `show` (default `["claude", "codex"]`) picks the services and their order; `claudeSource` and `codexSource` (defaults `claude`, `codex`) what they read. A service whose source has no data yet is left out, and so is a 5-hour window the plan doesn't have (higher Claude Max tiers, some Codex plans). See `vestal docs ai-usage`.
 
 ### `worldClocks`
 

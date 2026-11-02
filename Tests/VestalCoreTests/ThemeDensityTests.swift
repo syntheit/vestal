@@ -102,10 +102,10 @@ final class ThemeDensityTests: XCTestCase {
         XCTAssertEqual(stack.children.count, 2)
     }
 
-    /// The snapshot of a compact config with the given source data.
-    private func snapshot(_ widgets: String, _ sources: [String: JQValue] = [:]) throws -> RenderSnapshot {
+    /// The snapshot of a compact (or `density`) config with the given source data.
+    private func snapshot(_ widgets: String, _ sources: [String: JQValue] = [:], density: String = "compact") throws -> RenderSnapshot {
         let model = RenderConfigModel(expanded: ConfigExpansion.expand(try tree("""
-            { "theme": { "density": "compact" }, "widgets": { \(widgets) },
+            { "theme": { "density": "\(density)" }, "widgets": { \(widgets) },
               "sources": { "claude": { "type": "claude" }, "codex": { "type": "codex" } },
               "views": { "main": { "children": ["w"] } } }
             """)))
@@ -142,6 +142,23 @@ final class ThemeDensityTests: XCTestCase {
         let unread = try JQValue.parse(#"{"session": {"percent": 40, "resetsAt": null, "resetsText": "someday"}, "weekly": null}"#)
         XCTAssertEqual(texts(try snapshot(#""w": { "type": "aiUsage", "show": ["claude"] }"#, ["claude": unread])),
                        ["Claude", "5h", "40%", "wk", "–"])
+    }
+
+    /// A plan without a 5-hour window (higher Claude Max tiers: `session`
+    /// is null) shows only the weekly one, at both densities: no empty 5h
+    /// bar in aiUsage, no "– /" in the claudeUsage item.
+    func testAIUsageWithoutFiveHourWindow() throws {
+        let at = Int(Self.at.timeIntervalSince1970)
+        let claude = try JQValue.parse("""
+            {"session": null, "weekly": {"percent": 34, "resetsAt": \(at + 5 * 86400 + 60), "resetsText": null},
+             "extra": [], "updatedAt": \(at), "source": "api", "plan": null}
+            """)
+        for density in ["comfortable", "compact"] {
+            let usage = texts(try snapshot(#""w": { "type": "aiUsage", "show": ["claude"] }"#, ["claude": claude], density: density))
+            XCTAssertFalse(usage.contains("5h"), "\(density): \(usage)")
+            XCTAssertTrue(usage.contains("wk") && usage.contains("34%"), "\(density): \(usage)")
+            XCTAssertEqual(texts(try snapshot(#""w": { "type": "claudeUsage" }"#, ["claude": claude], density: density)), ["34%"], density)
+        }
     }
 
     /// Up to three world clocks share the date's line; more get their own.
