@@ -269,7 +269,7 @@ extension DefaultPresets {
               "disk": { "type": "row", "gap": 4, "input": "$data", "children": [
                 { "type": "icon", "name": "hard-drives", "size": 9, "color": "dim" },
                 { "type": "text", "when": ".disks[0] != null",
-                  "text": "{{ .disks[0].free / 1073741824 | fmt_fixed(0) }}/{{ .disks[0].total / 1073741824 | fmt_fixed(0) }}GB",
+                  "text": "{{ .disks[0].used / 1073741824 | fmt_fixed(0) }}/{{ .disks[0].total / 1073741824 | fmt_fixed(0) }}GB",
                   "style": { "size": 11, "color": "subtle" } }
               ] },
               "battery": { "type": "row", "gap": 4, "input": "$data.battery", "when": ". != null", "children": [
