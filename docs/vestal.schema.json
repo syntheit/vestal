@@ -13315,7 +13315,7 @@
     },
     "widget.claudeItem": {
       "additionalProperties": false,
-      "description": "An icon and 'session% / weekly%' from a claude or codex source ('–' for a window it doesn't report)",
+      "description": "An icon and 'session% / weekly%' from a claude or codex source ('–' for a window it doesn't report; only weekly% without a 5-hour window)",
       "properties": {
         "action": {
           "description": "An action or a list of actions, run on click and on key: run, open, copy, refresh, view, popup, close, media, audio, timer, toggleTodo, hide.",

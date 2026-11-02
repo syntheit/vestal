@@ -116,7 +116,7 @@ public enum DefaultPresets {
       },
 
       "claudeItem": {
-        "description": "An icon and 'session% / weekly%' from a claude or codex source ('–' for a window it doesn't report)",
+        "description": "An icon and 'session% / weekly%' from a claude or codex source ('–' for a window it doesn't report; only weekly% without a 5-hour window)",
         "params": {
           "icon": { "type": "icon", "default": "hourglass" }
         },
@@ -124,7 +124,7 @@ public enum DefaultPresets {
           "type": "row", "gap": 5,
           "children": [
             { "type": "icon", "name": { "param": "icon" }, "size": 10, "color": "dim" },
-            { "type": "text", "text": "{{ [.session, .weekly] | map(if . == null then \"–\" else \"\\(.percent)%\" end) | join(\" / \") }}", "style": { "size": 12, "font": "mono", "color": "subtle" } }
+            { "type": "text", "text": "{{ (if .session == null and .weekly != null then [.weekly] else [.session, .weekly] end) | map(if . == null then \"–\" else \"\\(.percent)%\" end) | join(\" / \") }}", "style": { "size": 12, "font": "mono", "color": "subtle" } }
           ]
         }
       },
@@ -183,7 +183,7 @@ public enum DefaultPresets {
               "row": { "type": "switch", "on": ".", "cases": {
                 "claude": { "type": "row", "gap": 8, "height": 18, "source": { "param": "claudeSource" }, "children": [
                   { "type": "text", "text": "Claude", "style": { "size": 11, "weight": "semibold", "color": "subtle" } },
-                  { "type": "aiWindow", "label": "5h", "window": ".session", "color": "orange" },
+                  { "type": "aiWindow", "label": "5h", "window": ".session", "color": "orange", "when": ".session != null" },
                   { "type": "aiWindow", "label": "wk", "window": ".weekly", "color": "orange" }
                 ] },
                 "codex": { "type": "row", "gap": 8, "height": 18, "source": { "param": "codexSource" }, "children": [
