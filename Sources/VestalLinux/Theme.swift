@@ -182,6 +182,17 @@ enum BundledFonts {
     /// for this process, before GTK loads any font. Looked up in
     /// `$VESTAL_FONT_DIRS` (colon-separated, for dev builds) and next to the
     /// executable in `share/vestal/{fonts,icons}` (the Nix package).
+    ///
+    /// The fonts go into the current fontconfig config, which is then pinned
+    /// on Pango's default font map (the one GTK draws with). Without the pin
+    /// they vanish while vestal runs: when fonts change on the system (a
+    /// NixOS or Home Manager switch), the settings portal bumps
+    /// `org.gnome.fontconfig serial`, and GTK answers with
+    /// `FcInitReinitialize()`, a fresh current config without app fonts.
+    /// Icons not already cached by Pango then fall back to whatever other
+    /// font covers their private-use code points (Nerd Fonts' weather icons,
+    /// unifont's hex boxes). With the pin, GTK's reload only clears Pango's
+    /// caches; fonts installed later show up when vestal restarts.
     static func register() {
         guard !registered else { return }
         registered = true
@@ -195,12 +206,23 @@ enum BundledFonts {
             dirs.append(share.appendingPathComponent("fonts").path)
             dirs.append(share.appendingPathComponent("icons").path)
         }
+        guard let config = FcConfigReference(nil) else {
+            uiLog("linux ui: no fontconfig configuration; icons will not draw")
+            return
+        }
+        defer { FcConfigDestroy(config) }
         var added = 0
         for dir in dirs where FileManager.default.fileExists(atPath: dir) {
-            if FcConfigAppFontAddDir(nil, dir) != 0 { added += 1 }
+            if FcConfigAppFontAddDir(config, dir) != 0 { added += 1 }
         }
         if added == 0 {
             uiLog("linux ui: no bundled font directory found; icons will not draw (set VESTAL_FONT_DIRS)")
+        }
+        // pango_cairo_font_map_get_default() is per thread: this is the
+        // main thread's, which GTK uses. It takes its own reference.
+        let fontMap = pango_cairo_font_map_get_default()
+        if let fontMap, g_type_check_instance_is_a(cast(fontMap), pango_fc_font_map_get_type()) != 0 {
+            pango_fc_font_map_set_config(opaque(fontMap), config)
         }
     }
 }

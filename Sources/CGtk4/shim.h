@@ -1,10 +1,11 @@
 // The C APIs VestalLinux calls (Linux only): GTK 4, gtk4-layer-shell
-// (wlr-layer-shell for GTK), libepoxy (the GL loader GTK itself uses) and
-// fontconfig. Flags and libraries come from `vestal-gtk4.pc`
-// (nix/gtk-pkgconfig.nix).
+// (wlr-layer-shell for GTK), libepoxy (the GL loader GTK itself uses),
+// fontconfig and Pango's fontconfig font map (pangoft2). Flags and
+// libraries come from `vestal-gtk4.pc` (nix/gtk-pkgconfig.nix).
 #include <epoxy/gl.h>
 #include <fontconfig/fontconfig.h>
 #include <gtk/gtk.h>
+#include <pango/pangofc-fontmap.h>
 #include <gdk/wayland/gdkwayland.h>
 #include <gtk4-layer-shell.h>
 #include <glib-unix.h>
