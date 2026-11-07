@@ -279,6 +279,21 @@ let
   layerRule = effect: "${effect}, match:namespace ^(vestal)$";
   # Home Manager's Hyprland module before configType existed wrote hyprlang.
   hyprlang = (config.wayland.windowManager.hyprland.configType or "hyprlang") == "hyprlang";
+  # "MODS, key" as Lua's `hl.bind` takes it: "MODS + key".
+  luaKeys =
+    bind:
+    let
+      parts = lib.splitString "," bind;
+      mods = lib.filter (m: m != "") (lib.splitString " " (lib.trim (lib.head parts)));
+    in
+    lib.concatStringsSep " + " (mods ++ [ (lib.trim (lib.last parts)) ]);
+  # The layer rules' effects, as one Lua `hl.layer_rule` takes them.
+  luaLayerEffects =
+    lib.optionalAttrs (cfg.hyprland.blur && compositorBlur) (
+      { blur = true; } // lib.optionalAttrs (cfg.hyprland.ignoreAlpha != null) { ignore_alpha = cfg.hyprland.ignoreAlpha; }
+    )
+    // lib.optionalAttrs (cfg.hyprland.animation != null) { inherit (cfg.hyprland) animation; }
+    // lib.optionalAttrs cfg.hyprland.noAnim { no_anim = true; };
 
   # With signingIdentity unset, removes the copy activation installed while
   # it was set. The stamp says the copy is ours; an app without one is never
@@ -511,7 +526,8 @@ in
         the Hyprland integration (Linux only; ignored on macOS): a bind that
         runs `vestal toggle`, and, with `theme.backdrop = "compositor"`,
         layer rules that blur behind the dashboard. It
-        adds to {option}`wayland.windowManager.hyprland.settings` and needs
+        adds to {option}`wayland.windowManager.hyprland.settings`, in the form
+        {option}`wayland.windowManager.hyprland.configType` asks for, and needs
         Hyprland 0.53 or later (the `match:` rule syntax)
       '';
 
@@ -528,7 +544,8 @@ in
         description = ''
           The modifiers and key of the Hyprland bind that runs
           `vestal toggle`, as a `bind` line has them before the dispatcher
-          (`"MODS, key"`). `null` adds no bind. vestal registers no hotkey of
+          (`"MODS, key"`; with a Lua config it becomes `"MODS + key"`).
+          `null` adds no bind. vestal registers no hotkey of
           its own on Linux, so this bind is what its hotkey setting does there.
         '';
       };
@@ -710,15 +727,17 @@ in
       };
     })
 
-    # The lines below are hyprlang. Home Manager's Lua output would turn each
-    # into a call with the wrong name and arguments, so there it only warns.
+    # Home Manager's Lua output makes each entry an `hl.<name>(...)` call.
     (mkIf (isLinux && cfg.hyprland.enable && !hyprlang) {
-      warnings = [
-        ''
-          programs.vestal.hyprland writes hyprlang `bind` and `layerrule` lines, but
-          wayland.windowManager.hyprland.configType is not "hyprlang", so it adds nothing.
-          Bind `vestal toggle` and add layer rules for the namespace `vestal` yourself.''
-      ];
+      wayland.windowManager.hyprland.settings = {
+        bind = lib.optional (cfg.hyprland.bind != null) {
+          _args = [
+            (luaKeys cfg.hyprland.bind)
+            (lib.generators.mkLuaInline "hl.dsp.exec_cmd(${lib.generators.toLua { } "${lib.getExe cfg.package} toggle"})")
+          ];
+        };
+        layer_rule = lib.optional (luaLayerEffects != { }) ({ match.namespace = "^(vestal)$"; } // luaLayerEffects);
+      };
     })
 
     (mkIf (isLinux && cfg.hyprland.enable && hyprlang) {
