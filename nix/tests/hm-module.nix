@@ -364,10 +364,30 @@ let
       bind = null;
     };
   };
-  hyprLua = evaluateWith [ { wayland.windowManager.hyprland.configType = "lua"; } ] "x86_64-linux" {
-    package = fake;
-    hyprland.enable = true;
+  # A Lua config: `hl.bind` and `hl.layer_rule` entries instead of lines.
+  hyprLuaWith =
+    vestal:
+    evaluateWith [ { wayland.windowManager.hyprland.configType = "lua"; } ] "x86_64-linux" (
+      {
+        package = fake;
+        hyprland.enable = true;
+      }
+      // vestal
+    );
+  hyprLua = hyprLuaWith {
+    settings = settings // {
+      platform.linux = {
+        hotkey = "super+shift+d";
+        theme.backdrop = "compositor";
+      };
+    };
+    hyprland = {
+      enable = true;
+      noAnim = true;
+    };
   };
+  hyprLuaHome = hyprLuaWith { inherit settings; };
+  luaToggle = lib.generators.mkLuaInline ''hl.dsp.exec_cmd("${fake}/bin/vestal toggle")'';
   hyprOff = evaluate "x86_64-linux" {
     package = fake;
     inherit settings;
@@ -544,10 +564,25 @@ let
     "hyprland: an unusable hotkey fails, unless the bind is set" =
       !(passes hyprBad) && passes hyprBadOverridden && hyprBinds hyprBadOverridden == [ "SUPER, T, exec, foot" ];
     "hyprland: assertions pass" = passes hyprHome && passes hyprOverride && passes hyprNone;
-    "hyprland: with a Lua config, only a warning" =
-      hyprLua.warnings != [ ]
-      && hyprLua.wayland.windowManager.hyprland.settings == { }
+    "hyprland: with a Lua config, a bind and one layer rule" =
+      hyprLua.wayland.windowManager.hyprland.settings == {
+        bind = [ { _args = [ "SUPER + SHIFT + D" luaToggle ]; } ];
+        layer_rule = [
+          {
+            match.namespace = "^(vestal)$";
+            blur = true;
+            ignore_alpha = 0.3;
+            no_anim = true;
+          }
+        ];
+      }
+      && hyprLua.warnings == [ ]
       && hyprHome.warnings == [ ];
+    "hyprland: with a Lua config, no layer rule for the self backdrop" =
+      hyprLuaHome.wayland.windowManager.hyprland.settings == {
+        bind = [ { _args = [ "Home" luaToggle ]; } ];
+        layer_rule = [ ];
+      };
     "claude: off by default" =
       !(darwin.home.activation ? vestalClaudeStatusLine) && !(linux.home.activation ? vestalClaudeStatusLine);
     "claude: after the files are written" = lib.elem "writeBoundary" (claudeStep claudeA).after;
